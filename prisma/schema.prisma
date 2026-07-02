@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  plan          String         @default("FREE") // FREE | PRO | ENTERPRISE
+  createdAt     DateTime       @default(now())
+  users         User[]
+  conversations Conversation[]
+  apiKeys       ApiKey[]
+  usageRecords  UsageRecord[]
+  invites       Invite[]
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  role          String         @default("MEMBER") // OWNER | ADMIN | MEMBER
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  sessions      Session[]
+  conversations Conversation[]
+  usageRecords  UsageRecord[]
+}
+
+model Session {
+  id        String   @id // random token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id        String       @id @default(cuid())
+  title     String       @default("New conversation")
+  model     String       @default("gpt-4o-mini")
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Message {
+  id               String       @id @default(cuid())
+  conversationId   String
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role             String // user | assistant | system
+  content          String
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+  createdAt        DateTime     @default(now())
+}
+
+model ApiKey {
+  id           String       @id @default(cuid())
+  name         String
+  prefix       String // first chars shown in UI, e.g. "ak_live_a1b2"
+  keyHash      String       @unique // sha256 of full key
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  usageRecords UsageRecord[]
+}
+
+model UsageRecord {
+  id               String       @id @default(cuid())
+  orgId            String
+  org              Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  apiKeyId         String?
+  apiKey           ApiKey?      @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  source           String // WEB | API
+  createdAt        DateTime     @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+model Invite {
+  id         String       @id @default(cuid())
+  email      String
+  role       String       @default("MEMBER")
+  token      String       @unique
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime     @default(now())
+}

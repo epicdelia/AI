@@ -1,0 +1,290 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BARGHAIN — Bouncer Simulator</title>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --panel: #131318;
+    --edge: #26262e;
+    --text: #d9d9df;
+    --dim: #8a8a94;
+    --accent: #c8ff00;
+    --danger: #ff3b5c;
+    --ok: #35e08c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Courier New", ui-monospace, monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200,255,0,0.06), transparent),
+      repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.012) 3px 4px);
+  }
+  #game {
+    width: 100%;
+    max-width: 640px;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 28px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+  h1 {
+    font-size: 26px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 24px rgba(200,255,0,0.35);
+  }
+  .sub { color: var(--dim); font-size: 13px; margin-top: 6px; letter-spacing: 2px; }
+  hr { border: none; border-top: 1px solid var(--edge); margin: 20px 0; }
+  .scene { font-size: 15px; line-height: 1.65; white-space: pre-wrap; min-height: 90px; }
+  .bouncer { color: var(--accent); }
+  .bad { color: var(--danger); }
+  .good { color: var(--ok); }
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    text-align: left;
+    background: #1a1a21;
+    color: var(--text);
+    border: 1px solid var(--edge);
+    border-radius: 6px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .06s;
+  }
+  button:hover { border-color: var(--accent); background: #20202a; }
+  button:active { transform: scale(0.99); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+  #meter-wrap { margin-top: 22px; }
+  .meter-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; letter-spacing: 2px; color: var(--dim);
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  #meter { height: 8px; background: #1e1e26; border-radius: 4px; overflow: hidden; }
+  #meter-fill {
+    height: 100%; width: 50%;
+    background: linear-gradient(90deg, var(--danger), #ffb545 45%, var(--ok));
+    border-radius: 4px;
+    transition: width .5s ease;
+  }
+  .queue-tip {
+    margin-top: 18px; padding: 10px 14px;
+    border-left: 3px solid var(--edge);
+    color: var(--dim); font-size: 12.5px; font-style: italic;
+  }
+  .flash { animation: flash .35s; }
+  @keyframes flash { 0% { background: #20202a; } 100% { background: var(--panel); } }
+  .stamp {
+    display: inline-block; margin-top: 14px; padding: 8px 18px;
+    border: 3px solid currentColor; border-radius: 4px;
+    font-size: 22px; font-weight: bold; letter-spacing: 6px;
+    transform: rotate(-4deg);
+  }
+</style>
+
+<div id="game">
+  <h1>Barghain</h1>
+  <div class="sub">BOUNCER SIMULATOR &middot; SUNDAY 04:37 AM</div>
+  <hr>
+  <div class="scene" id="scene"></div>
+  <div class="choices" id="choices"></div>
+  <div id="meter-wrap">
+    <div class="meter-label"><span>Vibe check</span><span id="meter-pct"></span></div>
+    <div id="meter"><div id="meter-fill"></div></div>
+  </div>
+  <div class="queue-tip" id="tip"></div>
+</div>
+
+<script>
+"use strict";
+
+const TIPS = [
+  "Rumor in the queue: all black is not a rule, but it never hurt anyone.",
+  "The person in front of you has been rehearsing 'zwei, bitte' for forty minutes.",
+  "Someone three spots back just got turned away for vlogging the queue.",
+  "Nobody knows the rules. That is the rule.",
+  "A guy in flip-flops left the queue voluntarily. Wise.",
+  "Do not smile too much. Do not not smile. Good luck.",
+  "Know who is playing tonight. At least one name.",
+  "Big loud groups get sent home. The queue whispers for a reason.",
+];
+
+let vibe;       // 0..100
+let stage;      // index into current path
+let outfitDesc; // remembered for flavor
+
+const $scene = document.getElementById("scene");
+const $choices = document.getElementById("choices");
+const $fill = document.getElementById("meter-fill");
+const $pct = document.getElementById("meter-pct");
+const $tip = document.getElementById("tip");
+const $game = document.getElementById("game");
+
+function setVibe(delta) {
+  vibe = Math.max(0, Math.min(100, vibe + delta));
+  $fill.style.width = vibe + "%";
+  $pct.textContent = vibe + "%";
+}
+
+function render(text, options) {
+  $game.classList.remove("flash");
+  void $game.offsetWidth;
+  $game.classList.add("flash");
+  $scene.innerHTML = text;
+  $choices.innerHTML = "";
+  for (const opt of options) {
+    const b = document.createElement("button");
+    if (opt.primary) b.classList.add("primary");
+    b.textContent = opt.label;
+    b.onclick = () => opt.next(opt);
+    $choices.appendChild(b);
+  }
+  $tip.textContent = "» " + TIPS[Math.floor(Math.random() * TIPS.length)];
+}
+
+/* ---------------- Stages ---------------- */
+
+function start() {
+  vibe = 50;
+  setVibe(0);
+  render(
+    "Berlin. February. The bass from inside the concrete cathedral reaches you " +
+    "through 200 meters of drizzle and a queue of the internationally hopeful.\n\n" +
+    "You have been standing in line for 2 hours and 12 minutes. " +
+    "The door is close now. Time to make some decisions.",
+    [
+      { label: "▸ Get in line", primary: true, next: chooseOutfit },
+    ]
+  );
+}
+
+function chooseOutfit() {
+  render(
+    "First things first. What are you wearing tonight?",
+    [
+      { label: "Head-to-toe black. Worn. Nothing trying too hard.", next: (o) => { outfitDesc = "all black"; setVibe(+15); chooseGroup(); } },
+      { label: "Mesh top, harness, industrial boots.", next: (o) => { outfitDesc = "the harness"; setVibe(+10); chooseGroup(); } },
+      { label: "Smart-casual blazer. You came from a work dinner.", next: (o) => { outfitDesc = "a blazer"; setVibe(-15); chooseGroup(); } },
+      { label: "Full tourist: cargo shorts, white sneakers, festival wristbands.", next: (o) => { outfitDesc = "cargo shorts"; setVibe(-25); chooseGroup(); } },
+    ]
+  );
+}
+
+function chooseGroup() {
+  render(
+    "You're wearing " + outfitDesc + ". Who are you rolling up with?",
+    [
+      { label: "Alone. Just you and the night.", next: () => { setVibe(+15); queueEvent(); } },
+      { label: "One friend who has been here before.", next: () => { setVibe(+10); queueEvent(); } },
+      { label: "Four coworkers. It's Dave's birthday!", next: () => { setVibe(-20); queueEvent(); } },
+      { label: "A bachelor party of nine, two wearing matching sashes.", next: () => { setVibe(-35); queueEvent(); } },
+    ]
+  );
+}
+
+function queueEvent() {
+  render(
+    "The queue creeps forward. Someone near you loudly announces they " +
+    "\"know a guy who can get everyone in.\" A phone flashlight sweeps the line — " +
+    "someone is filming a story.\n\nWhat do you do while you wait?",
+    [
+      { label: "Stand quietly. Look at nothing. Radiate calm.", next: () => { setVibe(+10); phoneMoment(); } },
+      { label: "Quietly check tonight's lineup one more time.", next: () => { setVibe(+10); phoneMoment(); } },
+      { label: "Practice your German loudly with the wrong grammar.", next: () => { setVibe(-10); phoneMoment(); } },
+      { label: "Start a chant to boost queue morale.", next: () => { setVibe(-25); phoneMoment(); } },
+    ]
+  );
+}
+
+function phoneMoment() {
+  render(
+    "You're ten people from the door now. You can see him: the bouncer. " +
+    "Tattoos, piercings, the thousand-yard stare of a man who has said 'nein' " +
+    "more times than anyone alive.\n\nYour phone buzzes. Your friends want a queue selfie.",
+    [
+      { label: "Phone away. Airplane mode. This is church.", next: () => { setVibe(+15); theQuestion(); } },
+      { label: "One quick discreet text: 'in line, wish me luck'", next: () => { setVibe(0); theQuestion(); } },
+      { label: "Selfie with flash, geotag, hashtag #barghain", next: () => { setVibe(-30); theQuestion(); } },
+    ]
+  );
+}
+
+function theQuestion() {
+  render(
+    "It's your turn.\n\nHe looks at you for three full seconds. It feels like a year.\n\n" +
+    "<span class='bouncer'>BOUNCER: \"Wie viele?\"</span> <i>(How many?)</i>",
+    [
+      { label: "\"Zwei.\" Hold eye contact. Nothing else.", next: () => { setVibe(+15); theFollowUp(); } },
+      { label: "\"Two! Sorry — zwei! Haha, is that right?\"", next: () => { setVibe(-10); theFollowUp(); } },
+      { label: "\"How many what?\"", next: () => { setVibe(-15); theFollowUp(); } },
+      { label: "Show him the group chat to count everyone.", next: () => { setVibe(-25); theFollowUp(); } },
+    ]
+  );
+}
+
+function theFollowUp() {
+  render(
+    "He tilts his head one degree.\n\n" +
+    "<span class='bouncer'>BOUNCER: \"Was läuft heute?\"</span> <i>(What's playing tonight?)</i>",
+    [
+      { label: "Name the resident DJ on tonight's flyer, casually.", next: () => { setVibe(+15); verdict(); } },
+      { label: "\"Techno?\"", next: () => { setVibe(-10); verdict(); } },
+      { label: "\"Whatever it is, I'm here for the JOURNEY, man.\"", next: () => { setVibe(-20); verdict(); } },
+      { label: "Say nothing. Nod once, slowly, like you both already know.", next: () => { setVibe(+5); verdict(); } },
+    ]
+  );
+}
+
+function verdict() {
+  const roll = Math.random() * 20 - 10; // the door is never fully knowable
+  const finalScore = vibe + roll;
+
+  if (finalScore >= 60) {
+    render(
+      "A long pause. The drizzle stops, or maybe you just stop noticing it.\n\n" +
+      "He unhooks the rope and looks past you like you're already inside.\n\n" +
+      "<span class='bouncer'>BOUNCER: \"Na gut.\"</span>\n\n" +
+      "<span class='good'>You slip past into the concrete womb of sound. " +
+      "No photos. No memory. Just bass until Monday.</span>" +
+      "<br><span class='stamp good'>EINLASS</span>",
+      [
+        { label: "↻ Queue again (it's a lifestyle)", primary: true, next: start },
+      ]
+    );
+  } else if (finalScore >= 40) {
+    render(
+      "He stares at you. You stare back. Somewhere inside, a kick drum counts to four forever.\n\n" +
+      "<span class='bouncer'>BOUNCER: \"Heute nicht.\"</span> <i>(Not today.)</i>\n\n" +
+      "It's not a no forever. It's a no for now. That's almost respect.\n" +
+      "<br><span class='stamp bad'>HEUTE NICHT</span>",
+      [
+        { label: "↻ Try again next weekend", primary: true, next: start },
+      ]
+    );
+  } else {
+    render(
+      "He doesn't even let you finish standing there.\n\n" +
+      "<span class='bouncer'>BOUNCER: \"Nein.\"</span>\n\n" +
+      "<span class='bad'>The rope does not move. The queue absorbs your shame silently, " +
+      "as it has absorbed thousands before you. A club photographer would take your " +
+      "picture right now, but of course — no photos.</span>" +
+      "<br><span class='stamp bad'>NEIN</span>",
+      [
+        { label: "↻ Change everything about yourself and requeue", primary: true, next: start },
+      ]
+    );
+  }
+}
+
+start();
+</script>

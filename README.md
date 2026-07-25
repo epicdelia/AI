@@ -62,9 +62,10 @@ src/
     page.tsx         marketing landing + pricing
     login/ signup/ invite/[token]/
     dashboard/
-      chat/          streaming chat UI + conversation history
+      chat/          streaming chat UI (markdown rendering) + history
       usage/         KPI tiles, daily token chart, model breakdown
-      settings/      team, API keys, billing plan
+      developers/    in-app API reference with curl examples
+      settings/      workspace name, team, API keys, billing plan
     api/
       auth/ chat/ conversations/ keys/ team/ org/
       v1/chat/completions/   public API-key endpoint

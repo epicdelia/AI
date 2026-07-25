@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getPlan } from "@/lib/plans";
+import WorkspaceSection from "./workspace-section";
 import TeamSection from "./team-section";
 import ApiKeysSection from "./api-keys-section";
 import PlanSection from "./plan-section";
@@ -31,6 +32,8 @@ export default async function SettingsPage() {
             {user.org.name} · {plan.name} plan · you are {user.role.toLowerCase()}
           </p>
         </header>
+
+        <WorkspaceSection orgName={user.org.name} isAdmin={isAdmin} />
 
         <TeamSection
           members={members}

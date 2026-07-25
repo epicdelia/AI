@@ -38,6 +38,12 @@ export default async function DashboardLayout({
             📊 Usage
           </Link>
           <Link
+            href="/dashboard/developers"
+            className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+          >
+            🧩 Developers
+          </Link>
+          <Link
             href="/dashboard/settings"
             className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800 hover:text-white"
           >

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Markdown from "./markdown";
 
 interface UiMessage {
   role: "user" | "assistant";
@@ -111,8 +112,14 @@ export default function ChatPane({
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs">
                   ✦
                 </div>
-                <div className="min-w-0 whitespace-pre-wrap pt-1 text-sm leading-relaxed text-zinc-200">
-                  {m.content || (busy && i === messages.length - 1 ? "…" : "")}
+                <div className="min-w-0 flex-1 pt-1 text-sm text-zinc-200">
+                  {m.content ? (
+                    <Markdown>{m.content}</Markdown>
+                  ) : busy && i === messages.length - 1 ? (
+                    "…"
+                  ) : (
+                    ""
+                  )}
                 </div>
               </div>
             )

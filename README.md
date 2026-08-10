@@ -36,6 +36,27 @@ npm run dev
 
 Open http://localhost:3000, create a workspace, and start chatting.
 
+## Testing
+
+```bash
+npm test          # builds, then runs the full suite
+npm run test:quick  # reuses the existing .next build
+```
+
+The suite (Vitest) has two layers:
+
+- **Unit tests** (`tests/unit/`) — plan tiers, API-key generation/hashing, token
+  estimation, slugs, password hashing, and the demo-mode completion stream.
+- **Integration tests** (`tests/integration/`) — boot the production build against a
+  throwaway SQLite database and exercise the real HTTP API: auth (signup/login/logout,
+  session cookies), streaming chat with persistence and metering, cross-tenant isolation,
+  plan gating (402s), quota exhaustion (402/429), API-key lifecycle including revocation,
+  the OpenAI-compatible v1 endpoint (non-streaming + SSE), the invite lifecycle with
+  role enforcement, seat limits, and middleware redirects.
+
+Tests force demo mode (`OPENAI_API_KEY=""`), so they are deterministic and make no
+external network calls.
+
 ## Public API
 
 Create a key in **Settings → API keys** (Pro plan or above), then:

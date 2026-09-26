@@ -1,11 +1,15 @@
 {
-  "_note": "Starter watchlist of long-form channels in your lane. Replace with the 20-50 channels whose audience you actually want. Handles without the @.",
+  "_note": "Your named competitors. Handles are unverified guesses (YouTube is blocked from this environment); find_outliers.py prints 'channel not found' for any wrong one. 3 channels is a thin baseline, add 10-20 more adjacent ones.",
   "lookback_days": 14,
   "min_outlier_score": 3,
   "min_views": 20000,
   "channels": [
-    "Fireship",
     "t3dotgg",
+    "AlbertaTech",
+    "madelinezhang"
+  ],
+  "candidates_unused": [
+    "Fireship",
     "ThePrimeTimeagen",
     "mreflow",
     "TinaHuang1",

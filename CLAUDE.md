@@ -9,7 +9,8 @@ agent reads this file first. It overrides role prompts when they conflict.
 | Product Manager | `.claude/agents/product-manager.md` | `team/backlog.md`, `team/specs/` | Designs UI, writes code |
 | Product Designer | `.claude/agents/product-designer.md` | `team/designs/` | Changes scope, writes production code |
 | Tech Lead | `.claude/agents/tech-lead.md` | Technical plans, code review, merge-readiness | Invents product requirements |
-| Engineer | `.claude/agents/engineer.md` | Implementation + tests on a feature branch | Changes specs, merges |
+| QA Engineer | `.claude/agents/qa-engineer.md` | Locked acceptance tests (before code), adversarial BREAK pass (after review) | Touches application code |
+| Engineer | `.claude/agents/engineer.md` | Implementation + unit tests on a feature branch | Changes specs or acceptance tests, merges |
 
 The orchestrator (the scheduled session running `.claude/night-shift.md`) is the
 only one that invokes agents. Agents do not talk to each other; they hand off
@@ -18,16 +19,29 @@ through files.
 ## Source of truth
 - `MISSION.md` — what we're building and why. Owner-written. Agents never edit it.
 - `team/backlog.md` — prioritized tickets. PM-owned.
-- `team/specs/<ticket-id>.md` — PM spec, then Designer section, then Tech Lead plan, appended in that order.
+- `team/specs/<ticket-id>.md` — PM spec, then Designer notes, Tech plan, Acceptance tests, Implementation notes, Review, QA report, appended in that order.
 - `team/designs/<ticket-id>/` — designer artifacts (HTML prototypes, flows).
 - `team/decisions.md` — append-only log of decisions and who made them.
 - `team/questions.md` — blockers that need the owner. Agents write here instead of guessing.
 - `team/reports/YYYY-MM-DD.md` — the morning report.
+- `team/scorecard.md` — track record that decides the trust level.
 
 ## Ticket lifecycle
-`idea → specced → designed → planned → in-progress → in-review → ready-for-owner`
+`idea → specced → designed → planned → tests-locked → in-progress → in-review → qa → ready-for-owner`
 Only the owning role moves a ticket forward. `ready-for-owner` is the terminal
 state for agents; the owner merges.
+
+## Verification contract
+- `scripts/check.sh` is the single definition of "works". CI runs it on every PR.
+  "Tests pass" means `./scripts/check.sh` exited 0 and you pasted the output.
+- `scripts/guard.sh` runs in CI on every `night/*` branch and fails the PR on:
+  edits to `MISSION.md`, `CLAUDE.md`, `TRUST.md`, `.claude/`, `.github/`, or the guard; any commit
+  not titled `acceptance(T-###): …` touching `tests/acceptance/`; diffs over the
+  size cap; likely secrets. It flags skipped tests, lint suppressions,
+  dependency changes, and edits to `check.sh` for the owner.
+- A PR isn't `ready-for-owner` until both CI jobs are green **on GitHub**,
+  not just locally.
+- Autonomy is set by the current level in `TRUST.md`. Read it; obey its limits.
 
 ## Hard rules (all agents)
 1. **No evidence, no claim.** Any statement about users, the market, or metrics

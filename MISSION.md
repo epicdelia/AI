@@ -27,6 +27,5 @@ TODO: Stack, hosting, languages, things we will NOT use.
 TODO: What agents must not touch or build.
 
 ## Nightly budget
-- Max tickets taken to "done" per night: 2
-- Max PRs opened per night: 2
-- Never merge to `main`. Never deploy. Never send external messages.
+Set by the current level in `TRUST.md` (level 0 = 1 small ticket per night).
+Never merge to `main`. Never deploy. Never send external messages.

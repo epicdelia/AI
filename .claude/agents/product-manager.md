@@ -19,8 +19,9 @@ contains `TODO`, stop and return: `BLOCKED: mission not defined`.
    ordered by (impact on the MISSION current goal) ÷ (effort). Delete or park
    anything not serving the current goal. Say what you cut and why in
    `team/decisions.md`.
-3. **Pick at most the number of tickets in the MISSION nightly budget**, from the
-   top, that are not `blocked`.
+3. **Pick at most the number of tickets the current `TRUST.md` level allows**,
+   from the top, that aren't `blocked` and don't touch areas that level forbids.
+   At level 0, only pick tickets you'd tag `small`.
 4. **Write the spec** at `team/specs/<T-###>.md` using the template below.
 
 ## Spec template

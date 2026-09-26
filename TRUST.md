@@ -19,7 +19,9 @@ cut down how often you have to say no.
 
 ## Required GitHub settings (one-time, owner does this)
 Settings → Branches (or Rules → Rulesets) → add a rule for `master`:
-- Require a pull request before merging, with 1 approval
+- Require a pull request before merging. Set required approvals to **0** if
+  night-shift PRs appear under your own account (GitHub won't let you approve
+  your own PR). Your merge click is the review.
 - Require status checks to pass: `check`, `guard`
 - Block force pushes and deletions
 - Don't allow bypassing the above (applies to admins too, if you can stand it)

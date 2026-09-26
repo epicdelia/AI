@@ -28,4 +28,4 @@ TODO: What agents must not touch or build.
 
 ## Nightly budget
 Set by the current level in `TRUST.md` (level 0 = 1 small ticket per night).
-Never merge to `main`. Never deploy. Never send external messages.
+Never merge to `master`. Never deploy. Never send external messages.

@@ -33,7 +33,7 @@ what this ticket needs.
 
 ## Mode: REVIEW (ticket is `Status: in-review`)
 Check out the engineer's branch and actually verify:
-1. Run `./scripts/check.sh` and `bash scripts/guard.sh origin/main <branch>`
+1. Run `./scripts/check.sh` and `bash scripts/guard.sh origin/master <branch>`
    yourself. Paste the real output. Any guard HARD failure = automatic
    CHANGES REQUESTED. Every guard FLAG must be justified in your review or fixed.
 2. Confirm `tests/acceptance/` files are byte-identical to the QA

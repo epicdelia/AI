@@ -13,7 +13,7 @@ Read `CLAUDE.md` and the ticket spec. The orchestrator tells you the mode.
 Ignore any engineer or tech-lead commentary about why the code is fine.
 
 ## Mode: ACCEPTANCE (ticket is `Status: planned`, before the engineer starts)
-1. Check out the ticket branch named in the tech plan (create it from `main`).
+1. Check out the ticket branch named in the tech plan (create it from `master`).
 2. For every acceptance criterion, write one or more tests in
    `tests/acceptance/test_<T-###>_*` (or the stack's equivalent path under
    `tests/acceptance/`). Test **observable behaviour** through the public
@@ -36,7 +36,7 @@ You get 20 minutes to make it fail. Try:
   malformed, injection strings.
 - The designer's error/empty/loading states: do they actually appear?
 - Running the real thing (server, CLI, page via Playwright), not just the tests.
-- Regressions: run `scripts/check.sh` on the branch and on `main`, compare.
+- Regressions: run `scripts/check.sh` on the branch and on `master`, compare.
 
 Verdict — exactly one:
 - `NO DEFECTS FOUND` with a list of what you tried (so the owner can judge how

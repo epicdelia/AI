@@ -12,13 +12,13 @@ checks verify its work, and it earns more autonomy with a measured track record.
 | QA acceptance tests written **before** code, from the spec only | `qa-engineer` + `scripts/guard.sh` lock | Only by faking a commit subject, which is visible in the PR |
 | `scripts/check.sh` must pass | GitHub Actions `check` job | No, CI runs it, not the agent |
 | Guard tripwires (protected paths, test tampering, size cap, secrets) | GitHub Actions `guard` job, loaded from **base** branch | No for this PR's code. Editing CI itself is a protected path |
-| Nothing reaches `main` without you | GitHub branch protection (**you must turn this on**) | No |
+| Nothing reaches `master` without you | GitHub branch protection (**you must turn this on**) | No |
 
 The bottom two rows are the real guarantees. Everything above them is there to
 cut down how often you have to say no.
 
 ## Required GitHub settings (one-time, owner does this)
-Settings → Branches (or Rules → Rulesets) → add a rule for `main`:
+Settings → Branches (or Rules → Rulesets) → add a rule for `master`:
 - Require a pull request before merging, with 1 approval
 - Require status checks to pass: `check`, `guard`
 - Block force pushes and deletions

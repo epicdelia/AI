@@ -49,7 +49,7 @@ state for agents; the owner merges.
 2. **Blocked beats wrong.** If a decision belongs to the owner (pricing, brand,
    scope change, anything irreversible), write it to `team/questions.md`, mark
    the ticket `blocked`, and move on.
-3. **Never** push to `main`, merge PRs, deploy, delete branches you didn't
+3. **Never** push to `master`, merge PRs, deploy, delete branches you didn't
    create, add paid services, send emails/messages, or touch secrets.
 4. **Small batches.** A ticket must be finishable by one engineer in one night.
    If it isn't, split it.

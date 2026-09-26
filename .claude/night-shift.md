@@ -19,19 +19,19 @@ agent fails, you record it; you don't do its job for it.
 1. Read `CLAUDE.md`, `MISSION.md`, `TRUST.md`. If `MISSION.md` contains `TODO`:
    report "Skipped: MISSION.md not filled in" and stop. Note the current level
    and its limits; you enforce them.
-2. `git fetch origin && git checkout main && git pull`.
-3. Run `./scripts/check.sh` on `main`. If it fails, tonight's only ticket is
-   fixing `main` (PM specs it as `T-FIX-<date>`, and it goes through the full
-   pipeline). Don't build features on a red `main`.
+2. `git fetch origin && git checkout master && git pull`.
+3. Run `./scripts/check.sh` on `master`. If it fails, tonight's only ticket is
+   fixing `master` (PM specs it as `T-FIX-<date>`, and it goes through the full
+   pipeline). Don't build features on a red `master`.
 4. **Update the scorecard.** Using the GitHub tools, look up every night-shift PR
    (head branch `night/T-*`) from previous nights whose outcome isn't recorded
    yet in `team/scorecard.md`: merged (check whether any commit came from
    someone other than the night shift → clean vs owner-edited), closed, or
-   reverted (a later commit on `main` reverting it). Record them and update
+   reverted (a later commit on `master` reverting it). Record them and update
    the running totals. If a demotion trigger in `TRUST.md` fired, say so at the
    top of the report. You can't change the level yourself; the owner does.
 5. Read `team/questions.md`; note answers the owner left.
-6. Create branch `night/YYYY-MM-DD-state` from `main` for team-file updates.
+6. Create branch `night/YYYY-MM-DD-state` from `master` for team-file updates.
 
 ## 1. Pipeline: sequential, one ticket at a time, never parallel
 Invoke each agent via the Agent tool with the ticket ID and mode. After every
@@ -51,7 +51,7 @@ output`, move on.
    g. Anything sent back to `in-progress` gets **one** more engineer pass, then
       REVIEW and BREAK again. Still not through → `blocked` with the reviewers'
       notes. No third attempt.
-3. **Open the PR** for each ticket that passed BREAK: base `main`, head the ticket
+3. **Open the PR** for each ticket that passed BREAK: base `master`, head the ticket
    branch, body = the tech lead's `## PR description` plus QA's verdict. Never
    merge. Then check CI on GitHub for that PR's head commit. Wait for the
    `check` and `guard` jobs to finish (poll no more than every 2 minutes, give
@@ -65,7 +65,7 @@ yourself, and don't start extra tickets to use up leftover time.
 
 ## 2. Guardrails you enforce
 - Stay inside the `TRUST.md` level: ticket count, line cap, forbidden areas.
-- No pushes to `main`. No merges. No deploys. No external messages. No new paid
+- No pushes to `master`. No merges. No deploys. No external messages. No new paid
   services. No secrets in files. No changes to `MISSION.md`, `CLAUDE.md`,
   `TRUST.md`, `.claude/`, `.github/`, `scripts/guard.sh`.
 - If an agent's output breaks `CLAUDE.md`, revert that output, block the ticket,

@@ -19,7 +19,7 @@ Only work on tickets with `Status: tests-locked` or `Status: in-progress`
 2. Write your own unit tests for the internals as you go.
 3. Implement until the acceptance tests and your unit tests pass. Use the
    designer's exact copy and states.
-4. Run `./scripts/check.sh` and `bash scripts/guard.sh origin/main <branch>`.
+4. Run `./scripts/check.sh` and `bash scripts/guard.sh origin/master <branch>`.
    Both green, or you're not done.
 5. Commit in small logical commits with clear messages. Push the branch.
 6. Set `Status: in-review` and append to the spec:

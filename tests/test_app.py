@@ -53,10 +53,7 @@ def test_polish_sends_transcript_with_system_prompt(client):
     )
     r = client.post("/api/polish", json={"text": "um so like we ship uh friday"})
     assert r.status_code == 200
-    out = r.json()
-    assert out["markdown"] == "**Update**\n\n- Ship Friday"
-    assert out["model"] == flow.LLM_MODEL
-    assert isinstance(out["llm_ms"], int)
+    assert r.text == "**Update**\n\n- Ship Friday"
     req = client.calls[0]
     assert req.url.path == "/v1/chat/completions"
     assert req.headers["authorization"] == "test-key"

@@ -7,14 +7,14 @@ talking, the raw transcript comes back here to be polished by the LLM Gateway.
 Run:  uvicorn app:app --port 8000   then open http://localhost:8000
 """
 
+import json
 import os
-import time
 from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 load_dotenv()
@@ -75,28 +75,44 @@ async def streaming_token() -> dict:
     return {"token": resp.json()["token"]}
 
 
+async def _sse_text(resp: httpx.Response, client: httpx.AsyncClient):
+    try:  # parse an OpenAI-compatible SSE stream into plain text deltas, then close upstream
+        async for line in resp.aiter_lines():
+            if line.strip() == "data: [DONE]":
+                break
+            if line.startswith("data: "):
+                for choice in json.loads(line[len("data: "):]).get("choices") or []:
+                    delta = (choice.get("delta") or {}).get("content")
+                    if delta:
+                        yield delta
+    finally:
+        await resp.aclose()
+        await client.aclose()
+
+
 @app.post("/api/polish")
-async def polish(req: PolishRequest) -> dict:
+async def polish(req: PolishRequest) -> StreamingResponse:
     text = req.text.strip()
     if not text:
         raise HTTPException(400, "Nothing to polish: the transcript is empty.")
-    started = time.perf_counter()
-    async with _client() as client:
-        resp = await client.post(
-            LLM_GATEWAY_URL,
-            headers={"authorization": _api_key()},
-            json={
-                "model": LLM_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": text},
-                ],
-            },
-        )
+    key = _api_key()
+    client = _client()
+    request = client.build_request("POST", LLM_GATEWAY_URL, headers={"authorization": key}, json={
+        "model": LLM_MODEL, "stream": True,
+        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}]})
+    try:
+        resp = await client.send(request, stream=True)
+        if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
+            return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client
+        await resp.aread()  # an error, or a plain JSON completion because the gateway ignored "stream"
+    except BaseException:
+        await client.aclose()
+        raise
+    await client.aclose()
     if resp.status_code != 200:
         raise _upstream_error("LLM Gateway request", resp)
     try:
         markdown = resp.json()["choices"][0]["message"]["content"].strip()
     except (KeyError, IndexError, TypeError, ValueError, AttributeError):
         raise HTTPException(502, f"Unexpected LLM Gateway response: {resp.text[:300]}")
-    return {"markdown": markdown, "model": LLM_MODEL, "llm_ms": round((time.perf_counter() - started) * 1000)}
+    return StreamingResponse(iter([markdown]), media_type="text/plain; charset=utf-8")

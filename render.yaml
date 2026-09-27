@@ -1,5 +1,5 @@
 # One-click public deploy of Flow on Render's free tier.
-# Render → New → Blueprint → pick this repo. It asks for the two secrets below.
+# Render → New → Blueprint → pick this repo. It asks for your AssemblyAI key.
 services:
   - type: web
     name: flow-dictation
@@ -11,6 +11,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: ASSEMBLYAI_API_KEY
-        sync: false
-      - key: FLOW_PASSCODE
         sync: false

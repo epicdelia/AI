@@ -10,7 +10,7 @@ Write the YouTube idea brief for Delia. The token budget is tight, so follow the
 
 1. Run `python ideas/find_outliers.py --out ideas/outliers.jsonl`. This costs zero tokens. If `YOUTUBE_API_KEY` is missing, skip this step and say so in one line at the top of the brief.
 2. Make exactly **two** Sandcastles calls:
-   - `get_personal_analytics`. Only use Delia's reels published in the last 4 days.
+   - `get_personal_analytics`. Use Delia's reels from the **last 14 days** at 5x or more. Her own outliers are the strongest signal, so a big one is allowed to reappear in a second brief. Her analytics can lag by about 2 days, and a 4-day window would silently drop them.
    - `search_all_videos` with query "AI tools, coding, tech careers", `lookback_days: 4`, `min_outlier_score: 5`, `limit: 10`.
    Don't call any other Sandcastles tool.
 3. Read only `prompts/01_daily_ideas.md` and `ideas/outliers.jsonl`.

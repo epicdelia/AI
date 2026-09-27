@@ -45,7 +45,9 @@ def parse_duration(iso):
 
 
 def channel_uploads(handle, get):
-    data = get("channels", {"part": "contentDetails,snippet", "forHandle": handle})
+    """`handle` is a channel handle (without @) or a channel ID (UC + 22 chars)."""
+    key = "id" if re.fullmatch(r"UC[\w-]{22}", handle) else "forHandle"
+    data = get("channels", {"part": "contentDetails,snippet", key: handle})
     items = data.get("items") or []
     if not items:
         return None, None

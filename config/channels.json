@@ -1,12 +1,13 @@
 {
-  "_note": "Verified Sep 27 via the YouTube API: t3dotgg (Theo, 568k) and AlbertaTech (477k) resolve. madelinezhang does NOT resolve, so the real handle is needed. 3 channels is a thin baseline, add 10-20 more adjacent ones.",
+  "_note": "Entries are handles (without @) or channel IDs (UC...). Verified Sep 27 via the YouTube API: t3dotgg (Theo, 568k) and AlbertaTech (477k). Madeline Zhang (Google Health SWE) runs two channels, found by web search and not yet API-checked: 'Madeline Zhang' UCyhohEqNmmShW3pYfuw7Uqw and 'Maddy Zhang' UCJKzyA7mf4L6CtdNuRFExTw. 3 creators is a thin baseline, add 10-20 more adjacent ones.",
   "lookback_days": 4,
   "min_outlier_score": 3,
   "min_views": 20000,
   "channels": [
     "t3dotgg",
     "AlbertaTech",
-    "madelinezhang"
+    "UCyhohEqNmmShW3pYfuw7Uqw",
+    "UCJKzyA7mf4L6CtdNuRFExTw"
   ],
   "candidates_unused": [
     "Fireship",

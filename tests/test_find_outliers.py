@@ -68,6 +68,18 @@ class TestOutliers(unittest.TestCase):
         v.update(channel="Chan", handle="x", url="u")
         self.assertEqual(set(fo.compact(v)), set(fo.COMPACT_FIELDS) | {"age_days"})
 
+    def test_channel_ids_and_handles_use_the_right_lookup(self):
+        seen = []
+
+        def get(endpoint, params):
+            seen.append(params)
+            return {}
+
+        fo.channel_uploads("UCyhohEqNmmShW3pYfuw7Uqw", get)
+        fo.channel_uploads("t3dotgg", get)
+        self.assertEqual(seen[0].get("id"), "UCyhohEqNmmShW3pYfuw7Uqw")
+        self.assertEqual(seen[1].get("forHandle"), "t3dotgg")
+
     def test_parse_duration(self):
         self.assertEqual(fo.parse_duration("PT1H2M3S"), 3723)
         self.assertEqual(fo.parse_duration("PT45S"), 45)

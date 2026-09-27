@@ -90,11 +90,10 @@ click **Start Speaking**), talk, and let go.
 (browsers only allow the mic on https or localhost).
 
 1. Go to https://dashboard.render.com/blueprints → **New Blueprint Instance** → pick this repo.
-2. When asked, paste your `ASSEMBLYAI_API_KEY` and choose a `FLOW_PASSCODE`.
+2. When asked, paste your `ASSEMBLYAI_API_KEY`.
 3. Wait for the build (~2 min) and open the `https://flow-dictation-….onrender.com` URL.
-   The page asks for the passcode once.
 
-Without the passcode, anyone with the URL spends your AssemblyAI credit. The free
+Anyone with the URL can use it on your AssemblyAI credit, so keep the link private. The free
 tier sleeps after 15 idle minutes, so the first load after a break takes about a minute.
 Open it once before you record.
 

@@ -1,0 +1,12 @@
+[project]
+name = "youtube-pipeline"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+# Pre-existing file unrelated to the pipeline; lint it in its own change.
+extend-exclude = ["sudoku_solver.py"]

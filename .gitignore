@@ -1,6 +1,7 @@
-.env
+ideas/outliers.jsonl
 __pycache__/
-.venv/
 .pytest_cache/
 .ruff_cache/
+.env
+.venv/
 e2e-screenshot.png

@@ -62,3 +62,70 @@ Stdlib only, no dependencies.
 ## Videos don't go in this repo
 
 Git can't hold multi-GB footage. Raw footage and edits live in Google Drive (folder layout in `editing/workflow.md`). This repo holds only text: ideas, scripts, briefs.
+
+---
+
+# Flow: speak messy, get polished
+
+Push-to-talk dictation: your mic streams to AssemblyAI Universal-Streaming (live
+raw transcript on the left). When you stop, the transcript goes through
+AssemblyAI's LLM Gateway, and clean Markdown appears on the right and is copied
+to your clipboard.
+
+## Run it
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env        # then paste your key into .env
+uvicorn app:app --port 8000
+```
+
+Open http://localhost:8000 in Chrome, allow the mic, then **hold Space** (or
+click **Start Speaking**), talk, and let go.
+
+## Put it online (free, on Render)
+
+`render.yaml` deploys Flow to Render's free tier, so you get an `https://` URL
+(browsers only allow the mic on https or localhost).
+
+1. Go to https://dashboard.render.com/blueprints → **New Blueprint Instance** → pick this repo.
+2. When asked, paste your `ASSEMBLYAI_API_KEY` and choose a `FLOW_PASSCODE`.
+3. Wait for the build (~2 min) and open the `https://flow-dictation-….onrender.com` URL.
+   The page asks for the passcode once.
+
+Without the passcode, anyone with the URL spends your AssemblyAI credit. The free
+tier sleeps after 15 idle minutes, so the first load after a break takes about a minute.
+Open it once before you record.
+
+## Choosing the LLM
+
+`LLM_MODEL` in `.env` picks the model (default `gpt-5-mini`). To see the models
+your account can use (for example, whether a Qwen model is offered):
+
+```bash
+curl -s https://llm-gateway.assemblyai.com/v1/models -H "authorization: $ASSEMBLYAI_API_KEY"
+```
+
+For the demo, pick the fastest model on that list. The **AI polish** badge shows
+the real round-trip time, so you can compare models live.
+
+## How it works
+
+| Piece | Where |
+|---|---|
+| Mic → 16 kHz 16-bit PCM, 50 ms chunks | AudioWorklet in `static/index.html` |
+| Short-lived streaming token (API key stays on the server) | `GET /api/token` in `app.py` |
+| Live partial/final transcript | Browser ↔ `wss://streaming.assemblyai.com/v3/ws` |
+| Close the turn the moment you release Space | `ForceEndpoint` message, then `Terminate` |
+| Cleanup + Markdown formatting | `POST /api/polish` → LLM Gateway `/v1/chat/completions` |
+
+The badges show measured times, not targets: **Final transcript** (release →
+final text), **AI polish** (LLM round trip) and **Stop → polished** (the whole wait).
+
+## Tests
+
+```bash
+pip install pytest ruff && ./scripts/check.sh          # backend, mocked HTTP
+pip install playwright && python scripts/e2e_check.py  # real browser, fake mic + fake AssemblyAI socket
+```

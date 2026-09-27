@@ -1,0 +1,101 @@
+import json
+
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+import app as flow
+
+
+@pytest.fixture
+def client(monkeypatch):
+    monkeypatch.setenv("ASSEMBLYAI_API_KEY", "test-key")
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return flow_responses[request.url.host](request)
+
+    flow_responses = {}
+    monkeypatch.setattr(flow, "HTTP_TRANSPORT", httpx.MockTransport(handler))
+    c = TestClient(flow.app)
+    c.calls, c.responses = calls, flow_responses
+    return c
+
+
+def test_index_serves_page(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Raw Speech" in r.text and "Polished AI Output" in r.text
+
+
+def test_token_uses_server_side_key(client):
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
+    r = client.get("/api/token")
+    assert r.json() == {"token": "tmp-123"}
+    req = client.calls[0]
+    assert req.url.path == "/v3/token"
+    assert req.url.params["expires_in_seconds"] == "60"
+    assert req.headers["authorization"] == "test-key"
+
+
+def test_missing_key_is_a_clear_error(client, monkeypatch):
+    monkeypatch.delenv("ASSEMBLYAI_API_KEY")
+    r = client.get("/api/token")
+    assert r.status_code == 500
+    assert "ASSEMBLYAI_API_KEY" in r.json()["detail"]
+    assert client.calls == []
+
+
+def test_polish_sends_transcript_with_system_prompt(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "  **Update**\n\n- Ship Friday  "}}]}
+    )
+    r = client.post("/api/polish", json={"text": "um so like we ship uh friday"})
+    assert r.status_code == 200
+    out = r.json()
+    assert out["markdown"] == "**Update**\n\n- Ship Friday"
+    assert out["model"] == flow.LLM_MODEL
+    assert isinstance(out["llm_ms"], int)
+    req = client.calls[0]
+    assert req.url.path == "/v1/chat/completions"
+    assert req.headers["authorization"] == "test-key"
+    body = json.loads(req.content)
+    assert body["messages"][0] == {"role": "system", "content": flow.SYSTEM_PROMPT}
+    assert body["messages"][1] == {"role": "user", "content": "um so like we ship uh friday"}
+
+
+@pytest.mark.parametrize("text", ["", "   "])
+def test_polish_rejects_empty_transcript(client, text):
+    r = client.post("/api/polish", json={"text": text})
+    assert r.status_code == 400
+    assert client.calls == []
+
+
+def test_upstream_error_is_surfaced(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(401, json={"error": "Invalid API key"})
+    r = client.post("/api/polish", json={"text": "hello"})
+    assert r.status_code == 502
+    assert "401" in r.json()["detail"] and "Invalid API key" in r.json()["detail"]
+
+
+def test_malformed_llm_response_is_surfaced(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(200, json={"choices": []})
+    r = client.post("/api/polish", json={"text": "hello"})
+    assert r.status_code == 502
+    assert "Unexpected" in r.json()["detail"]
+
+
+def test_passcode_required_when_set(client, monkeypatch):
+    monkeypatch.setenv("FLOW_PASSCODE", "open-sesame")
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
+    assert client.get("/api/token").status_code == 401
+    assert client.get("/api/token", headers={"X-Flow-Passcode": "nope"}).status_code == 401
+    assert client.post("/api/polish", json={"text": "hi"}).status_code == 401
+    assert client.calls == []  # no upstream spend without the passcode
+    assert client.get("/api/auth", headers={"X-Flow-Passcode": "open-sesame"}).json() == {"ok": True}
+    assert client.get("/api/token", headers={"X-Flow-Passcode": "open-sesame"}).json() == {"token": "tmp-123"}
+
+
+def test_no_passcode_needed_locally(client):
+    assert client.get("/api/auth").json() == {"ok": True}

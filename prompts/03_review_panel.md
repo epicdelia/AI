@@ -1,37 +1,27 @@
-# Stage 3: Review panel
+# Stage 3: Review
 
-The order matters. Cheap, deterministic checks run first. Reviewers work **in parallel and independently**. None of them sees another reviewer's notes, because that turns the panel into groupthink. Each returns **specific line edits**, never a rewritten script. Rewrites are how scripts slide back toward generic AI prose.
+The order is set by cost. Free checks run first, and an LLM only sees what they can't catch. Reviewers return **specific line edits**, never a rewritten script. Rewrites are how scripts slide back toward generic AI prose.
 
-## Gate 0: Linter (not an LLM)
+## Gate 0: Linter (free, not an LLM)
 
-`python review/ai_tells.py draft.md`. Any HARD finding sends the draft back to the writer. WARN findings go to reviewers as hints.
+`python review/ai_tells.py draft.md`. Any HARD finding goes back to the writer before any reviewer spends a token. WARN findings get passed along as hints.
 
-## Reviewer A: Voice match
+## Default: one combined review call
 
-Inputs: the draft and 5 of Delia's real transcripts.
-Task: flag every line Delia wouldn't say out loud. For each one, quote the line, say why (too formal, too polished, expert-on-stage energy, wrong humor lane), and offer a replacement in her rhythm, taken from how she phrases things in the transcripts.
-Score 1 to 10: "Could her longtime viewers tell this wasn't written by her?" Anything under 8 fails.
+One agent reads **only** the draft, its claims list and `voice/excerpts.md`, then returns four short sections:
 
-## Reviewer B: Retention editor
+1. **Voice.** Quote every line Delia wouldn't say out loud, give the reason in 5 words or fewer, and offer a replacement in her rhythm. Score 1 to 10 on whether her longtime viewers could tell she didn't write it. Anything under 8 fails.
+2. **Retention.** Name the weakest minute. List where a viewer would click away: a slow cold open, a chapter with no hook, a stretch longer than 90 seconds with no visual change. Check that the first 30 seconds pay off the title.
+3. **Facts.** Mark each claim on the claims list VERIFIED, WRONG (with the correction) or UNSOURCED. Only look up claims whose source is a URL. Any WRONG or UNSOURCED claim blocks the script.
+4. **Top 3 hostile comments** a smart, annoyed viewer would leave.
 
-Inputs: the draft and the source breakout video's title.
-Task: mark every spot where a viewer would click away. Look for a slow cold open, a chapter with no hook, a missing open loop, a claim with no demo, a stretch longer than 90 seconds with no visual change. Check that the first 30 seconds pay off the title.
-Output: timestamped cut or tighten list, plus the single weakest minute in the script.
+The writer applies the edits and re-runs the linter. That's it.
 
-## Reviewer C: Fact checker
+## Full panel: only for sponsored or high-effort videos
 
-Inputs: the draft and its claims list.
-Task: for every claim, confirm the cited source actually says it, and that numbers, model names, prices and dates match. Mark each claim VERIFIED, WRONG (with the correction), or UNSOURCED. Any WRONG or UNSOURCED blocks the script. Her credibility as an ex-Google engineer is the asset here, and one bad number costs more than a flat hook.
+Run 4 separate reviewers (voice, retention, facts, hostile commenter) in parallel. None of them sees another's notes. Then one merge agent resolves conflicts: facts beat voice, voice beats retention on wording, retention beats voice on structure. This costs roughly 3 to 4 times the default, so save it for when a mistake is expensive: brand deals and multi-day builds.
 
-## Reviewer D: Hostile commenter
+## Always
 
-Task: write the 5 top comments a smart, annoyed viewer would leave ("this is just an ad", "wrong, Opus 5 is cheaper", "clickbait, she never showed X"). The writer fixes whatever is legitimate.
-
-## Merge
-
-One agent merges the edits from A through D, resolves conflicts (fact checker beats voice, voice beats retention on wording, retention beats voice on structure), re-runs the linter, and outputs:
-- the final script
-- a changelog of what changed and which reviewer asked for it
-- open questions for Delia, only where a stance or personal story is needed. Never invent her opinions or her anecdotes.
-
-**Delia reads it out loud once before filming.** That's the real voice test. No reviewer panel replaces it.
+- Open questions for Delia only where a stance or a personal story is needed. Never invent her opinions or her anecdotes.
+- **Delia reads it out loud once before filming.** That's the real voice test, and it costs nothing.

@@ -44,8 +44,12 @@ Use a tool with **timestamped comments on the video**, such as Frame.io. Drive c
 - Bad: "the middle drags"
 - Good: "04:10 to 05:30 cut the second demo, it repeats the first one. Jump straight to the result."
 
-## 5. Where AI actually helps in editing (and where it doesn't)
+## 5. AI never watches the videos
 
-Helps: generating a transcript and chapters, auto-captions, finding filler words and dead air for a first-pass cut, suggesting B-roll per `[VISUAL]` note, making 3 to 5 Shorts out of the final long-form, and thumbnail concept options (the `tech-unicorn-thumbnails` skill).
+Having an AI analyze video frames costs far more than anything else in this pipeline. Editing tools (Premiere, Descript, CapCut) already do captions, filler-word removal and silence cuts built in, at no token cost. The AI only works on **text**:
 
-Doesn't help (yet): pacing judgment, knowing when a joke lands, story structure. That's what you're paying a human for.
+- the script (it already exists)
+- the final transcript, from YouTube auto-captions or the edit tool's export. Use it for Substack, chapters and the description.
+- thumbnail concepts, via the `tech-unicorn-thumbnails` skill, from the title
+
+Pacing judgment, knowing when a joke lands and story structure are what you pay the editor for.

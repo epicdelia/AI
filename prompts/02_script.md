@@ -6,7 +6,7 @@ Write a YouTube long-form script for the idea Delia greenlit.
 
 - The idea block from `ideas/YYYY-MM-DD.md`
 - The `delia-voice` skill (voice spec and hard rules)
-- **3 of her real transcripts** from `voice/transcripts/`, the ones closest in format. Imitate the rhythm of how she actually talks, not a description of it. This matters more than any adjective list.
+- `voice/excerpts.md`: about 1,000 words of her real speech, picked once from the transcripts. Imitate the rhythm of how she actually talks, not a description of it. Don't load full transcripts, since the excerpts file carries the same signal at about a tenth of the tokens.
 - The source breakout video's title and description (for the premise only)
 
 ## Structure (8 to 15 minutes, about 150 spoken words per minute)

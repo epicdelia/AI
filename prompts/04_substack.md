@@ -12,4 +12,4 @@ The final script, the video's real transcript after filming (use this over the s
 - **Embed the video** after the opening, not at the top.
 - **Close:** one question readers can reply to by email.
 
-Same hard rules: `delia-voice` spec, zero em dashes, must pass `review/ai_tells.py`. Then run Reviewer A (voice match) on it.
+Same hard rules: `delia-voice` spec, zero em dashes, must pass `review/ai_tells.py`. Then run only the Voice section of the combined review from `prompts/03_review_panel.md`.

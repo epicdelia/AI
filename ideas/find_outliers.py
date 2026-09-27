@@ -11,7 +11,7 @@ daily units. search.list costs 100 units per call and is deliberately avoided.
 
 Usage:
     YOUTUBE_API_KEY=... python ideas/find_outliers.py --config config/channels.json \
-        --seen ideas/seen.json --out ideas/outliers.json
+        --seen ideas/seen.json --out ideas/outliers.jsonl
 """
 
 import argparse
@@ -123,11 +123,21 @@ def find_outliers(config, get=api_get, now=None, seen=()):
     return results
 
 
+COMPACT_FIELDS = ("id", "title", "channel", "url", "views", "outlier_score")
+
+
+def compact(v):
+    out = {k: v[k] for k in COMPACT_FIELDS}
+    out["age_days"] = round(v["age_days"], 1)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config/channels.json")
     ap.add_argument("--seen", help="JSON list of video ids already pitched; updated in place")
     ap.add_argument("--out", default="-")
+    ap.add_argument("--top", type=int, default=10, help="max results written (keeps the LLM's input small)")
     args = ap.parse_args()
 
     with open(args.config) as f:
@@ -137,9 +147,11 @@ def main():
         with open(args.seen) as f:
             seen = set(json.load(f))
 
-    results = find_outliers(config, seen=seen)
+    results = find_outliers(config, seen=seen)[: args.top]
 
-    text = json.dumps(results, indent=2)
+    # One compact line per video: this file is what the LLM reads, so every
+    # field here costs tokens every day.
+    text = "\n".join(json.dumps(compact(v)) for v in results)
     if args.out == "-":
         print(text)
     else:

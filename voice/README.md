@@ -4,4 +4,4 @@ This folder matters more than every reviewer prompt put together. LLMs can't lea
 
 Put **10 to 20 real transcripts** of you talking in `transcripts/`, one `.txt` per video, unedited, including the "um"s. Take them from YouTube auto-captions or your teleprompter recordings. Aim for a mix of formats: tutorial, take, story.
 
-The script writer and Reviewer A (voice match) read from here. With no transcripts, "sounds like me" is guesswork.
+Then pick about **1,000 words** of the most *you* moments across them (tangents, jokes, how you explain things) and put them in `voice/excerpts.md`. The writer and reviewer read **only that file** on every run, which is about a tenth of the tokens of full transcripts. Refresh it every couple of months. With no excerpts, "sounds like me" is guesswork.

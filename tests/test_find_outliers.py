@@ -65,6 +65,12 @@ class TestOutliers(unittest.TestCase):
         out = fo.score_channel([vid(1, 30, 100), vid(2, 3, 10_000)], NOW, 14)
         self.assertEqual(out, [])
 
+    def test_compact_keeps_only_needed_fields(self):
+        cfg = {"channels": ["x"]}
+        v = fo.find_outliers(cfg, get=FakeAPI(self.videos), now=NOW)[0]
+        v.update(channel="Chan", handle="x", url="u")
+        self.assertEqual(set(fo.compact(v)), set(fo.COMPACT_FIELDS) | {"age_days"})
+
     def test_parse_duration(self):
         self.assertEqual(fo.parse_duration("PT1H2M3S"), 3723)
         self.assertEqual(fo.parse_duration("PT45S"), 45)

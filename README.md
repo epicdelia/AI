@@ -22,18 +22,32 @@
 
 Example output: `ideas/2026-09-26.md`, built from real Sandcastles data.
 
+## Token budget
+
+Rough figures, **low confidence** until measured on real runs:
+
+| Step | How often | Where it's kept down |
+|---|---|---|
+| Finding breakouts | daily | Python script, zero tokens. The model reads 10 compact lines. |
+| Idea brief | daily | 2 Sandcastles calls, a mid-tier model, a titles index instead of old briefs |
+| Script + review | only on greenlit ideas | linter first, one combined review call, 1,000-word voice excerpts |
+| Full 4-agent panel | sponsored / high-effort only | about 3 to 4 times the default review cost |
+| Video | never | the AI reads transcripts only, never frames |
+
+The daily brief is the only cost that repeats every day, so its frequency is the biggest lever. Running it on weekdays only cuts it by about 30%, and 3 times a week cuts it by about 57%.
+
 ## Setup still needed
 
 1. **YouTube Data API key**, added as an environment secret `YOUTUBE_API_KEY`.
-2. **Competitor watchlist**: edit `config/channels.json`. It currently holds a starter list.
-3. **Voice corpus**: 10 to 20 transcripts in `voice/transcripts/`. See `voice/README.md`.
+2. **Competitor handles**: confirm the three unverified guesses in `config/channels.json` and add more channels.
+3. **Voice corpus**: transcripts in `voice/transcripts/`, then about 1,000 words in `voice/excerpts.md`. See `voice/README.md`.
 4. **Delivery channel** for the daily brief (email / Notion / Slack), then schedule `ROUTINE.md`.
 
 ## Run
 
 ```
 python -m unittest discover -s tests
-YOUTUBE_API_KEY=... python ideas/find_outliers.py --seen ideas/seen.json --out ideas/outliers.json
+YOUTUBE_API_KEY=... python ideas/find_outliers.py --seen ideas/seen.json --out ideas/outliers.jsonl
 python review/ai_tells.py path/to/draft.md
 ```
 

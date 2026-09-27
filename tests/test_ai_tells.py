@@ -25,6 +25,11 @@ class TestAITells(unittest.TestCase):
     def test_missing_contraction(self):
         self.assertIn("missing contraction", names("I am testing this."))
 
+    def test_missing_contraction_is_case_insensitive(self):
+        # "Do not tap the link" and "The scammer did not build" slipped past in the Bitdefender v2 scripts.
+        for text in ("Do not tap the link.", "It is often a wave.", "The scammer did not build this."):
+            self.assertIn("missing contraction", names(text), text)
+
     def test_clean_human_text(self):
         text = "Okay I did something kind of sketchy with Claude last night. It worked?? I'm shook."
         self.assertEqual(ai_tells.lint(text), [])

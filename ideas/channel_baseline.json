@@ -1,0 +1,512 @@
+{
+  "fetched_at": "2026-09-27T21:46:17.402045+00:00",
+  "channel": {
+    "id": "UC8jn9cfrj46p59JKdq_J1Zw",
+    "title": "Tech Unicorn",
+    "subscriber_count": 22100,
+    "video_count": 381,
+    "view_count": 2568400
+  },
+  "videos": [
+    {
+      "id": "nv9KQeH--hA",
+      "title": "AI Replaced Software Engineers... So I Became a Shitposter",
+      "published_at": "2026-09-25T14:48:36Z",
+      "views": 3696,
+      "likes": 48,
+      "comments": 3,
+      "seconds": 12,
+      "is_short": true
+    },
+    {
+      "id": "bbh-gykfZ10",
+      "title": "This is what Jev is all about!!\ud83e\udd2f",
+      "published_at": "2026-09-23T16:49:28Z",
+      "views": 1665,
+      "likes": 30,
+      "comments": 3,
+      "seconds": 37,
+      "is_short": true
+    },
+    {
+      "id": "NHNP1PHetEc",
+      "title": "Did OpenAI and Anthropic Secretly Collude? \ud83d\ude33",
+      "published_at": "2026-09-22T16:53:07Z",
+      "views": 640,
+      "likes": 19,
+      "comments": 2,
+      "seconds": 54,
+      "is_short": true
+    },
+    {
+      "id": "YBKVfa92c9Y",
+      "title": "How to run AI agents with no wifi",
+      "published_at": "2026-09-20T11:00:37Z",
+      "views": 22787,
+      "likes": 29,
+      "comments": 1,
+      "seconds": 33,
+      "is_short": true
+    },
+    {
+      "id": "LHwRnKF0ljc",
+      "title": "San Francisco Tech bros are really on another level \ud83d\ude02",
+      "published_at": "2026-09-19T11:46:50Z",
+      "views": 1614,
+      "likes": 29,
+      "comments": 7,
+      "seconds": 16,
+      "is_short": true
+    },
+    {
+      "id": "Cz4a81CeYiM",
+      "title": "The reality of building with ai in 2026\ud83e\udd2f",
+      "published_at": "2026-09-18T15:51:59Z",
+      "views": 10121,
+      "likes": 35,
+      "comments": 4,
+      "seconds": 30,
+      "is_short": true
+    },
+    {
+      "id": "UApJTwGAGQo",
+      "title": "It was never about the AI models \ud83e\udd14",
+      "published_at": "2026-09-17T16:00:02Z",
+      "views": 1619,
+      "likes": 16,
+      "comments": 3,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "EuxHOBLEHeo",
+      "title": "Since Elon Musk just agree with Dario Amodei publicly, I do too\ud83d\ude02",
+      "published_at": "2026-09-17T03:11:03Z",
+      "views": 2232,
+      "likes": 46,
+      "comments": 6,
+      "seconds": 29,
+      "is_short": true
+    },
+    {
+      "id": "BHUp57Z8wIc",
+      "title": "Signs You've Been Coding Too Long",
+      "published_at": "2026-09-16T16:00:09Z",
+      "views": 1564,
+      "likes": 19,
+      "comments": 2,
+      "seconds": 8,
+      "is_short": true
+    },
+    {
+      "id": "dOd7sYedoq8",
+      "title": "Why Anthropic's CEO Wants AI To Move Slower \ud83d\udc47\ud83c\udffd",
+      "published_at": "2026-09-13T21:44:50Z",
+      "views": 847,
+      "likes": 37,
+      "comments": 4,
+      "seconds": 78,
+      "is_short": true
+    },
+    {
+      "id": "NljOuVXVWRc",
+      "title": "Apple\u2019s Foldable Is 7 Years Late\u2026 And Nobody Cares \ud83e\udd2f",
+      "published_at": "2026-09-12T16:06:33Z",
+      "views": 12974,
+      "likes": 161,
+      "comments": 4,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "UupGeNBWgoU",
+      "title": "AI Dictionary words you must know!!\ud83e\udd2f",
+      "published_at": "2026-09-11T18:59:26Z",
+      "views": 1758,
+      "likes": 30,
+      "comments": 1,
+      "seconds": 18,
+      "is_short": true
+    },
+    {
+      "id": "nBGUGJBTnk0",
+      "title": "Apple just released the Duo! What\u2019s your fav feature?\ud83d\udc47\ud83c\udffd",
+      "published_at": "2026-09-09T20:40:27Z",
+      "views": 3245,
+      "likes": 43,
+      "comments": 4,
+      "seconds": 6,
+      "is_short": true
+    },
+    {
+      "id": "THKVNBAO7GY",
+      "title": "I built an app that builds start ups\ud83e\udd2f",
+      "published_at": "2026-09-07T21:44:04Z",
+      "views": 413,
+      "likes": 18,
+      "comments": 1,
+      "seconds": 64,
+      "is_short": true
+    },
+    {
+      "id": "b90ljiJML18",
+      "title": "How to do this viral trend in 30sec\ud83e\udd2f",
+      "published_at": "2026-09-03T16:52:38Z",
+      "views": 518,
+      "likes": 8,
+      "comments": 0,
+      "seconds": 23,
+      "is_short": true
+    },
+    {
+      "id": "zTMxHxzrG3Q",
+      "title": "Fable 5.1 just dropped!!\ud83d\udd25",
+      "published_at": "2026-09-03T03:00:22Z",
+      "views": 2488,
+      "likes": 30,
+      "comments": 0,
+      "seconds": 11,
+      "is_short": true
+    },
+    {
+      "id": "xsOHLr92xxI",
+      "title": "Are you team Open AI or Cursor? \ud83d\udc40\ud83d\udc47",
+      "published_at": "2026-08-30T01:00:48Z",
+      "views": 1859,
+      "likes": 25,
+      "comments": 1,
+      "seconds": 59,
+      "is_short": true
+    },
+    {
+      "id": "CcySjjolp_0",
+      "title": "This app has no token limits \ud83e\udd2f\ud83d\udc47\ud83c\udffd",
+      "published_at": "2026-08-27T19:04:24Z",
+      "views": 807,
+      "likes": 8,
+      "comments": 1,
+      "seconds": 30,
+      "is_short": true
+    },
+    {
+      "id": "AiThZ98LE-k",
+      "title": "You always need that friend to start a business \ud83d\udc47",
+      "published_at": "2026-08-25T17:21:52Z",
+      "views": 9516,
+      "likes": 71,
+      "comments": 2,
+      "seconds": 12,
+      "is_short": true
+    },
+    {
+      "id": "6t-vRtZ1Y3s",
+      "title": "Data Center Jokes at Iceland\u2019s Most Beautiful Waterfall",
+      "published_at": "2026-08-24T23:01:21Z",
+      "views": 2261,
+      "likes": 53,
+      "comments": 2,
+      "seconds": 9,
+      "is_short": true
+    },
+    {
+      "id": "wuBxl-phoyM",
+      "title": "Here's how my business runs without me \ud83d\udc47",
+      "published_at": "2026-08-20T17:06:25Z",
+      "views": 698,
+      "likes": 22,
+      "comments": 0,
+      "seconds": 37,
+      "is_short": true
+    },
+    {
+      "id": "LXglIH00ang",
+      "title": "Is life really easier being a software developer?\ud83d\udc47\ud83c\udffb",
+      "published_at": "2026-08-19T22:33:19Z",
+      "views": 2113,
+      "likes": 45,
+      "comments": 2,
+      "seconds": 8,
+      "is_short": true
+    },
+    {
+      "id": "cs-3QHSPaVU",
+      "title": "Do you believe AI has made us more productive?\ud83e\udd14",
+      "published_at": "2026-08-17T22:43:28Z",
+      "views": 16167,
+      "likes": 90,
+      "comments": 5,
+      "seconds": 6,
+      "is_short": true
+    },
+    {
+      "id": "4lWTYIsXJPg",
+      "title": "10 coding habits I learned that got me into Google\ud83e\udd2f \ud83d\udc47\ud83c\udffb",
+      "published_at": "2026-08-11T21:24:35Z",
+      "views": 1495,
+      "likes": 29,
+      "comments": 0,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "s7Xp9NUzV7c",
+      "title": "I Ran My Dating App Through AI. Here\u2019s What It Found \ud83d\ude33#KnimePartner",
+      "published_at": "2026-08-10T20:49:58Z",
+      "views": 558,
+      "likes": 12,
+      "comments": 2,
+      "seconds": 12,
+      "is_short": true
+    },
+    {
+      "id": "Z8DTgU6ET6s",
+      "title": "Can I grow from 20k to 100k subs in 6 months? \ud83d\udc40\ud83d\ude0e#LovartPartner",
+      "published_at": "2026-08-09T20:11:54Z",
+      "views": 328,
+      "likes": 9,
+      "comments": 2,
+      "seconds": 41,
+      "is_short": true
+    },
+    {
+      "id": "qkxyFraNkBU",
+      "title": "He predicted this in 2024. This weekend it cost him $35B anyway \ud83d\udc40",
+      "published_at": "2026-08-06T23:16:14Z",
+      "views": 255,
+      "likes": 12,
+      "comments": 0,
+      "seconds": 93,
+      "is_short": true
+    },
+    {
+      "id": "ojFOX6sJx5g",
+      "title": "Life hack: Don\u2019t text him , leave a bug in his code\ud83d\ude02",
+      "published_at": "2026-08-05T23:25:50Z",
+      "views": 372,
+      "likes": 9,
+      "comments": 0,
+      "seconds": 32,
+      "is_short": true
+    },
+    {
+      "id": "e3vzypOsRi4",
+      "title": "Your AI Codebase Is 90% Slop (And You Don\u2019t Even Know It)\ud83e\udd2f",
+      "published_at": "2026-08-04T18:52:12Z",
+      "views": 382,
+      "likes": 11,
+      "comments": 1,
+      "seconds": 38,
+      "is_short": true
+    },
+    {
+      "id": "j7kwnzrb6uc",
+      "title": "Your AI fund imploded and now you are $45 Billion richer\ud83d\udcb0",
+      "published_at": "2026-08-03T23:09:20Z",
+      "views": 621,
+      "likes": 12,
+      "comments": 0,
+      "seconds": 12,
+      "is_short": true
+    },
+    {
+      "id": "Sz-mVj9mgR4",
+      "title": "This App Tells You If a Founder\u2019s Worth Your Time \ud83e\udd2f",
+      "published_at": "2026-07-31T22:24:24Z",
+      "views": 1347,
+      "likes": 20,
+      "comments": 0,
+      "seconds": 37,
+      "is_short": true
+    },
+    {
+      "id": "2BQyTv-u0yg",
+      "title": "I Blamed My Wifi For 4 Minutes Before Realizing Claude Was Down \ud83e\udee0Was this you today? \ud83d\udc40",
+      "published_at": "2026-07-30T01:12:35Z",
+      "views": 1746,
+      "likes": 34,
+      "comments": 1,
+      "seconds": 20,
+      "is_short": true
+    },
+    {
+      "id": "dd0hpl1LeSM",
+      "title": "They Replaced WOOHP\u2019s Gadgets With AI Agents\ud83d\ude02#ai #totallyspies",
+      "published_at": "2026-07-29T00:47:17Z",
+      "views": 1127,
+      "likes": 23,
+      "comments": 1,
+      "seconds": 44,
+      "is_short": true
+    },
+    {
+      "id": "puT3Cdjl3bU",
+      "title": "If the Charlie Angels were formed in 2026\ud83d\ude02\ud83d\udc47\ud83c\udffb#charlieangels",
+      "published_at": "2026-07-27T23:52:19Z",
+      "views": 2485,
+      "likes": 30,
+      "comments": 2,
+      "seconds": 11,
+      "is_short": true
+    },
+    {
+      "id": "A3ThrHl1qfE",
+      "title": "Are You Smart Enough to Get Both These CS Jokes? \ud83e\udd2f",
+      "published_at": "2026-07-24T23:22:36Z",
+      "views": 1740,
+      "likes": 37,
+      "comments": 1,
+      "seconds": 22,
+      "is_short": true
+    },
+    {
+      "id": "4A_-Edy5VYQ",
+      "title": "You can build your own AI Agents in 3 steps#AkamaiPartner",
+      "published_at": "2026-07-23T21:05:03Z",
+      "views": 1226,
+      "likes": 33,
+      "comments": 4,
+      "seconds": 53,
+      "is_short": true
+    },
+    {
+      "id": "KTtPfAsMx4k",
+      "title": "Wait, My AI Newsletter Drops THIS Week?? \ud83d\ude05 #FlodeskPartner",
+      "published_at": "2026-07-20T18:22:15Z",
+      "views": 1483,
+      "likes": 21,
+      "comments": 0,
+      "seconds": 39,
+      "is_short": true
+    },
+    {
+      "id": "4aD13nZMWto",
+      "title": "Can AI replace you in2026?\ud83d\ude02\ud83d\udc47\ud83c\udffb#ai #tech",
+      "published_at": "2026-07-16T22:45:44Z",
+      "views": 4898,
+      "likes": 59,
+      "comments": 3,
+      "seconds": 9,
+      "is_short": true
+    },
+    {
+      "id": "YJlJ12Txhkg",
+      "title": "Is OpenClaw Still Worth It in 2026? (Ex-Google Engineer)",
+      "published_at": "2026-07-16T17:26:00Z",
+      "views": 14465,
+      "likes": 235,
+      "comments": 64,
+      "seconds": 1021,
+      "is_short": false
+    },
+    {
+      "id": "DoXMCFlZiz4",
+      "title": "Me now that Fable 5 is back\ud83d\ude02\ud83d\udd25",
+      "published_at": "2026-07-15T15:12:30Z",
+      "views": 1770,
+      "likes": 26,
+      "comments": 0,
+      "seconds": 10,
+      "is_short": true
+    },
+    {
+      "id": "xvLtp4R_Jes",
+      "title": "Opus 4.8 feels outdated already!!\ud83d\ude2d",
+      "published_at": "2026-07-13T14:00:03Z",
+      "views": 2301,
+      "likes": 15,
+      "comments": 1,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "Mk85_ABT95w",
+      "title": "if my search history leaked I\u2019d have to move countries \ud83d\ude2d",
+      "published_at": "2026-07-13T11:47:47Z",
+      "views": 1118,
+      "likes": 22,
+      "comments": 2,
+      "seconds": 13,
+      "is_short": true
+    },
+    {
+      "id": "Rn1ciekNiho",
+      "title": "How To Stop Your AI Video From Looking Like Slop \ud83d\ude2d",
+      "published_at": "2026-07-09T19:24:12Z",
+      "views": 1287,
+      "likes": 21,
+      "comments": 5,
+      "seconds": 47,
+      "is_short": true
+    },
+    {
+      "id": "MS63i1cRQr8",
+      "title": "POV: LAST DAY to use Fable 5 in your subscription.",
+      "published_at": "2026-07-09T11:51:26Z",
+      "views": 1996,
+      "likes": 36,
+      "comments": 1,
+      "seconds": 22,
+      "is_short": true
+    },
+    {
+      "id": "BLBUir88wd0",
+      "title": "How A 27-Year-Old Built A $2B AI Startup In 2 Years",
+      "published_at": "2026-07-07T18:08:22Z",
+      "views": 5829,
+      "likes": 113,
+      "comments": 15,
+      "seconds": 979,
+      "is_short": false
+    },
+    {
+      "id": "LQByZ6ASIGk",
+      "title": "Who would you do this with? \ud83d\udc47\ud83d\udc40 you can pitch your dream life with AI\u2026 #GammaPartner",
+      "published_at": "2026-07-07T12:25:39Z",
+      "views": 1380,
+      "likes": 11,
+      "comments": 0,
+      "seconds": 16,
+      "is_short": true
+    },
+    {
+      "id": "JGgtLFBl1Ds",
+      "title": "Anthropic Interviews Its AI Before Killing It. Here\u2019s What Claude Said.",
+      "published_at": "2026-07-01T01:40:41Z",
+      "views": 1704,
+      "likes": 52,
+      "comments": 6,
+      "seconds": 68,
+      "is_short": true
+    },
+    {
+      "id": "n7GwrUciDvM",
+      "title": "AI is almost out of hand \ud83d\ude05#ai #aiagents",
+      "published_at": "2026-06-25T19:35:24Z",
+      "views": 2539,
+      "likes": 34,
+      "comments": 2,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "GxMGInn0sPI",
+      "title": "Needed to do this at Cannes\ud83d\ude05\ud83d\udd25",
+      "published_at": "2026-06-24T15:59:02Z",
+      "views": 1877,
+      "likes": 19,
+      "comments": 2,
+      "seconds": 7,
+      "is_short": true
+    },
+    {
+      "id": "-z28SWW682g",
+      "title": "At Google I acted Funemployed & YOU should too\u2026 \ud83d\udc47",
+      "published_at": "2026-06-23T19:34:14Z",
+      "views": 2007,
+      "likes": 35,
+      "comments": 3,
+      "seconds": 12,
+      "is_short": true
+    }
+  ]
+}

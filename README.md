@@ -22,6 +22,10 @@
 
 Example output: `ideas/2026-09-26.md`, built from real Sandcastles data. A full run through the pipeline is in `videos/2026-09-27_what-ai-replaced-at-google/`: the script (v2), the independent review that shaped it, and the filled-in edit brief.
 
+## Mentor and accountability
+
+`MENTOR.md` holds the contract: **1 long-form video a week for 12 weeks (Sep 28 to Dec 20)**, a baseline, and blunt scoring rules. The Notion "YouTube Scoreboard" has one row per week, and every Sunday a check-in routine scores the week using `ideas/channel_stats.py` (zero tokens) plus two Notion page reads.
+
 ## Token budget
 
 Rough figures, **low confidence** until measured on real runs:
@@ -40,10 +44,10 @@ The brief is the only cost that repeats on a schedule, so its frequency is the b
 
 ## Setup still needed
 
-1. **YouTube Data API key**, added as an environment secret `YOUTUBE_API_KEY`.
-2. **Competitor handles**: confirm the three unverified guesses in `config/channels.json` and add more channels.
+1. ~~YouTube Data API key~~ done (environment variable `YOUTUBE_API_KEY`).
+2. **Competitors**: Theo and Alberta Tech are verified. Madeline Zhang's two channel IDs haven't been API-checked yet. Add 10 to 20 more channels.
 3. **Voice corpus**: transcripts in `voice/transcripts/`, then about 1,000 words in `voice/excerpts.md`. See `voice/README.md`.
-4. **Merge this PR.** The routine runs on `master`.
+4. **Routines** ("YouTube idea brief" and "YouTube mentor check-in"): attach this repo plus the Sandcastles and Notion connectors in the claude.ai Routines UI.
 
 ## Run
 

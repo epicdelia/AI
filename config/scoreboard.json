@@ -1,0 +1,80 @@
+{
+  "_note": "12-week commitment: 1 long-form video a week. Notion 'YouTube Scoreboard' database. The check-in fetches pages by ID instead of querying the database, which saves about 13k tokens.",
+  "commitment": "1 long-form video per week",
+  "channel": "UC8jn9cfrj46p59JKdq_J1Zw",
+  "scoreboard_data_source": "4f1be5e1-28ca-4947-896e-7833209ddd60",
+  "weeks": [
+    {
+      "week": 1,
+      "start": "2026-09-28",
+      "due": "2026-10-04",
+      "notion_page": "3e8fce66-e714-813f-bde7-c3143a8e540f"
+    },
+    {
+      "week": 2,
+      "start": "2026-10-05",
+      "due": "2026-10-11",
+      "notion_page": "3e8fce66-e714-81ba-922d-d1022542a083"
+    },
+    {
+      "week": 3,
+      "start": "2026-10-12",
+      "due": "2026-10-18",
+      "notion_page": "3e8fce66-e714-815f-a03f-f47036b18fed"
+    },
+    {
+      "week": 4,
+      "start": "2026-10-19",
+      "due": "2026-10-25",
+      "notion_page": "3e8fce66-e714-8122-ad95-f14cbd02ba1e"
+    },
+    {
+      "week": 5,
+      "start": "2026-10-26",
+      "due": "2026-11-01",
+      "notion_page": "3e8fce66-e714-819f-bcbf-edfc0bd09840"
+    },
+    {
+      "week": 6,
+      "start": "2026-11-02",
+      "due": "2026-11-08",
+      "notion_page": "3e8fce66-e714-81fa-87d1-d6df7c8a2386"
+    },
+    {
+      "week": 7,
+      "start": "2026-11-09",
+      "due": "2026-11-15",
+      "notion_page": "3e8fce66-e714-81fc-8ce5-f907c704a130"
+    },
+    {
+      "week": 8,
+      "start": "2026-11-16",
+      "due": "2026-11-22",
+      "notion_page": "3e8fce66-e714-81a7-8351-e6e70731818e"
+    },
+    {
+      "week": 9,
+      "start": "2026-11-23",
+      "due": "2026-11-29",
+      "notion_page": "3e8fce66-e714-81ec-8b7b-d3422d894b22"
+    },
+    {
+      "week": 10,
+      "start": "2026-11-30",
+      "due": "2026-12-06",
+      "notion_page": "3e8fce66-e714-8114-87f9-e2c6572d098c"
+    },
+    {
+      "week": 11,
+      "start": "2026-12-07",
+      "due": "2026-12-13",
+      "notion_page": "3e8fce66-e714-81ea-9d5a-ec68576be03f"
+    },
+    {
+      "week": 12,
+      "start": "2026-12-14",
+      "due": "2026-12-20",
+      "notion_page": "3e8fce66-e714-81bc-b33d-cb387a4939ca"
+    }
+  ]
+}

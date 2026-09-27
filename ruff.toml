@@ -1,0 +1,2 @@
+# sudoku_solver.py predates the app and isn't linted.
+extend-exclude = ["sudoku_solver.py"]

@@ -1,5 +1,5 @@
 {
-  "_note": "Your named competitors. Handles are unverified guesses (YouTube is blocked from this environment); find_outliers.py prints 'channel not found' for any wrong one. 3 channels is a thin baseline, add 10-20 more adjacent ones.",
+  "_note": "Verified Sep 27 via the YouTube API: t3dotgg (Theo, 568k) and AlbertaTech (477k) resolve. madelinezhang does NOT resolve, so the real handle is needed. 3 channels is a thin baseline, add 10-20 more adjacent ones.",
   "lookback_days": 4,
   "min_outlier_score": 3,
   "min_views": 20000,

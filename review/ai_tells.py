@@ -32,7 +32,11 @@ RULES = [
     (WARN, "fake-suspense question", re.compile(r"\bThe (result|answer|catch|kicker|twist|verdict|secret)\?", re.IGNORECASE)),
     (WARN, "essay transition", re.compile(r"(^|[.!?]\s+)(Moreover|Furthermore|Additionally|Ultimately|Notably|Importantly),", re.MULTILINE)),
     (WARN, "one-word tricolon", re.compile(r"\b(\w+), (\w+),? and (\w+)[.!]", re.IGNORECASE)),
-    (WARN, "missing contraction", re.compile(r"\b(I am|you are|we are|they are|do not|does not|is not|it is|cannot|will not|that is)\b")),
+    (WARN, "missing contraction", re.compile(
+        r"\b(I am|you are|we are|they are|do not|does not|did not|is not|are not|was not|it is|that is|"
+        r"there is|cannot|will not|would not|should not|could not|have not|has not)\b",
+        re.IGNORECASE,
+    )),
 ]
 
 SIGNATURE = [

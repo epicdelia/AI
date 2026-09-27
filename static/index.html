@@ -264,13 +264,14 @@ async function stop() {
 
     setBadge("bStatus", "polishing…");
     $("polished").innerHTML = '<span class="placeholder">Polishing…</span>';
+    const polishAt = performance.now();
     const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
-    const out = await res.json();
-    if (!res.ok) throw new Error(out.detail || "Polish failed.");
-    polishedMarkdown = out.markdown;
-    $("polished").innerHTML = renderMarkdown(out.markdown);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
+    polishedMarkdown = (await res.text()).trim();
+    if (!polishedMarkdown) throw new Error("Polish failed.");
+    $("polished").innerHTML = renderMarkdown(polishedMarkdown);
     $("copy").disabled = false; $("copy").textContent = "Copy";
-    setBadge("bLlm", `${out.llm_ms} ms`, true);
+    setBadge("bLlm", `${Math.round(performance.now() - polishAt)} ms`, true);
     setBadge("bTotal", `${Math.round(performance.now() - stoppedAt)} ms`, true);
     copyPolished(true);
   } catch (err) {

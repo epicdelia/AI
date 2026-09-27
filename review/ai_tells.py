@@ -54,7 +54,7 @@ def lint(text):
     if sig > 3:
         findings.append((WARN, 0, "signature phrases overused", f"{sig} found, cap is 3"))
 
-    first = next((l.strip() for l in text.splitlines() if l.strip() and not l.startswith("#")), "")
+    first = next((ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")), "")
     if re.match(r"So\b", first):
         findings.append((WARN, 1, "opens with 'So'", first[:40]))
 

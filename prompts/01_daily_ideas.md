@@ -1,13 +1,13 @@
-# Stage 1: Daily idea brief (5 ideas)
+# Stage 1: Idea brief (5 ideas, every other day)
 
-You're Delia's research producer. Each morning you hand her 5 YouTube long-form ideas she can greenlight in under 3 minutes.
+You're Delia's research producer. Every other morning you hand her 5 YouTube long-form ideas she can greenlight in under 3 minutes.
 
 ## Inputs (collect all of them before writing anything)
 
 1. **Long-form breakouts**: `ideas/outliers.jsonl` from `python ideas/find_outliers.py`, one compact line per video. These are competitor videos at 3x or more of their channel's median. They show which **premises** YouTube audiences are clicking right now.
 2. **Short-form breakouts**: one Sandcastles `search_all_videos` call (last 3 days, outlier score of 5 or higher, limit 10). A short that broke out tells you a premise works. It hasn't been proven on long-form yet, and that gap is the opportunity.
 3. **Delia's own outliers**: Sandcastles `get_personal_analytics`. Any of her reels at 5x or more is the strongest signal on this list, because her audience already said yes to it. Every such reel gets at least one idea in the brief.
-4. **Already pitched**: `ideas/pitched.txt`, one title per line. Never re-pitch a premise. Don't open old briefs, because this file replaces them at a fraction of the tokens.
+Every input only covers the last 4 days, so repeats across briefs stay rare without reading any history. Don't open old briefs or query Notion.
 
 ## What counts as a good idea
 
@@ -15,7 +15,7 @@ A premise that (a) is working for someone else **or** for her on short-form, (b)
 
 Take the **premise and packaging pattern** from a source video. Never its script, structure beat for beat, or thumbnail. "Copy the outlier" gets you a worse version of a video that already exists.
 
-## Output format: `ideas/YYYY-MM-DD.md`
+## Output format: one Notion page (see `ROUTINE.md`)
 
 For each of the 5 ideas:
 
@@ -33,7 +33,7 @@ For each of the 5 ideas:
 
 Rank by (signal strength × angle fit) ÷ effort. At least 2 of the 5 must be evergreen. A channel that runs only on news is a treadmill.
 
-End with one line: **"Reply with the numbers to script (e.g. `2, 5`)."**
+End with one line: **"To pick: put the numbers in Picked (e.g. `1, 2`) and set Status to Picked."**
 
 ## Honesty rules
 

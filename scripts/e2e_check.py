@@ -49,12 +49,12 @@ def on_ws(ws):
 
 
 polish_bodies = []
+POLISHED = "**Launch update**\n\n- Launch moves to **Friday**\n- <script>alert(1)</script>"
 
 
 def polish(route):
     polish_bodies.append(json.loads(route.request.post_data))
-    route.fulfill(json={"markdown": "**Launch update**\n\n- Launch moves to **Friday**\n- <script>alert(1)</script>",
-                        "model": "gpt-5-mini", "llm_ms": 412})
+    route.fulfill(body=POLISHED, content_type="text/plain; charset=utf-8")
 
 
 try:
@@ -113,8 +113,8 @@ checks = {
     "polish got final transcript": polish_bodies and "moving to friday" in polish_bodies[0]["text"],
     "markdown rendered": "<strong>Launch update</strong>" in polished_html and "<li>" in polished_html,
     "llm output html escaped": "<script>" not in polished_html,
-    "auto-copied markdown": clip.startswith("**Launch update**"),
-    "badges filled": badges["bLlm"] == "412 ms" and badges["bFinal"].endswith("ms") and badges["bTotal"].endswith("ms"),
+    "auto-copied markdown": clip == POLISHED,
+    "badges filled": badges["bLlm"].endswith(" ms") and badges["bFinal"].endswith("ms") and badges["bTotal"].endswith("ms"),
     "mic off after stop": not mic_live,
     "quick tap recovers to idle": status_after_tap == "idle",
     "no page errors": not errors,

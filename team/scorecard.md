@@ -5,6 +5,7 @@ Updated by the orchestrator each night from GitHub PR state. Owner doesn't edit.
 
 | Date | PR | Ticket | Outcome (clean merge / owner-edited merge / closed / reverted / open) | Guard flags | QA defects found | Owner-found defects |
 |---|---|---|---|---|---|---|
+| 2026-09-27 | epicdelia/AI#5 | T-001 | open | 0 | 3 minor | – |
 
 ## Running totals
 - PRs decided: 0

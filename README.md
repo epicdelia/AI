@@ -20,7 +20,7 @@
 | 5. Editing | `editing/workflow.md`, `editing/edit_brief_template.md` | Process, not automation |
 | 6. Hiring | `hiring/hiring_plan.md` | Process |
 
-Example output: `ideas/2026-09-26.md`, built from real Sandcastles data.
+Example output: `ideas/2026-09-26.md`, built from real Sandcastles data. A full run through the pipeline is in `videos/2026-09-27_what-ai-replaced-at-google/`: the script (v2), the independent review that shaped it, and the filled-in edit brief.
 
 ## Token budget
 
@@ -33,6 +33,8 @@ Rough figures, **low confidence** until measured on real runs:
 | Script + review | only on greenlit ideas | linter first, one combined review call, 1,000-word voice excerpts |
 | Full 4-agent panel | sponsored / high-effort only | about 3 to 4 times the default review cost |
 | Video | never | the AI reads transcripts only, never frames |
+
+**Measured so far (Sep 27 demo run):** the combined review, run as a separate Sonnet agent, used **about 80k tokens**. That's about 3x the guess above, and most of it is fixed agent start-up overhead, not the script itself. It's still one call per greenlit video, not per day. The full 4-agent panel would multiply that overhead by 4, which is another reason to keep it for sponsored videos only.
 
 The brief is the only cost that repeats on a schedule, so its frequency is the biggest lever. Running it every other day halves it compared with daily.
 

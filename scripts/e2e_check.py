@@ -89,11 +89,14 @@ try:
         page.screenshot(path=str(ROOT / "e2e-screenshot.png"), full_page=True)
 
         # 2. Quick tap (release before connect) must not wedge the app.
-        page.keyboard.down("Space"); page.keyboard.up("Space")
+        page.keyboard.down("Space")
+        page.keyboard.up("Space")
         page.wait_for_timeout(1500)
         status_after_tap = page.inner_text("#bStatus b")
         # 3. Button toggle works after the tap.
-        page.click("#talk"); page.wait_for_timeout(800); page.click("#talk")
+        page.click("#talk")
+        page.wait_for_timeout(800)
+        page.click("#talk")
         page.wait_for_function("document.getElementById('bStatus').innerText.includes('idle')", timeout=6000)
         browser.close()
 finally:

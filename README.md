@@ -80,6 +80,20 @@ uvicorn app:app --port 8000
 Open http://localhost:8000 in Chrome, allow the mic, then **hold Space** (or
 click **Start Speaking**), talk, and let go.
 
+## Put it online (free, on Render)
+
+`render.yaml` deploys Flow to Render's free tier, so you get an `https://` URL
+(browsers only allow the mic on https or localhost).
+
+1. Go to https://dashboard.render.com/blueprints → **New Blueprint Instance** → pick this repo.
+2. When asked, paste your `ASSEMBLYAI_API_KEY` and choose a `FLOW_PASSCODE`.
+3. Wait for the build (~2 min) and open the `https://flow-dictation-….onrender.com` URL.
+   The page asks for the passcode once.
+
+Without the passcode, anyone with the URL spends your AssemblyAI credit. The free
+tier sleeps after 15 idle minutes, so the first load after a break takes about a minute.
+Open it once before you record.
+
 ## Choosing the LLM
 
 `LLM_MODEL` in `.env` picks the model (default `gpt-5-mini`). To see the models

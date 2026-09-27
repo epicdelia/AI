@@ -84,3 +84,18 @@ def test_malformed_llm_response_is_surfaced(client):
     r = client.post("/api/polish", json={"text": "hello"})
     assert r.status_code == 502
     assert "Unexpected" in r.json()["detail"]
+
+
+def test_passcode_required_when_set(client, monkeypatch):
+    monkeypatch.setenv("FLOW_PASSCODE", "open-sesame")
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
+    assert client.get("/api/token").status_code == 401
+    assert client.get("/api/token", headers={"X-Flow-Passcode": "nope"}).status_code == 401
+    assert client.post("/api/polish", json={"text": "hi"}).status_code == 401
+    assert client.calls == []  # no upstream spend without the passcode
+    assert client.get("/api/auth", headers={"X-Flow-Passcode": "open-sesame"}).json() == {"ok": True}
+    assert client.get("/api/token", headers={"X-Flow-Passcode": "open-sesame"}).json() == {"token": "tmp-123"}
+
+
+def test_no_passcode_needed_locally(client):
+    assert client.get("/api/auth").json() == {"ok": True}

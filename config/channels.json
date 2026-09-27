@@ -1,0 +1,19 @@
+{
+  "_note": "Your named competitors. Handles are unverified guesses (YouTube is blocked from this environment); find_outliers.py prints 'channel not found' for any wrong one. 3 channels is a thin baseline, add 10-20 more adjacent ones.",
+  "lookback_days": 4,
+  "min_outlier_score": 3,
+  "min_views": 20000,
+  "channels": [
+    "t3dotgg",
+    "AlbertaTech",
+    "madelinezhang"
+  ],
+  "candidates_unused": [
+    "Fireship",
+    "ThePrimeTimeagen",
+    "mreflow",
+    "TinaHuang1",
+    "NetworkChuck",
+    "aiexplained-official"
+  ]
+}

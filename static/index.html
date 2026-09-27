@@ -121,6 +121,18 @@ function setBadge(id, value, good) {
   $(id).classList.toggle("good", !!good);
 }
 function showError(msg) { $("error").textContent = msg; $("error").style.display = msg ? "block" : "none"; }
+
+// Public deploys set FLOW_PASSCODE; ask once, remember it in this browser, retry on 401.
+function savedPasscode() { try { return localStorage.getItem("flowPasscode") || ""; } catch { return ""; } }
+async function api(url, opts = {}) {
+  const call = () => fetch(url, { ...opts, headers: { ...(opts.headers || {}), "X-Flow-Passcode": savedPasscode() } });
+  let res = await call();
+  if (res.status === 401) {
+    const code = prompt("Passcode for this Flow demo:");
+    if (code) { try { localStorage.setItem("flowPasscode", code.trim()); } catch {} res = await call(); }
+  }
+  return res;
+}
 function setRecordingUi(on) {
   $("talk").classList.toggle("rec", on);
   $("talkLabel").textContent = on ? "Stop" : "Start Speaking";
@@ -183,7 +195,7 @@ async function start() {
   renderRaw(s.turns);
   try {
     const [tokenRes, stream] = await Promise.all([
-      fetch("/api/token"),
+      api("/api/token"),
       navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }),
     ]);
     s.stream = stream;
@@ -265,7 +277,7 @@ async function stop() {
     setBadge("bStatus", "polishing…");
     $("polished").innerHTML = '<span class="placeholder">Polishing…</span>';
     const polishAt = performance.now();
-    const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    const res = await api("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
     polishedMarkdown = (await res.text()).trim();
     if (!polishedMarkdown) throw new Error("Polish failed.");
@@ -283,6 +295,7 @@ async function stop() {
   }
 }
 
+api("/api/auth");   // ask for the passcode up front, not mid-recording
 $("talk").addEventListener("click", () => (session ? stop() : start()));
 $("copy").addEventListener("click", () => copyPolished(false));
 document.addEventListener("keydown", (e) => {

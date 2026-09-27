@@ -7,13 +7,14 @@ talking, the raw transcript comes back here to be polished by the LLM Gateway.
 Run:  uvicorn app:app --port 8000   then open http://localhost:8000
 """
 
+import hmac
 import json
 import os
 from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -49,6 +50,13 @@ def _api_key() -> str:
     return key
 
 
+def _check_passcode(passcode: str | None) -> None:
+    """If FLOW_PASSCODE is set (public deploys), every API call must send it, so strangers can't spend your credit."""
+    expected = os.getenv("FLOW_PASSCODE", "").strip()
+    if expected and not hmac.compare_digest((passcode or "").encode(), expected.encode()):
+        raise HTTPException(401, "Wrong or missing passcode.")
+
+
 def _client() -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=HTTP_TRANSPORT, timeout=httpx.Timeout(30.0, connect=5.0))
 
@@ -62,8 +70,15 @@ async def index() -> FileResponse:
     return FileResponse(INDEX_HTML)
 
 
+@app.get("/api/auth")
+async def auth(x_flow_passcode: str | None = Header(default=None)) -> dict:
+    _check_passcode(x_flow_passcode)
+    return {"ok": True}
+
+
 @app.get("/api/token")
-async def streaming_token() -> dict:
+async def streaming_token(x_flow_passcode: str | None = Header(default=None)) -> dict:
+    _check_passcode(x_flow_passcode)
     async with _client() as client:
         resp = await client.get(
             STREAMING_TOKEN_URL,
@@ -91,7 +106,8 @@ async def _sse_text(resp: httpx.Response, client: httpx.AsyncClient):
 
 
 @app.post("/api/polish")
-async def polish(req: PolishRequest) -> StreamingResponse:
+async def polish(req: PolishRequest, x_flow_passcode: str | None = Header(default=None)) -> StreamingResponse:
+    _check_passcode(x_flow_passcode)
     text = req.text.strip()
     if not text:
         raise HTTPException(400, "Nothing to polish: the transcript is empty.")

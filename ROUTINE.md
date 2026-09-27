@@ -1,6 +1,6 @@
 # Idea brief routine
 
-Scheduled Claude Code Routine that runs every other day at 07:52 London, each time in a fresh session on `master`. It needs the Sandcastles and Notion connectors. `YOUTUBE_API_KEY` is optional; without it the brief runs on short-form data only. Run it on a mid-tier model (Sonnet).
+Scheduled Claude Code Routine that runs every other day at 07:58 London, each time in a fresh session on `master`. It needs the Sandcastles and Notion connectors. `YOUTUBE_API_KEY` is optional; without it the brief runs on short-form data only. Run it on a mid-tier model (Sonnet).
 
 **How it avoids repeat ideas without spending tokens:** each run only looks at the last 4 days of videos. Runs are 2 days apart, so a source video lands in at most two briefs. The routine never *reads* Notion or old briefs. Loading a Notion query tool alone costs about 13k tokens.
 

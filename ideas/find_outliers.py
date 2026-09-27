@@ -22,7 +22,7 @@ import statistics
 import sys
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 API = "https://www.googleapis.com/youtube/v3/"
 SHORTS_MAX_SECONDS = 180  # Shorts can run up to 3 minutes
@@ -86,7 +86,7 @@ def score_channel(videos, now, lookback_days, min_age_days=2, min_baseline=5):
     """Return breakout candidates for one channel's recent uploads."""
     long_form = [v for v in videos if v["seconds"] > SHORTS_MAX_SECONDS]
     for v in long_form:
-        published = datetime.fromisoformat(v["published_at"].replace("Z", "+00:00"))
+        published = datetime.fromisoformat(v["published_at"])
         v["age_days"] = (now - published).total_seconds() / 86400
 
     baseline = [v["views"] for v in long_form if v["age_days"] > lookback_days]
@@ -104,7 +104,7 @@ def score_channel(videos, now, lookback_days, min_age_days=2, min_baseline=5):
 
 
 def find_outliers(config, get=api_get, now=None, seen=()):
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     lookback = config.get("lookback_days", 14)
     min_score = config.get("min_outlier_score", 3)
     min_views = config.get("min_views", 20000)

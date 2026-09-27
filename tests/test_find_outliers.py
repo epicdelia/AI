@@ -1,12 +1,9 @@
-import sys
 import unittest
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ideas"))
-import find_outliers as fo  # noqa: E402
+import find_outliers as fo
 
-NOW = datetime(2026, 9, 26, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 26, tzinfo=UTC)
 
 
 def vid(i, days_ago, views, seconds=900):

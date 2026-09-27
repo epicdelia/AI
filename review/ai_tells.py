@@ -25,13 +25,13 @@ BANNED = [
 RULES = [
     (HARD, "em dash", re.compile("—")),
     (HARD, "spaced en dash used as em dash", re.compile(r"\s–\s")),
-    (HARD, "banned phrase", re.compile(r"\b(" + "|".join(map(re.escape, BANNED)) + r")", re.I)),
-    (HARD, "'leverage' as a verb", re.compile(r"\bleverag(e|es|ing|ed)\s+(the|your|our|this|these|AI|it)\b", re.I)),
-    (WARN, "'not X, it's Y' reversal", re.compile(r"\b(isn't|is not|it's not|not) (just |only |about )?[^.,;!?]{1,40}[,;] (it's|it is|but)\b", re.I)),
-    (WARN, "stock setup phrase", re.compile(r"\b(here's the (thing|kicker|catch)|let that sink in|the best part\?|spoiler( alert)?:|plot twist:|but here's where it gets)", re.I)),
-    (WARN, "fake-suspense question", re.compile(r"\bThe (result|answer|catch|kicker|twist|verdict|secret)\?", re.I)),
-    (WARN, "essay transition", re.compile(r"(^|[.!?]\s+)(Moreover|Furthermore|Additionally|Ultimately|Notably|Importantly),", re.M)),
-    (WARN, "one-word tricolon", re.compile(r"\b(\w+), (\w+),? and (\w+)[.!]", re.I)),
+    (HARD, "banned phrase", re.compile(r"\b(" + "|".join(map(re.escape, BANNED)) + r")", re.IGNORECASE)),
+    (HARD, "'leverage' as a verb", re.compile(r"\bleverag(e|es|ing|ed)\s+(the|your|our|this|these|AI|it)\b", re.IGNORECASE)),
+    (WARN, "'not X, it's Y' reversal", re.compile(r"\b(isn't|is not|it's not|not) (just |only |about )?[^.,;!?]{1,40}[,;] (it's|it is|but)\b", re.IGNORECASE)),
+    (WARN, "stock setup phrase", re.compile(r"\b(here's the (thing|kicker|catch)|let that sink in|the best part\?|spoiler( alert)?:|plot twist:|but here's where it gets)", re.IGNORECASE)),
+    (WARN, "fake-suspense question", re.compile(r"\bThe (result|answer|catch|kicker|twist|verdict|secret)\?", re.IGNORECASE)),
+    (WARN, "essay transition", re.compile(r"(^|[.!?]\s+)(Moreover|Furthermore|Additionally|Ultimately|Notably|Importantly),", re.MULTILINE)),
+    (WARN, "one-word tricolon", re.compile(r"\b(\w+), (\w+),? and (\w+)[.!]", re.IGNORECASE)),
     (WARN, "missing contraction", re.compile(r"\b(I am|you are|we are|they are|do not|does not|is not|it is|cannot|will not|that is)\b")),
 ]
 

@@ -1,9 +1,6 @@
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "review"))
-import ai_tells  # noqa: E402
+import ai_tells
 
 
 def names(text):

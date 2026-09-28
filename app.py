@@ -16,6 +16,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 load_dotenv()
@@ -27,7 +28,8 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
 FAST_HINTS = ("nano", "flash", "mini", "haiku", "lite", "small", "instant", "fast")
 MAX_MODEL_TRIES = 8
 _working_model: str | None = None  # the first model this key could use; remembered for later requests
-INDEX_HTML = Path(__file__).parent / "static" / "index.html"
+STATIC_DIR = Path(__file__).parent / "static"
+INDEX_HTML = STATIC_DIR / "index.html"
 HTTP_TRANSPORT = None  # tests swap in an httpx.MockTransport
 
 CLEANUP_RULES = """You turn raw dictated speech into clean written text.
@@ -58,6 +60,7 @@ def system_prompt(style: str = "auto") -> str:
 SYSTEM_PROMPT = system_prompt("auto")
 
 app = FastAPI(title="Flow")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")  # manifest + icons for Add to Home Screen
 
 
 class PolishRequest(BaseModel):

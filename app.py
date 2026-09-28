@@ -21,7 +21,11 @@ load_dotenv()
 
 STREAMING_TOKEN_URL = "https://streaming.assemblyai.com/v3/token"
 LLM_GATEWAY_URL = "https://llm-gateway.assemblyai.com/v1/chat/completions"
+LLM_MODELS_URL = "https://llm-gateway.assemblyai.com/v1/models"
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
+FAST_HINTS = ("nano", "flash", "mini", "haiku", "lite", "small", "instant", "fast")
+MAX_MODEL_TRIES = 8
+_working_model: str | None = None  # the first model this key could use; remembered for later requests
 INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 HTTP_TRANSPORT = None  # tests swap in an httpx.MockTransport
 
@@ -45,7 +49,8 @@ class PolishRequest(BaseModel):
 def _api_key() -> str:
     key = os.getenv("ASSEMBLYAI_API_KEY", "").strip()
     if not key:
-        raise HTTPException(500, "ASSEMBLYAI_API_KEY is not set. Copy .env.example to .env and add your key.")
+        raise HTTPException(500, "ASSEMBLYAI_API_KEY is not set. Locally: copy .env.example to .env and add your key. "
+                                 "On Render: add it under the service's Environment tab, then redeploy.")
     return key
 
 
@@ -90,21 +95,63 @@ async def _sse_text(resp: httpx.Response, client: httpx.AsyncClient):
         await client.aclose()
 
 
+def _no_model_access(resp: httpx.Response) -> bool:
+    return resp.status_code in (400, 403) and "access" in resp.text.lower()
+
+
+def _speed_rank(model_id: str) -> int:
+    return next((n for n, hint in enumerate(FAST_HINTS) if hint in model_id.lower()), len(FAST_HINTS))
+
+
+async def _candidate_models(client: httpx.AsyncClient, key: str, tried: set[str]) -> list[str]:
+    """Models the gateway lists, fastest-sounding first, so an account without the default still gets polish."""
+    resp = await client.get(LLM_MODELS_URL, headers={"authorization": key})
+    if resp.status_code != 200:
+        return []
+    try:
+        ids = [m["id"] for m in resp.json()["data"] if isinstance(m.get("id"), str)]
+    except (KeyError, TypeError, ValueError):
+        return []
+    return sorted((i for i in ids if i not in tried), key=_speed_rank)[:MAX_MODEL_TRIES]
+
+
+async def _open_completion(client: httpx.AsyncClient, key: str, model: str, text: str) -> httpx.Response:
+    request = client.build_request("POST", LLM_GATEWAY_URL, headers={"authorization": key}, json={
+        "model": model, "stream": True,
+        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}]})
+    resp = await client.send(request, stream=True)
+    if not (resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream")):
+        await resp.aread()  # an error, or a plain JSON completion because the gateway ignored "stream"
+    return resp
+
+
 @app.post("/api/polish")
 async def polish(req: PolishRequest) -> StreamingResponse:
+    global _working_model
     text = req.text.strip()
     if not text:
         raise HTTPException(400, "Nothing to polish: the transcript is empty.")
     key = _api_key()
     client = _client()
-    request = client.build_request("POST", LLM_GATEWAY_URL, headers={"authorization": key}, json={
-        "model": LLM_MODEL, "stream": True,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}]})
     try:
-        resp = await client.send(request, stream=True)
+        model = _working_model or LLM_MODEL
+        resp = await _open_completion(client, key, model, text)
+        if _no_model_access(resp):
+            tried = {model}
+            for model in await _candidate_models(client, key, tried):
+                tried.add(model)
+                resp = await _open_completion(client, key, model, text)
+                if not _no_model_access(resp):
+                    break
+            else:
+                raise HTTPException(502, "Your AssemblyAI account can't use any LLM Gateway model we tried "
+                                         f"({', '.join(sorted(tried))}). LLM Gateway may need billing enabled on your "
+                                         "AssemblyAI account (assemblyai.com/dashboard), or set LLM_MODEL to a model "
+                                         "your plan includes.")
+        if resp.status_code == 200:
+            _working_model = model
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client
-        await resp.aread()  # an error, or a plain JSON completion because the gateway ignored "stream"
     except BaseException:
         await client.aclose()
         raise

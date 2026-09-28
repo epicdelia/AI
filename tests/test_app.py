@@ -82,3 +82,38 @@ def test_malformed_llm_response_is_surfaced(client):
     assert r.status_code == 502
     assert "Unexpected" in r.json()["detail"]
 
+
+
+DENIED = {"metadata": {"errors": ["Your account does not have access to this LLM Gateway model"]}, "code": 400}
+
+
+def _gateway(allowed, listed):
+    def reply(req):
+        if req.url.path == "/v1/models":
+            return httpx.Response(200, json={"data": [{"id": i} for i in listed]})
+        model = json.loads(req.content)["model"]
+        if model in allowed:
+            return httpx.Response(200, json={"choices": [{"message": {"content": f"ok from {model}"}}]})
+        return httpx.Response(400, json=DENIED)
+    return reply
+
+
+def test_falls_back_to_a_model_the_account_can_use(client, monkeypatch):
+    monkeypatch.setattr(flow, "_working_model", None)
+    client.responses["llm-gateway.assemblyai.com"] = _gateway(
+        allowed={"gemini-2.5-flash", "big-model"}, listed=[flow.LLM_MODEL, "big-model", "gemini-2.5-flash"])
+    r = client.post("/api/polish", json={"text": "hello"})
+    assert r.status_code == 200 and r.text == "ok from gemini-2.5-flash"  # fast-sounding model tried first
+    client.calls.clear()
+    assert client.post("/api/polish", json={"text": "again"}).text == "ok from gemini-2.5-flash"
+    assert len(client.calls) == 1  # remembered: no second denied attempt, no model listing
+
+
+def test_clear_error_when_no_model_is_usable(client, monkeypatch):
+    monkeypatch.setattr(flow, "_working_model", None)
+    listed = [f"model-{n}" for n in range(20)]
+    client.responses["llm-gateway.assemblyai.com"] = _gateway(allowed=set(), listed=listed)
+    r = client.post("/api/polish", json={"text": "hello"})
+    assert r.status_code == 502 and "can't use any LLM Gateway model" in r.json()["detail"]
+    chat_calls = [c for c in client.calls if c.url.path.endswith("/chat/completions")]
+    assert len(chat_calls) == 1 + flow.MAX_MODEL_TRIES  # bounded, not all 20

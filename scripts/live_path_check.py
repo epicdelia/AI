@@ -10,6 +10,7 @@ model on the next take, styles, the dictionary, history, and an iPhone-sized run
 
 Run:  python scripts/live_path_check.py   (needs playwright; CHROME_PATH optional)
 """
+import importlib
 import json
 import os
 import sys
@@ -25,7 +26,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ["ASSEMBLYAI_API_KEY"] = "fake-key"
-import app as flow  # noqa: E402
+flow = importlib.import_module("app")  # after the env var and sys.path are set
 
 DENIED = {"metadata": {"errors": ["Your account does not have access to this LLM Gateway model"]},
           "message": "invalid request body", "code": 400}

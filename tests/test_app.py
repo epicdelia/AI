@@ -156,3 +156,14 @@ def test_style_changes_the_prompt(client, style, marker):
 def test_unknown_style_is_rejected_without_upstream_call(client):
     assert client.post("/api/polish", json={"text": "hello", "style": "poem"}).status_code == 422
     assert client.calls == []
+
+
+def test_home_screen_manifest_and_icons_are_served(client):
+    page = client.get("/").text
+    assert 'rel="manifest"' in page and 'rel="apple-touch-icon"' in page
+    manifest = client.get("/static/manifest.webmanifest").json()
+    assert manifest["display"] == "standalone" and manifest["start_url"] == "/"
+    for icon in manifest["icons"]:
+        r = client.get(icon["src"])
+        assert r.status_code == 200 and len(r.content) > 100
+    assert client.get("/static/apple-touch-icon.png").headers["content-type"] == "image/png"

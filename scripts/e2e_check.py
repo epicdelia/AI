@@ -107,6 +107,7 @@ try:
         page.wait_for_timeout(800)
         page.click("#talk")
         page.wait_for_function("document.getElementById('bStatus').innerText.includes('idle')", timeout=6000)
+        history_items = page.eval_on_selector_all("#historyList li .preview", "els => els.map(e => e.textContent)")
         cut_error = page.inner_text("#error")
         cut_polished = page.inner_text("#polished")
         clip_after_cut = page.evaluate("navigator.clipboard.readText()")
@@ -131,6 +132,7 @@ checks = {
     "auto-copied markdown": clip == POLISHED,
     "first-words badge filled": badges["bFirst"].endswith(" ms"),
     "cut-off reply flagged, partial text kept": "cut off" in cut_error and "only half" in cut_polished,
+    "history keeps finished notes only": len(history_items) == 1 and "Launch update" in history_items[0],
     "cut-off reply not auto-copied": clip_after_cut == POLISHED,
     "badges filled": badges["bLlm"].endswith(" ms") and badges["bFinal"].endswith("ms") and badges["bTotal"].endswith("ms"),
     "mic off after stop": not mic_live,

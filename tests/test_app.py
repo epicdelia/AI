@@ -117,3 +117,28 @@ def test_clear_error_when_no_model_is_usable(client, monkeypatch):
     assert r.status_code == 502 and "can't use any LLM Gateway model" in r.json()["detail"]
     chat_calls = [c for c in client.calls if c.url.path.endswith("/chat/completions")]
     assert len(chat_calls) == 1 + flow.MAX_MODEL_TRIES  # bounded, not all 20
+
+
+def _sse_response(body):
+    return lambda req: httpx.Response(200, headers={"content-type": "text/event-stream"}, text=body)
+
+
+def test_stream_cut_off_is_flagged(client):
+    chunk = 'data: {"choices":[{"delta":{"content":"**Half a"}}]}\n\n'
+    client.responses["llm-gateway.assemblyai.com"] = _sse_response(chunk)  # no [DONE]
+    text = client.post("/api/polish", json={"text": "hello"}).text
+    assert text.startswith("**Half a") and flow.STREAM_ERROR in text and "cut off" in text
+
+
+def test_in_band_stream_error_is_flagged(client):
+    body = ('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n'
+            'data: {"error":{"message":"overloaded"}}\n\ndata: [DONE]\n\n')
+    client.responses["llm-gateway.assemblyai.com"] = _sse_response(body)
+    text = client.post("/api/polish", json={"text": "hello"}).text
+    assert text.startswith("Hi" + flow.STREAM_ERROR) and "overloaded" in text
+
+
+def test_data_lines_without_space_are_parsed(client):
+    body = 'data:{"choices":[{"delta":{"content":"tight"}}]}\n\ndata:[DONE]\n\n'
+    client.responses["llm-gateway.assemblyai.com"] = _sse_response(body)
+    assert client.post("/api/polish", json={"text": "hello"}).text == "tight"

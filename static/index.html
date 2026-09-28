@@ -62,6 +62,7 @@
   <div class="badges">
     <div class="badge" id="bStatus">Status: <b>idle</b></div>
     <div class="badge" id="bFinal">Final transcript: <b>–</b></div>
+    <div class="badge" id="bFirst">First polished words: <b>–</b></div>
     <div class="badge" id="bLlm">AI polish: <b>–</b></div>
     <div class="badge" id="bTotal">Stop → polished: <b>–</b></div>
   </div>
@@ -264,16 +265,35 @@ async function stop() {
     if (!text) { showError("Didn't catch any speech. Check your mic and try again."); return; }
 
     setBadge("bStatus", "polishing…");
+    ["bFirst", "bLlm", "bTotal"].forEach((b) => setBadge(b, "–"));
     $("polished").innerHTML = '<span class="placeholder">Polishing…</span>';
+    $("copy").disabled = true; $("copy").textContent = "Copy";
+    polishedMarkdown = "";
     const polishAt = performance.now();
     const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
-    polishedMarkdown = (await res.text()).trim();
-    if (!polishedMarkdown) throw new Error("Polish failed.");
-    $("polished").innerHTML = renderMarkdown(polishedMarkdown);
-    $("copy").disabled = false; $("copy").textContent = "Copy";
-    setBadge("bLlm", `${Math.round(performance.now() - polishAt)} ms`, true);
-    setBadge("bTotal", `${Math.round(performance.now() - stoppedAt)} ms`, true);
+    // Render the reply as it streams in. A NUL character marks "cut off / errored": text before it is kept.
+    const reader = res.body.getReader(); const decoder = new TextDecoder();
+    let acc = ""; let painted = false;
+    const paint = () => { painted = false; $("polished").innerHTML = renderMarkdown(acc.split("\u0000")[0]); };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      acc += decoder.decode(value, { stream: true });
+      if (acc.split("\u0000")[0].trim() && $("bFirst").querySelector("b").textContent === "–") {
+        setBadge("bFirst", `${Math.round(performance.now() - stoppedAt)} ms`, true);
+      }
+      if (!painted) { painted = true; requestAnimationFrame(paint); }
+    }
+    acc += decoder.decode();
+    const [body, problem] = acc.split("\u0000");
+    polishedMarkdown = body.trim();
+    $("polished").innerHTML = polishedMarkdown ? renderMarkdown(polishedMarkdown) : "";
+    if (!polishedMarkdown) throw new Error(problem || "Polish failed.");
+    $("copy").disabled = false;
+    setBadge("bLlm", `${Math.round(performance.now() - polishAt)} ms`, !problem);
+    setBadge("bTotal", `${Math.round(performance.now() - stoppedAt)} ms`, !problem);
+    if (problem !== undefined) { showError(`${problem || "The AI reply was cut off."} Showing the part that arrived; it wasn't auto-copied.`); return; }
     copyPolished(true);
   } catch (err) {
     showError(err.message || String(err));

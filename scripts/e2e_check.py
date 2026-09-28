@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import sync_playwright
 
@@ -76,6 +77,9 @@ try:
         page.route_web_socket("wss://streaming.assemblyai.com/**", on_ws)
         page.goto("http://127.0.0.1:8765/")
         page.click('.styles button[data-style="notes"]')
+        page.click("details.dict summary")
+        page.fill("#dict", "AssemblyAI\nSiobhan, Kubernetes\nassemblyai\n")
+        page.click("h1")  # move focus off the textarea so Space reaches push-to-talk
 
         # 1. Hold Space ~1.5 s, then release.
         page.keyboard.down("Space")
@@ -112,6 +116,8 @@ finally:
 
 checks = {
     "ws url has 16k pcm + token": all(s in (stats["url"] or "") for s in ["sample_rate=16000", "encoding=pcm_s16le", "token=tmp-abc"]),
+    "dictionary sent as keyterms_prompt (deduped)": json.loads(
+        parse_qs(urlparse(stats["url"] or "").query).get("keyterms_prompt", ["[]"])[0]) == ["AssemblyAI", "Siobhan", "Kubernetes"],
     "audio frames streamed": stats["frames"] >= 10,
     "frames are 50ms of 16-bit 16kHz (1600 bytes)": stats["sizes"] == {1600},
     "ForceEndpoint then Terminate sent": stats["control"][:2] == ["ForceEndpoint", "Terminate"],

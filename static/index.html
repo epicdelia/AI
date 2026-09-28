@@ -50,6 +50,10 @@
   .styles { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; margin-top:10px; }
   .styles button { background:transparent; color:var(--muted); padding:6px 14px; font-size:15px; border-radius:9px; }
   .styles button[aria-pressed="true"] { background:var(--accent); color:#0f172a; font-weight:700; }
+  details.dict { margin-top:10px; color:var(--muted); font-size:15px; }
+  details.dict summary { cursor:pointer; }
+  details.dict textarea { display:block; width:100%; max-width:520px; min-height:90px; margin-top:8px; background:var(--card); color:var(--text);
+                          border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:15px; }
   #share { display:none; background:transparent; color:var(--accent); border:1px solid var(--line); padding:4px 12px; font-size:13px; letter-spacing:0; text-transform:none; }
   .touch-only { display:none; }
   /* Phones: one big thumb-reachable button pinned to the bottom, polished note first. */
@@ -79,6 +83,10 @@
       <div class="styles" role="group" aria-label="Output style">
         <button data-style="auto">Auto</button><button data-style="message">Message</button><button data-style="email">Email</button><button data-style="notes">Notes</button>
       </div>
+      <details class="dict">
+        <summary>Personal dictionary (<span id="dictCount">0</span>)</summary>
+        <textarea id="dict" placeholder="Names and jargon the transcriber should get right, one per line. E.g. AssemblyAI, Kubernetes, Siobhan"></textarea>
+      </details>
     </div>
     <button id="talk"><span class="dot"></span><span id="talkLabel">Start Speaking</span></button>
   </header>
@@ -193,6 +201,24 @@ function renderMarkdown(md) {
 
 if (navigator.share) $("share").style.display = "inline-block";
 
+// Personal dictionary: sent to AssemblyAI streaming as keyterms_prompt to boost recognition of these words.
+// Speech-to-text only; the AI polish never "fixes" words (MISSION: no misheard-word claims).
+const MAX_TERMS = 100, MAX_TERM_LEN = 50;
+function dictTerms() {
+  const seen = new Set();
+  return $("dict").value.split(/[\n,]/).map((t) => t.trim()).filter((t) => t && t.length <= MAX_TERM_LEN)
+    .filter((t) => !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase())).slice(0, MAX_TERMS);
+}
+try { $("dict").value = localStorage.getItem("flowDict") || ""; } catch {}
+$("dictCount").textContent = dictTerms().length;
+$("dict").addEventListener("input", () => {
+  $("dictCount").textContent = dictTerms().length;
+  try { localStorage.setItem("flowDict", $("dict").value); } catch {}
+});
+// Typing in the dictionary must not trigger push-to-talk.
+$("dict").addEventListener("keydown", (e) => e.stopPropagation());
+$("dict").addEventListener("keyup", (e) => e.stopPropagation());
+
 // Output style: how the note is shaped (remembered in this browser).
 let style = "auto";
 try { style = localStorage.getItem("flowStyle") || "auto"; } catch {}
@@ -236,7 +262,10 @@ async function start() {
     const body = await tokenRes.json();
     if (!tokenRes.ok) throw new Error(body.detail || "Could not get a streaming token.");
 
-    s.ws = new WebSocket(`${STREAM_URL}?sample_rate=${SAMPLE_RATE}&encoding=pcm_s16le&format_turns=false&token=${encodeURIComponent(body.token)}`);
+    const params = new URLSearchParams({ sample_rate: SAMPLE_RATE, encoding: "pcm_s16le", format_turns: "false", token: body.token });
+    const terms = dictTerms();
+    if (terms.length) params.set("keyterms_prompt", JSON.stringify(terms));
+    s.ws = new WebSocket(`${STREAM_URL}?${params}`);
     s.ws.binaryType = "arraybuffer";
     s.opened = new Promise((resolve, reject) => {
       s.ws.onopen = () => { s.pending.forEach((c) => s.ws.send(c)); s.pending = []; resolve(); };

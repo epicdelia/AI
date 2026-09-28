@@ -99,6 +99,10 @@ def _no_model_access(resp: httpx.Response) -> bool:
     return resp.status_code in (400, 403) and "access" in resp.text.lower()
 
 
+def _speed_rank(model_id: str) -> int:
+    return next((n for n, hint in enumerate(FAST_HINTS) if hint in model_id.lower()), len(FAST_HINTS))
+
+
 async def _candidate_models(client: httpx.AsyncClient, key: str, tried: set[str]) -> list[str]:
     """Models the gateway lists, fastest-sounding first, so an account without the default still gets polish."""
     resp = await client.get(LLM_MODELS_URL, headers={"authorization": key})
@@ -108,8 +112,7 @@ async def _candidate_models(client: httpx.AsyncClient, key: str, tried: set[str]
         ids = [m["id"] for m in resp.json()["data"] if isinstance(m.get("id"), str)]
     except (KeyError, TypeError, ValueError):
         return []
-    rank = lambda i: next((n for n, hint in enumerate(FAST_HINTS) if hint in i.lower()), len(FAST_HINTS))  # noqa: E731
-    return sorted((i for i in ids if i not in tried), key=rank)[:MAX_MODEL_TRIES]
+    return sorted((i for i in ids if i not in tried), key=_speed_rank)[:MAX_MODEL_TRIES]
 
 
 async def _open_completion(client: httpx.AsyncClient, key: str, model: str, text: str) -> httpx.Response:

@@ -10,6 +10,7 @@ Run:  uvicorn app:app --port 8000   then open http://localhost:8000
 import json
 import os
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from dotenv import load_dotenv
@@ -29,21 +30,39 @@ _working_model: str | None = None  # the first model this key could use; remembe
 INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 HTTP_TRANSPORT = None  # tests swap in an httpx.MockTransport
 
-SYSTEM_PROMPT = """You turn raw dictated speech into clean written text.
+CLEANUP_RULES = """You turn raw dictated speech into clean written text.
 - Remove filler words (um, uh, like, you know), stutters, repeated words and false starts.
+- If the speaker corrects themselves ("Tuesday, no, Wednesday"), keep only the correction.
 - Fix punctuation, capitalization and run-on sentences.
 - Keep the speaker's meaning, facts, names, numbers and tone. Do not add new ideas or details.
 - Do not guess at words that look misheard; keep them as spoken.
-- Format as clean Markdown: a short bolded title line, then either a polished paragraph,
-  bullet points, or a short email, whichever fits what was said. Use headers only if there
-  are clearly separate topics.
-Return only the Markdown, with no preamble."""
+"""
+STYLE_FORMATS = {
+    "auto": "- Format as clean Markdown: a short bolded title line, then either a polished paragraph,\n"
+            "  bullet points, or a short email, whichever fits what was said. Use headers only if there\n"
+            "  are clearly separate topics.",
+    "message": "- Format as a chat message (Slack, WhatsApp, iMessage): plain conversational text, no title,\n"
+               "  no headers, short paragraphs. Use bullets only if the speaker lists several items.",
+    "email": "- Format as an email body: a greeting line if the speaker named who it is for, short paragraphs,\n"
+             "  then a simple sign-off such as \"Thanks,\". Do not invent a name, subject line or details.",
+    "notes": "- Format as notes: a short bolded title line, then concise bullet points, one idea per bullet,\n"
+             "  with action items marked \"- [ ]\".",
+}
+PolishStyle = Literal["auto", "message", "email", "notes"]
+
+
+def system_prompt(style: str = "auto") -> str:
+    return CLEANUP_RULES + STYLE_FORMATS[style] + "\nReturn only the text, with no preamble."
+
+
+SYSTEM_PROMPT = system_prompt("auto")
 
 app = FastAPI(title="Flow")
 
 
 class PolishRequest(BaseModel):
     text: str
+    style: PolishStyle = "auto"
 
 
 def _api_key() -> str:
@@ -135,10 +154,11 @@ async def _candidate_models(client: httpx.AsyncClient, key: str, tried: set[str]
     return sorted((i for i in ids if i not in tried), key=_speed_rank)[:MAX_MODEL_TRIES]
 
 
-async def _open_completion(client: httpx.AsyncClient, key: str, model: str, text: str) -> httpx.Response:
+async def _open_completion(client: httpx.AsyncClient, key: str, model: str, text: str,
+                           prompt: str = SYSTEM_PROMPT) -> httpx.Response:
     request = client.build_request("POST", LLM_GATEWAY_URL, headers={"authorization": key}, json={
         "model": model, "stream": True,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": text}]})
+        "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": text}]})
     resp = await client.send(request, stream=True)
     if not (resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream")):
         await resp.aread()  # an error, or a plain JSON completion because the gateway ignored "stream"
@@ -152,15 +172,16 @@ async def polish(req: PolishRequest) -> StreamingResponse:
     if not text:
         raise HTTPException(400, "Nothing to polish: the transcript is empty.")
     key = _api_key()
+    prompt = system_prompt(req.style)
     client = _client()
     try:
         model = _working_model or LLM_MODEL
-        resp = await _open_completion(client, key, model, text)
+        resp = await _open_completion(client, key, model, text, prompt)
         if _no_model_access(resp):
             tried = {model}
             for model in await _candidate_models(client, key, tried):
                 tried.add(model)
-                resp = await _open_completion(client, key, model, text)
+                resp = await _open_completion(client, key, model, text, prompt)
                 if not _no_model_access(resp):
                     break
             else:

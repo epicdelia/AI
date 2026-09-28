@@ -47,6 +47,9 @@
   #error { display:none; background:#450a0a; border:1px solid #7f1d1d; color:#fecaca; border-radius:12px; padding:12px 16px; margin-bottom:18px; font-size:15px; }
   .note { color:#64748b; font-size:13px; margin-top:12px; }
   .actions { display:flex; gap:8px; }
+  .styles { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; margin-top:10px; }
+  .styles button { background:transparent; color:var(--muted); padding:6px 14px; font-size:15px; border-radius:9px; }
+  .styles button[aria-pressed="true"] { background:var(--accent); color:#0f172a; font-weight:700; }
   #share { display:none; background:transparent; color:var(--accent); border:1px solid var(--line); padding:4px 12px; font-size:13px; letter-spacing:0; text-transform:none; }
   .touch-only { display:none; }
   /* Phones: one big thumb-reachable button pinned to the bottom, polished note first. */
@@ -54,6 +57,7 @@
     main { padding:18px 16px calc(120px + env(safe-area-inset-bottom)); }
     h1 { font-size:24px; }
     h1 span { display:block; font-size:16px; letter-spacing:0; }
+    h1 .sep { display:none; }
     header { margin-bottom:14px; }
     #talk { position:fixed; left:16px; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:10;
             justify-content:center; padding:20px; font-size:20px; border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.45); }
@@ -70,8 +74,11 @@
 <main>
   <header>
     <div>
-      <h1>Flow <span>· speak messy, get polished</span></h1>
+      <h1>Flow <span><span class="sep">· </span>speak messy, get polished</span></h1>
       <div class="hint"><span class="key-only">Hold <kbd>Space</kbd> to talk, or click the button to start and stop.</span><span class="touch-only">Tap the button, talk, tap again. Your note appears here, ready to paste.</span></div>
+      <div class="styles" role="group" aria-label="Output style">
+        <button data-style="auto">Auto</button><button data-style="message">Message</button><button data-style="email">Email</button><button data-style="notes">Notes</button>
+      </div>
     </div>
     <button id="talk"><span class="dot"></span><span id="talkLabel">Start Speaking</span></button>
   </header>
@@ -185,6 +192,17 @@ function renderMarkdown(md) {
 }
 
 if (navigator.share) $("share").style.display = "inline-block";
+
+// Output style: how the note is shaped (remembered in this browser).
+let style = "auto";
+try { style = localStorage.getItem("flowStyle") || "auto"; } catch {}
+function setStyle(next) {
+  style = next;
+  document.querySelectorAll(".styles button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.style === style)));
+  try { localStorage.setItem("flowStyle", style); } catch {}
+}
+document.querySelectorAll(".styles button").forEach((b) => b.addEventListener("click", () => setStyle(b.dataset.style)));
+setStyle(document.querySelector(`.styles button[data-style="${style}"]`) ? style : "auto");
 async function sharePolished() {
   if (!polishedMarkdown) return;
   try { await navigator.share({ text: polishedMarkdown }); } catch {}   // user cancelled: nothing to do
@@ -295,7 +313,7 @@ async function stop() {
     $("copy").disabled = true; $("share").disabled = true; $("copy").textContent = "Copy";
     polishedMarkdown = "";
     const polishAt = performance.now();
-    const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, style }) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
     // Render the reply as it streams in. A NUL character marks "cut off / errored": text before it is kept.
     const reader = res.body.getReader(); const decoder = new TextDecoder();

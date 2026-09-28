@@ -75,6 +75,7 @@ try:
         page.route("**/api/polish", polish)
         page.route_web_socket("wss://streaming.assemblyai.com/**", on_ws)
         page.goto("http://127.0.0.1:8765/")
+        page.click('.styles button[data-style="notes"]')
 
         # 1. Hold Space ~1.5 s, then release.
         page.keyboard.down("Space")
@@ -117,6 +118,7 @@ checks = {
     "partial styled as partial": partial_class == "partial",
     "raw keeps fillers": "um so so like" in raw,
     "raw escapes html": "<b>x</b>" in raw,
+    "chosen style sent": polish_bodies and polish_bodies[0].get("style") == "notes",
     "polish got final transcript": polish_bodies and "moving to friday" in polish_bodies[0]["text"],
     "markdown rendered": "<strong>Launch update</strong>" in polished_html and "<li>" in polished_html,
     "llm output html escaped": "<script>" not in polished_html,

@@ -142,3 +142,17 @@ def test_data_lines_without_space_are_parsed(client):
     body = 'data:{"choices":[{"delta":{"content":"tight"}}]}\n\ndata:[DONE]\n\n'
     client.responses["llm-gateway.assemblyai.com"] = _sse_response(body)
     assert client.post("/api/polish", json={"text": "hello"}).text == "tight"
+
+
+@pytest.mark.parametrize("style,marker", [("message", "chat message"), ("email", "email body"), ("notes", "- [ ]")])
+def test_style_changes_the_prompt(client, style, marker):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    assert client.post("/api/polish", json={"text": "hello", "style": style}).status_code == 200
+    prompt = json.loads(client.calls[-1].content)["messages"][0]["content"]
+    assert marker in prompt and prompt.startswith(flow.CLEANUP_RULES) and prompt != flow.SYSTEM_PROMPT
+
+
+def test_unknown_style_is_rejected_without_upstream_call(client):
+    assert client.post("/api/polish", json={"text": "hello", "style": "poem"}).status_code == 422
+    assert client.calls == []

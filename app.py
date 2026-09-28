@@ -80,16 +80,36 @@ async def streaming_token() -> dict:
     return {"token": resp.json()["token"]}
 
 
+STREAM_ERROR = "\x00"  # sent after the text when the reply was cut off or errored mid-stream; the page shows it
+
+
 async def _sse_text(resp: httpx.Response, client: httpx.AsyncClient):
-    try:  # parse an OpenAI-compatible SSE stream into plain text deltas, then close upstream
+    """Turn an OpenAI-compatible SSE stream into plain text deltas, then close upstream.
+
+    A reply that ends without [DONE], or carries an in-band error, ends with STREAM_ERROR + reason,
+    so the page can say it was cut off instead of presenting half a note as finished."""
+    done = False
+    try:
         async for line in resp.aiter_lines():
-            if line.strip() == "data: [DONE]":
+            if not line.startswith("data:"):
+                continue
+            data = line[len("data:"):].strip()
+            if data == "[DONE]":
+                done = True
                 break
-            if line.startswith("data: "):
-                for choice in json.loads(line[len("data: "):]).get("choices") or []:
-                    delta = (choice.get("delta") or {}).get("content")
-                    if delta:
-                        yield delta
+            try:
+                event = json.loads(data)
+            except ValueError:
+                continue
+            if event.get("error"):
+                yield f"{STREAM_ERROR}The AI reply stopped with an error: {json.dumps(event['error'])[:300]}"
+                return
+            for choice in event.get("choices") or []:
+                delta = (choice.get("delta") or {}).get("content")
+                if delta:
+                    yield delta
+        if not done:
+            yield f"{STREAM_ERROR}The AI reply was cut off before it finished."
     finally:
         await resp.aclose()
         await client.aclose()

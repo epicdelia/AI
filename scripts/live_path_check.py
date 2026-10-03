@@ -150,6 +150,9 @@ try:
             second = take(page, "email")
             models_second_take = list(seen["models"])
             final = page.inner_text("#polished")
+            second_take_prompt = seen["prompts"][-1]
+            flow._working_model = None  # make the setup check rediscover the model from scratch
+            health = page.request.get("http://127.0.0.1:8790/api/health").json()
             partial_views = {s for s in first if s.strip() and "Thursday" not in s and "Polishing" not in s}
             badges = {b: page.inner_text(f"#{b} b") for b in ["bFinal", "bFirst", "bLlm", "bTotal"]}
             ms = {k: int(v.split()[0]) for k, v in badges.items() if v.endswith("ms")}
@@ -160,13 +163,16 @@ try:
                 "text rendered progressively (>=3 partial views)": len(partial_views) >= 3,
                 "final note complete": "Launch update" in final and "Thursday" in final,
                 "first words arrive before polish finishes": ms.get("bFirst", 1e9) < ms.get("bTotal", 0),
-                "email style prompt sent on 2nd take": "email body" in seen["prompts"][-1],
+                "email style prompt sent on 2nd take": "email body" in second_take_prompt,
                 "dictionary in stream URL": json.loads(parse_qs(urlparse(ws_urls[-1]).query)["keyterms_prompt"][0])
                 == ["QA", "Friday"],
                 "history has both notes": page.locator("#historyList li").count() == 2,
                 "page never wider than the screen": page.evaluate(
                     "document.documentElement.scrollWidth <= innerWidth && innerWidth === screen.width || innerWidth > 800"),
                 "no error banner": not page.inner_text("#error").strip(),
+                "setup check finds the working model": health.get("polish") == {
+                    "ok": True, "model": "gemini-2.5-flash", "detail": "AI polish works with gemini-2.5-flash."}
+                and health["streaming"]["ok"] and health["key"]["ok"],
             }
             print(label, "badges:", badges, "partial views:", len(partial_views))
             # A fresh page for the next context; the remembered model is server-side, so reset it.

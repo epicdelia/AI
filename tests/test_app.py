@@ -32,7 +32,7 @@ def test_index_serves_page(client):
 def test_token_uses_server_side_key(client):
     client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
     r = client.get("/api/token")
-    assert r.json() == {"token": "tmp-123"}
+    assert r.json() == {"token": "tmp-123", "speech_model": None}
     req = client.calls[0]
     assert req.url.path == "/v3/token"
     assert req.url.params["expires_in_seconds"] == "60"
@@ -167,3 +167,38 @@ def test_home_screen_manifest_and_icons_are_served(client):
         r = client.get(icon["src"])
         assert r.status_code == 200 and len(r.content) > 100
     assert client.get("/static/apple-touch-icon.png").headers["content-type"] == "image/png"
+
+
+def test_speech_model_is_passed_to_the_page_when_configured(client, monkeypatch):
+    monkeypatch.setenv("FLOW_SPEECH_MODEL", "universal-3-6-pro")
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "t"})
+    assert client.get("/api/token").json() == {"token": "t", "speech_model": "universal-3-6-pro"}
+
+
+def test_prompt_keeps_the_speakers_language():
+    assert "same language the speaker used" in flow.SYSTEM_PROMPT
+
+
+def test_health_reports_everything_ok(client, monkeypatch):
+    monkeypatch.setattr(flow, "_working_model", None)
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "t"})
+    client.responses["llm-gateway.assemblyai.com"] = _gateway(allowed={"gemini-2.5-flash"}, listed=["gemini-2.5-flash"])
+    out = client.get("/api/health").json()
+    assert out["key"]["ok"] and out["streaming"]["ok"]
+    assert out["polish"] == {"ok": True, "model": "gemini-2.5-flash", "detail": "AI polish works with gemini-2.5-flash."}
+
+
+def test_health_explains_missing_key_without_calling_out(client, monkeypatch):
+    monkeypatch.delenv("ASSEMBLYAI_API_KEY")
+    out = client.get("/api/health").json()
+    assert out == {"key": {"ok": False, "detail": "ASSEMBLYAI_API_KEY is not set on the server."}}
+    assert client.calls == []
+
+
+def test_health_explains_no_model_access_and_bad_key(client, monkeypatch):
+    monkeypatch.setattr(flow, "_working_model", None)
+    client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(401, json={"error": "Invalid API key"})
+    client.responses["llm-gateway.assemblyai.com"] = _gateway(allowed=set(), listed=["a", "b"])
+    out = client.get("/api/health").json()
+    assert not out["streaming"]["ok"] and "401" in out["streaming"]["detail"]
+    assert not out["polish"]["ok"] and "billing" in out["polish"]["detail"]

@@ -58,8 +58,14 @@ CUT_OFF = "**Second take**\n\n- only half\u0000The AI reply was cut off before i
 
 def polish(route):
     polish_bodies.append(json.loads(route.request.post_data))
-    body = POLISHED if len(polish_bodies) == 1 else CUT_OFF  # later takes: a reply cut off mid-stream
+    if len(polish_bodies) >= 3:  # third take: polish fails outright
+        return route.fulfill(status=502, json={"detail": "LLM Gateway request failed (400): no access."})
+    body = POLISHED if len(polish_bodies) == 1 else CUT_OFF  # second take: a reply cut off mid-stream
     route.fulfill(body=body, content_type="text/plain; charset=utf-8")
+
+
+HEALTH = {"key": {"ok": True}, "streaming": {"ok": True, "detail": "Live transcription is reachable."},
+          "polish": {"ok": False, "detail": "Your AssemblyAI account can't use any LLM Gateway model we tried."}}
 
 
 try:
@@ -74,6 +80,7 @@ try:
         page.on("console", lambda m: m.type == "error" and errors.append(m.text))
         page.route("**/api/token", lambda r: r.fulfill(json={"token": "tmp-abc"}))
         page.route("**/api/polish", polish)
+        page.route("**/api/health", lambda r: r.fulfill(json=HEALTH))
         page.route_web_socket("wss://streaming.assemblyai.com/**", on_ws)
         page.goto("http://127.0.0.1:8765/")
         page.click('.styles button[data-style="notes"]')
@@ -111,6 +118,20 @@ try:
         cut_error = page.inner_text("#error")
         cut_polished = page.inner_text("#polished")
         clip_after_cut = page.evaluate("navigator.clipboard.readText()")
+        # 4. "Any language" + polish failing outright: raw transcript must stay copyable.
+        page.select_option("#lang", "multi")
+        page.click("#talk")
+        page.wait_for_timeout(800)
+        page.click("#talk")
+        page.wait_for_function("document.getElementById('copy').textContent === 'Copy raw'", timeout=6000)
+        fallback_text = page.inner_text("#polished")
+        fallback_error = page.inner_text("#error")
+        page.click("#copy")
+        clip_raw = page.evaluate("navigator.clipboard.readText()")
+        # 5. Check setup shows a plain-English result.
+        page.click("#checkSetup")
+        page.wait_for_function("document.querySelectorAll('#setup li').length === 3", timeout=3000)
+        setup_rows = page.eval_on_selector_all("#setup li", "els => els.map(e => e.textContent)")
         browser.close()
 finally:
     server.terminate()
@@ -125,6 +146,11 @@ checks = {
     "partial styled as partial": partial_class == "partial",
     "raw keeps fillers": "um so so like" in raw,
     "raw escapes html": "<b>x</b>" in raw,
+    "any-language uses multilingual model + detection": "speech_model=universal-streaming-multilingual" in (stats["url"] or "")
+    and "language_detection=true" in (stats["url"] or ""),
+    "failed polish keeps the raw transcript copyable": "moving to friday" in fallback_text and "moving to friday" in clip_raw
+    and "raw transcript" in fallback_error,
+    "check setup shows each check": len(setup_rows) == 3 and setup_rows[0].startswith("✓") and setup_rows[2].startswith("✗"),
     "chosen style sent": polish_bodies and polish_bodies[0].get("style") == "notes",
     "polish got final transcript": polish_bodies and "moving to friday" in polish_bodies[0]["text"],
     "markdown rendered": "<strong>Launch update</strong>" in polished_html and "<li>" in polished_html,
@@ -137,7 +163,7 @@ checks = {
     "badges filled": badges["bLlm"].endswith(" ms") and badges["bFinal"].endswith("ms") and badges["bTotal"].endswith("ms"),
     "mic off after stop": not mic_live,
     "quick tap recovers to idle": status_after_tap == "idle",
-    "no page errors": not errors,
+    "no page errors (besides the deliberate 502)": not [e for e in errors if "status of 502" not in e],
 }
 for k, v in checks.items():
     print(("PASS " if v else "FAIL ") + k)

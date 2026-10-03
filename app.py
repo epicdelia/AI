@@ -38,6 +38,7 @@ CLEANUP_RULES = """You turn raw dictated speech into clean written text.
 - Fix punctuation, capitalization and run-on sentences.
 - Keep the speaker's meaning, facts, names, numbers and tone. Do not add new ideas or details.
 - Do not guess at words that look misheard; keep them as spoken.
+- Write in the same language the speaker used; do not translate.
 """
 STYLE_FORMATS = {
     "auto": "- Format as clean Markdown: a short bolded title line, then either a polished paragraph,\n"
@@ -99,7 +100,7 @@ async def streaming_token() -> dict:
         )
     if resp.status_code != 200:
         raise _upstream_error("Streaming token request", resp)
-    return {"token": resp.json()["token"]}
+    return {"token": resp.json()["token"], "speech_model": os.getenv("FLOW_SPEECH_MODEL", "").strip() or None}
 
 
 STREAM_ERROR = "\x00"  # sent after the text when the reply was cut off or errored mid-stream; the page shows it
@@ -168,32 +169,37 @@ async def _open_completion(client: httpx.AsyncClient, key: str, model: str, text
     return resp
 
 
+async def _start_completion(client: httpx.AsyncClient, key: str, text: str, prompt: str) -> tuple[httpx.Response, str]:
+    """Open a completion with the remembered/default model; on "no access", try other listed models."""
+    global _working_model
+    model = _working_model or LLM_MODEL
+    resp = await _open_completion(client, key, model, text, prompt)
+    if _no_model_access(resp):
+        tried = {model}
+        for model in await _candidate_models(client, key, tried):
+            tried.add(model)
+            resp = await _open_completion(client, key, model, text, prompt)
+            if not _no_model_access(resp):
+                break
+        else:
+            raise HTTPException(502, "Your AssemblyAI account can't use any LLM Gateway model we tried "
+                                     f"({', '.join(sorted(tried))}). LLM Gateway may need billing enabled on your "
+                                     "AssemblyAI account (assemblyai.com/dashboard), or set LLM_MODEL to a model "
+                                     "your plan includes.")
+    if resp.status_code == 200:
+        _working_model = model
+    return resp, model
+
+
 @app.post("/api/polish")
 async def polish(req: PolishRequest) -> StreamingResponse:
-    global _working_model
     text = req.text.strip()
     if not text:
         raise HTTPException(400, "Nothing to polish: the transcript is empty.")
     key = _api_key()
-    prompt = system_prompt(req.style)
     client = _client()
     try:
-        model = _working_model or LLM_MODEL
-        resp = await _open_completion(client, key, model, text, prompt)
-        if _no_model_access(resp):
-            tried = {model}
-            for model in await _candidate_models(client, key, tried):
-                tried.add(model)
-                resp = await _open_completion(client, key, model, text, prompt)
-                if not _no_model_access(resp):
-                    break
-            else:
-                raise HTTPException(502, "Your AssemblyAI account can't use any LLM Gateway model we tried "
-                                         f"({', '.join(sorted(tried))}). LLM Gateway may need billing enabled on your "
-                                         "AssemblyAI account (assemblyai.com/dashboard), or set LLM_MODEL to a model "
-                                         "your plan includes.")
-        if resp.status_code == 200:
-            _working_model = model
+        resp, _ = await _start_completion(client, key, text, system_prompt(req.style))
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client
     except BaseException:
@@ -207,3 +213,33 @@ async def polish(req: PolishRequest) -> StreamingResponse:
     except (KeyError, IndexError, TypeError, ValueError, AttributeError):
         raise HTTPException(502, f"Unexpected LLM Gateway response: {resp.text[:300]}")
     return StreamingResponse(iter([markdown]), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/api/health")
+async def health() -> dict:
+    """Plain-English setup check: is the key set, can we mint a streaming token, which AI model works."""
+    checks: dict = {"key": {"ok": bool(os.getenv("ASSEMBLYAI_API_KEY", "").strip())}}
+    if not checks["key"]["ok"]:
+        checks["key"]["detail"] = "ASSEMBLYAI_API_KEY is not set on the server."
+        return checks
+    key = _api_key()
+    async with _client() as client:
+        try:
+            resp = await client.get(STREAMING_TOKEN_URL, params={"expires_in_seconds": 60}, headers={"authorization": key})
+            checks["streaming"] = {"ok": resp.status_code == 200,
+                                   "detail": "Live transcription is reachable." if resp.status_code == 200
+                                   else f"Token request failed ({resp.status_code}): {resp.text[:200]}"}
+        except httpx.HTTPError as err:
+            checks["streaming"] = {"ok": False, "detail": f"Couldn't reach AssemblyAI streaming: {err}"}
+        try:
+            resp, model = await _start_completion(client, key, "Say OK.", "Reply with the single word OK.")
+            body = await resp.aread()
+            await resp.aclose()
+            checks["polish"] = {"ok": resp.status_code == 200, "model": model,
+                                "detail": f"AI polish works with {model}." if resp.status_code == 200
+                                else f"LLM Gateway failed ({resp.status_code}): {body[:200].decode(errors='replace')}"}
+        except HTTPException as err:
+            checks["polish"] = {"ok": False, "detail": err.detail}
+        except httpx.HTTPError as err:
+            checks["polish"] = {"ok": False, "detail": f"Couldn't reach the LLM Gateway: {err}"}
+    return checks

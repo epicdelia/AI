@@ -53,6 +53,11 @@
   #error { display:none; background:#450a0a; border:1px solid #7f1d1d; color:#fecaca; border-radius:12px; padding:12px 16px; margin-bottom:18px; font-size:15px; }
   .note { color:#64748b; font-size:13px; margin-top:12px; }
   .actions { display:flex; gap:8px; }
+  .rewrites { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .rewrites button, #edit { background:transparent; color:var(--accent); border:1px solid var(--line); padding:4px 12px; font-size:13px; letter-spacing:0; text-transform:none; }
+  .rewrites button:disabled, #edit:disabled { opacity:.4; cursor:default; }
+  #noteEditor { width:100%; min-height:200px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px;
+                padding:10px; font:inherit; font-size:16px; }
   .styles { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; margin-top:10px; }
   .styles button { background:transparent; color:var(--muted); padding:6px 14px; font-size:15px; border-radius:9px; }
   .styles button[aria-pressed="true"] { background:var(--accent); color:#0f172a; font-weight:700; }
@@ -133,8 +138,11 @@
       <div id="raw"><span class="placeholder">Your words appear here live, ums and all.</span></div>
     </section>
     <section class="card polished-card">
-      <h2>Polished AI Output <span class="actions"><button id="share" disabled>Share</button><button id="copy" disabled>Copy</button></span></h2>
+      <h2>Polished AI Output <span class="actions"><button id="edit" disabled>Edit</button><button id="share" disabled>Share</button><button id="copy" disabled>Copy</button></span></h2>
       <div id="polished"><span class="placeholder">Clean, formatted text appears here when you stop talking.</span></div>
+      <div class="rewrites" aria-label="Rewrite this note">
+        <button data-rewrite="shorter" disabled>Shorter</button><button data-rewrite="formal" disabled>More formal</button><button data-rewrite="friendly" disabled>Friendlier</button><button data-rewrite="grammar" disabled>Fix grammar only</button>
+      </div>
       <div class="note">The AI fixes structure, punctuation and readability. It doesn't correct misheard words.</div>
     </section>
   </div>
@@ -270,7 +278,7 @@ function renderHistory() {
     });
     li.addEventListener("click", () => {       // reopen this note in the polished pane
       polishedMarkdown = item.md; $("polished").innerHTML = renderMarkdown(item.md);
-      $("copy").disabled = false; $("share").disabled = false; $("copy").textContent = "Copy";
+      $("copy").disabled = false; $("share").disabled = false; $("copy").textContent = "Copy"; setRewriteUi(true);
       $("polished").scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
     li.append(preview, when, copy); list.appendChild(li);
@@ -327,7 +335,7 @@ async function copyPolished(auto) {
 }
 
 async function start() {
-  if (session || busy) return;
+  if (session || busy || editing) return;
   showError("");
   const s = { turns: {}, openTurn: false, onFinal: null, pending: [], cancelled: false, startedAt: performance.now() };
   session = s;
@@ -393,6 +401,88 @@ function teardown(s) {
   s.ctx?.close().catch(() => {});
 }
 
+// Rewrite and edit the current note.
+let editing = false;
+function setRewriteUi(on) {
+  document.querySelectorAll(".rewrites button").forEach((b) => { b.disabled = !on; });
+  $("edit").disabled = !on;
+}
+function updateLatestHistory(oldMd, newMd) {
+  const items = loadHistory();
+  if (items[0] && items[0].md === oldMd) { items[0].md = newMd; saveHistory(items); renderHistory(); }
+}
+async function rewrite(action) {
+  if (busy || session || editing || !polishedMarkdown) return;
+  const before = polishedMarkdown;
+  busy = true; showError(""); setBadge("bStatus", "rewriting…");
+  const restore = () => {
+    polishedMarkdown = before; $("polished").innerHTML = renderMarkdown(before);
+    $("copy").disabled = false; $("share").disabled = false; setRewriteUi(true);
+  };
+  try {
+    const { problem } = await streamPolish({ text: before, style, rewrite: action }, performance.now());
+    if (problem !== undefined) { restore(); showError(`${problem || "The rewrite was cut off."} Your previous note is unchanged.`); return; }
+    addToHistory(polishedMarkdown, style);
+    copyPolished(true);
+  } catch (err) {
+    restore(); showError(`Rewrite failed: ${err.message || err} Your previous note is unchanged.`);
+  } finally {
+    busy = false; setBadge("bStatus", "idle");
+  }
+}
+document.querySelectorAll(".rewrites button").forEach((b) => b.addEventListener("click", () => rewrite(b.dataset.rewrite)));
+$("edit").addEventListener("click", () => {
+  if (!editing) {
+    if (busy || session || !polishedMarkdown) return;
+    editing = true; $("edit").textContent = "Done";
+    const ta = document.createElement("textarea"); ta.id = "noteEditor"; ta.value = polishedMarkdown;
+    $("polished").textContent = ""; $("polished").appendChild(ta); ta.focus();
+    document.querySelectorAll(".rewrites button").forEach((b) => { b.disabled = true; });
+  } else {
+    const before = polishedMarkdown; const after = $("noteEditor").value.trim();
+    editing = false; $("edit").textContent = "Edit";
+    if (after) { polishedMarkdown = after; updateLatestHistory(before, after); }
+    $("polished").innerHTML = renderMarkdown(polishedMarkdown);
+    $("copy").textContent = "Copy"; setRewriteUi(true);
+  }
+});
+
+// Stream a polish (or rewrite) into the note pane. Sets polishedMarkdown; returns {problem}
+// where problem is undefined on a clean finish, or the reason a reply was cut off.
+async function streamPolish(payload, startedAt) {
+  ["bFirst", "bLlm", "bTotal"].forEach((b) => setBadge(b, "–"));
+  $("polished").innerHTML = '<span class="placeholder">Polishing…</span>';
+  $("copy").disabled = true; $("share").disabled = true; $("copy").textContent = "Copy";
+  setRewriteUi(false);
+  polishedMarkdown = "";
+  const polishAt = performance.now();
+  const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
+  // Render the reply as it streams in. A NUL character marks "cut off / errored": text before it is kept.
+  const reader = res.body.getReader(); const decoder = new TextDecoder();
+  let acc = ""; let painted = false;
+  const paint = () => { painted = false; $("polished").innerHTML = renderMarkdown(acc.split("\u0000")[0]); };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    acc += decoder.decode(value, { stream: true });
+    if (acc.split("\u0000")[0].trim() && $("bFirst").querySelector("b").textContent === "–") {
+      setBadge("bFirst", `${Math.round(performance.now() - startedAt)} ms`, true);
+    }
+    if (!painted) { painted = true; requestAnimationFrame(paint); }
+  }
+  acc += decoder.decode();
+  const [body, problem] = acc.split("\u0000");
+  polishedMarkdown = body.trim();
+  $("polished").innerHTML = polishedMarkdown ? renderMarkdown(polishedMarkdown) : "";
+  if (!polishedMarkdown) throw new Error(problem || "Polish failed.");
+  $("copy").disabled = false; $("share").disabled = false;
+  setRewriteUi(true);
+  setBadge("bLlm", `${Math.round(performance.now() - polishAt)} ms`, problem === undefined);
+  setBadge("bTotal", `${Math.round(performance.now() - startedAt)} ms`, problem === undefined);
+  return { problem };
+}
+
 async function stop() {
   const s = session;
   if (!s) return;
@@ -423,34 +513,7 @@ async function stop() {
     if (!text) { renderRaw({}, true); showError("Didn't catch any speech. Check your mic and try again."); return; }
 
     setBadge("bStatus", "polishing…");
-    ["bFirst", "bLlm", "bTotal"].forEach((b) => setBadge(b, "–"));
-    $("polished").innerHTML = '<span class="placeholder">Polishing…</span>';
-    $("copy").disabled = true; $("share").disabled = true; $("copy").textContent = "Copy";
-    polishedMarkdown = "";
-    const polishAt = performance.now();
-    const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, style }) });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
-    // Render the reply as it streams in. A NUL character marks "cut off / errored": text before it is kept.
-    const reader = res.body.getReader(); const decoder = new TextDecoder();
-    let acc = ""; let painted = false;
-    const paint = () => { painted = false; $("polished").innerHTML = renderMarkdown(acc.split("\u0000")[0]); };
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      acc += decoder.decode(value, { stream: true });
-      if (acc.split("\u0000")[0].trim() && $("bFirst").querySelector("b").textContent === "–") {
-        setBadge("bFirst", `${Math.round(performance.now() - stoppedAt)} ms`, true);
-      }
-      if (!painted) { painted = true; requestAnimationFrame(paint); }
-    }
-    acc += decoder.decode();
-    const [body, problem] = acc.split("\u0000");
-    polishedMarkdown = body.trim();
-    $("polished").innerHTML = polishedMarkdown ? renderMarkdown(polishedMarkdown) : "";
-    if (!polishedMarkdown) throw new Error(problem || "Polish failed.");
-    $("copy").disabled = false; $("share").disabled = false;
-    setBadge("bLlm", `${Math.round(performance.now() - polishAt)} ms`, !problem);
-    setBadge("bTotal", `${Math.round(performance.now() - stoppedAt)} ms`, !problem);
+    const { problem } = await streamPolish({ text, style }, stoppedAt);
     if (problem !== undefined) { showError(`${problem || "The AI reply was cut off."} Showing the part that arrived; it wasn't auto-copied.`); return; }
     addToHistory(polishedMarkdown, style);
     copyPolished(true);
@@ -474,13 +537,14 @@ async function stop() {
 $("talk").addEventListener("click", () => (session ? stop() : start()));
 $("copy").addEventListener("click", () => copyPolished(false));
 $("share").addEventListener("click", sharePolished);
+const typing = (e) => e.target instanceof Element && e.target.closest("textarea, input, select");
 document.addEventListener("keydown", (e) => {
-  if (e.code !== "Space") return;
+  if (e.code !== "Space" || typing(e)) return;
   e.preventDefault();
   if (!e.repeat) start();
 });
 document.addEventListener("keyup", (e) => {
-  if (e.code !== "Space") return;
+  if (e.code !== "Space" || typing(e)) return;
   e.preventDefault();
   stop();
 });

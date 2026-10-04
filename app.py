@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -54,6 +54,22 @@ STYLE_FORMATS = {
 PolishStyle = Literal["auto", "message", "email", "notes"]
 
 
+REWRITES = {
+    "shorter": "Make it about half as long. Keep every fact, name, number and action item.",
+    "formal": "Make the tone more formal and professional.",
+    "friendly": "Make the tone warmer and more casual, like a message to a colleague you like.",
+    "grammar": "Only fix grammar, spelling and punctuation. Change nothing else.",
+}
+RewriteAction = Literal["shorter", "formal", "friendly", "grammar"]
+
+
+def rewrite_prompt(action: str) -> str:
+    return ("You edit a short piece of writing.\n- " + REWRITES[action] + "\n"
+            "- Keep the same language and the same Markdown formatting style.\n"
+            "- Do not add new ideas, facts or details.\n"
+            "Return only the rewritten text, with no preamble.")
+
+
 def system_prompt(style: str = "auto") -> str:
     return CLEANUP_RULES + STYLE_FORMATS[style] + "\nReturn only the text, with no preamble."
 
@@ -65,8 +81,9 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")  # manife
 
 
 class PolishRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=20000)
     style: PolishStyle = "auto"
+    rewrite: RewriteAction | None = None  # rewrite an existing note instead of polishing a transcript
 
 
 def _api_key() -> str:
@@ -199,7 +216,8 @@ async def polish(req: PolishRequest) -> StreamingResponse:
     key = _api_key()
     client = _client()
     try:
-        resp, _ = await _start_completion(client, key, text, system_prompt(req.style))
+        prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
+        resp, _ = await _start_completion(client, key, text, prompt)
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client
     except BaseException:

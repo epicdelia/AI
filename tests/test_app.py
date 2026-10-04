@@ -202,3 +202,20 @@ def test_health_explains_no_model_access_and_bad_key(client, monkeypatch):
     out = client.get("/api/health").json()
     assert not out["streaming"]["ok"] and "401" in out["streaming"]["detail"]
     assert not out["polish"]["ok"] and "billing" in out["polish"]["detail"]
+
+
+@pytest.mark.parametrize("action,marker", [("shorter", "half as long"), ("formal", "more formal"),
+                                           ("friendly", "warmer"), ("grammar", "Change nothing else")])
+def test_rewrite_uses_the_rewrite_prompt(client, action, marker):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    r = client.post("/api/polish", json={"text": "**Note**\n\n- a", "rewrite": action, "style": "notes"})
+    assert r.status_code == 200
+    prompt = json.loads(client.calls[-1].content)["messages"][0]["content"]
+    assert marker in prompt and "Do not add new ideas" in prompt and prompt != flow.system_prompt("notes")
+
+
+def test_unknown_rewrite_and_huge_text_are_rejected_without_upstream_call(client):
+    assert client.post("/api/polish", json={"text": "hi", "rewrite": "pirate"}).status_code == 422
+    assert client.post("/api/polish", json={"text": "x" * 20001}).status_code == 422
+    assert client.calls == []

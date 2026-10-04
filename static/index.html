@@ -337,6 +337,56 @@ async function copyPolished(auto) {
   }
 }
 
+// Pre-fetched streaming token, so pressing Talk doesn't wait on a server round trip.
+// Tokens expire after 60 s, so one older than 40 s is thrown away. If AssemblyAI rejects a
+// pre-fetched token (e.g. already used), start() retries once with a fresh one.
+const WARM_TOKEN_MS = 40000;
+let warmToken = null;
+let warming = false;
+async function fetchToken() {
+  const res = await fetch("/api/token");
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || "Could not get a streaming token.");
+  return body;
+}
+function prewarmToken() {
+  if (warming || (warmToken && performance.now() - warmToken.at < WARM_TOKEN_MS)) return;
+  warming = true;
+  fetchToken().then((t) => { warmToken = { ...t, at: performance.now() }; }).catch(() => {}).finally(() => { warming = false; });
+}
+async function takeToken() {
+  const t = warmToken; warmToken = null;
+  if (t && performance.now() - t.at < WARM_TOKEN_MS) return { ...t, warm: true };
+  return { ...(await fetchToken()), warm: false };
+}
+
+function connectStream(s, tok) {
+  const params = new URLSearchParams({ sample_rate: SAMPLE_RATE, encoding: "pcm_s16le", format_turns: "false", token: tok.token });
+  if ($("lang").value === "multi") { params.set("speech_model", "universal-streaming-multilingual"); params.set("language_detection", "true"); }
+  else if (tok.speech_model) params.set("speech_model", tok.speech_model);
+  const terms = dictTerms();
+  if (terms.length) params.set("keyterms_prompt", JSON.stringify(terms));
+  const ws = new WebSocket(`${STREAM_URL}?${params}`);
+  ws.binaryType = "arraybuffer";
+  s.ws = ws; s.ready = false;
+  // "Ready" means AssemblyAI confirmed the session with a Begin message, not just that the socket opened:
+  // a refused token can open and then close. Audio captured before Begin is queued and flushed on Begin.
+  s.opened = new Promise((resolve, reject) => {
+    const fail = () => { if (!s.ready) reject(new Error("Couldn't connect to AssemblyAI streaming.")); };
+    ws.onerror = fail;
+    ws.onclose = (e) => {
+      fail();
+      if (e.code !== 1000 && e.code !== 1005 && session === s && s.ws === ws && s.live) showError(`Streaming closed (${e.code}) ${e.reason || ""}`);
+    };
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.type === "Begin" && !s.ready) { s.ready = true; s.pending.forEach((c) => ws.send(c)); s.pending = []; resolve(); }
+      onMessage(s, m);
+    };
+  });
+  s.opened.catch(() => {});   // handled by start(); avoids an unhandled-rejection warning
+}
+
 async function start() {
   if (session || busy || editing) return;
   showError("");
@@ -346,40 +396,32 @@ async function start() {
   setBadge("bStatus", "connecting…");
   renderRaw(s.turns);
   try {
-    const [tokenRes, stream] = await Promise.all([
-      fetch("/api/token"),
+    const [tok, stream] = await Promise.all([
+      takeToken(),
       navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }),
     ]);
     s.stream = stream;
     if (session !== s) { teardown(s); return; }   // released before we connected
-    const body = await tokenRes.json();
-    if (!tokenRes.ok) throw new Error(body.detail || "Could not get a streaming token.");
-
-    const params = new URLSearchParams({ sample_rate: SAMPLE_RATE, encoding: "pcm_s16le", format_turns: "false", token: body.token });
-    if ($("lang").value === "multi") { params.set("speech_model", "universal-streaming-multilingual"); params.set("language_detection", "true"); }
-    else if (body.speech_model) params.set("speech_model", body.speech_model);
-    const terms = dictTerms();
-    if (terms.length) params.set("keyterms_prompt", JSON.stringify(terms));
-    s.ws = new WebSocket(`${STREAM_URL}?${params}`);
-    s.ws.binaryType = "arraybuffer";
-    s.opened = new Promise((resolve, reject) => {
-      s.ws.onopen = () => { s.pending.forEach((c) => s.ws.send(c)); s.pending = []; resolve(); };
-      s.ws.onerror = () => reject(new Error("Couldn't connect to AssemblyAI streaming."));
-    });
-    s.ws.onmessage = (e) => onMessage(s, JSON.parse(e.data));
-    s.ws.onclose = (e) => { if (e.code !== 1000 && e.code !== 1005 && session === s) showError(`Streaming closed (${e.code}) ${e.reason || ""}`); };
+    connectStream(s, tok);
 
     s.ctx = new AudioContext();
     await s.ctx.audioWorklet.addModule(workletUrl);
     const source = s.ctx.createMediaStreamSource(stream);
     const node = new AudioWorkletNode(s.ctx, "pcm16");
     node.port.onmessage = (e) => {
-      if (s.ws.readyState === WebSocket.OPEN) s.ws.send(e.data); else s.pending.push(e.data);
+      if (s.ready && s.ws.readyState === WebSocket.OPEN) s.ws.send(e.data); else s.pending.push(e.data);
     };
     const mute = s.ctx.createGain(); mute.gain.value = 0;   // keeps the graph pulling audio without playback
     source.connect(node).connect(mute).connect(s.ctx.destination);
     if (session !== s) teardown(s);                 // stop() ran while audio was starting
-    await s.opened;
+    try {
+      await s.opened;
+    } catch (err) {
+      if (!tok.warm) throw err;
+      connectStream(s, await fetchToken());       // pre-fetched token refused: one retry with a fresh token
+      await s.opened;
+    }
+    s.live = true;
     if (session === s) setBadge("bStatus", "listening", true);
   } catch (err) {
     teardown(s);
@@ -535,11 +577,14 @@ async function stop() {
   } finally {
     try { s.ws?.close(); } catch {}
     busy = false;
+    prewarmToken();
     setBadge("bStatus", "idle");
   }
 }
 
 $("talk").addEventListener("click", () => (session ? stop() : start()));
+["pointerenter", "focus", "touchstart"].forEach((ev) => $("talk").addEventListener(ev, prewarmToken, { passive: true }));
+prewarmToken();
 $("copy").addEventListener("click", () => copyPolished(false));
 $("share").addEventListener("click", sharePolished);
 const typing = (e) => e.target instanceof Element && e.target.closest("textarea, input, select");

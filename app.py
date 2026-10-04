@@ -39,6 +39,10 @@ CLEANUP_RULES = """You turn raw dictated speech into clean written text.
 - Keep the speaker's meaning, facts, names, numbers and tone. Do not add new ideas or details.
 - Do not guess at words that look misheard; keep them as spoken.
 - Write in the same language the speaker used; do not translate.
+- Follow spoken structure: when the speaker lists things ("first... second...", "number one...",
+  "a few things: ..."), format them as a list; obey spoken commands like "new paragraph",
+  "new line", "bullet point" or "full stop" instead of writing those words out.
+- Write numbers, dates, times, money and percentages the way people write them (3pm, $40, 25%).
 """
 STYLE_FORMATS = {
     "auto": "- Format as clean Markdown: a short bolded title line, then either a polished paragraph,\n"

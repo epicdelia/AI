@@ -118,14 +118,14 @@
         <textarea id="dict" placeholder="Names and jargon the transcriber should get right, one per line. E.g. AssemblyAI, Kubernetes, Siobhan"></textarea>
       </details>
     </div>
-    <button id="talk"><span class="dot"></span><span id="talkLabel">Start Speaking</span></button>
+    <button id="talk" aria-keyshortcuts="Space"><span class="dot"></span><span id="talkLabel">Start Speaking</span></button>
   </header>
 
-  <div id="error"></div>
-  <div id="setup" hidden></div>
+  <div id="error" role="alert"></div>
+  <div id="setup" role="status" aria-live="polite" hidden></div>
 
   <div class="badges">
-    <div class="badge" id="bStatus">Status: <b>idle</b></div>
+    <div class="badge" id="bStatus" role="status" aria-live="polite">Status: <b>idle</b></div>
     <div class="badge" id="bFinal">Final transcript: <b>–</b></div>
     <div class="badge" id="bFirst">First polished words: <b>–</b></div>
     <div class="badge" id="bLlm">AI polish: <b>–</b></div>
@@ -139,7 +139,7 @@
     </section>
     <section class="card polished-card">
       <h2>Polished AI Output <span class="actions"><button id="edit" disabled>Edit</button><button id="share" disabled>Share</button><button id="copy" disabled>Copy</button></span></h2>
-      <div id="polished"><span class="placeholder">Clean, formatted text appears here when you stop talking.</span></div>
+      <div id="polished" aria-live="polite" aria-busy="false"><span class="placeholder">Clean, formatted text appears here when you stop talking.</span></div>
       <div class="rewrites" aria-label="Rewrite this note">
         <button data-rewrite="shorter" disabled>Shorter</button><button data-rewrite="formal" disabled>More formal</button><button data-rewrite="friendly" disabled>Friendlier</button><button data-rewrite="grammar" disabled>Fix grammar only</button>
       </div>
@@ -194,7 +194,10 @@ function setBadge(id, value, good) {
   $(id).querySelector("b").textContent = value;
   $(id).classList.toggle("good", !!good);
 }
-function showError(msg) { $("error").textContent = msg; $("error").style.display = msg ? "block" : "none"; }
+function showError(msg) {
+  $("error").textContent = msg; $("error").style.display = msg ? "block" : "none";
+  if (msg) $("polished").setAttribute("aria-busy", "false");   // any failure ends the "busy" state for screen readers
+}
 
 function setRecordingUi(on) {
   $("talk").classList.toggle("rec", on);
@@ -455,6 +458,7 @@ async function streamPolish(payload, startedAt) {
   $("copy").disabled = true; $("share").disabled = true; $("copy").textContent = "Copy";
   setRewriteUi(false);
   polishedMarkdown = "";
+  $("polished").setAttribute("aria-busy", "true");
   const polishAt = performance.now();
   const res = await fetch("/api/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Polish failed.");
@@ -472,6 +476,7 @@ async function streamPolish(payload, startedAt) {
     if (!painted) { painted = true; requestAnimationFrame(paint); }
   }
   acc += decoder.decode();
+  $("polished").setAttribute("aria-busy", "false");
   const [body, problem] = acc.split("\u0000");
   polishedMarkdown = body.trim();
   $("polished").innerHTML = polishedMarkdown ? renderMarkdown(polishedMarkdown) : "";

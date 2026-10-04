@@ -143,6 +143,9 @@ try:
         page.click("#talk")
         page.wait_for_function("document.getElementById('bStatus').innerText.includes('idle')", timeout=6000)
         history_items = page.eval_on_selector_all("#historyList li .preview", "els => els.map(e => e.textContent)")
+        aria = page.evaluate("""() => ({busy: document.getElementById('polished').getAttribute('aria-busy'),
+            live: document.getElementById('polished').getAttribute('aria-live'),
+            status: document.getElementById('bStatus').getAttribute('role'), alert: document.getElementById('error').getAttribute('role')})""")
         cut_error = page.inner_text("#error")
         cut_polished = page.inner_text("#polished")
         clip_after_cut = page.evaluate("navigator.clipboard.readText()")
@@ -183,6 +186,8 @@ checks = {
     and rewrite_bodies[0]["text"] == POLISHED and clip_after_rewrite == SHORTER and history_after_rewrite == 2,
     "edit in place updates the note; Space there doesn't record": "Friday at 10am" in edited_text and not recording_while_editing,
     "failed rewrite keeps the previous note": "Friday at 10am" in after_failed_rewrite,
+    "screen readers: live note, status and alert roles, not left busy": aria == {"busy": "false", "live": "polite",
+                                                                                "status": "status", "alert": "alert"},
     "chosen style sent": polish_bodies and polish_bodies[0].get("style") == "notes",
     "polish got final transcript": polish_bodies and "moving to friday" in polish_bodies[0]["text"],
     "markdown rendered": "<strong>Launch update</strong>" in polished_html and "<li>" in polished_html,

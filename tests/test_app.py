@@ -219,3 +219,9 @@ def test_unknown_rewrite_and_huge_text_are_rejected_without_upstream_call(client
     assert client.post("/api/polish", json={"text": "hi", "rewrite": "pirate"}).status_code == 422
     assert client.post("/api/polish", json={"text": "x" * 20001}).status_code == 422
     assert client.calls == []
+
+
+def test_prompt_follows_spoken_structure_and_number_style():
+    for style in ("auto", "message", "email", "notes"):
+        prompt = flow.system_prompt(style)
+        assert "Follow spoken structure" in prompt and "new paragraph" in prompt and "3pm" in prompt

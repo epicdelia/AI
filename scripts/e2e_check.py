@@ -24,8 +24,22 @@ stats = {"url": None, "frames": 0, "sizes": set(), "control": []}
 errors = []
 
 
+token_calls = []
+ws_tokens = []
+refused = []
+
+
+def token_route(route):
+    token_calls.append(len(token_calls) + 1)
+    route.fulfill(json={"token": f"tmp-abc-{len(token_calls)}"})
+
+
 def on_ws(ws):
     stats["url"] = ws.url
+    ws_tokens.append(parse_qs(urlparse(ws.url).query)["token"][0])
+    if ws_tokens[-1] == "tmp-abc-1":  # AssemblyAI refuses the first (pre-fetched) token: closed before Begin.
+        refused.append(ws)             # closed from the main flow; closing inside this callback deadlocks Playwright
+        return
 
     def on_message(msg):
         if isinstance(msg, (bytes, bytearray)):
@@ -88,11 +102,13 @@ try:
         page = ctx.new_page()
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("console", lambda m: m.type == "error" and errors.append(m.text))
-        page.route("**/api/token", lambda r: r.fulfill(json={"token": "tmp-abc"}))
+        page.route("**/api/token", token_route)
         page.route("**/api/polish", polish)
         page.route("**/api/health", lambda r: r.fulfill(json=HEALTH))
         page.route_web_socket("wss://streaming.assemblyai.com/**", on_ws)
         page.goto("http://127.0.0.1:8765/")
+        page.wait_for_timeout(300)
+        tokens_before_first_press = len(token_calls)
         page.click('.styles button[data-style="notes"]')
         page.click("details.dict summary")
         page.fill("#dict", "AssemblyAI\nSiobhan, Kubernetes\nassemblyai\n")
@@ -100,6 +116,11 @@ try:
 
         # 1. Hold Space ~1.5 s, then release.
         page.keyboard.down("Space")
+        for _ in range(100):  # wait for the first socket (pre-fetched token), then refuse it
+            if refused:
+                break
+            page.wait_for_timeout(20)
+        refused.pop().close(code=4001, reason="token already used")
         page.wait_for_function("document.getElementById('raw').innerText.includes('launch')", timeout=5000)
         partial_class = page.eval_on_selector("#raw span", "e => e.className")
         page.wait_for_timeout(600)
@@ -171,6 +192,8 @@ checks = {
     "ws url has 16k pcm + token": all(s in (stats["url"] or "") for s in ["sample_rate=16000", "encoding=pcm_s16le", "token=tmp-abc"]),
     "dictionary sent as keyterms_prompt (deduped)": json.loads(
         parse_qs(urlparse(stats["url"] or "").query).get("keyterms_prompt", ["[]"])[0]) == ["AssemblyAI", "Siobhan", "Kubernetes"],
+    "token pre-fetched before the first press": tokens_before_first_press >= 1,
+    "refused pre-fetched token retried once with a fresh one": ws_tokens[:2] == ["tmp-abc-1", "tmp-abc-2"],
     "audio frames streamed": stats["frames"] >= 10,
     "frames are 50ms of 16-bit 16kHz (1600 bytes)": stats["sizes"] == {1600},
     "ForceEndpoint then Terminate sent": stats["control"][:2] == ["ForceEndpoint", "Terminate"],

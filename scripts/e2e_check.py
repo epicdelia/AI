@@ -56,8 +56,18 @@ POLISHED = "**Launch update**\n\n- Launch moves to **Friday**\n- <script>alert(1
 CUT_OFF = "**Second take**\n\n- only half\u0000The AI reply was cut off before it finished."
 
 
+rewrite_bodies = []
+SHORTER = "**Launch**\n\n- Friday"
+
+
 def polish(route):
-    polish_bodies.append(json.loads(route.request.post_data))
+    body = json.loads(route.request.post_data)
+    if body.get("rewrite"):
+        rewrite_bodies.append(body)
+        if len(rewrite_bodies) == 2:  # second rewrite fails: the note must stay as it was
+            return route.fulfill(status=502, json={"detail": "LLM Gateway request failed (500)."})
+        return route.fulfill(body=SHORTER, content_type="text/plain; charset=utf-8")
+    polish_bodies.append(body)
     if len(polish_bodies) >= 3:  # third take: polish fails outright
         return route.fulfill(status=502, json={"detail": "LLM Gateway request failed (400): no access."})
     body = POLISHED if len(polish_bodies) == 1 else CUT_OFF  # second take: a reply cut off mid-stream
@@ -103,6 +113,24 @@ try:
         clip = page.evaluate("navigator.clipboard.readText()")
         mic_live = page.evaluate("document.getElementById('talk').classList.contains('rec')")
         page.screenshot(path=str(ROOT / "e2e-screenshot.png"), full_page=True)
+
+        # 1b. Rewrite "Shorter", then edit by hand, then a failing rewrite leaves the note alone.
+        page.click('.rewrites button[data-rewrite="shorter"]')
+        page.wait_for_function("(t => t.includes('Friday') && !t.includes('update'))(document.getElementById('polished').innerText)"
+                               " && document.getElementById('bStatus').innerText.includes('idle')", timeout=5000)
+        clip_after_rewrite = page.evaluate("navigator.clipboard.readText()")
+        history_after_rewrite = page.locator("#historyList li").count()
+        page.click("#edit")
+        page.fill("#noteEditor", "**Launch**\n\n- Friday at 10am")
+        page.keyboard.press("Space")  # typing a space in the editor must not start recording
+        recording_while_editing = page.evaluate("document.getElementById('talk').classList.contains('rec')")
+        page.click("#edit")
+        edited_text = page.inner_text("#polished")
+        page.click('.rewrites button[data-rewrite="formal"]')
+        page.wait_for_function("document.getElementById('error').innerText.includes('unchanged')", timeout=5000)
+        after_failed_rewrite = page.inner_text("#polished")
+        page.wait_for_function("document.getElementById('bStatus').innerText.includes('idle')", timeout=3000)
+        page.evaluate("document.getElementById('error').style.display = 'none'")
 
         # 2. Quick tap (release before connect) must not wedge the app.
         page.keyboard.down("Space")
@@ -151,6 +179,10 @@ checks = {
     "failed polish keeps the raw transcript copyable": "moving to friday" in fallback_text and "moving to friday" in clip_raw
     and "raw transcript" in fallback_error,
     "check setup shows each check": len(setup_rows) == 3 and setup_rows[0].startswith("✓") and setup_rows[2].startswith("✗"),
+    "rewrite sends the note + action and replaces it": rewrite_bodies and rewrite_bodies[0]["rewrite"] == "shorter"
+    and rewrite_bodies[0]["text"] == POLISHED and clip_after_rewrite == SHORTER and history_after_rewrite == 2,
+    "edit in place updates the note; Space there doesn't record": "Friday at 10am" in edited_text and not recording_while_editing,
+    "failed rewrite keeps the previous note": "Friday at 10am" in after_failed_rewrite,
     "chosen style sent": polish_bodies and polish_bodies[0].get("style") == "notes",
     "polish got final transcript": polish_bodies and "moving to friday" in polish_bodies[0]["text"],
     "markdown rendered": "<strong>Launch update</strong>" in polished_html and "<li>" in polished_html,
@@ -158,8 +190,9 @@ checks = {
     "auto-copied markdown": clip == POLISHED,
     "first-words badge filled": badges["bFirst"].endswith(" ms"),
     "cut-off reply flagged, partial text kept": "cut off" in cut_error and "only half" in cut_polished,
-    "history keeps finished notes only": len(history_items) == 1 and "Launch update" in history_items[0],
-    "cut-off reply not auto-copied": clip_after_cut == POLISHED,
+    "history keeps finished notes only": len(history_items) == 2 and "Launch update" in history_items[1]
+    and "Friday at 10am" in history_items[0],
+    "cut-off reply not auto-copied (clipboard keeps the last good note)": clip_after_cut == SHORTER,
     "badges filled": badges["bLlm"].endswith(" ms") and badges["bFinal"].endswith("ms") and badges["bTotal"].endswith("ms"),
     "mic off after stop": not mic_live,
     "quick tap recovers to idle": status_after_tap == "idle",

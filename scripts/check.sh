@@ -26,6 +26,11 @@ if [[ -f pyproject.toml || -f requirements.txt ]]; then
   ran_tests=1
 fi
 
+if [[ -d tests/extension ]] && command -v node >/dev/null; then
+  echo "==> extension (node)"
+  for t in tests/extension/*.test.mjs; do node "$t"; done
+fi
+
 if [[ $ran_tests -eq 0 ]]; then
   if [[ "$branch" == night/T-* ]]; then
     echo "FAIL: no test suite configured. Night-shift code must ship with tests." >&2

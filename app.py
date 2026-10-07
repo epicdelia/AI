@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 STREAMING_TOKEN_URL = "https://streaming.assemblyai.com/v3/token"
+STREAM_URL = os.getenv("FLOW_STREAM_URL", "wss://streaming.assemblyai.com/v3/ws")  # where clients open the live socket
 LLM_GATEWAY_URL = "https://llm-gateway.assemblyai.com/v1/chat/completions"
 LLM_MODELS_URL = "https://llm-gateway.assemblyai.com/v1/models"
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
@@ -74,6 +75,15 @@ def rewrite_prompt(action: str) -> str:
             "Return only the rewritten text, with no preamble.")
 
 
+def command_prompt(instruction: str) -> str:
+    """Command mode: the user selected text and spoke an instruction for it."""
+    return ("You edit a piece of text according to the user's spoken instruction.\n"
+            f"Instruction: {instruction.strip()}\n"
+            "- Apply only what the instruction asks; keep everything else, including facts, names and numbers.\n"
+            "- If the instruction asks a question about the text rather than an edit, still return only edited text.\n"
+            "Return only the resulting text, with no preamble or quotes.")
+
+
 def system_prompt(style: str = "auto") -> str:
     return CLEANUP_RULES + STYLE_FORMATS[style] + "\nReturn only the text, with no preamble."
 
@@ -88,6 +98,18 @@ class PolishRequest(BaseModel):
     text: str = Field(max_length=20000)
     style: PolishStyle = "auto"
     rewrite: RewriteAction | None = None  # rewrite an existing note instead of polishing a transcript
+    instruction: str | None = Field(default=None, max_length=1000)  # command mode: spoken edit for `text`
+    snippets: list[str] = Field(default_factory=list, max_length=20)  # cue phrases; client swaps in saved text
+
+
+def snippet_rules(cues: list[str]) -> str:
+    """Saved snippets: the model marks where a cue was said; the client inserts the exact saved text there."""
+    cues = [c.strip()[:80] for c in cues if c.strip()]
+    if not cues:
+        return ""
+    listed = "\n".join(f"  {n}. \"{c}\"" for n, c in enumerate(cues, 1))
+    return ("\n- Snippets: when the speaker says one of these cue phrases (or a clear variant of it), write the "
+            "placeholder [[SNIPPET n]] for it instead of the words, and nothing else for that cue:\n" + listed)
 
 
 def _api_key() -> str:
@@ -121,7 +143,8 @@ async def streaming_token() -> dict:
         )
     if resp.status_code != 200:
         raise _upstream_error("Streaming token request", resp)
-    return {"token": resp.json()["token"], "speech_model": os.getenv("FLOW_SPEECH_MODEL", "").strip() or None}
+    return {"token": resp.json()["token"], "speech_model": os.getenv("FLOW_SPEECH_MODEL", "").strip() or None,
+            "stream_url": STREAM_URL}
 
 
 STREAM_ERROR = "\x00"  # sent after the text when the reply was cut off or errored mid-stream; the page shows it
@@ -220,7 +243,11 @@ async def polish(req: PolishRequest) -> StreamingResponse:
     key = _api_key()
     client = _client()
     try:
-        prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
+        if req.instruction and req.instruction.strip():
+            prompt = command_prompt(req.instruction)
+        else:
+            prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
+            prompt = prompt.replace("\nReturn only", snippet_rules(req.snippets) + "\nReturn only", 1) if req.snippets else prompt
         resp, _ = await _start_completion(client, key, text, prompt)
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client

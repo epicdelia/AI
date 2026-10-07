@@ -32,7 +32,7 @@ def test_index_serves_page(client):
 def test_token_uses_server_side_key(client):
     client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
     r = client.get("/api/token")
-    assert r.json() == {"token": "tmp-123", "speech_model": None}
+    assert r.json() == {"token": "tmp-123", "speech_model": None, "stream_url": flow.STREAM_URL}
     req = client.calls[0]
     assert req.url.path == "/v3/token"
     assert req.url.params["expires_in_seconds"] == "60"
@@ -172,7 +172,7 @@ def test_home_screen_manifest_and_icons_are_served(client):
 def test_speech_model_is_passed_to_the_page_when_configured(client, monkeypatch):
     monkeypatch.setenv("FLOW_SPEECH_MODEL", "universal-3-6-pro")
     client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "t"})
-    assert client.get("/api/token").json() == {"token": "t", "speech_model": "universal-3-6-pro"}
+    assert client.get("/api/token").json()["speech_model"] == "universal-3-6-pro"
 
 
 def test_prompt_keeps_the_speakers_language():
@@ -225,3 +225,33 @@ def test_prompt_follows_spoken_structure_and_number_style():
     for style in ("auto", "message", "email", "notes"):
         prompt = flow.system_prompt(style)
         assert "Follow spoken structure" in prompt and "new paragraph" in prompt and "3pm" in prompt
+
+
+def test_command_mode_edits_the_selection_with_the_spoken_instruction(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "Kindly send the report tomorrow."}}]})
+    r = client.post("/api/polish", json={"text": "send the report tomorrow", "instruction": "make it more formal"})
+    assert r.status_code == 200 and r.text == "Kindly send the report tomorrow."
+    msgs = json.loads(client.calls[-1].content)["messages"]
+    assert "Instruction: make it more formal" in msgs[0]["content"] and msgs[1]["content"] == "send the report tomorrow"
+
+
+def test_blank_instruction_falls_back_to_normal_polish(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    client.post("/api/polish", json={"text": "hello", "instruction": "   "})
+    assert json.loads(client.calls[-1].content)["messages"][0]["content"] == flow.SYSTEM_PROMPT
+
+
+def test_snippet_cues_become_placeholders_in_the_prompt(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    client.post("/api/polish", json={"text": "here's my calendly link", "style": "message",
+                                     "snippets": ["my calendly link", "  ", "my address"]})
+    prompt = json.loads(client.calls[-1].content)["messages"][0]["content"]
+    assert '1. "my calendly link"' in prompt and '2. "my address"' in prompt and "[[SNIPPET n]]" in prompt
+    assert prompt.rstrip().endswith("Return only the text, with no preamble.")
+
+
+def test_too_many_snippets_rejected(client):
+    assert client.post("/api/polish", json={"text": "hi", "snippets": ["x"] * 21}).status_code == 422

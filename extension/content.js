@@ -48,11 +48,21 @@
     if (el instanceof HTMLInputElement) return /^(text|search|email|url|tel|)$/i.test(el.type) && !el.readOnly && !el.disabled;
     return el.isContentEditable;
   }
+  let savedInputSel = null;  // [start, end] inside an input/textarea
   function remember() {
     target = deepActive();
-    savedRange = null;
+    savedRange = null; savedInputSel = null;
     const sel = window.getSelection();
     if (target && target.isContentEditable && sel && sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      try { savedInputSel = [target.selectionStart, target.selectionEnd]; } catch {}
+    }
+  }
+  // Command mode: text selected in the field when dictation starts gets edited by what you say.
+  function selectedText() {
+    if (!editable(target)) return "";
+    if (savedInputSel && savedInputSel[1] > savedInputSel[0]) return target.value.slice(savedInputSel[0], savedInputSel[1]);
+    return savedRange && !savedRange.collapsed ? savedRange.toString() : "";
   }
   // Text before the caret, as the user sees it (browsers drop a trailing space at the end of a line).
   function textBefore(el) {
@@ -75,6 +85,7 @@
     if (!editable(el) || !el.isConnected) return false;
     const text = shape(el, raw);
     el.focus();
+    if (savedInputSel) { try { el.setSelectionRange(savedInputSel[0], savedInputSel[1]); } catch {} }
     if (el.isContentEditable && savedRange) {
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange);
     }
@@ -93,8 +104,10 @@
   const isCombo = (e) => e.code === "Space" && e.altKey && !e.ctrlKey && !e.metaKey;
   function begin() {
     remember();
-    show("listening", editable(target) ? "Listening…" : "Listening… (no text box focused: the result will be copied)");
-    chrome.runtime.sendMessage({ type: "flow-start" }).catch(() => show("error", "Flow was updated: reload this page.", 4000));
+    const selection = selectedText();
+    show("listening", selection ? "Say how to change the selected text…"
+      : editable(target) ? "Listening…" : "Listening… (no text box focused: the result will be copied)");
+    chrome.runtime.sendMessage({ type: "flow-start", selection }).catch(() => show("error", "Flow was updated: reload this page.", 4000));
   }
   window.addEventListener("keydown", (e) => {
     if (!isCombo(e)) return;
@@ -118,6 +131,7 @@
       else if (msg.state === "listening") show("listening", msg.text || "Listening…");
       else if (msg.state === "finishing") show("busy", "Finishing…");
       else if (msg.state === "polishing") show("busy", "Polishing…");
+      else if (msg.state === "editing") show("busy", "Editing your selection…");
       else if (msg.state === "copied") show("done", `Copied: press ${navigator.platform.includes("Mac") ? "⌘" : "Ctrl+"}V to paste${msg.note ? ". " + msg.note : ""}`, 5000);
       else if (msg.state === "error") show("error", msg.message, 6000);
     } else if (msg.type === "flow-insert") {

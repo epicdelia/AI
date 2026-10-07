@@ -225,3 +225,19 @@ def test_prompt_follows_spoken_structure_and_number_style():
     for style in ("auto", "message", "email", "notes"):
         prompt = flow.system_prompt(style)
         assert "Follow spoken structure" in prompt and "new paragraph" in prompt and "3pm" in prompt
+
+
+def test_command_mode_edits_the_selection_with_the_spoken_instruction(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "Kindly send the report tomorrow."}}]})
+    r = client.post("/api/polish", json={"text": "send the report tomorrow", "instruction": "make it more formal"})
+    assert r.status_code == 200 and r.text == "Kindly send the report tomorrow."
+    msgs = json.loads(client.calls[-1].content)["messages"]
+    assert "Instruction: make it more formal" in msgs[0]["content"] and msgs[1]["content"] == "send the report tomorrow"
+
+
+def test_blank_instruction_falls_back_to_normal_polish(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    client.post("/api/polish", json={"text": "hello", "instruction": "   "})
+    assert json.loads(client.calls[-1].content)["messages"][0]["content"] == flow.SYSTEM_PROMPT

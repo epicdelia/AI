@@ -75,6 +75,15 @@ def rewrite_prompt(action: str) -> str:
             "Return only the rewritten text, with no preamble.")
 
 
+def command_prompt(instruction: str) -> str:
+    """Command mode: the user selected text and spoke an instruction for it."""
+    return ("You edit a piece of text according to the user's spoken instruction.\n"
+            f"Instruction: {instruction.strip()}\n"
+            "- Apply only what the instruction asks; keep everything else, including facts, names and numbers.\n"
+            "- If the instruction asks a question about the text rather than an edit, still return only edited text.\n"
+            "Return only the resulting text, with no preamble or quotes.")
+
+
 def system_prompt(style: str = "auto") -> str:
     return CLEANUP_RULES + STYLE_FORMATS[style] + "\nReturn only the text, with no preamble."
 
@@ -89,6 +98,7 @@ class PolishRequest(BaseModel):
     text: str = Field(max_length=20000)
     style: PolishStyle = "auto"
     rewrite: RewriteAction | None = None  # rewrite an existing note instead of polishing a transcript
+    instruction: str | None = Field(default=None, max_length=1000)  # command mode: spoken edit for `text`
 
 
 def _api_key() -> str:
@@ -222,7 +232,10 @@ async def polish(req: PolishRequest) -> StreamingResponse:
     key = _api_key()
     client = _client()
     try:
-        prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
+        if req.instruction and req.instruction.strip():
+            prompt = command_prompt(req.instruction)
+        else:
+            prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
         resp, _ = await _start_completion(client, key, text, prompt)
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client

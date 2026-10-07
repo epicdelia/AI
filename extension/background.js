@@ -33,9 +33,9 @@ function dictTerms(dict) {
     .filter((t) => !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase())).slice(0, 100);
 }
 
-async function start(tabId, frameId, url) {
+async function start(tabId, frameId, url, selection) {
   if (active) return;
-  active = { tabId, frameId, url, startedAt: Date.now() };
+  active = { tabId, frameId, url, selection: (selection || "").slice(0, 20000), startedAt: Date.now() };
   tell("connecting");
   try {
     const cfg = await settings();
@@ -72,19 +72,23 @@ function toPlain(md) {
 
 async function finish(raw) {
   if (!raw.trim()) return fail("Didn't catch any speech. Hold the keys, speak, then let go.");
-  tell("polishing");
+  const editing = Boolean(active.selection);
+  tell(editing ? "editing" : "polishing");
   const cfg = await settings();
   const style = styleFor(cfg.style, active.url);
+  // Command mode sends the selected text plus the spoken instruction; a failed edit leaves the selection alone.
+  const payload = editing ? { text: active.selection, instruction: raw, style } : { text: raw, style };
   let text = raw.trim(); let note = "";
   try {
     const res = await fetch(`${cfg.serverUrl}/api/polish`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: raw, style }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `polish failed (${res.status})`);
     const [body, problem] = (await res.text()).split("\u0000");
     if (problem !== undefined || !body.trim()) throw new Error(problem || "empty reply");
     text = toPlain(body);
   } catch (err) {
+    if (editing) return fail(`Couldn't edit the selection: ${err.message}. Your text is unchanged.`);
     note = `AI polish failed (${err.message}); inserted your raw words.`;
   }
   const target = active;
@@ -100,7 +104,7 @@ async function finish(raw) {
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.target === "offscreen") return; // not ours
-  if (msg.type === "flow-start" && sender.tab) start(sender.tab.id, sender.frameId, sender.tab.url || sender.url || "");
+  if (msg.type === "flow-start" && sender.tab) start(sender.tab.id, sender.frameId, sender.tab.url || sender.url || "", msg.selection);
   else if (msg.type === "flow-stop") stop();
   else if (msg.type === "partial") tell("listening", { text: msg.text });
   else if (msg.type === "ready") tell("listening", { text: "" });

@@ -50,6 +50,9 @@ async def chat(body: dict):
     if seen["fail_polish"]:
         return JSONResponse({"error": "overloaded"}, status_code=500)
     chunks = ["**Launch update**", "\n\n- Launch moves to **Friday**", "\n- QA signs off Thursday"]
+    if "Instruction:" in body["messages"][0]["content"]:  # command mode: edit the selected text
+        seen["instruction_prompt"] = body["messages"][0]["content"]
+        chunks = ["EDITED: ", body["messages"][1]["content"]]
 
     def sse():
         for c in chunks:
@@ -89,6 +92,7 @@ def page():
       <textarea id="ta" rows="6" cols="60">Hi team, </textarea>
       <input id="inp" type="text" value="">
       <div id="ce" contenteditable="true" style="border:1px solid #999;min-height:60px">Note: </div>
+      <textarea id="cmd">send the report tomorrow</textarea>
       <button id="btn">not a field</button></body>"""
 
 
@@ -174,6 +178,13 @@ try:
             return false; }""", timeout=10000)
         copied = page.evaluate("navigator.clipboard.readText()")
 
+        # Command mode: select text, hold the keys, speak an instruction -> the selection is replaced.
+        page.click("#cmd")
+        page.keyboard.press("Control+A")
+        dictate(page, None)
+        page.wait_for_function("document.getElementById('cmd').value.startsWith('EDITED')", timeout=10000)
+        cmd = page.input_value("#cmd")
+
         seen["fail_polish"] = True
         dictate(page, "#ta")
         page.wait_for_function("document.getElementById('ta').value.includes('qa signs off thursday')", timeout=10000)
@@ -197,6 +208,8 @@ checks = {
     "polish failure: raw words inserted, user told why": SAID in raw_fallback and "AI polish failed" in (fallback_pill or ""),
     "message style sent to the server": any("chat message" in p for p in seen["polish_styles"]),
     "dictionary + stream URL from server used": "keyterms_prompt=" in url and "tmp-ext" in url,
+    "command mode: selection replaced by the edit, instruction sent": cmd == "EDITED: send the report tomorrow"
+    and f"Instruction: {SAID}" in seen.get("instruction_prompt", ""),
     "no page errors": not errors,
 }
 for k, v in checks.items():

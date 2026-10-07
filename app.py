@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 STREAMING_TOKEN_URL = "https://streaming.assemblyai.com/v3/token"
+STREAM_URL = os.getenv("FLOW_STREAM_URL", "wss://streaming.assemblyai.com/v3/ws")  # where clients open the live socket
 LLM_GATEWAY_URL = "https://llm-gateway.assemblyai.com/v1/chat/completions"
 LLM_MODELS_URL = "https://llm-gateway.assemblyai.com/v1/models"
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
@@ -121,7 +122,8 @@ async def streaming_token() -> dict:
         )
     if resp.status_code != 200:
         raise _upstream_error("Streaming token request", resp)
-    return {"token": resp.json()["token"], "speech_model": os.getenv("FLOW_SPEECH_MODEL", "").strip() or None}
+    return {"token": resp.json()["token"], "speech_model": os.getenv("FLOW_SPEECH_MODEL", "").strip() or None,
+            "stream_url": STREAM_URL}
 
 
 STREAM_ERROR = "\x00"  # sent after the text when the reply was cut off or errored mid-stream; the page shows it

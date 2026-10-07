@@ -32,7 +32,7 @@ def test_index_serves_page(client):
 def test_token_uses_server_side_key(client):
     client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "tmp-123"})
     r = client.get("/api/token")
-    assert r.json() == {"token": "tmp-123", "speech_model": None}
+    assert r.json() == {"token": "tmp-123", "speech_model": None, "stream_url": flow.STREAM_URL}
     req = client.calls[0]
     assert req.url.path == "/v3/token"
     assert req.url.params["expires_in_seconds"] == "60"
@@ -172,7 +172,7 @@ def test_home_screen_manifest_and_icons_are_served(client):
 def test_speech_model_is_passed_to_the_page_when_configured(client, monkeypatch):
     monkeypatch.setenv("FLOW_SPEECH_MODEL", "universal-3-6-pro")
     client.responses["streaming.assemblyai.com"] = lambda req: httpx.Response(200, json={"token": "t"})
-    assert client.get("/api/token").json() == {"token": "t", "speech_model": "universal-3-6-pro"}
+    assert client.get("/api/token").json()["speech_model"] == "universal-3-6-pro"
 
 
 def test_prompt_keeps_the_speakers_language():

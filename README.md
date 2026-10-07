@@ -97,6 +97,22 @@ Anyone with the URL can use it on your AssemblyAI credit, so keep the link priva
 tier sleeps after 15 idle minutes, so the first load after a break takes about a minute.
 Open it once before you record.
 
+## Dictate into any website (Chrome extension)
+
+`extension/` is a Chrome extension that works like Wispr Flow inside the browser: click into any
+text box (Gmail, Slack, LinkedIn, ChatGPT, Docs…), **hold Option/Alt+Space**, speak, let go, and the
+polished text is typed where your cursor is. `Alt+Shift+D` toggles instead of hold.
+
+1. Chrome → `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → pick the `extension/` folder.
+2. In the Flow options page that opens: **Allow microphone**, set your Flow server URL
+   (default `https://flow-dictation.onrender.com`), pick a style, **Save**, then **Check setup**.
+
+It uses your Flow server for the token and the AI polish, so your AssemblyAI key stays on the server.
+If no text box is focused (or the site blocks typing), the text is copied so you can paste it. It can't
+type into native apps outside Chrome, or into Chrome's own pages (`chrome://`, the Web Store).
+
+Test: `pip install websockets playwright && python scripts/extension_check.py`
+
 ## Choosing the LLM
 
 `LLM_MODEL` in `.env` picks the model (default `gpt-5-mini`). To see the models

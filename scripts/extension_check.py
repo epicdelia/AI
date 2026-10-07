@@ -134,7 +134,7 @@ try:
         opts = ctx.new_page()
         opts.goto(f"chrome-extension://{ext_id}/options.html")
         opts.fill("#serverUrl", f"http://127.0.0.1:{FLOW_PORT}")
-        opts.select_option("#style", "message")
+        opts.select_option("#style", "site")  # 127.0.0.1 is no known app, so this resolves to message
         opts.fill("#dict", "QA\nAssemblyAI")
         opts.click("#save")
         opts.click("#mic")

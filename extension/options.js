@@ -1,4 +1,4 @@
-const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "message", lang: "en", dict: "" };
+const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "" };
 const $ = (id) => document.getElementById(id);
 const status = (html) => { $("status").innerHTML = html; };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

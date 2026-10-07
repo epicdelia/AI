@@ -2,7 +2,10 @@
 // content script (any tab) --start/stop--> here --> offscreen document (mic + AssemblyAI socket)
 // offscreen --partial/final--> here --> Flow server /api/polish --> content script inserts the text.
 
-const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "message", lang: "en", dict: "" };
+importScripts("site-style.js"); // styleFor(setting, url)
+
+const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "" };
+
 let active = null; // { tabId, frameId }
 
 async function settings() {
@@ -30,9 +33,9 @@ function dictTerms(dict) {
     .filter((t) => !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase())).slice(0, 100);
 }
 
-async function start(tabId, frameId) {
+async function start(tabId, frameId, url) {
   if (active) return;
-  active = { tabId, frameId, startedAt: Date.now() };
+  active = { tabId, frameId, url, startedAt: Date.now() };
   tell("connecting");
   try {
     const cfg = await settings();
@@ -71,10 +74,11 @@ async function finish(raw) {
   if (!raw.trim()) return fail("Didn't catch any speech. Hold the keys, speak, then let go.");
   tell("polishing");
   const cfg = await settings();
+  const style = styleFor(cfg.style, active.url);
   let text = raw.trim(); let note = "";
   try {
     const res = await fetch(`${cfg.serverUrl}/api/polish`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: raw, style: cfg.style }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: raw, style }),
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `polish failed (${res.status})`);
     const [body, problem] = (await res.text()).split("\u0000");
@@ -96,7 +100,7 @@ async function finish(raw) {
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.target === "offscreen") return; // not ours
-  if (msg.type === "flow-start" && sender.tab) start(sender.tab.id, sender.frameId);
+  if (msg.type === "flow-start" && sender.tab) start(sender.tab.id, sender.frameId, sender.tab.url || sender.url || "");
   else if (msg.type === "flow-stop") stop();
   else if (msg.type === "partial") tell("listening", { text: msg.text });
   else if (msg.type === "ready") tell("listening", { text: "" });

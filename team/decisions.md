@@ -22,3 +22,8 @@ Append-only. `- YYYY-MM-DD [role] decision — reason`
 - 2026-09-27 [orchestrator] Designer skipped for narrowed T-001: no UI change in part 1; the existing Designer notes cover it and the UI parts moved to T-005.
 - 2026-09-27 [orchestrator] Used a fresh tech-lead agent for REVIEW rather than the one that planned T-001, because the planner had built a prototype and would review against it instead of against the spec.
 - 2026-09-27 [orchestrator] T-001 goes to the owner with 3 minor QA findings unfixed: none is a blocker or major, and the ticket had 4 lines of headroom. Finding 1 is folded into T-005's scope.
+- 2026-10-07 [owner] Ship Flow as a native Mac app next; buy an Apple Developer account; don't pay for Render.
+- 2026-10-07 [engineer] The Mac app calls AssemblyAI directly with the user's own key in the Keychain (no Flow server), so it needs no hosting and nobody else can spend the key. A public paid product would need a backend for accounts and billing later.
+- 2026-10-07 [engineer] Mac prompts are generated from app.py by scripts/export_mac_prompts.py and a pytest fails if they drift, so web, extension and Mac polish text identically.
+- 2026-10-07 [engineer] Bundle ID com.thetechunicorn.flow (from the owner's AssemblyAI email domain); easy to change until the first signed release, sticky after.
+- 2026-10-07 [engineer] Text is inserted by pasting (clipboard restored afterwards), like Wispr Flow; this needs the Accessibility permission. Ad-hoc-signed CI builds until the Developer ID certificate exists.

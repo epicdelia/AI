@@ -4,7 +4,17 @@
 
 importScripts("site-style.js"); // styleFor(setting, url)
 
-const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "" };
+const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "", snippets: "" };
+
+// Snippets: "cue => saved text" per line. The server marks cues as [[SNIPPET n]]; we insert the exact text.
+function parseSnippets(raw) {
+  return raw.split("\n").map((l) => l.split("=>")).filter((p) => p.length >= 2)
+    .map(([cue, ...rest]) => ({ cue: cue.trim(), text: rest.join("=>").trim() }))
+    .filter((x) => x.cue && x.text).slice(0, 20);
+}
+function expandSnippets(text, snippets) {
+  return text.replace(/\[\[SNIPPET (\d+)\]\]/g, (m, n) => (snippets[Number(n) - 1] ? snippets[Number(n) - 1].text : m));
+}
 
 let active = null; // { tabId, frameId }
 
@@ -77,7 +87,9 @@ async function finish(raw) {
   const cfg = await settings();
   const style = styleFor(cfg.style, active.url);
   // Command mode sends the selected text plus the spoken instruction; a failed edit leaves the selection alone.
-  const payload = editing ? { text: active.selection, instruction: raw, style } : { text: raw, style };
+  const snippets = parseSnippets(cfg.snippets || "");
+  const payload = editing ? { text: active.selection, instruction: raw, style }
+    : { text: raw, style, snippets: snippets.map((x) => x.cue) };
   let text = raw.trim(); let note = "";
   try {
     const res = await fetch(`${cfg.serverUrl}/api/polish`, {
@@ -86,7 +98,7 @@ async function finish(raw) {
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `polish failed (${res.status})`);
     const [body, problem] = (await res.text()).split("\u0000");
     if (problem !== undefined || !body.trim()) throw new Error(problem || "empty reply");
-    text = toPlain(body);
+    text = expandSnippets(toPlain(body), snippets);
   } catch (err) {
     if (editing) return fail(`Couldn't edit the selection: ${err.message}. Your text is unchanged.`);
     note = `AI polish failed (${err.message}); inserted your raw words.`;

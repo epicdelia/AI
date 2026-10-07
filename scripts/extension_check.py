@@ -50,7 +50,10 @@ async def chat(body: dict):
     if seen["fail_polish"]:
         return JSONResponse({"error": "overloaded"}, status_code=500)
     chunks = ["**Launch update**", "\n\n- Launch moves to **Friday**", "\n- QA signs off Thursday"]
-    if "Instruction:" in body["messages"][0]["content"]:  # command mode: edit the selected text
+    if "[[SNIPPET n]]" in body["messages"][0]["content"]:  # snippets configured: model marks the cue
+        seen["snippet_prompt"] = body["messages"][0]["content"]
+        chunks = ["Book a time here: [[SNIPPET 1]]"]
+    elif "Instruction:" in body["messages"][0]["content"]:  # command mode: edit the selected text
         seen["instruction_prompt"] = body["messages"][0]["content"]
         chunks = ["EDITED: ", body["messages"][1]["content"]]
 
@@ -185,6 +188,20 @@ try:
         page.wait_for_function("document.getElementById('cmd').value.startsWith('EDITED')", timeout=10000)
         cmd = page.input_value("#cmd")
 
+        # Snippets: add one in the options; the cue placeholder comes back and the exact text is typed.
+        opts.bring_to_front()
+        opts.fill("#snippets", "my calendly link => https://cal.com/delia/30min?x=1&y=2")
+        opts.click("#save")
+        page.bring_to_front()
+        page.fill("#inp", "")
+        dictate(page, "#inp")
+        page.wait_for_function("document.getElementById('inp').value.includes('cal.com')", timeout=10000)
+        snippet_inp = page.input_value("#inp")
+        opts.bring_to_front()
+        opts.fill("#snippets", "")
+        opts.click("#save")
+        page.bring_to_front()
+
         seen["fail_polish"] = True
         dictate(page, "#ta")
         page.wait_for_function("document.getElementById('ta').value.includes('qa signs off thursday')", timeout=10000)
@@ -210,6 +227,8 @@ checks = {
     "dictionary + stream URL from server used": "keyterms_prompt=" in url and "tmp-ext" in url,
     "command mode: selection replaced by the edit, instruction sent": cmd == "EDITED: send the report tomorrow"
     and f"Instruction: {SAID}" in seen.get("instruction_prompt", ""),
+    "snippet: exact saved text typed where the cue was said": snippet_inp == "Book a time here: https://cal.com/delia/30min?x=1&y=2"
+    and '1. "my calendly link"' in seen.get("snippet_prompt", ""),
     "no page errors": not errors,
 }
 for k, v in checks.items():

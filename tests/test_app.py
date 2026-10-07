@@ -241,3 +241,17 @@ def test_blank_instruction_falls_back_to_normal_polish(client):
         200, json={"choices": [{"message": {"content": "ok"}}]})
     client.post("/api/polish", json={"text": "hello", "instruction": "   "})
     assert json.loads(client.calls[-1].content)["messages"][0]["content"] == flow.SYSTEM_PROMPT
+
+
+def test_snippet_cues_become_placeholders_in_the_prompt(client):
+    client.responses["llm-gateway.assemblyai.com"] = lambda req: httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}}]})
+    client.post("/api/polish", json={"text": "here's my calendly link", "style": "message",
+                                     "snippets": ["my calendly link", "  ", "my address"]})
+    prompt = json.loads(client.calls[-1].content)["messages"][0]["content"]
+    assert '1. "my calendly link"' in prompt and '2. "my address"' in prompt and "[[SNIPPET n]]" in prompt
+    assert prompt.rstrip().endswith("Return only the text, with no preamble.")
+
+
+def test_too_many_snippets_rejected(client):
+    assert client.post("/api/polish", json={"text": "hi", "snippets": ["x"] * 21}).status_code == 422

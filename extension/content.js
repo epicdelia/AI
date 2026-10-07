@@ -74,8 +74,11 @@
   // Fit the text to the field: one line for single-line inputs, and a space when joining onto earlier text.
   function shape(el, text) {
     if (el instanceof HTMLInputElement) {
-      text = text.split(/\n+/).map((l) => l.replace(/^\s*[-*•]\s+/, "").trim()).filter(Boolean)
-        .map((l) => (/[.!?:;,]$/.test(l) ? l : l + ".")).join(" ");
+      const lines = text.split(/\n+/).map((l) => l.replace(/^\s*[-*•]\s+/, "").trim()).filter(Boolean);
+      // Joining several lines into one: end each with punctuation, but never glue a "." onto a link or email.
+      const endsWithLink = (l) => /(https?:\/\/|www\.)\S+$|\S+@\S+\.\S+$/.test(l);
+      text = lines.length < 2 ? (lines[0] || "")
+        : lines.map((l) => (/[.!?:;,]$/.test(l) || endsWithLink(l) ? l : l + ".")).join(" ");
     }
     const before = textBefore(el);
     return before && !/\s$/.test(before) ? " " + text : text;

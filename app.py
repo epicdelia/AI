@@ -99,6 +99,17 @@ class PolishRequest(BaseModel):
     style: PolishStyle = "auto"
     rewrite: RewriteAction | None = None  # rewrite an existing note instead of polishing a transcript
     instruction: str | None = Field(default=None, max_length=1000)  # command mode: spoken edit for `text`
+    snippets: list[str] = Field(default_factory=list, max_length=20)  # cue phrases; client swaps in saved text
+
+
+def snippet_rules(cues: list[str]) -> str:
+    """Saved snippets: the model marks where a cue was said; the client inserts the exact saved text there."""
+    cues = [c.strip()[:80] for c in cues if c.strip()]
+    if not cues:
+        return ""
+    listed = "\n".join(f"  {n}. \"{c}\"" for n, c in enumerate(cues, 1))
+    return ("\n- Snippets: when the speaker says one of these cue phrases (or a clear variant of it), write the "
+            "placeholder [[SNIPPET n]] for it instead of the words, and nothing else for that cue:\n" + listed)
 
 
 def _api_key() -> str:
@@ -236,6 +247,7 @@ async def polish(req: PolishRequest) -> StreamingResponse:
             prompt = command_prompt(req.instruction)
         else:
             prompt = rewrite_prompt(req.rewrite) if req.rewrite else system_prompt(req.style)
+            prompt = prompt.replace("\nReturn only", snippet_rules(req.snippets) + "\nReturn only", 1) if req.snippets else prompt
         resp, _ = await _start_completion(client, key, text, prompt)
         if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("text/event-stream"):
             return StreamingResponse(_sse_text(resp, client), media_type="text/plain; charset=utf-8")  # closes client

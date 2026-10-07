@@ -3,19 +3,44 @@
   "name": "Flow: dictate anywhere",
   "version": "0.1.0",
   "description": "Hold Option/Alt+Space in any text box, speak, and polished text is typed where your cursor is.",
-  "permissions": ["offscreen", "storage"],
-  "host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "background.js" },
+  "permissions": [
+    "offscreen",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
-    { "matches": ["<all_urls>"], "js": ["content.js"], "run_at": "document_idle", "all_frames": true }
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_origin_as_fallback": true
+    }
   ],
   "commands": {
     "toggle-dictation": {
-      "suggested_key": { "default": "Alt+Shift+D", "mac": "Alt+Shift+D" },
+      "suggested_key": {
+        "default": "Alt+Shift+D",
+        "mac": "Alt+Shift+D"
+      },
       "description": "Start / stop dictation"
     }
   },
   "options_page": "options.html",
-  "action": { "default_title": "Flow: hold Option/Alt+Space to dictate", "default_popup": "options.html" },
-  "icons": { "128": "icon-128.png" }
+  "action": {
+    "default_title": "Flow: hold Option/Alt+Space to dictate",
+    "default_popup": "options.html"
+  },
+  "icons": {
+    "128": "icon-128.png"
+  }
 }

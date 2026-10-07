@@ -202,6 +202,21 @@ try:
         opts.click("#save")
         page.bring_to_front()
 
+        # Hands-free: a quick tap starts recording without holding; the next tap stops and types.
+        page.fill("#ta", "")
+        page.click("#ta")
+        page.keyboard.down("Alt")
+        page.keyboard.press(" ")
+        page.keyboard.up("Alt")
+        page.wait_for_timeout(1500)  # speaking, hands off the keys
+        handsfree_pill = pill(page)
+        still_empty = page.input_value("#ta") == ""
+        page.keyboard.down("Alt")
+        page.keyboard.press(" ")
+        page.keyboard.up("Alt")
+        page.wait_for_function("document.getElementById('ta').value.includes('Thursday')", timeout=10000)
+        handsfree_ta = page.input_value("#ta")
+
         seen["fail_polish"] = True
         dictate(page, "#ta")
         page.wait_for_function("document.getElementById('ta').value.includes('qa signs off thursday')", timeout=10000)
@@ -229,6 +244,9 @@ checks = {
     and f"Instruction: {SAID}" in seen.get("instruction_prompt", ""),
     "snippet: exact saved text typed where the cue was said": snippet_inp == "Book a time here: https://cal.com/delia/30min?x=1&y=2"
     and '1. "my calendly link"' in seen.get("snippet_prompt", ""),
+    "hands-free: tap starts, keeps listening without holding, tap again types": still_empty
+    and handsfree_pill and ("Hands-free" in handsfree_pill or "launch" in handsfree_pill)
+    and handsfree_ta.startswith("Launch update") and " " not in handsfree_ta[:1],
     "no page errors": not errors,
 }
 for k, v in checks.items():

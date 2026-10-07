@@ -112,18 +112,32 @@
       : editable(target) ? "Listening…" : "Listening… (no text box focused: the result will be copied)");
     chrome.runtime.sendMessage({ type: "flow-start", selection }).catch(() => show("error", "Flow was updated: reload this page.", 4000));
   }
+  // Hold = push-to-talk. A quick tap (< 300 ms) locks hands-free recording; the next tap stops it.
+  const TAP_MS = 300;
+  let pressedAt = 0;
+  let handsFree = false;
+  let swallowUp = false;
+  const stopDictation = () => chrome.runtime.sendMessage({ type: "flow-stop" }).catch(() => {});
   window.addEventListener("keydown", (e) => {
     if (!isCombo(e)) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.repeat || holding) return;
-    holding = true;
+    if (handsFree) { handsFree = false; swallowUp = true; stopDictation(); return; }
+    holding = true; pressedAt = performance.now();
     begin();
   }, true);
   window.addEventListener("keyup", (e) => {
-    if (!holding || (e.code !== "Space" && e.key !== "Alt")) return;
+    if (e.code !== "Space" && e.key !== "Alt") return;
+    if (swallowUp) { e.preventDefault(); e.stopImmediatePropagation(); if (e.code === "Space") swallowUp = false; return; }
+    if (!holding) return;
     e.preventDefault(); e.stopImmediatePropagation();
     holding = false;
-    chrome.runtime.sendMessage({ type: "flow-stop" }).catch(() => {});
+    if (performance.now() - pressedAt < TAP_MS) {
+      handsFree = true;
+      show("listening", "Hands-free: speak, then tap Option/Alt+Space again to finish");
+      return;
+    }
+    stopDictation();
   }, true);
 
   // --- messages from the extension ---
@@ -131,12 +145,12 @@
     if (msg.type === "flow-toggle-start") { if (window === window.top || document.hasFocus()) begin(); }
     else if (msg.type === "flow-state") {
       if (msg.state === "connecting") show("listening", "Connecting…");
-      else if (msg.state === "listening") show("listening", msg.text || "Listening…");
+      else if (msg.state === "listening") { if (msg.text || !handsFree) show("listening", msg.text || "Listening…"); }
       else if (msg.state === "finishing") show("busy", "Finishing…");
       else if (msg.state === "polishing") show("busy", "Polishing…");
       else if (msg.state === "editing") show("busy", "Editing your selection…");
       else if (msg.state === "copied") show("done", `Copied: press ${navigator.platform.includes("Mac") ? "⌘" : "Ctrl+"}V to paste${msg.note ? ". " + msg.note : ""}`, 5000);
-      else if (msg.state === "error") show("error", msg.message, 6000);
+      else if (msg.state === "error") { handsFree = false; show("error", msg.message, 6000); }
     } else if (msg.type === "flow-insert") {
       const inserted = insert(msg.text);
       if (inserted) show("done", msg.note || "Inserted ✓", msg.note ? 6000 : 1500);

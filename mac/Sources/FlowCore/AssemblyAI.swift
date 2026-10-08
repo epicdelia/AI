@@ -104,7 +104,7 @@ public final class Gateway: @unchecked Sendable {
     /// The model that last worked; the app saves it so later requests skip the fallback.
     public private(set) var workingModel: String?
 
-    public init(key: String, workingModel: String? = nil, transport: Transport = urlSessionTransport) {
+    public init(key: String, workingModel: String? = nil, transport: @escaping Transport = urlSessionTransport) {
         self.key = key
         self.workingModel = workingModel
         self.transport = transport

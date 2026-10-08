@@ -263,5 +263,6 @@ def test_too_many_snippets_rejected(client):
 def test_mac_app_prompts_match_server():
     """The Mac app's prompts are generated from app.py; regenerate with scripts/export_mac_prompts.py."""
     root = Path(__file__).resolve().parents[1]
-    out = subprocess.run([sys.executable, "scripts/export_mac_prompts.py", "--check"], cwd=root, capture_output=True, text=True)
+    out = subprocess.run([sys.executable, "scripts/export_mac_prompts.py", "--check"], cwd=root, capture_output=True, text=True,
+                         check=False)
     assert out.returncode == 0, out.stdout + out.stderr

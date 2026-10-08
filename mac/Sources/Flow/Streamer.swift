@@ -83,8 +83,10 @@ final class Streamer {
         let wait = state.openTurn ? 2.5 : 0.8
         sendJSON("ForceEndpoint")
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
-            finalWaiter = c
-            onMain(after: wait) { [weak self] in self?.resumeFinal() }
+            MainActor.assumeIsolated {
+                self.finalWaiter = c
+                onMain(after: wait) { [weak self] in self?.resumeFinal() }
+            }
         }
         sendJSON("Terminate")
         let text = state.text

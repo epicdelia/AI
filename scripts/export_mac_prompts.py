@@ -31,7 +31,7 @@ def lit(s: str) -> str:
         elif ch == "\t":
             out.append("\\t")
         elif ord(ch) < 0x20:
-            out.append("\\u{%x}" % ord(ch))
+            out.append(f"\\u{{{ord(ch):x}}}")
         else:
             out.append(ch)
     return '"' + "".join(out) + '"'

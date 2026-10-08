@@ -89,8 +89,9 @@ func replace(_ pattern: String, in s: String, with transform: ([String]) -> Stri
     for m in re.matches(in: s, range: NSRange(s.startIndex..., in: s)) {
         guard let whole = Range(m.range, in: s) else { continue }
         let groups = (0..<m.numberOfRanges).map { i in Range(m.range(at: i), in: s).map { String(s[$0]) } ?? "" }
-        out += s[last..<whole.lowerBound] + transform(groups)
+        out += String(s[last..<whole.lowerBound])
+        out += transform(groups)
         last = whole.upperBound
     }
-    return out + s[last...]
+    return out + String(s[last...])
 }

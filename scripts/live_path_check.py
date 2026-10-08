@@ -6,7 +6,8 @@ points it at a local fake AssemblyAI that:
   - lists other models at /v1/models and accepts a "flash" one,
   - streams the polished reply slowly (SSE, one chunk every 120 ms).
 So it exercises the model fallback, word-by-word rendering through the server, the remembered
-model on the next take, styles, the dictionary, history, and an iPhone-sized run.
+model on the next take, styles, the dictionary, history, and an iPhone-sized run. It also simulates a
+sleeping free-tier server (token takes 3 s) where the user lets go after 1 s: the take must not be lost.
 
 Run:  python scripts/live_path_check.py   (needs playwright; CHROME_PATH optional)
 """
@@ -31,7 +32,7 @@ flow = importlib.import_module("app")  # after the env var and sys.path are set
 DENIED = {"metadata": {"errors": ["Your account does not have access to this LLM Gateway model"]},
           "message": "invalid request body", "code": 400}
 CHUNKS = ["**Launch", " update**", "\n\n- Launch", " moves", " to", " **Friday**", "\n- QA", " signs", " off", " Thursday"]
-seen = {"models": [], "prompts": [], "auth": set()}
+seen = {"models": [], "prompts": [], "auth": set(), "token_delay": 0}
 
 
 class FakeAssemblyAI(BaseHTTPRequestHandler):
@@ -49,6 +50,7 @@ class FakeAssemblyAI(BaseHTTPRequestHandler):
     def do_GET(self):
         seen["auth"].add(self.headers.get("authorization"))
         if self.path.startswith("/v3/token"):
+            time.sleep(seen["token_delay"])  # a sleeping Render server takes 30-60 s to answer the first request
             return self._json(200, {"token": "tmp-live"})
         if self.path == "/v1/models":
             return self._json(200, {"data": [{"id": i} for i in ["big-slow-model", "gemini-2.5-flash", "claude-x"]]})
@@ -128,6 +130,26 @@ def take(page, style):
     return snapshots
 
 
+def cold_take(page, label, hold_ms=1000):
+    """Server asleep: the token takes 3 s, and the user lets go after hold_ms of speaking."""
+    seen["token_delay"] = 3
+    page.reload()
+    page.click(".styles button[data-style=\"notes\"]")
+    if label == "desktop":
+        page.click("h1")
+        page.keyboard.down("Space")
+        page.wait_for_timeout(hold_ms)
+        page.keyboard.up("Space")
+    else:
+        page.click("#talk", timeout=5000)
+        page.wait_for_timeout(hold_ms)
+        page.click("#talk", timeout=5000)
+    seen["token_delay"] = 0
+    page.wait_for_function("document.getElementById('polished').innerText.includes('Thursday')"
+                           " || document.getElementById('error').innerText.trim()", timeout=20000)
+    return page.inner_text("#polished"), page.inner_text("#error").strip()
+
+
 results = {}
 errors = []
 try:
@@ -174,7 +196,12 @@ try:
                     "ok": True, "model": "gemini-2.5-flash", "detail": "AI polish works with gemini-2.5-flash."}
                 and health["streaming"]["ok"] and health["key"]["ok"],
             }
-            print(label, "badges:", badges, "partial views:", len(partial_views))
+            cold_note, cold_error = cold_take(page, label)
+            results[label]["server asleep, released after 1 s: take still polished"] = "Thursday" in cold_note
+            results[label]["server asleep: no error banner"] = cold_error == ""
+            long_note, long_error = cold_take(page, label, hold_ms=2200)  # >1.5 s queued: sent in a burst, then Terminate
+            results[label]["server asleep, 2 s of queued speech: take still polished"] = "Thursday" in long_note and not long_error
+            print(label, "badges:", badges, "partial views:", len(partial_views), "| cold-start error:", repr(cold_error))
             # A fresh page for the next context; the remembered model is server-side, so reset it.
             flow._working_model = None
             ctx.close()

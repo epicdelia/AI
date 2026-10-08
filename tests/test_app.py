@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import httpx
 import pytest
@@ -255,3 +258,11 @@ def test_snippet_cues_become_placeholders_in_the_prompt(client):
 
 def test_too_many_snippets_rejected(client):
     assert client.post("/api/polish", json={"text": "hi", "snippets": ["x"] * 21}).status_code == 422
+
+
+def test_mac_app_prompts_match_server():
+    """The Mac app's prompts are generated from app.py; regenerate with scripts/export_mac_prompts.py."""
+    root = Path(__file__).resolve().parents[1]
+    out = subprocess.run([sys.executable, "scripts/export_mac_prompts.py", "--check"], cwd=root, capture_output=True, text=True,
+                         check=False)
+    assert out.returncode == 0, out.stdout + out.stderr

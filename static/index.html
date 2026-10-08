@@ -369,9 +369,10 @@ function connectStream(s, tok) {
   const ws = new WebSocket(`${STREAM_URL}?${params}`);
   ws.binaryType = "arraybuffer";
   s.ws = ws; s.ready = false;
+  s.closed = new Promise((resolve) => ws.addEventListener("close", resolve));
   // "Ready" means AssemblyAI confirmed the session with a Begin message, not just that the socket opened:
   // a refused token can open and then close. Audio captured before Begin is queued and flushed on Begin.
-  s.opened = new Promise((resolve, reject) => {
+  s.wsReady = new Promise((resolve, reject) => {
     const fail = () => { if (!s.ready) reject(new Error("Couldn't connect to AssemblyAI streaming.")); };
     ws.onerror = fail;
     ws.onclose = (e) => {
@@ -380,52 +381,59 @@ function connectStream(s, tok) {
     };
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
-      if (m.type === "Begin" && !s.ready) { s.ready = true; s.pending.forEach((c) => ws.send(c)); s.pending = []; resolve(); }
+      if (m.type === "Begin" && !s.ready) {
+        s.ready = true;
+        s.backlogMs = s.pending.reduce((n, c) => n + c.byteLength, 0) / (SAMPLE_RATE * 2 / 1000);
+        s.pending.forEach((c) => ws.send(c)); s.pending = []; resolve();
+      }
       onMessage(s, m);
     };
   });
-  s.opened.catch(() => {});   // handled by start(); avoids an unhandled-rejection warning
+  s.wsReady.catch(() => {});   // handled by start(); avoids an unhandled-rejection warning
 }
 
 async function start() {
   if (session || busy || editing) return;
   showError("");
-  const s = { turns: {}, openTurn: false, onFinal: null, pending: [], cancelled: false, startedAt: performance.now() };
+  const s = { turns: {}, openTurn: false, onFinal: null, pending: [], backlogMs: 0, startedAt: performance.now() };
   session = s;
   setRecordingUi(true);
   setBadge("bStatus", "connecting…");
   renderRaw(s.turns);
-  try {
-    const [tok, stream] = await Promise.all([
-      takeToken(),
-      navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }),
-    ]);
-    s.stream = stream;
-    if (session !== s) { teardown(s); return; }   // released before we connected
+  // The mic starts recording right away and queues audio; the token (slow when the free server is
+  // asleep) and AssemblyAI's socket connect in parallel. Nothing said before they're ready is lost.
+  s.opened = takeToken().then(async (tok) => {
     connectStream(s, tok);
-
+    try {
+      await s.wsReady;
+    } catch (err) {
+      if (!tok.warm) throw err;
+      connectStream(s, await fetchToken());       // pre-fetched token refused: one retry with a fresh token
+      await s.wsReady;
+    }
+    s.live = true;
+    if (session === s) setBadge("bStatus", "listening", true);
+  });
+  s.opened.catch(() => {});                       // reported by start() or stop()
+  try {
+    s.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+    if (s.abandoned) { teardown(s); return; }      // let go before the mic started: stop() already told the user
     s.ctx = new AudioContext();
     await s.ctx.audioWorklet.addModule(workletUrl);
-    const source = s.ctx.createMediaStreamSource(stream);
+    const source = s.ctx.createMediaStreamSource(s.stream);
     const node = new AudioWorkletNode(s.ctx, "pcm16");
     node.port.onmessage = (e) => {
       if (s.ready && s.ws.readyState === WebSocket.OPEN) s.ws.send(e.data); else s.pending.push(e.data);
     };
     const mute = s.ctx.createGain(); mute.gain.value = 0;   // keeps the graph pulling audio without playback
     source.connect(node).connect(mute).connect(s.ctx.destination);
-    if (session !== s) teardown(s);                 // stop() ran while audio was starting
-    try {
-      await s.opened;
-    } catch (err) {
-      if (!tok.warm) throw err;
-      connectStream(s, await fetchToken());       // pre-fetched token refused: one retry with a fresh token
-      await s.opened;
-    }
-    s.live = true;
-    if (session === s) setBadge("bStatus", "listening", true);
+    s.micOn = true;
+    if (session !== s) { teardown(s); return; }    // stop() ran while audio was starting; it finishes the take
+    await s.opened;
   } catch (err) {
-    teardown(s);
-    if (session === s) { session = null; setRecordingUi(false); setBadge("bStatus", "idle"); renderRaw({}, true); }
+    if (session !== s) return;                     // stop() owns the outcome now
+    teardown(s); try { s.ws?.close(); } catch {}
+    session = null; setRecordingUi(false); setBadge("bStatus", "idle"); renderRaw({}, true);
     showError(err.message || String(err));
   }
 }
@@ -537,20 +545,32 @@ async function stop() {
   setRecordingUi(false);
   const stoppedAt = performance.now();
   teardown(s);
-  if (!s.opened) {                                   // released before the socket existed
+  if (!s.micOn) {                                    // let go before the microphone had started: nothing recorded
+    s.abandoned = true;
+    s.opened.then(() => s.ws.close(), () => {});
     busy = false; setBadge("bStatus", "idle"); renderRaw({}, true);
-    showError("Hold a little longer. Released before the mic connected.");
+    showError("The microphone hadn't started yet, so nothing was recorded. If your browser asked for mic access, "
+      + "allow it, then try again.");
     return;
   }
-  setBadge("bStatus", "finalizing…");
+  setBadge("bStatus", s.live ? "finalizing…" : "connecting… (a sleeping server can take up to a minute)");
   let rawText = "";
   try {
-    await Promise.race([s.opened, new Promise((_, rej) => setTimeout(() => rej(new Error("Streaming never connected.")), 4000))]);
+    await Promise.race([s.opened, new Promise((_, rej) => setTimeout(() => rej(new Error(
+      "Couldn't reach the transcription service within 90 seconds. Check your connection and try again.")), 90000))]);
+    setBadge("bStatus", "finalizing…");
     // Ask AssemblyAI to close the current turn now instead of waiting for silence.
     const gotFinal = new Promise((resolve) => { s.onFinal = resolve; });
     s.ws.send(JSON.stringify({ type: "ForceEndpoint" }));
-    await Promise.race([gotFinal, new Promise((r) => setTimeout(r, s.openTurn ? 2500 : 800))]);
-    s.ws.send(JSON.stringify({ type: "Terminate" }));
+    if (s.backlogMs > 1500) {
+      // Audio queued while connecting was sent in one burst; the first end-of-turn may come from a pause in it.
+      // Terminate makes AssemblyAI finish everything it received, then close: collect turns until then.
+      s.ws.send(JSON.stringify({ type: "Terminate" }));
+      await Promise.race([s.closed, new Promise((r) => setTimeout(r, 5000 + s.backlogMs))]);
+    } else {
+      await Promise.race([gotFinal, new Promise((r) => setTimeout(r, s.openTurn ? 2500 : 800))]);
+      s.ws.send(JSON.stringify({ type: "Terminate" }));
+    }
     setBadge("bFinal", `${Math.round(performance.now() - stoppedAt)} ms`, true);
 
     const text = Object.keys(s.turns).map(Number).sort((a, b) => a - b).map((o) => s.turns[o].text).join(" ").trim();

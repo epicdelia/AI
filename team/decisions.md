@@ -28,4 +28,5 @@ Append-only. `- YYYY-MM-DD [role] decision — reason`
 - 2026-10-07 [engineer] Bundle ID com.thetechunicorn.flow (from the owner's AssemblyAI email domain); easy to change until the first signed release, sticky after.
 - 2026-10-07 [engineer] Text is inserted by pasting (clipboard restored afterwards), like Wispr Flow; this needs the Accessibility permission. Ad-hoc-signed CI builds until the Developer ID certificate exists.
 - 2026-10-08 [owner-request] Added .claude/skills/covacut-edit (plan + finishing grade in covacut's style); left UNCALIBRATED because Instagram/YouTube/TikTok were egress-blocked and vidIQ had 0 credits — calibrate.md pulls her latest 10 reels once credits exist.
-- 2026-10-09 [owner-request] Added .claude/skills/chloe-history-edit (AI time-traveller vlog format: script, character sheet, per-scene prompts, assemble.sh); uncalibrated because the sandbox can't reach Instagram — calibrate by uploading reel files to analyse locally.
+- 2026-10-09 [owner-request] Added .claude/skills/chloe-history-edit, then removed it the same day: owner meant Chloe Shih, not @chloe.vs.history.
+- 2026-10-09 [owner-request] Added .claude/skills/chloe-shih-edit + analyze_reel.py (offline reel measurement, no vidIQ); uncalibrated until reel files are uploaded, because the sandbox blocks Instagram.

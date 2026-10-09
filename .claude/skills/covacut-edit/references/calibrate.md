@@ -30,5 +30,7 @@ watches the videos"): it's research, done rarely, not per-video editing.
 6. Separate the top 3 reels by plays from the bottom 3. Note what differs. That's
    the part worth copying.
 
-If vidIQ isn't available, the user can paste 10 reel URLs, or upload the files to
+**No vidIQ?** Have the user upload the reel files and run
+`.claude/skills/chloe-shih-edit/scripts/analyze_reel.py <file> <out_dir>` on each one (cuts, shot
+lengths, loudness, frame grid, offline transcript). Or upload them to
 the Video_Editor (Higgsfield) MCP and run `video_analysis_create` on each.

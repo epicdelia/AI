@@ -410,11 +410,10 @@ export function renderAuth(root, initialized, welcome, onDone) {
   setLove({ name: creatorName });
   const note = welcome?.love !== false ? noteOfTheDay() : null;
 
-  // Header with brand logo, light/dark switch, and couple tribute
+  // Header with brand logo and light/dark switch
   const authHeader = h('header', { class: 'auth-header' },
     h('div', { class: 'auth-header-brand' },
-      brandMark(28),
-      h('span', { class: 'auth-couple-badge' }, icon('heart', 12), ' For Delia with love')
+      brandMark(28)
     ),
     h('div', { class: 'auth-header-actions' },
       themeSwitch()
@@ -437,7 +436,9 @@ export function renderAuth(root, initialized, welcome, onDone) {
     h('main', { class: 'auth-side' },
       container,
       note ? h('p', { class: 'auth-note-mobile' }, icon('heart', 14), ' ', note) : null,
-      h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this server. Made with love for Delia.')),
+      h('div', { class: 'auth-foot-wrap' },
+        h('span', { class: 'auth-couple-badge' }, icon('heart', 12), ' For Delia with love'),
+        h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this server. Made with love for Delia.'))),
     authArt);
 
   const authBox = h('div', { class: 'auth-box' },

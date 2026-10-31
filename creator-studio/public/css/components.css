@@ -1593,7 +1593,8 @@ body.wf-full .content-area { max-width: none; padding: 0; }
 .auth-link { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
 .auth-link:hover { text-decoration: underline; }
 .auth-submit { height: 46px; font-size: 0.95rem; border-radius: 12px; }
-.auth-foot { text-align: center; margin: 16px 0 0; }
+.auth-foot-wrap { text-align: center; margin: 20px 0 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.auth-foot { text-align: center; margin: 0; }
 .auth-forgot ol { padding-left: 20px; display: grid; gap: 6px; }
 
 /* Password strength bar */
@@ -1627,7 +1628,7 @@ body.wf-full .content-area { max-width: none; padding: 0; }
 /* Right side: Full-height vertical photography with anchored note */
 .auth-art { flex: 1 1 50%; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; background: var(--bg); border-left: 1px solid var(--line); overflow: hidden; height: 100%; min-height: 0; box-sizing: border-box; }
 .auth-hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
-.auth-couple-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; padding: 4px 12px; border-radius: 100px; background: var(--accent-soft); color: var(--accent); margin-right: 8px; }
+.auth-couple-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; padding: 4px 12px; border-radius: 100px; background: var(--accent-soft); color: var(--accent); }
 .auth-code-box { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border: 1px solid var(--good); color: var(--good); font-size: 0.88rem; font-weight: 600; }
 .auth-code-val { font-family: ui-monospace, monospace; font-size: 1.15rem; letter-spacing: 0.1em; background: var(--panel); padding: 4px 10px; border-radius: 6px; }
 .auth-back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; font-weight: 600; color: var(--muted); border: 0; background: none; cursor: pointer; padding: 0; margin-bottom: 14px; }

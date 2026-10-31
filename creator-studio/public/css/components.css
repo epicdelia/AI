@@ -14209,3 +14209,26 @@ a.landing-about-fact:focus-visible { outline: 2px solid var(--accent); outline-o
 @media (max-width: 680px) { .lp-inherits.is-empty { display: none; } }
 /* Desktop: every card the same width (equal columns) and height (shared rows), "+ more" on the bottom edge. */
 .lp-card > .lp-body { height: 100%; }
+
+/* On Stage slider: every talk with a photo, swipe / arrows / dots, same height as the side column. */
+.landing-stage-slider { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: 20px; }
+.landing-stage-track { display: flex; flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; border-radius: 20px; outline: none; }
+.landing-stage-track::-webkit-scrollbar { display: none; }
+.landing-stage-track:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.landing-stage-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; display: flex; }
+.landing-stage-slide > .landing-stage-feature { flex: 1; transform: none !important; }
+.landing-stage-controls {
+  position: absolute; z-index: 3; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px; border-radius: 999px; background: rgba(23, 19, 26, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.landing-stage-nav { width: 30px; height: 30px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; color: #fff; background: rgba(255, 255, 255, 0.12); transition: background 0.15s; }
+.landing-stage-nav:hover { background: var(--accent); }
+.landing-stage-nav:focus-visible, .landing-stage-dot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.landing-stage-dots { display: inline-flex; gap: 5px; }
+.landing-stage-dot { width: 7px; height: 7px; padding: 0; border-radius: 999px; border: 0; cursor: pointer; background: rgba(255, 255, 255, 0.45); transition: width 0.2s, background 0.2s; }
+.landing-stage-dot.on { width: 18px; background: #fff; }
+.landing-stage-counter { min-width: 2.6em; text-align: center; font-size: 0.72rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.landing-stage-slider .landing-stage-soon.is-overlay { top: auto; bottom: 14px; }
+@media (prefers-reduced-motion: reduce) { .landing-stage-track { scroll-behavior: auto; } .landing-stage-dot { transition: none; } }
+/* Stage photos are often tall with the speaker low in frame: favour the lower middle. */
+.landing-stage-slider .landing-stage-feature-media img { object-position: center 62%; }

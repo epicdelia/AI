@@ -26,8 +26,11 @@ class TalksTest extends TestCase
         $this->assertSame('AI for Enterprise KM & Collaboration', $d['featured']['title']);
         $this->assertSame('/images/speaking/km-ai-summit-2025.jpg', $d['featured']['image_url']);
         $this->assertFileExists(public_path('images/speaking/km-ai-summit-2025.jpg'));
-        $this->assertSame(['talks' => 4, 'keynotes' => 2, 'cities' => 2, 'upcoming' => 0], $d['stats']);
-        $this->assertSame(['KM & AI Summit 2025', 'Nomad Cruise', 'Vently Panel', 'Digital Garage Tokyo'], array_column($d['talks'], 'event'));
+        $this->assertSame(['talks' => 5, 'keynotes' => 2, 'cities' => 2, 'upcoming' => 0], $d['stats']);
+        $this->assertSame(['KM & AI Summit 2025', 'Head Start', 'Nomad Cruise', 'Vently Panel', 'Digital Garage Tokyo'], array_column($d['talks'], 'event'));
+        $headStart = collect($d['talks'])->firstWhere('event', 'Head Start');
+        $this->assertSame('/images/speaking/head-start-2024.jpg', $headStart['image_url']);
+        $this->assertFileExists(public_path('images/speaking/head-start-2024.jpg'));
         $this->assertNotEmpty($d['topics']);
     }
 

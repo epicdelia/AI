@@ -1,5 +1,5 @@
-// Landing page "On Stage": her talks from the dashboard (Speaking card → Manage talks). The featured
-// talk leads with its stage photo, upcoming talks count down, the rest follow newest first, and the
+// Landing page "On Stage": her talks from the dashboard (Speaking card → Manage talks). Talks with a
+// stage photo form a slider (featured first), upcoming talks count down, the rest follow newest first, and the
 // stats only count what's in her list. "Book Delia to speak" opens the booking form as a speaking request.
 import { h, api } from './core.js';
 import { icon } from './icons.js';
@@ -33,6 +33,40 @@ function featuredCard(t) {
   return t.url
     ? h('a', { class: 'landing-stage-feature', href: t.url, target: '_blank', rel: 'noopener' }, ...body)
     : h('article', { class: 'landing-stage-feature' }, ...body);
+}
+
+/**
+ * The stage photos as a slider (every talk with a photo, featured first): swipe or scroll on touch,
+ * arrows, dots and ←/→ on keyboard. With one photo it's just the card.
+ */
+function stageSlider(slides) {
+  if (slides.length < 2) return featuredCard(slides[0]);
+  const track = h('div', { class: 'landing-stage-track', tabindex: '0', 'aria-live': 'polite' },
+    slides.map((t, i) => h('div', { class: 'landing-stage-slide', role: 'group', 'aria-roledescription': 'slide', 'aria-label': `${i + 1} of ${slides.length}: ${t.event}` }, featuredCard(t))));
+  const counter = h('span', { class: 'landing-stage-counter' });
+  const dots = slides.map((t, i) => h('button', { type: 'button', class: 'landing-stage-dot', 'aria-label': `Show ${t.event}`, onclick: () => go(i) }));
+  let index = 0;
+  const go = (i) => {
+    const n = (i + slides.length) % slides.length;
+    track.scrollTo({ left: track.clientWidth * n, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+  const sync = () => {
+    index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    counter.textContent = `${index + 1} / ${slides.length}`;
+    dots.forEach((d, i) => { d.classList.toggle('on', i === index); d.setAttribute('aria-current', String(i === index)); });
+  };
+  track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
+  track.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); go(index + (e.key === 'ArrowRight' ? 1 : -1)); }
+  });
+  sync();
+  return h('div', { class: 'landing-stage-slider', role: 'region', 'aria-roledescription': 'carousel', 'aria-label': 'Delia on stage' },
+    track,
+    h('div', { class: 'landing-stage-controls' },
+      h('button', { type: 'button', class: 'landing-stage-nav', 'aria-label': 'Previous talk', onclick: () => go(index - 1) }, icon('chevron-left', 16)),
+      h('div', { class: 'landing-stage-dots' }, dots),
+      counter,
+      h('button', { type: 'button', class: 'landing-stage-nav', 'aria-label': 'Next talk', onclick: () => go(index + 1) }, icon('chevron-right', 16))));
 }
 
 function talkRow(t, i) {
@@ -96,7 +130,9 @@ export function speakingSection({ onBookCall }) {
     }, moreLabel(false), icon('chevron-down', 14)) : null;
 
     // The events, then the call to action, beside the photo.
-    content.replaceChildren(featuredCard(featured), h('div', { class: 'landing-stage-side' }, list, more ? h('div', { class: 'landing-stage-more' }, more) : null, cta));
+    // Every talk with a stage photo is a slide, featured first, then newest first.
+    const slides = [featured, ...rest.filter((t) => t.image_url).sort((x, y) => String(y.date || '').localeCompare(String(x.date || '')))].filter((t, i, all) => all.indexOf(t) === i && (t.image_url || i === 0));
+    content.replaceChildren(stageSlider(slides), h('div', { class: 'landing-stage-side' }, list, more ? h('div', { class: 'landing-stage-more' }, more) : null, cta));
     content.removeAttribute('aria-busy');
 
     topics.replaceChildren(...(d.topics || []).map((t) => h('li', {}, t)));

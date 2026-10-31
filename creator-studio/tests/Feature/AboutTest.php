@@ -51,7 +51,7 @@ class AboutTest extends TestCase
         $this->assertSame(69, $d['facts']['countries']);
         $this->assertSame('519K+', $d['facts']['audience'], 'Same total as Reach & Content');
         $this->assertSame(6, $d['facts']['networks']);
-        $this->assertSame(4, $d['facts']['talks'], 'Same list as On Stage');
+        $this->assertSame(5, $d['facts']['talks'], 'Same list as On Stage');
         $this->assertSame('KM & AI Summit 2025', $d['facts']['latest_talk']['event']);
         $this->assertSame('open', $d['facts']['availability']['status']);
 

@@ -12,7 +12,8 @@ use App\Services\AiTellsLinter;
  * 3,000, Instagram 2,200 with up to 20 carousel slides. The "see more" cut-offs (LinkedIn about
  * 140 characters on phones, Instagram about 125) are observed, not published. Instagram's
  * 5-hashtag cap was announced in December 2025 but its help page still mentions 30, so more than
- * 5 is a warning and more than 30 is an error.
+ * 5 is a warning and more than 30 is an error. Threads allows 500 characters per post;
+ * TikTok captions 4,000 and photo carousels 35 images.
  */
 class Platforms
 {
@@ -21,6 +22,8 @@ class Platforms
         'instagram' => ['label' => 'Instagram', 'limit' => 2200, 'fold' => 125],
         'x' => ['label' => 'X', 'limit' => 280, 'fold' => null],
         'youtube' => ['label' => 'YouTube', 'limit' => 5000, 'fold' => null],
+        'tiktok' => ['label' => 'TikTok', 'limit' => 4000, 'fold' => 70],
+        'threads' => ['label' => 'Threads', 'limit' => 500, 'fold' => null],
     ];
 
     /** format => [label, label for the parts list or null] */
@@ -29,11 +32,16 @@ class Platforms
         'instagram' => ['carousel' => ['Carousel', 'Slides'], 'reel' => ['Reel', 'Beats'], 'post' => ['Single image', null], 'story' => ['Story', 'Frames']],
         'x' => ['post' => ['Post', null], 'thread' => ['Thread', 'Posts']],
         'youtube' => ['short' => ['Short', 'Beats'], 'community' => ['Community post', null]],
+        'tiktok' => ['video' => ['Video', 'Beats'], 'photo' => ['Photo carousel', 'Slides']],
+        'threads' => ['post' => ['Post', null], 'thread' => ['Thread', 'Posts']],
     ];
 
     public const STATUSES = ['idea', 'draft', 'scheduled', 'posted'];
 
     public const MAX_SLIDES = 20;
+
+    /** TikTok photo carousels take up to 35 images. */
+    public const MAX_SLIDES_BY_PLATFORM = ['tiktok' => 35];
 
     public static function valid(string $platform, string $format): bool
     {
@@ -130,12 +138,37 @@ class Platforms
                     $warn('The first line runs past about 125 characters, where the feed cuts to “more”. Lead with the hook.');
                 }
                 break;
+
+            case 'threads':
+                $posts = $format === 'thread' ? $parts : [$body];
+                if ($format === 'thread' && count($parts) < 2) {
+                    $warn('A thread needs at least 2 posts.');
+                }
+                foreach ($posts as $i => $p) {
+                    if (($n = mb_strlen($p)) > $limit) {
+                        $hard(($format === 'thread' ? 'Post '.($i + 1).' is ' : '')."{$n} characters; Threads allows {$limit} per post.", $format === 'thread' ? $i : null);
+                    }
+                }
+                if (self::hashtags($body.' '.implode(' ', $parts)) > 1) {
+                    $warn('Threads uses one topic tag per post; extra hashtags don’t become tags.');
+                }
+                break;
+
+            case 'tiktok':
+                if (mb_strlen($body) > $limit) {
+                    $hard(mb_strlen($body)." characters; TikTok captions allow {$limit}.");
+                }
+                if (mb_strlen($firstLine) > 70) {
+                    $warn('Only about the first line of a TikTok caption shows over the video. Put the hook in the first ~70 characters.');
+                }
+                break;
         }
 
         $label = self::FORMATS[$platform][$format][1] ?? null;
         if ($label === 'Slides') {
-            if (count($parts) > self::MAX_SLIDES) {
-                $hard(count($parts).' slides; carousels allow '.self::MAX_SLIDES.'.');
+            $max = self::MAX_SLIDES_BY_PLATFORM[$platform] ?? self::MAX_SLIDES;
+            if (count($parts) > $max) {
+                $hard(count($parts)." slides; {$platform} carousels allow {$max}.");
             } elseif (count($parts) < 2) {
                 $warn('A carousel needs at least 2 slides.');
             }

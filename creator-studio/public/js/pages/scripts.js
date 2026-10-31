@@ -14,6 +14,7 @@ import { readAloudCard, thumbnailStudio, shortsPanel, brollPanel, cleanAudioButt
 import { openPrompter } from '../prompter.js';
 import { versionsDialog } from '../versions.js';
 import { feedPreview } from '../preview.js';
+import { skLines, skList } from '../skeleton.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -216,7 +217,7 @@ export async function renderScript(view, id) {
   drawStructure(data.structure);
 
   // ---- past work (Memory) ----
-  const pastBox = h('div', {}, h('p', { class: 'muted small' }, 'Looking…'));
+  const pastBox = h('div', {}, skList(3, { thumb: null, label: 'related work' }));
   const pastWorkCard = h('div', { class: 'card' },
     h('h3', {}, 'From your past work'),
     h('p', { class: 'muted small' }, 'Related scripts, transcripts and notes, so you don’t repeat yourself.'),
@@ -443,6 +444,64 @@ export async function renderScript(view, id) {
       ta));
   }
 
+  // ---- publish kit: real chapter times, everything to paste into YouTube Studio, a checklist ----
+  const CHECKS = [
+    ['title', 'Title chosen (Package → Feed preview)'], ['thumb', 'Thumbnail uploaded'], ['desc', 'Description pasted'],
+    ['chapters', 'Chapters pasted (first one at 0:00)'], ['tags', 'Tags added'], ['captions', 'Auto-captions checked'],
+    ['end', 'End screen and a card added'], ['pinned', 'Pinned comment posted'], ['link', 'Video link added below'],
+  ];
+  const checkKey = `publish-check-${script.id}`;
+  const readChecks = () => { try { return JSON.parse(localStorage.getItem(checkKey) || '{}'); } catch { return {}; } };
+  function publishKitCard() {
+    const chaptersBox = h('div', {}, skLines(5, 'chapters'));
+    api('GET', `scripts/${script.id}/chapters`).then((c) => {
+      clear(chaptersBox).append(c.chapters
+        ? [h('p', { class: 'muted small' }, c.source === 'transcript'
+          ? `Times from your recording (${c.matched} of ${c.sections - 1} sections found). Check them once in the player.`
+          : 'Estimated from the script at 150 words a minute. Upload your recording on the Transcript tab for real times.'),
+        h('pre', { class: 'chapters-pre' }, c.chapters),
+        h('button', { class: 'btn ghost sm', onclick: () => copyText(c.chapters, 'Chapters copied.') }, icon('copy', 15), 'Copy chapters')]
+        : h('p', { class: 'muted small' }, 'YouTube needs at least 3 chapters of 10+ seconds. Add ## headings for each part of the script.'));
+    }).catch(() => clear(chaptersBox).append(h('p', { class: 'muted small' }, 'Chapters unavailable.')));
+
+    const kitBox = h('div', { class: 'doc-body' }, mdBlock(script.publish_kit || '', 'Generate the kit: title, description with chapters, tags, pinned comment and end-screen picks, written from what you said.'));
+    const genBtn = h('button', {
+      class: 'btn primary sm',
+      onclick: () => busy(genBtn, 'Writing…', async () => {
+        await saveSoon.flush();
+        const live = liveMarkdown();
+        clear(kitBox).append(live.el);
+        try {
+          const r = await apiStream(`scripts/${script.id}/publish-kit`, {}, { onDelta: live.append });
+          script.publish_kit = r.publish_kit;
+          clear(kitBox).append(mdBlock(script.publish_kit));
+          toast('Publish kit ready.');
+        } catch (err) {
+          clear(kitBox).append(mdBlock(script.publish_kit || '', ''));
+          throw err;
+        }
+      }),
+    }, icon('sparkle', 15), script.publish_kit ? 'Regenerate' : 'Generate kit');
+
+    const done = readChecks();
+    const checklist = h('ul', { class: 'checklist publish-checklist' }, CHECKS.map(([k, label]) => {
+      const cb = h('input', {
+        type: 'checkbox', checked: !!done[k],
+        onchange: () => { done[k] = cb.checked; try { localStorage.setItem(checkKey, JSON.stringify(done)); } catch { /* not remembered */ } },
+      });
+      return h('li', {}, h('label', { class: 'inline-check' }, cb, label));
+    }));
+
+    return h('div', { class: 'card' },
+      h('div', { class: 'card-header' }, h('h2', {}, 'Publish kit'),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn ghost sm', onclick: () => copyText(script.publish_kit || '', 'Kit copied.') }, icon('copy', 15), 'Copy'),
+          genBtn)),
+      h('div', { class: 'grid grid-sidebar tight' },
+        h('div', {}, kitBox),
+        h('div', {}, h('h3', {}, 'Chapters'), chaptersBox, h('h3', { style: { marginTop: '16px' } }, 'Before you publish'), checklist)));
+  }
+
   const publishPane = h('div');
   function drawPublish() {
     const form = h('form', {
@@ -469,10 +528,11 @@ export async function renderScript(view, id) {
     h('div', { class: 'row' }, h('button', { type: 'submit', class: 'btn primary' }, 'Save')));
 
     clear(publishPane).append(
+      publishKitCard(),
       h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form),
       h('div', { class: 'card' },
         h('div', { class: 'card-header' }, h('h2', {}, 'Export everything'),
-          exportMenu(`scripts/${script.id}?parts=outline,body,review,fact_check,transcript,substack,edit_brief`, {
+          exportMenu(`scripts/${script.id}?parts=outline,body,review,fact_check,transcript,substack,edit_brief,publish_kit`, {
             label: 'Download',
             getPrint: () => ({ title: script.title, markdown: [script.body, script.review, script.fact_check, script.substack, script.edit_brief].filter(Boolean).join('\n\n---\n\n') }),
           })),

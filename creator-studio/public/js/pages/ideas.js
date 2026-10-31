@@ -1,9 +1,10 @@
 // Ideas: AI-generated briefs from breakout signals, plus her own. Pick, drop, edit, or turn into a script.
-import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo, loading } from '../core.js';
+import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo } from '../core.js';
 import { icon } from '../icons.js';
 import { memoryDialog } from '../components.js';
 import { scriptWizard } from '../wizard.js';
 import { celebrate, loveOn } from '../love.js';
+import { skCards } from '../skeleton.js';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -62,7 +63,7 @@ export async function renderIdeas(view) {
   const freshText = h('span');
 
   async function load(reset = true) {
-    if (reset) { state.page = 1; state.ideas = []; clear(listBox).append(loading()); }
+    if (reset) { state.page = 1; state.ideas = []; clear(listBox).append(skCards(6, 'ideas')); }
     const q = new URLSearchParams({ page: state.page });
     if (state.status) q.set('status', state.status);
     const res = await api('GET', `ideas?${q}`);

@@ -204,9 +204,13 @@ export async function renderSettings(view) {
       field('LinkedIn handle', text('linkedin_handle', { placeholder: 'the part after linkedin.com/in/' })),
       field('Instagram handle', text('instagram_handle', { placeholder: '@yourname' })),
       field('X handle', text('x_handle', { placeholder: '@yourname' })),
+      field('TikTok handle', text('tiktok_handle', { placeholder: '@yourname' })),
+      field('Threads handle', text('threads_handle', { placeholder: '@yourname' })),
       field('LinkedIn posts a week', num('cadence_linkedin', { min: 0, max: 50, placeholder: 'e.g. 3' })),
       field('Instagram posts a week', num('cadence_instagram', { min: 0, max: 50, placeholder: 'e.g. 4' })),
       field('X posts a week', num('cadence_x', { min: 0, max: 100, placeholder: 'e.g. 7' })),
+      field('TikToks a week', num('cadence_tiktok', { min: 0, max: 50, placeholder: 'e.g. 3' })),
+      field('Threads posts a week', num('cadence_threads', { min: 0, max: 100, placeholder: 'e.g. 5' })),
       field('Shorts & community posts a week', num('cadence_youtube', { min: 0, max: 50, placeholder: 'e.g. 2' }), 'long-form is on Weekly goals'),
       field('X Premium', (inputs.x_premium = h('select', { name: 'x_premium' },
         h('option', { value: '0', selected: s.x_premium !== '1' }, 'No: 280 characters per post'),
@@ -235,8 +239,44 @@ export async function renderSettings(view) {
       h('div', {},
         h('div', { class: 'card' }, h('h3', {}, 'Diagnostics'), h('p', { class: 'muted small' }, 'Save first, then test. Uses a tiny amount of quota.'), testBtn, testOut),
         await scheduleCard(),
+        await backupCard(),
         await memoryCard(),
         await usageCard())));
+}
+
+/** Backups: the whole studio is one SQLite file; a copy is kept daily (newest 14). */
+async function backupCard() {
+  let st;
+  try { st = await api('GET', 'backups'); } catch { return h('div'); }
+  const box = h('div');
+  const kb = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+  function draw() {
+    const latest = st.backups[0];
+    clear(box).append(
+      h('p', { class: 'muted small' }, latest
+        ? `Last backup ${timeAgo(latest.created_at)} (${kb(latest.bytes)}). Kept daily at 03:00; the newest ${st.keep} stay.`
+        : 'No backup yet. One is made daily at 03:00 while the scheduler runs, or press Back up now.'),
+      st.last_error ? h('p', { class: 'error-text small' }, st.last_error) : null,
+      st.backups.length ? h('ul', { class: 'mini-list' }, st.backups.slice(0, 5).map((b) => h('li', {},
+        h('span', {}, new Date(b.created_at).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })),
+        h('span', { class: 'row' },
+          h('a', { href: `/api/backups/${encodeURIComponent(b.name)}`, download: b.name, title: 'The database only' }, 'database'),
+          st.zip ? h('a', { href: `/api/backups/${encodeURIComponent(b.name)}?media=1`, title: 'Database plus your thumbnails, audio and clips' }, '+ media (.zip)') : null)))) : null,
+      h('p', { class: 'muted small' }, 'Saved keys are encrypted with APP_KEY in .env: keep a copy of .env too, or re-enter your keys after restoring.'),
+      btn);
+  }
+  const btn = h('button', {
+    class: 'btn sm',
+    onclick: () => busy(btn, 'Backing up…', async () => {
+      const r = await api('POST', 'backups');
+      st.backups = r.backups;
+      st.last_error = null;
+      toast(r.message);
+      draw();
+    }),
+  }, icon('download', 15), 'Back up now');
+  draw();
+  return h('div', { class: 'card' }, h('h3', {}, 'Backups'), box);
 }
 
 async function scheduleCard() {

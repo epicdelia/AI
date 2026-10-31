@@ -26,6 +26,12 @@ class ScriptStructure
         return (int) round($words / self::WPM * 60);
     }
 
+    /** "Chapter 2: The test" → "The test" (viewers see the number already). */
+    public static function chapterTitle(string $title): string
+    {
+        return preg_replace('/^(chapter|part)\s*\d+\s*[:.\-]\s*/i', '', $title);
+    }
+
     public static function clock(int $seconds): string
     {
         return intdiv($seconds, 60).':'.str_pad((string) ($seconds % 60), 2, '0', STR_PAD_LEFT);
@@ -66,10 +72,10 @@ class ScriptStructure
             }
             if (preg_match('/^#{1,6}\s+(.+)$/u', $line, $m)) {
                 $close();
-                $current = ['title' => trim($m[1], " #*"), 'line' => $n, 'words' => 0, 'cues' => 0];
+                $current = ['title' => trim($m[1], " #*"), 'line' => $n, 'words' => 0, 'cues' => 0, 'opening' => ''];
                 continue;
             }
-            $current ??= ['title' => 'Intro', 'line' => $n, 'words' => 0, 'cues' => 0];
+            $current ??= ['title' => 'Intro', 'line' => $n, 'words' => 0, 'cues' => 0, 'opening' => ''];
 
             $story += $s = preg_match_all('/\[YOUR STORY\b/i', $line);
             $verify += $v = preg_match_all('/\[VERIFY\b/i', $line);
@@ -89,6 +95,9 @@ class ScriptStructure
             $words = str_word_count(preg_replace('/\[[^\]]*\]/u', ' ', $line));
             if ($words) {
                 $current['words'] += $words;
+                if (str_word_count($current['opening']) < 30) {
+                    $current['opening'] = trim($current['opening'].' '.trim(preg_replace('/\[[^\]]*\]/u', ' ', $line)));
+                }
                 $stretch['from'] ??= $n;
                 $stretch['words'] += $words;
             }
@@ -148,7 +157,7 @@ class ScriptStructure
         $usable[0]['start'] = 0;
 
         return implode("\n", array_map(
-            fn ($s) => self::clock($s['start']).' '.preg_replace('/^(chapter|part)\s*\d+\s*[:.\-]\s*/i', '', $s['title']),
+            fn ($s) => self::clock($s['start']).' '.self::chapterTitle($s['title']),
             $usable,
         ));
     }

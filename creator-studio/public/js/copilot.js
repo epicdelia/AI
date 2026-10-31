@@ -5,6 +5,7 @@
 // input, stop, history, projects and feedback. Talks to /api/copilot/* and streams agent steps.
 import { h, api, apiStream, apiUpload, toast, clear, markdown, navigate, copyText } from './core.js';
 import { noteOfTheDay, loveOn, hearts } from './love.js';
+import { skList } from './skeleton.js';
 
 const MAX = 2000;
 const ATTACH_TYPES = '.txt,.md,.csv,.json,.html,.htm,.css,.js,text/*';
@@ -884,7 +885,7 @@ class CopilotPanel {
   }
 
   async showHistory() {
-    const box = h('div', {}, h('p', { class: 'sbcp-muted' }, 'Loading…'));
+    const box = h('div', {}, skList(6, { thumb: null, label: 'your history' }));
     this.openOverlay(this.state.project ? `History · ${this.state.project}` : 'History', box);
     try {
       const q = this.state.project ? `?project=${encodeURIComponent(this.state.project)}` : '';

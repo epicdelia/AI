@@ -5,6 +5,7 @@ import { installPalette, openPalette } from './palette.js';
 import { startTour } from './tour.js';
 import { themeSwitch } from './theme.js';
 import { setLove, dailyHello, heartButton } from './love.js';
+import { pageSkeleton } from './skeleton.js';
 import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered } from './copilot.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
@@ -37,7 +38,7 @@ const ROUTES = [
   { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
   { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
-  { path: /^\/(linkedin|instagram|x)$/, render: renderPlatform, nav: null }, // nav = the platform
+  { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: renderPlatform, nav: null }, // nav = the platform
   { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
 ];
 
@@ -57,6 +58,8 @@ const NAV = [
   { to: '/linkedin', label: 'LinkedIn', icon: 'briefcase' },
   { to: '/instagram', label: 'Instagram', icon: 'camera' },
   { to: '/x', label: 'X', icon: 'xmark' },
+  { to: '/tiktok', label: 'TikTok', icon: 'music' },
+  { to: '/threads', label: 'Threads', icon: 'at' },
   { header: 'Create' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle' },
   { to: '/chat', label: 'Producer chat', icon: 'chat' },
@@ -176,10 +179,19 @@ async function route() {
 
   const content = state.shell.content;
   resetCopilotContext();
-  clear(content).append(loading());
-  window.scrollTo(0, 0);
+  // Keep the old page for a beat (no flash on fast loads), then show a skeleton shaped like the
+  // new one. The old page is already cleaned up, so it's inert meanwhile.
+  const nav = (state.nav = (state.nav || 0) + 1);
+  content.inert = true;
+  const skTimer = setTimeout(() => {
+    if (state.nav !== nav) return;
+    clear(content).append(pageSkeleton(path));
+    window.scrollTo(0, 0);
+  }, 120);
+  const settle = () => { clearTimeout(skTimer); content.inert = false; window.scrollTo(0, 0); };
 
   if (!match) {
+    settle();
     clear(content).append(h('div', { class: 'empty' },
       h('div', { class: 'empty-icon' }, '🧭'), h('h3', {}, 'Page not found'),
       link('/', { class: 'btn primary' }, 'Back to dashboard')));
@@ -190,10 +202,11 @@ async function route() {
     const view = h('div', { class: 'view' });
     const cleanup = await match.render(view, ...params);
     // Ignore a render that finished after the user already moved to another page.
-    if ((location.pathname.replace(/\/+$/, '') || '/') !== path) {
+    if ((location.pathname.replace(/\/+$/, '') || '/') !== path || state.nav !== nav) {
       if (typeof cleanup === 'function') cleanup();
       return;
     }
+    settle();
     state.cleanup = cleanup;
     clear(content).append(view);
     const heading = view.querySelector('h1')?.textContent || '';
@@ -201,6 +214,8 @@ async function route() {
     pageRendered(heading);
   } catch (err) {
     console.error(err);
+    if (state.nav !== nav) return;
+    settle();
     if (err.status === 401) return;
     clear(content).append(h('div', { class: 'card error-card' },
       h('h2', {}, 'Something went wrong'),

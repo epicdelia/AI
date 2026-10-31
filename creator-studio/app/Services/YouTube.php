@@ -79,6 +79,7 @@ class YouTube
             'published_at' => $v['snippet']['publishedAt'],
             'views' => (int) ($v['statistics']['viewCount'] ?? 0),
             'comments' => (int) ($v['statistics']['commentCount'] ?? 0),
+            'likes' => (int) ($v['statistics']['likeCount'] ?? 0),
             'seconds' => self::parseDuration($v['contentDetails']['duration'] ?? ''),
         ], $data['items'] ?? []);
     }
@@ -193,6 +194,14 @@ class YouTube
         return ['title' => $title, 'median' => $median, 'mature_days' => $matureDays, 'videos' => $videos];
     }
 
+    /** Her own channel ID (UC...), derived from the uploads playlist (UU...) without another call. */
+    public function channelId(string $channel): ?string
+    {
+        [$playlist] = $this->channelUploads($channel);
+
+        return $playlist && str_starts_with($playlist, 'UU') ? 'UC'.substr($playlist, 2) : null;
+    }
+
     /** One video's title (1 quota unit). */
     public function videoTitle(string $videoId): ?string
     {
@@ -202,13 +211,14 @@ class YouTube
     /**
      * Top-level comments, most relevant first (commentThreads.list: 1 quota unit per 100).
      *
-     * @return array<int, array{text: string, likes: int, replies: int}>
+     * @param  string  $order  relevance (most useful first) or time (newest first)
+     * @return array<int, array{id: string, text: string, likes: int, replies: int, author_channel: ?string, published_at: ?string}>
      */
-    public function comments(string $videoId, int $max = 100): array
+    public function comments(string $videoId, int $max = 100, string $order = 'relevance'): array
     {
         try {
             $data = $this->get('commentThreads', [
-                'part' => 'snippet', 'videoId' => $videoId, 'order' => 'relevance',
+                'part' => 'snippet', 'videoId' => $videoId, 'order' => $order === 'time' ? 'time' : 'relevance',
                 'maxResults' => max(1, min(100, $max)), 'textFormat' => 'plainText',
             ]);
         } catch (RuntimeException $e) {
@@ -223,7 +233,14 @@ class YouTube
             $c = $item['snippet']['topLevelComment']['snippet'] ?? [];
             $text = trim((string) ($c['textDisplay'] ?? $c['textOriginal'] ?? ''));
             if ($text !== '') {
-                $out[] = ['text' => mb_substr($text, 0, 1500), 'likes' => (int) ($c['likeCount'] ?? 0), 'replies' => (int) ($item['snippet']['totalReplyCount'] ?? 0)];
+                $out[] = [
+                    'id' => (string) ($item['id'] ?? ''),
+                    'text' => mb_substr($text, 0, 1500),
+                    'likes' => (int) ($c['likeCount'] ?? 0),
+                    'replies' => (int) ($item['snippet']['totalReplyCount'] ?? 0),
+                    'author_channel' => $c['authorChannelId']['value'] ?? null,
+                    'published_at' => $c['publishedAt'] ?? null,
+                ];
             }
         }
 

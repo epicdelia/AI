@@ -46,7 +46,11 @@ return new class extends Migration
     {
         Schema::dropIfExists('copilot_signals');
         Schema::dropIfExists('copilot_missions');
-        Schema::table('copilot_actions', fn (Blueprint $t) => $t->dropColumn('batch'));
+        // SQLite can't drop a column that still has an index on it.
+        Schema::table('copilot_actions', function (Blueprint $t) {
+            $t->dropIndex(['batch']);
+            $t->dropColumn('batch');
+        });
         Schema::table('copilot_threads', fn (Blueprint $t) => $t->dropColumn(['summary', 'summary_upto_id', 'kind']));
     }
 };

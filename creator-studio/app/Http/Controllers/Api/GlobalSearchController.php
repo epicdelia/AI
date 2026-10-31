@@ -32,6 +32,8 @@ class GlobalSearchController extends Controller
         ['LinkedIn', '/linkedin', 'briefcase', 'linkedin posts carousel document'],
         ['Instagram', '/instagram', 'camera', 'instagram carousel reel caption hashtags story'],
         ['X', '/x', 'xmark', 'x twitter thread tweet post'],
+        ['TikTok', '/tiktok', 'music', 'tiktok video photo carousel caption'],
+        ['Threads', '/threads', 'at', 'threads meta post thread'],
         ['Weekly goals', '/goals', 'target', 'scoreboard mentor check-in plan'],
         ['Toolkit', '/tools', 'sparkle', 'titles thumbnail description tags captions templates'],
         ['Producer chat', '/chat', 'chat', 'assistant brainstorm ask'],

@@ -3,6 +3,7 @@
 import { h, api, apiUpload, busy, toast, clear, confirmDialog, link, timeAgo, modal, field } from './core.js';
 import { icon } from './icons.js';
 import { outputPanel } from './components.js';
+import { skLines } from './skeleton.js';
 
 let caps = null;
 async function capabilities(force = false) {
@@ -73,7 +74,7 @@ export function readAloudCard(script, getSelection) {
 // ------------------------------------------------------------------
 
 export function thumbnailStudio(script) {
-  const box = h('div', {}, h('p', { class: 'muted small' }, 'Loading…'));
+  const box = h('div', {}, skLines(3, 'thumbnail mockups'));
   const card = h('div', { class: 'card' }, h('h2', {}, 'Thumbnail mockups'), box);
 
   capabilities().then((c) => {
@@ -180,7 +181,7 @@ function brollCues(body) {
 }
 
 export function brollPanel(script) {
-  const box = h('div', {}, h('p', { class: 'muted small' }, 'Loading…'));
+  const box = h('div', {}, skLines(3, 'b-roll clips'));
   const card = h('div', { class: 'card' }, h('h2', {}, 'B-roll clips'), box);
   let timer = null;
 
@@ -331,7 +332,7 @@ export function thumbnailReviewDialog({ mediaId = null, mediaUrl = null, title =
 // ------------------------------------------------------------------
 
 export function shortsPanel(script) {
-  const box = h('div', {}, h('p', { class: 'muted small' }, 'Loading…'));
+  const box = h('div', {}, skLines(3, 'Shorts'));
   const card = h('div', { class: 'card' }, h('h2', {}, 'Cut Shorts automatically'), box);
   let timer = null;
 

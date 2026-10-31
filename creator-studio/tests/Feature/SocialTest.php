@@ -72,6 +72,23 @@ class SocialTest extends TestCase
         $this->assertContains('A carousel needs at least 2 slides.', $one);
     }
 
+    public function test_threads_and_tiktok_checks(): void
+    {
+        $this->assertTrue(Platforms::hasHard(Platforms::check('threads', 'post', str_repeat('a', 501))));
+        $this->assertFalse(Platforms::hasHard(Platforms::check('threads', 'post', str_repeat('a', 500))));
+        $thread = Platforms::check('threads', 'thread', '', ['Short one.', str_repeat('b', 520)]);
+        $this->assertSame(1, collect($thread)->firstWhere('severity', 'HARD')['part']);
+
+        $this->assertTrue(Platforms::hasHard(Platforms::check('tiktok', 'photo', 'Caption', array_fill(0, 36, 'Slide'))), '35 max');
+        $this->assertFalse(Platforms::hasHard(Platforms::check('tiktok', 'photo', 'Caption', array_fill(0, 30, 'Slide'))), 'more than Instagram allows is fine on TikTok');
+        $this->assertTrue(collect(self::messages(Platforms::check('tiktok', 'video', str_repeat('Long caption hook ', 6), ['Beat one', 'Beat two'])))
+            ->contains(fn ($m) => str_contains($m, 'first ~70 characters')));
+
+        $this->getJson('/api/social/meta')->assertOk()
+            ->assertJsonPath('platforms.threads.limit', 500)
+            ->assertJsonPath('platforms.tiktok.formats.photo.parts', 'Slides');
+    }
+
     public function test_ai_tells_are_checked_on_body_and_parts(): void
     {
         $checks = Platforms::check('x', 'thread', '', ['Fine post.', 'Let’s delve into it — now.']);
@@ -137,7 +154,7 @@ class SocialTest extends TestCase
             return json_encode(['posts' => [
                 ['platform' => 'linkedin', 'format' => 'post', 'title' => 'Inbox lesson', 'body' => "I gave my inbox to an AI.\n\nHere's what broke.", 'parts' => ['ignored']],
                 ['platform' => 'x', 'format' => 'thread', 'body' => '', 'parts' => ['Hook post', '', 'Second post', ['nested']]],
-                ['platform' => 'tiktok', 'format' => 'video', 'body' => 'dropped'],
+                ['platform' => 'myspace', 'format' => 'video', 'body' => 'dropped'],
             ]]);
         };
 

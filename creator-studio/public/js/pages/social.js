@@ -8,18 +8,22 @@ import {
 import { icon } from '../icons.js';
 import { carouselCard } from '../carousel.js';
 
-const PLATFORM_ICONS = { linkedin: 'briefcase', instagram: 'camera', x: 'xmark', youtube: 'play' };
+const PLATFORM_ICONS = { linkedin: 'briefcase', instagram: 'camera', x: 'xmark', tiktok: 'music', threads: 'at', youtube: 'play' };
 const STATUS_PILL = { idea: 'new', draft: 'WARN', scheduled: 'picked', posted: 'ok' };
 const STATUS_LABEL = { idea: 'Idea', draft: 'Draft', scheduled: 'Scheduled', posted: 'Posted' };
 const PROFILE_URL = {
   linkedin: (h) => `https://www.linkedin.com/in/${h}`,
   instagram: (h) => `https://www.instagram.com/${h}`,
   x: (h) => `https://x.com/${h}`,
+  tiktok: (h) => `https://www.tiktok.com/@${h}`,
+  threads: (h) => `https://www.threads.com/@${h}`,
 };
 const ABOUT = {
   linkedin: 'Text posts and PDF carousels. The hook has to land before “see more” (about 140 characters on phones).',
   instagram: 'Carousels, Reels, single posts and Stories. Lead the caption with the hook; keep to 3 to 5 specific hashtags.',
   x: 'Posts and threads, 280 characters each (25,000 with Premium, switch it on in Settings). Links count as 23.',
+  tiktok: 'Videos and photo carousels (up to 35 images). Hook in the first second; only the start of the caption shows over the video.',
+  threads: 'Posts and threads, 500 characters each. Conversational wins; one topic tag per post.',
 };
 
 let metaCache = null;
@@ -31,6 +35,7 @@ async function meta(force = false) {
 const plain = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 const chars = (s) => [...String(s || '')].length;
 const xChars = (s) => chars(String(s || '').replace(/https?:\/\/\S+/g, 'x'.repeat(23)));
+const THREADY = ['x', 'threads'];
 const pad = (n) => String(n).padStart(2, '0');
 const toLocalInput = (iso) => {
   if (!iso) return '';
@@ -232,6 +237,7 @@ export async function renderPost(view, id) {
   const fmtInfo = () => m.platforms[post.platform].formats[post.format];
   const limit = () => m.platforms[post.platform].limit;
   const count = (t) => (post.platform === 'x' ? xChars(t) : chars(t));
+  const thready = () => THREADY.includes(post.platform);
 
   // ---- checks ----
   function drawChecks() {
@@ -253,7 +259,7 @@ export async function renderPost(view, id) {
   const bodyHead = h('h3');
   const bodyHint = h('p', { class: 'muted small' });
   function syncBody() {
-    const thread = post.platform === 'x' && post.format === 'thread';
+    const thread = thready() && post.format === 'thread';
     const story = post.format === 'story';
     bodyHead.textContent = thread ? 'Scratchpad' : story ? 'Notes' : post.platform === 'instagram' || post.format === 'short' ? 'Caption' : 'Text';
     bodyHint.textContent = thread ? 'Write freely here, then “Split text into posts” below. Only the posts are published.' : story ? 'Not published; the frames are.' : '';
@@ -272,16 +278,16 @@ export async function renderPost(view, id) {
     const single = label.replace(/s$/, '');
     partsBox.append(h('div', { class: 'card-header' }, h('h3', {}, label),
       h('div', { class: 'row' },
-        post.platform === 'x' && post.body?.trim() ? h('button', {
+        thready() && post.body?.trim() ? h('button', {
           class: 'btn ghost sm', title: 'Split the text above into posts',
-          onclick: () => { setParts(splitThread(post.body, Math.min(270, limit() - 10))); bodyArea.value = ''; change('body', ''); drawCounter(); },
+          onclick: () => { setParts(splitThread(post.body, Math.min(post.platform === 'x' ? 270 : 470, limit() - 10))); bodyArea.value = ''; change('body', ''); drawCounter(); },
         }, 'Split text into posts') : null,
         h('button', { class: 'btn ghost sm', onclick: () => copyText(post.parts.join('\n\n'), `All ${label.toLowerCase()} copied.`) }, icon('copy', 15), 'Copy all'))));
     post.parts.forEach((p, i) => {
       const ta = h('textarea', { rows: label === 'Posts' ? 3 : 2 }, p);
       const c = h('span', { class: 'char-count' });
       const drawC = () => {
-        if (post.platform === 'x') { const n = xChars(ta.value); c.textContent = `${n} / ${limit()}`; c.classList.toggle('over', n > limit()); }
+        if (thready()) { const n = count(ta.value); c.textContent = `${n} / ${limit()}`; c.classList.toggle('over', n > limit()); }
         else c.textContent = `${ta.value.split(/\s+/).filter(Boolean).length} words`;
       };
       drawC();
@@ -322,14 +328,14 @@ export async function renderPost(view, id) {
     const parts = post.parts || [];
     const fold = m.platforms[post.platform].fold;
     let el;
-    if (post.platform === 'x') {
+    if (thready()) {
       const tweets = post.format === 'thread' ? parts : [post.body || ''];
       el = h('div', { class: 'pv-x' }, tweets.map((t, i) => h('div', { class: 'pv-tweet' },
         h('div', { class: 'pv-avatar' }, name.slice(0, 1).toUpperCase()),
         h('div', { class: 'pv-tweet-main' },
           h('div', {}, h('strong', {}, name), h('span', { class: 'muted' }, ` @${handle} · now`)),
           h('div', { class: 'pv-text' }, t || h('span', { class: 'muted' }, 'Empty')),
-          h('div', { class: `muted small${xChars(t) > limit() ? ' error-text' : ''}` }, `${xChars(t)}/${limit()}${tweets.length > 1 ? ` · ${i + 1}/${tweets.length}` : ''}`)))));
+          h('div', { class: `muted small${count(t) > limit() ? ' error-text' : ''}` }, `${count(t)}/${limit()}${tweets.length > 1 ? ` · ${i + 1}/${tweets.length}` : ''}`)))));
     } else if (post.platform === 'linkedin') {
       el = h('div', { class: 'pv-li' },
         h('div', { class: 'pv-head' }, h('div', { class: 'pv-avatar' }, name.slice(0, 1).toUpperCase()), h('div', {}, h('strong', {}, name), h('div', { class: 'muted small' }, 'now · 🌐'))),
@@ -344,6 +350,11 @@ export async function renderPost(view, id) {
           post.format === 'carousel' && parts.length > 1 ? h('div', { class: 'pv-dots' }, parts.slice(0, 20).map((_, i) => h('i', { class: i === 0 ? 'on' : '' }))) : null,
           post.format === 'reel' ? h('span', { class: 'pv-badge' }, '▶ Reel') : null),
         post.format !== 'story' ? h('div', { class: 'pv-text' }, h('strong', {}, `${handle} `), folded(post.body, fold)) : null);
+    } else if (post.platform === 'tiktok') {
+      el = h('div', { class: 'pv-short pv-tiktok', style: { background: m.brand_color } },
+        h('span', {}, plain(parts[0]) || (post.format === 'photo' ? 'Your first photo' : 'Your video')),
+        post.format === 'photo' && parts.length > 1 ? h('div', { class: 'pv-dots' }, parts.slice(0, 35).map((_, i) => h('i', { class: i === 0 ? 'on' : '' }))) : null,
+        h('div', { class: 'pv-short-title' }, h('strong', {}, `@${handle}`), h('div', {}, folded(post.body, fold))));
     } else {
       el = post.format === 'short'
         ? h('div', { class: 'pv-short', style: { background: m.brand_color } }, h('span', {}, plain(parts[0]) || 'Your Short'), h('div', { class: 'pv-short-title' }, post.title || ''))
@@ -399,9 +410,11 @@ export async function renderPost(view, id) {
   // ---- copy out / open the app ----
   const fullText = () => [post.body, ...(fmtInfo().parts === 'Posts' ? [] : post.parts || [])].filter((x) => String(x || '').trim()).join('\n\n');
   function openApp() {
-    const text = post.platform === 'x' ? (post.format === 'thread' ? post.parts[0] : post.body) || '' : post.body || '';
-    copyText(post.platform === 'x' ? text : fullText(), 'Copied. Paste it in the app.');
+    const text = thready() ? (post.format === 'thread' ? post.parts[0] : post.body) || '' : post.body || '';
+    copyText(thready() ? text : fullText(), 'Copied. Paste it in the app.');
     const url = post.platform === 'x' ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+      : post.platform === 'threads' ? `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`
+      : post.platform === 'tiktok' ? 'https://www.tiktok.com/upload'
       : post.platform === 'linkedin' ? `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`
         : post.platform === 'youtube' ? 'https://studio.youtube.com/' : 'https://www.instagram.com/';
     window.open(url, '_blank', 'noopener');

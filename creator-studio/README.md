@@ -46,6 +46,12 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Social (sidebar section)** | **Calendar**: one week across LinkedIn, Instagram, X and YouTube with drag-to-schedule, YouTube due/published dates and weekly targets per platform. **Repurpose**: a script, transcript, Library document, note or pasted text into native drafts (LinkedIn post/carousel, X post/thread, Instagram carousel/Reel/post/Story, YouTube Short/community post) in one AI call. **LinkedIn / Instagram / X pages**: posts by status, this week's progress, best posts by logged engagement |
 | **Post composer** | `/posts/:id`: text plus thread posts, slides or beats; live feed preview with the "see more" cut-off; platform checks (X 280 with links as 23 or Premium, LinkedIn 3,000 and the 140-character hook, Instagram 2,200 / 5-hashtag warning / 20 slides) plus the AI-tell linter; split text into a thread; carousel slides as 1080×1350 PNGs or a LinkedIn PDF; schedule, mark posted, log impressions/likes/comments/shares/saves; copy to another platform. Nothing is posted for her: "Open X/LinkedIn" copies the text and opens the app |
 | **Sidebar** | An icon rail by default with an Expand/Collapse toggle (remembered per browser); on phones a top bar and a slide-in drawer that closes on navigation, backdrop tap or Esc |
+| **TikTok & Threads** | Full platforms next to LinkedIn, Instagram and X: TikTok videos (beats + caption, hook in the first ~70 characters) and photo carousels (up to 35), Threads posts and threads (500 characters each, one topic tag) |
+| **Backups** | `studio:backup` copies the database daily at 03:00 (SQLite `VACUUM INTO`, safe while running) to `storage/app/backups`, keeping the newest 14. Settings → Backups: back up now, download the database or a zip with her media. Keep `.env` too: saved keys are encrypted with `APP_KEY` |
+| **Daily video numbers** | `studio:stats` (06:30) records views, likes and comments of her recent videos. My channel then compares each video with her others **at the same age** (day 1, 3, 7, 28) with a small views-over-time line; the check-in uses the real day-7 number and tells the mentor how new videos are pacing. YouTube's API has no history, so tracking starts from the first snapshot |
+| **Publish kit** | Publish tab: chapter times found in the timestamped recording transcript (no AI; estimated from the script when there's no recording), then one streamed kit with title, description with those chapters, tags, pinned comment and end-screen picks from her best videos, plus a pre-publish checklist |
+| **Reply drafts** | My channel → Replies: drafts for the newest comments with no reply yet (hers and spam left out), in her voice. She edits, copies and posts each; "Open" jumps to the comment |
+| **Skeleton loaders** | Every page and panel shows a placeholder shaped like its content (dashboard, lists, cards, editor, calendar, chat, settings) with one synced shimmer, only after 120 ms so fast pages don't flash; reduced-motion aware and announced to screen readers |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.
@@ -77,14 +83,14 @@ and images are stored in `storage/app/private/media` and only served to the logg
 ## Automation
 
 Breakout scan (daily 07:00), feed refresh (every 3 h), weekly check-in (Mondays 08:00), Memory
-index (03:30) and clean-up (04:00), in her timezone. Keep the scheduler running next to the app:
+index (03:30), clean-up (04:00), backup (03:00) and daily video numbers (06:30), in her timezone. Keep the scheduler running next to the app:
 
 ```sh
 php artisan schedule:work
 ```
 
 Each job also runs by hand (`php artisan studio:scan`, `studio:feeds`, `studio:checkin`,
-`studio:memory`, `studio:prune`) or from Settings → Automation → Run.
+`studio:memory`, `studio:prune`, `studio:backup`, `studio:stats`) or from Settings → Automation → Run.
 
 ## Run it
 

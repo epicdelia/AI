@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Audience\CommentMiner;
 use App\Domains\Audience\Models\AudienceInsight;
+use App\Domains\Audience\ReplyDrafter;
+use App\Domains\Audience\VideoStats;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\YouTube;
@@ -44,6 +46,9 @@ class AudienceController extends Controller
             'report' => $report,
             'error' => $error,
             'insights' => AudienceInsight::latest('updated_at')->take(30)->get(),
+            // Same-age comparison from the daily snapshots (studio:stats), keyed by video id.
+            'same_age' => $report ? VideoStats::compareAll(array_column($report['videos'], 'id')) : [],
+            'tracking_since' => VideoStats::tracking() ? \Illuminate\Support\Facades\DB::table('video_stats')->min('captured_on') : null,
         ]);
     }
 
@@ -77,6 +82,41 @@ class AudienceController extends Controller
             'insight' => $insight,
             'message' => $n ? "Found {$n} thing(s) viewers want in {$insight->comment_count} comments." : 'Read the comments. Nothing worth a video stood out.',
         ]);
+    }
+
+    /** Reply drafts for the newest unanswered comments on a video (nothing is posted). */
+    public function replies(Request $request, ReplyDrafter $drafter): JsonResponse
+    {
+        $data = $request->validate(['url' => 'required|string|max:500', 'title' => 'nullable|string|max:250']);
+        $videoId = YouTubeTranscript::videoId($data['url']);
+        if (! $videoId) {
+            return response()->json(['error' => 'That doesn’t look like a YouTube video link.'], 422);
+        }
+        if (! Setting::has('youtube_api_key')) {
+            return response()->json(['error' => 'Reading comments needs a YouTube Data API key in Settings.'], 422);
+        }
+        try {
+            $replies = $drafter->draft($videoId, $data['title'] ?? null);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return response()->json(['video_id' => $videoId, 'replies' => $replies]);
+    }
+
+    /** Record today's numbers now (same as the daily studio:stats job). */
+    public function snapshot(VideoStats $stats): JsonResponse
+    {
+        try {
+            $n = $stats->snapshot();
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+        Setting::put('last_run_stats', now()->toIso8601String());
+
+        return response()->json(['message' => "Recorded today’s numbers for {$n} video(s)."]);
     }
 
     public function destroy(AudienceInsight $insight): JsonResponse

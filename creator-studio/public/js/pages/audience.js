@@ -1,6 +1,7 @@
 // My channel: her videos against her own median, and what viewers ask for in the comments.
-import { h, api, busy, toast, pageHead, emptyState, clear, compact, fmtDay, link, pill, confirmDialog, timeAgo, modal, loading } from '../core.js';
+import { h, api, busy, toast, pageHead, emptyState, clear, compact, fmtDay, link, pill, confirmDialog, timeAgo, modal, copyText } from '../core.js';
 import { icon } from '../icons.js';
+import { skList } from '../skeleton.js';
 
 const TYPES = {
   question: ['new', 'Question'],
@@ -56,7 +57,7 @@ export function insightCard(insight, { onRemove } = {}) {
 /** Read a video's comments in a dialog (used on Breakouts for competitors' videos). */
 export function commentsDialog(url, title) {
   return modal(`What viewers ask: ${title || 'video'}`, () => {
-    const box = h('div', {}, loading('Reading the comments… (1 YouTube quota unit)'));
+    const box = h('div', {}, h('p', { class: 'muted small' }, 'Reading the comments… (1 YouTube quota unit)'), skList(5, { label: 'viewer requests' }));
     api('POST', 'audience/comments', { url, title })
       .then((r) => clear(box).append(insightCard(r.insight), h('p', { class: 'muted small' }, 'Saved on My channel. Questions feed your next idea batch.')))
       .catch((err) => clear(box).append(h('p', { class: 'error-text' }, err.message)));
@@ -72,6 +73,60 @@ function scoreCell(v) {
     v.early ? [' ', pill('new', 'early')] : null);
 }
 
+/** A tiny views-over-age line from the daily snapshots. */
+function sparkline(series) {
+  if (!series || series.length < 2) return null;
+  const NS = 'http://www.w3.org/2000/svg';
+  const w = 84;
+  const ht = 24;
+  const xs = series.map((p) => p.age_days);
+  const ys = series.map((p) => p.views);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const pts = series.map((p) => `${((p.age_days - x0) / Math.max(0.01, x1 - x0) * (w - 4) + 2).toFixed(1)},${(ht - 2 - (p.views - y0) / Math.max(1, y1 - y0) * (ht - 4)).toFixed(1)}`).join(' ');
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${w} ${ht}`);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', ht);
+  svg.setAttribute('class', 'sparkline');
+  svg.setAttribute('aria-hidden', 'true');
+  const line = document.createElementNS(NS, 'polyline');
+  line.setAttribute('points', pts);
+  svg.append(line);
+  return svg;
+}
+
+/** Views vs her usual at the same age (from the daily snapshots). */
+function sameAgeCell(cmp) {
+  const pace = cmp?.pace;
+  const spark = sparkline(cmp?.series);
+  if (!pace) return h('span', { class: 'muted small', title: 'Needs a few days of daily numbers' }, spark || '–');
+  const cls = pace.ratio >= 1.5 ? 'ok' : pace.ratio <= 0.6 ? 'bad' : '';
+  return h('span', { class: 'same-age' },
+    h('span', { class: `score ${cls ? `score-${cls}` : ''}`, title: `Views at day ${pace.day} against your median at day ${pace.day}` }, `${pace.ratio.toFixed(1)}×`),
+    h('span', { class: 'muted small' }, ` day ${pace.day}`), spark);
+}
+
+/** Draft replies to the newest unanswered comments; she edits, copies and posts each one. */
+export function repliesDialog(video) {
+  return modal(`Reply drafts: ${video.title}`, () => {
+    const box = h('div', {}, h('p', { class: 'muted small' }, 'Reading the newest comments… (1 YouTube quota unit)'), skList(5, { label: 'reply drafts' }));
+    api('POST', 'audience/replies', { url: video.url, title: video.title })
+      .then((r) => clear(box).append(
+        h('p', { class: 'muted small' }, 'Newest comments with no reply yet (yours and spam left out). Edit, copy, then reply on YouTube: “Open” jumps to the comment.'),
+        h('ul', { class: 'reply-list' }, r.replies.map((c) => {
+          const ta = h('textarea', { rows: 2 }, c.reply);
+          return h('li', {},
+            h('div', { class: 'reply-comment' }, `“${c.text}”`, c.likes ? h('span', { class: 'muted small' }, ` · ${c.likes} likes`) : null),
+            ta,
+            h('div', { class: 'row' },
+              h('button', { class: 'btn sm', onclick: () => copyText(ta.value, 'Reply copied.') }, icon('copy', 14), 'Copy'),
+              h('a', { class: 'btn ghost sm', href: `https://www.youtube.com/watch?v=${r.video_id}&lc=${encodeURIComponent(c.id)}`, target: '_blank', rel: 'noopener' }, icon('arrow', 14), 'Open')));
+        }))))
+      .catch((err) => clear(box).append(h('p', { class: 'error-text' }, err.message)));
+    return box;
+  }, { wide: true });
+}
+
 export async function renderAudience(view) {
   let data = await api('GET', 'audience');
   const reportBox = h('div');
@@ -81,6 +136,16 @@ export async function renderAudience(view) {
     data.insights = [insight, ...data.insights.filter((x) => x.video_id !== insight.video_id)];
     drawInsights();
   }
+
+  const recordBtn = h('button', {
+    class: 'btn ghost sm', title: 'Record today’s views, likes and comments (also runs daily at 06:30)',
+    onclick: () => busy(recordBtn, 'Recording…', async () => {
+      const r = await api('POST', 'audience/snapshot');
+      toast(r.message);
+      data = await api('GET', 'audience');
+      drawReport();
+    }),
+  }, icon('calendar', 15), 'Record today’s numbers');
 
   function drawReport() {
     clear(reportBox);
@@ -95,13 +160,16 @@ export async function renderAudience(view) {
     reportBox.append(h('div', { class: 'card' },
       h('div', { class: 'card-header' },
         h('h2', {}, r.title || 'Your videos'),
-        h('span', { class: 'muted small' }, `Updated ${timeAgo(r.fetched_at)}`)),
+        h('div', { class: 'row' }, h('span', { class: 'muted small' }, `Updated ${timeAgo(r.fetched_at)}`), recordBtn)),
       h('p', { class: 'muted' }, r.median
         ? [`Your usual long-form video: `, h('strong', {}, compact(r.median)), ` views (median of ${scored.length} videos at least ${r.mature_days} days old). Lifetime views, so older videos have had longer to grow; videos under ${r.mature_days} days are marked early.`]
         : `Your usual needs at least 3 long-form videos older than ${r.mature_days} days, so scores will appear as you publish.`),
+      h('p', { class: 'muted small' }, data.tracking_since
+        ? `Same age compares each video with your others at the same day (1, 3, 7 or 28), from daily numbers recorded since ${fmtDay(data.tracking_since)}.`
+        : 'Same age needs daily numbers: they’re recorded every morning at 06:30 while the scheduler runs, or press “Record today’s numbers”. YouTube has no history to fill in, so it starts today.'),
       r.videos.length ? h('div', { class: 'table-wrap' }, h('table', {},
         h('thead', {}, h('tr', {},
-          h('th', {}, 'Video'), h('th', { class: 'num' }, 'vs usual'), h('th', { class: 'num' }, 'Views'),
+          h('th', {}, 'Video'), h('th', { class: 'num' }, 'vs usual'), h('th', { class: 'num hide-sm' }, 'Same age'), h('th', { class: 'num' }, 'Views'),
           h('th', { class: 'num hide-sm' }, 'Comments'), h('th', {}, ''))),
         h('tbody', {}, r.videos.map((v) => {
           const asked = data.insights.some((i) => i.video_id === v.id);
@@ -120,9 +188,11 @@ export async function renderAudience(view) {
               h('a', { href: v.url, target: '_blank', rel: 'noopener' }, h('strong', {}, v.title)),
               h('div', { class: 'muted' }, `${fmtDay(v.published_at)} · ${v.age_days} days`)),
             h('td', { class: 'num nowrap' }, scoreCell(v)),
+            h('td', { class: 'num nowrap hide-sm' }, sameAgeCell(data.same_age?.[v.id])),
             h('td', { class: 'num' }, compact(v.views)),
             h('td', { class: 'num hide-sm' }, compact(v.comments)),
-            h('td', { class: 'num nowrap' }, btn));
+            h('td', { class: 'num nowrap' }, btn,
+              h('button', { class: 'btn ghost sm', title: 'Draft replies to the newest comments', disabled: !v.comments, onclick: () => repliesDialog(v) }, icon('pen', 15), 'Replies')));
         })))) : h('p', { class: 'muted' }, 'No long-form uploads found yet.')));
   }
 

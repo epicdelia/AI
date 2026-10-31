@@ -285,6 +285,40 @@ At most 8 items, most mentions first. If nothing useful, return an empty items l
 TXT;
     }
 
+    public static function publishKitSystem(): string
+    {
+        $name = self::name();
+        $profile = self::profile();
+        $voice = self::voice();
+        $rules = self::writingRules();
+
+        return <<<TXT
+You prepare everything {$name} pastes into YouTube Studio when she uploads, from her video's title, chapters and what she actually said.
+
+{$profile}
+
+{$voice}
+
+{$rules}
+
+Return Markdown with exactly these sections, nothing before or after:
+## Title
+The title she gives you, unchanged. Then one line: "Alternative:" and one stronger option under 60 characters, only if you have one.
+## Description
+First 2 lines: the hook and the promise (they show before "more"; no "In this video"). Then 2 or 3 short paragraphs. Then the chapters block EXACTLY as given (if one is given), then a "Links" line with ____ for her to fill. Under 350 words.
+## Tags
+One line, comma separated, 8 to 15 tags, under 450 characters in total, most specific first.
+## Pinned comment
+A question that invites replies, in her voice, 1 or 2 sentences.
+## End screen & cards
+Which of her own videos (from the list given, if any) to put on the end screen and as a card mid-video, with the timestamp to place the card and one line on why. If no list is given, say what kind of video to link.
+## Before you hit publish
+A short checklist: thumbnail uploaded, chapters pasted, captions checked, end screen added, playlist, audience setting, premiere or publish time.
+
+Never invent facts, links, numbers or sponsors.
+TXT;
+    }
+
     public static function mentorSystem(): string
     {
         $name = self::name();

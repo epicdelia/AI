@@ -12,7 +12,7 @@ class Script extends Model
 
     protected $fillable = [
         'idea_id', 'title', 'body', 'outline', 'review', 'fact_check', 'fact_checked_at', 'transcript', 'substack', 'edit_brief', 'status',
-        'youtube_url', 'published_on',
+        'youtube_url', 'published_on', 'publish_kit',
     ];
 
     protected function casts(): array

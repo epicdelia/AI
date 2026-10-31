@@ -8,7 +8,10 @@ use App\Domains\Search\FactChecker;
 use App\Domains\Search\WebSearch;
 use App\Http\Controllers\Controller;
 use App\Models\Script;
+use App\Models\Setting;
 use App\Services\AiTellsLinter;
+use App\Services\ChapterAligner;
+use Illuminate\Support\Facades\Cache;
 use App\Services\Llm;
 use App\Services\Prompts;
 use Illuminate\Http\JsonResponse;
@@ -102,6 +105,37 @@ class ScriptStreamController extends Controller
 
             return ['fact_check' => $result['report'], 'claims' => count($result['claims']), 'sources' => $result['sources'], 'script' => $script->fresh()];
         }, 600);
+    }
+
+    /** Real chapter times (no AI): from the timestamped transcript, or estimated from the script. */
+    public function chapters(Script $script): JsonResponse
+    {
+        return response()->json(ChapterAligner::align((string) $script->body, $script->transcript));
+    }
+
+    /** Title, description with chapters, tags, pinned comment and end screen, ready to paste into YouTube Studio. */
+    public function publishKit(Script $script, Llm $llm, StreamService $sse): JsonResponse|StreamedResponse
+    {
+        if (trim((string) $script->body) === '' && trim((string) $script->transcript) === '') {
+            return response()->json(['error' => 'Write the script (or add the transcript) first.'], 422);
+        }
+        $chapters = ChapterAligner::align((string) $script->body, $script->transcript);
+        $channel = Setting::get('channel_id');
+        $report = $channel ? Cache::get(AudienceController::cacheKey($channel)) : null;
+        $own = collect($report['videos'] ?? [])->where('early', false)->whereNotNull('score')->sortByDesc('score')->take(8)
+            ->map(fn ($v) => "- \"{$v['title']}\" ({$v['url']}), {$v['score']}x her usual")->implode("\n");
+        $source = $script->transcript ? "What she said on camera:\n".mb_substr($script->transcript, 0, 12000) : "The script:\n".mb_substr((string) $script->body, 0, 12000);
+        $user = "Title: {$script->title}\n\n"
+            .($chapters['chapters'] ? 'Chapters ('.($chapters['source'] === 'transcript' ? 'times from the recording' : 'estimated from the script; tell her to check them').", paste exactly):\n{$chapters['chapters']}\n\n" : "No chapters (too few sections).\n\n")
+            .($own ? "Her own videos that did well:\n{$own}\n\n" : '')
+            .$source;
+
+        return $sse->respond(function (StreamService $sse) use ($script, $llm, $user) {
+            $kit = $llm->as('publish_kit')->stream(Prompts::publishKitSystem(), [['role' => 'user', 'content' => $user]], $sse->chunk(...));
+            $script->update(['publish_kit' => $kit]);
+
+            return ['publish_kit' => $kit];
+        });
     }
 
     public function editBrief(Script $script, Llm $llm, StreamService $sse): StreamedResponse

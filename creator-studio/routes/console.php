@@ -1,5 +1,7 @@
 <?php
 
+use App\Domains\Audience\VideoStats;
+use App\Domains\Backup\Backup;
 use App\Domains\Feeds\FeedReader;
 use App\Domains\Feeds\Models\Feed;
 use App\Domains\Feeds\Models\FeedItem;
@@ -111,6 +113,18 @@ Artisan::command('studio:prune', function () use ($track) {
     });
 })->purpose('Remove old usage logs, used feed items and leftover uploads');
 
+Artisan::command('studio:backup', function () use ($track) {
+    return $track($this, 'backup', function () {
+        $b = Backup::run();
+
+        return "Backed up to storage/app/backups/{$b['name']} (".round($b['bytes'] / 1024).' KB). Keeping the newest '.Backup::KEEP.'.';
+    });
+})->purpose('Copy the studio database to storage/app/backups (keeps the newest 14)');
+
+Artisan::command('studio:stats', function (VideoStats $stats) use ($track) {
+    return $track($this, 'stats', fn () => 'Recorded today’s numbers for '.$stats->snapshot().' of your videos.');
+})->purpose('Record today’s views, likes and comments for her recent videos');
+
 // ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
 
 try {
@@ -135,4 +149,6 @@ Schedule::command('studio:checkin')->weeklyOn(1, '08:00')->timezone($tz)->when($
 Schedule::command('studio:memory')->dailyAt('03:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:clips')->everyTenMinutes()->when(fn () => rescue(fn () => ClipProject::where('status', 'processing')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:broll')->everyTwoMinutes()->when(fn () => rescue(fn () => VideoJob::whereIn('status', ['queued', 'running'])->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:backup')->dailyAt('03:00')->timezone($tz)->withoutOverlapping();
+Schedule::command('studio:stats')->dailyAt('06:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

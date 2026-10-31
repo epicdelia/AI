@@ -488,6 +488,7 @@ class ApiController extends Controller
             'transcript' => 'sometimes|nullable|string',
             'substack' => 'sometimes|nullable|string',
             'edit_brief' => 'sometimes|nullable|string',
+            'publish_kit' => 'sometimes|nullable|string',
             'status' => 'sometimes|in:' . implode(',', Script::STATUSES),
             'youtube_url' => 'sometimes|nullable|url|max:300',
             'published_on' => 'sometimes|nullable|date',

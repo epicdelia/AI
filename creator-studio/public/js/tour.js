@@ -13,7 +13,7 @@ const STEPS = [
   { to: '/channel', title: 'My channel', text: 'How each of your videos did against your own usual, and what viewers ask for in the comments. One click turns a question into an idea.' },
   { to: '/calendar', title: 'Calendar', text: 'Your week on LinkedIn, Instagram, X and YouTube in one place. Drag drafts onto a day; targets per platform keep you consistent.' },
   { to: '/repurpose', title: 'Repurpose', text: 'Turn a script, transcript or note into a LinkedIn post, an X thread, an Instagram carousel or Reel, and a Short, each written for its own feed.' },
-  { to: '/linkedin', title: 'LinkedIn, Instagram & X', text: 'Each platform has its own page: drafts, scheduled and posted, a live preview with the “see more” cut-off, and the numbers you log after posting.' },
+  { to: '/linkedin', title: 'LinkedIn, Instagram, X, TikTok & Threads', text: 'Each platform has its own page: drafts, scheduled and posted, a live preview with the “see more” cut-off, and the numbers you log after posting.' },
   { to: '/goals', title: 'Weekly goals', text: 'One video a week. The mentor checks your real uploads and keeps the score honest.' },
   { to: '/tools', title: 'Toolkit', text: 'Titles, descriptions, captions, sponsor emails and more, in your voice. Save your own templates too.' },
   { to: '/chat', title: 'Producer chat', text: 'A collaborator who knows your channel and past work. Tick “Web” for live search.' },

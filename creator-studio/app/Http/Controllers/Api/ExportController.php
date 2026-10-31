@@ -21,7 +21,7 @@ class ExportController extends Controller
 {
     private const SCRIPT_PARTS = [
         'body' => 'Script', 'outline' => 'Plan', 'review' => 'AI review', 'fact_check' => 'Fact-check',
-        'transcript' => 'Recording transcript', 'substack' => 'Substack post', 'edit_brief' => 'Editor brief',
+        'transcript' => 'Recording transcript', 'substack' => 'Substack post', 'edit_brief' => 'Editor brief', 'publish_kit' => 'Publish kit',
     ];
 
     public function script(Request $request, Script $script): Response

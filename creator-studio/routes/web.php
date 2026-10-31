@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AudienceController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\ExportController;
@@ -88,6 +89,13 @@ Route::prefix('api')->group(function () {
         // My channel: her videos vs her own median, and what viewers ask for in comments
         Route::get('audience', [AudienceController::class, 'index']);
         Route::post('audience/comments', [AudienceController::class, 'comments']);
+        Route::post('audience/replies', [AudienceController::class, 'replies']);
+        Route::post('audience/snapshot', [AudienceController::class, 'snapshot']);
+
+        // Backups of the studio database
+        Route::get('backups', [BackupController::class, 'index']);
+        Route::post('backups', [BackupController::class, 'store']);
+        Route::get('backups/{name}', [BackupController::class, 'download'])->where('name', '[\w.-]+');
         Route::delete('audience/insights/{insight}', [AudienceController::class, 'destroy']);
 
         // Goals & Weekly Mentor
@@ -146,6 +154,8 @@ Route::prefix('api')->group(function () {
         Route::post('stream/scripts/{script}/substack', [ScriptStreamController::class, 'substack']);
         Route::post('stream/scripts/{script}/edit-brief', [ScriptStreamController::class, 'editBrief']);
         Route::post('stream/scripts/{script}/fact-check', [ScriptStreamController::class, 'factCheck']);
+        Route::post('stream/scripts/{script}/publish-kit', [ScriptStreamController::class, 'publishKit']);
+        Route::get('scripts/{script}/chapters', [ScriptStreamController::class, 'chapters']);
 
         // Script wizard (title → chapter plan → streamed draft)
         Route::post('wizard/titles', [ScriptWizardController::class, 'titles']);

@@ -18,6 +18,8 @@ class ScheduleController extends Controller
         'memory' => ['command' => 'studio:memory', 'label' => 'Update Memory index', 'when' => 'Daily at 03:30'],
         'clips' => ['command' => 'studio:clips', 'label' => 'Collect finished Shorts (Vizard)', 'when' => 'Every 10 min while any are processing'],
         'broll' => ['command' => 'studio:broll', 'label' => 'Collect finished b-roll (fal.ai)', 'when' => 'Every 2 min while any are rendering'],
+        'stats' => ['command' => 'studio:stats', 'label' => 'Record your videos’ daily numbers', 'when' => 'Daily at 06:30'],
+        'backup' => ['command' => 'studio:backup', 'label' => 'Back up the studio', 'when' => 'Daily at 03:00 (always, even when paused)'],
         'prune' => ['command' => 'studio:prune', 'label' => 'Clean up old logs & uploads', 'when' => 'Daily at 04:00'],
     ];
 

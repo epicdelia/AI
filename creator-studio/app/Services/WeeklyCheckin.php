@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domains\Audience\VideoStats;
 use App\Models\Setting;
 use App\Models\Week;
 use Carbon\CarbonImmutable;
@@ -63,10 +64,11 @@ class WeeklyCheckin
             }
 
             if ($week->youtube_url && $week->views_7d === null) {
+                // The real day-7 number when studio:stats caught it; otherwise today's count, once it's 7 days old.
+                $id = YouTubeTranscript::videoId($week->youtube_url);
                 $match = $uploads->firstWhere('url', $week->youtube_url);
-                if ($match && $match['age_days'] >= 7) {
-                    $week->views_7d = $match['views'];
-                }
+                $week->views_7d = ($id ? VideoStats::viewsAt($id, 7) : null)
+                    ?? ($match && $match['age_days'] >= 7 ? $match['views'] : null);
             }
             $week->save();
         }
@@ -81,6 +83,15 @@ class WeeklyCheckin
                 .($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
             $nextLine = $next ? ($next->video_title ? "Next week's video: \"{$next->video_title}\"" : "Next week's video: NOT PICKED YET") : 'This was the final scheduled week.';
             $recent = $uploads->map(fn ($v) => "{$v['published']}: \"{$v['title']}\", {$v['views']} views after {$v['age_days']} days")->implode("\n");
+            // Same-age pace from the daily snapshots: an early warning before day 7.
+            $paces = $uploads->map(function ($v) {
+                $p = VideoStats::compare($v['id'])['pace'];
+
+                return $p ? "\"{$v['title']}\": {$p['ratio']}x her usual at day {$p['day']}" : null;
+            })->filter()->implode("\n");
+            if ($paces !== '') {
+                $recent .= "\n\nSame-age comparison (views vs her median at the same age):\n{$paces}";
+            }
 
             try {
                 $verdict = $this->llm->as('mentor')->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nRecent long-form uploads:\n".($recent ?: 'none'));

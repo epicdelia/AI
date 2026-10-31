@@ -1,7 +1,8 @@
 // Library: everything saved from the Toolkit, AI YouTube and chat. Search, star, edit, export.
-import { h, api, apiUpload, busy, toast, pageHead, clear, modal, confirmDialog, mdBlock, copyText, download, slug, timeAgo, debounce, link, emptyState, loading } from '../core.js';
+import { h, api, apiUpload, busy, toast, pageHead, clear, modal, confirmDialog, mdBlock, copyText, download, slug, timeAgo, debounce, link, emptyState } from '../core.js';
 import { icon } from '../icons.js';
 import { exportMenu } from '../components.js';
+import { skList } from '../skeleton.js';
 
 const toolLabel = (t) => (t || 'note').replace(/^tool:/, '').replace(/^youtube:/, 'youtube · ').replace(/_/g, ' ');
 
@@ -12,7 +13,7 @@ export async function renderLibrary(view) {
   const favBtn = h('button', { class: 'btn sm' }, '★ Favourites');
 
   async function load(reset = true) {
-    if (reset) { state.page = 1; clear(listBox).append(loading()); }
+    if (reset) { state.page = 1; clear(listBox).append(skList(8, { thumb: null, label: 'your Library' })); }
     const q = new URLSearchParams({ page: state.page });
     if (state.q) q.set('q', state.q);
     if (state.tool) q.set('tool', state.tool);

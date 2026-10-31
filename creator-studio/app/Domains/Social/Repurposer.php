@@ -25,6 +25,10 @@ class Repurposer
         'x.post' => 'X post: body under 270 characters. One sharp, specific take or result from the source. No hashtags, no emoji strings.',
         'x.thread' => 'X thread: parts are 5 to 9 posts, each under 270 characters. Post 1 is the hook and promise (no "a thread" or 🧵). Each post stands alone. The last post sums up and points to the video. body is empty.',
         'youtube.short' => 'YouTube Short: parts are spoken beats, 6 to 12 lines, under 60 seconds in total, beat 1 hooks immediately; put on-screen text in [TEXT: ...]. title is the Short title (under 60 characters). body is the description (1 or 2 lines).',
+        'tiktok.video' => 'TikTok video: parts are spoken beats, 6 to 14 lines, 30 to 60 seconds in total. Beat 1 hooks in the first second (a bold claim, a result, or a question). Put on-screen text in [TEXT: ...]. body is the caption: hook in the first 70 characters, under 150 characters in total, then 3 to 5 hashtags.',
+        'tiktok.photo' => 'TikTok photo carousel: parts are 5 to 10 slides (slide 1 a hook under 8 words, one idea per slide under 30 words). body is the caption: hook first, under 150 characters, 3 to 5 hashtags.',
+        'threads.post' => 'Threads post: body under 450 characters. Conversational, one opinion or lesson from the source, ending with a question. At most one topic tag. No links in the text.',
+        'threads.thread' => 'Threads thread: parts are 3 to 6 posts, each under 450 characters, post 1 is the hook. Conversational, not a listicle. body is empty.',
         'youtube.community' => 'YouTube community post: body is 40 to 120 words, teasing or extending the video, ending with a question or a poll idea.',
     ];
 

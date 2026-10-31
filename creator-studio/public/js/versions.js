@@ -1,6 +1,7 @@
 // Version history for a script: every copy kept before autosave, AI or Copilot overwrote it.
 import { h, api, busy, toast, modal, clear, timeAgo, confirmDialog, mdBlock } from './core.js';
 import { icon } from './icons.js';
+import { skLines } from './skeleton.js';
 
 const SOURCE = { auto: 'Autosaved', manual: 'Saved by you', restore: 'Before a restore' };
 
@@ -55,7 +56,7 @@ export async function versionsDialog(script, { beforeOpen, onRestored } = {}) {
     }
 
     async function select(id) {
-      clear(pane).append(h('p', { class: 'muted' }, 'Loading…'));
+      clear(pane).append(skLines(10, 'this version'));
       selected = { id };
       drawList();
       try {

@@ -185,6 +185,7 @@ class Transcription
                 'feature' => 'transcription',
                 'engine' => $engine,
                 'model' => $engine === 'openai' ? 'whisper-1' : 'assemblyai-universal',
+                'unit' => 'file', 'quantity' => 1,
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
                 'ok' => $error === null,
                 'error' => $error ? mb_substr($error, 0, 250) : null,

@@ -36,14 +36,31 @@ export async function renderSettings(view) {
   const currentEngine = engines.find((e) => e.value === (s.llm_engine || res.current_engine)) || engines[0];
   const engineSelect = (inputs.llm_engine = h('select', { name: 'llm_engine' },
     engines.map((e) => h('option', { value: e.value, selected: e.value === currentEngine.value }, e.label))));
-  const modelInput = text('llm_model');
+  // Model suggestions from the catalog (ported from MagicAI's EntityEnum); any other id still works.
+  const modelList = h('datalist', { id: 'model-options' });
+  const modelInput = text('llm_model', { list: 'model-options', autocomplete: 'off' });
+  const modelInfo = h('div', { class: 'hint' });
+  const effortSelect = (inputs.reasoning_effort = h('select', { name: 'reasoning_effort' }));
+  const effortField = field('Reasoning effort', effortSelect, 'more effort = better answers, slower and more tokens');
   const baseInput = text('llm_base_url');
   const baseField = field('Base URL', baseInput, 'only for a custom OpenAI-compatible server');
   const keyFieldBox = h('div');
 
+  const catalog = () => res.models[engineSelect.value] || [];
+  function syncModel() {
+    const id = modelInput.value.trim() || engines.find((x) => x.value === engineSelect.value)?.default_model;
+    const m = catalog().find((x) => x.id === id);
+    clear(modelInfo).append(m ? [m.label, m.reasoning ? ' · reasoning' : '', m.vision ? ' · sees images' : ' · text only', m.deprecated ? ' · ⚠ deprecated' : ''].join('') : id ? 'Custom model: request rules are guessed.' : '');
+    effortField.hidden = !(m?.reasoning);
+    clear(effortSelect).append(h('option', { value: '' }, 'model default'),
+      (m?.efforts || []).map((e) => h('option', { value: e, selected: e === s.reasoning_effort }, e)));
+  }
+  modelInput.addEventListener('input', syncModel);
+
   function syncEngine(changed) {
     const e = engines.find((x) => x.value === engineSelect.value);
     modelInput.placeholder = e.default_model ? `default: ${e.default_model}` : 'model name';
+    clear(modelList).append(catalog().filter((m) => !m.deprecated).map((m) => h('option', { value: m.id }, m.label)));
     baseInput.placeholder = e.base_url || 'https://your-server/v1';
     baseField.hidden = e.value !== 'custom';
     if (changed) {
@@ -51,7 +68,8 @@ export async function renderSettings(view) {
       if (e.value !== 'custom') baseInput.value = '';
     }
     clear(keyFieldBox).append(secretField('llm_api_key', `${e.label} API key`,
-      e.value === 'assemblyai' ? 'optional: your AssemblyAI key below is used if this is empty' : null, e.key_url));
+      e.value === 'assemblyai' ? 'optional: your AssemblyAI key below is used if this is empty' : 'several keys? separate with commas: the next is used if one is rate-limited', e.key_url));
+    syncModel();
   }
   engineSelect.addEventListener('change', () => syncEngine(true));
   syncEngine(false);
@@ -99,7 +117,8 @@ export async function renderSettings(view) {
   section('AI engine', 'One provider powers ideas, scripts, reviews, the Toolkit, chat and dictation cleanup. Switch any time.',
     h('div', { class: 'grid grid-2 tight' },
       field('Provider', engineSelect),
-      field('Model', modelInput, 'leave empty for the default'),
+      h('div', {}, field('Model', modelInput, 'leave empty for the default'), modelInfo, modelList),
+      effortField,
       h('div', { class: 'span-2' }, baseField),
       h('div', { class: 'span-2' }, keyFieldBox))),
 
@@ -124,6 +143,17 @@ export async function renderSettings(view) {
     h('div', { class: 'grid grid-2 tight' },
       secretField('embedding_api_key', 'Extra OpenAI key (optional)', 'used for Memory, read-aloud and thumbnail mockups when your AI engine isn’t OpenAI', 'https://platform.openai.com/api-keys'),
       field('Embedding model', text('embedding_model', { placeholder: 'default for your provider' }), 'leave empty unless you know you need another'))),
+
+  section('Usage limits', 'Monthly caps so a busy week can’t run up a surprise bill. Leave empty for no limit. When a cap is reached the AI stops politely until the 1st (or until you raise it).',
+    h('div', { class: 'grid grid-3 tight' },
+      field('AI tokens per month', num('monthly_token_limit', { min: 0, step: 50000, placeholder: 'e.g. 2000000' }), limitHint(res.limits, 'token')),
+      field('Thumbnail mockups per month', num('monthly_image_limit', { min: 0, placeholder: 'e.g. 40' }), limitHint(res.limits, 'image')),
+      field('Read-aloud characters per month', num('monthly_tts_char_limit', { min: 0, step: 10000, placeholder: 'e.g. 200000' }), limitHint(res.limits, 'character')),
+      field('Your price per 1M input tokens', num('price_input_per_million', { min: 0, step: 0.01, placeholder: 'optional' }), 'from your provider’s pricing page'),
+      field('Your price per 1M output tokens', num('price_output_per_million', { min: 0, step: 0.01, placeholder: 'optional' }), 'only used for the estimate below'),
+      h('div', { class: 'field' }, h('label', {}, 'Estimated spend this month'),
+        h('div', { class: 'big-number' }, res.limits.estimated_spend === null ? '—' : `${res.limits.estimated_spend.toFixed(2)}`),
+        h('span', { class: 'hint' }, res.limits.estimated_spend === null ? 'enter your prices to see an estimate' : 'in your price’s currency; text models only')))),
 
   section('Media', 'Read-aloud, thumbnail mockups and automatic Shorts. Each is optional and billed by its provider per use.',
     h('div', { class: 'grid grid-2 tight' },
@@ -238,6 +268,12 @@ async function memoryCard() {
   return h('div', { class: 'card' }, h('h3', {}, 'Memory'), box);
 }
 
+function limitHint(limits, unit) {
+  const u = limits?.units?.[unit];
+  if (!u) return '';
+  return u.limit ? `${u.used.toLocaleString()} of ${u.limit.toLocaleString()} used this month` : `${u.used.toLocaleString()} used this month`;
+}
+
 function section(title, desc, body) {
   return h('section', { class: 'card' }, h('h2', {}, title), desc ? h('p', { class: 'muted small' }, desc) : null, body);
 }
@@ -255,8 +291,9 @@ async function usageCard() {
       u.failed ? h('div', {}, h('strong', { class: 'error-text' }, u.failed), h('span', { class: 'muted' }, ' failed')) : null),
     u.by_feature.length
       ? h('table', { class: 'compact-table' },
-        h('thead', {}, h('tr', {}, h('th', {}, 'Feature'), h('th', { class: 'num' }, 'Calls'), h('th', { class: 'num' }, 'Tokens'))),
-        h('tbody', {}, u.by_feature.map((f) => h('tr', {}, h('td', {}, label(f.feature)), h('td', { class: 'num' }, f.calls), h('td', { class: 'num' }, compact(f.tokens))))))
+        h('thead', {}, h('tr', {}, h('th', {}, 'Feature'), h('th', { class: 'num' }, 'Calls'), h('th', { class: 'num' }, 'Amount'))),
+        h('tbody', {}, u.by_feature.map((f) => h('tr', {}, h('td', {}, label(f.feature)), h('td', { class: 'num' }, f.calls),
+          h('td', { class: 'num' }, f.unit === 'token' ? compact(f.tokens) : `${compact(f.quantity)} ${f.unit}${Number(f.quantity) === 1 ? '' : 's'}`)))))
       : h('p', { class: 'muted small' }, 'No AI calls yet.'),
     u.recent.length ? h('details', { class: 'small' }, h('summary', {}, 'Recent calls'),
       h('ul', { class: 'mini-log' }, u.recent.map((r) => h('li', { class: r.ok ? '' : 'fail' },

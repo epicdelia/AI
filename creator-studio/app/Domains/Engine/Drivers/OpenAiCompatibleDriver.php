@@ -2,9 +2,12 @@
 
 namespace App\Domains\Engine\Drivers;
 
+use App\Domains\Engine\Catalog\ModelCatalog;
 use App\Domains\Engine\Data\ChatResult;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Engine\Stream\SseParser;
+use App\Models\Setting;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -13,30 +16,13 @@ class OpenAiCompatibleDriver extends BaseDriver
 {
     public function chat(string $system, array $messages, array $options = []): ChatResult
     {
-        $timeout = $options['timeout'] ?? 180;
-        // AssemblyAI's gateway wants the bare key; everyone else wants "Bearer <key>".
-        $auth = $this->engine === EngineEnum::ASSEMBLYAI ? $this->key() : 'Bearer '.$this->key();
-        $headers = ['Authorization' => $auth];
-        if ($this->engine === EngineEnum::OPENROUTER) {
-            $headers['X-Title'] = 'Creator Studio';
-        }
+        $body = $this->body($system, $messages, $options);
+        $resp = $this->send($body, $options);
 
-        $body = [
-            'model' => $this->model(),
-            'messages' => array_merge([['role' => 'system', 'content' => $system]], $messages),
-        ];
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        $resp = Http::timeout($timeout)->connectTimeout(10)->withHeaders($headers)
-            ->post($this->baseUrl().'/chat/completions', $body);
-
-        // Some reasoning models reject a custom temperature: retry once without it.
+        // Some models reject a custom temperature: retry once without it.
         if ($resp->status() === 400 && isset($body['temperature']) && str_contains(strtolower($resp->body()), 'temperature')) {
             unset($body['temperature']);
-            $resp = Http::timeout($timeout)->connectTimeout(10)->withHeaders($headers)
-                ->post($this->baseUrl().'/chat/completions', $body);
+            $resp = $this->send($body, $options);
         }
 
         if ($resp->failed()) {
@@ -58,25 +44,13 @@ class OpenAiCompatibleDriver extends BaseDriver
 
     public function stream(string $system, array $messages, callable $onDelta, array $options = []): ChatResult
     {
-        $auth = $this->engine === EngineEnum::ASSEMBLYAI ? $this->key() : 'Bearer '.$this->key();
-        $body = [
-            'model' => $this->model(),
-            'messages' => array_merge([['role' => 'system', 'content' => $system]], $messages),
-            'stream' => true,
-        ];
+        $body = $this->body($system, $messages, $options) + ['stream' => true];
         // Token usage in the final chunk; only OpenAI and OpenRouter document this option.
         if (in_array($this->engine, [EngineEnum::OPENAI, EngineEnum::OPENROUTER], true)) {
             $body['stream_options'] = ['include_usage' => true];
         }
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
 
-        $resp = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)
-            ->withHeaders(['Authorization' => $auth, 'Accept' => 'text/event-stream'])
-            ->withOptions(['stream' => true])
-            ->post($this->baseUrl().'/chat/completions', $body);
-
+        $resp = $this->send($body, $options, true);
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
             throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
@@ -113,5 +87,66 @@ class OpenAiCompatibleDriver extends BaseDriver
         }
 
         return new ChatResult(trim($text), $in, $out, $model);
+    }
+
+    /**
+     * Request body. Reasoning models (ModelCatalog, ported from MagicAI's EntityEnum) get no
+     * temperature, max_completion_tokens instead of max_tokens, and a resolved reasoning_effort.
+     */
+    private function body(string $system, array $messages, array $options): array
+    {
+        $model = $this->model();
+        $body = [
+            'model' => $model,
+            'messages' => array_merge([['role' => 'system', 'content' => $system]], array_map([$this, 'message'], $messages)),
+        ];
+
+        $reasoning = ModelCatalog::isReasoning($this->engine, $model);
+        if (isset($options['temperature']) && ! $reasoning) {
+            $body['temperature'] = $options['temperature'];
+        }
+        if (isset($options['max_tokens'])) {
+            $body[ModelCatalog::requiresMaxCompletionTokens($this->engine, $model) ? 'max_completion_tokens' : 'max_tokens'] = (int) $options['max_tokens'];
+        }
+        if ($reasoning && ($effort = Setting::get('reasoning_effort'))) {
+            $resolved = ModelCatalog::resolveEffort($this->engine, $model, $effort) ?? $effort;
+            $body['reasoning_effort'] = $resolved;
+        }
+
+        return $body;
+    }
+
+    /** Images become content parts (MagicAI's viaOpenAiWithImage used the same data-URI form). */
+    private function message(array $m): array
+    {
+        if (empty($m['images'])) {
+            return ['role' => $m['role'], 'content' => $m['content']];
+        }
+        $parts = [['type' => 'text', 'text' => (string) $m['content']]];
+        foreach ($m['images'] as $img) {
+            $parts[] = ['type' => 'image_url', 'image_url' => ['url' => "data:{$img['mime']};base64,{$img['data']}"]];
+        }
+
+        return ['role' => $m['role'], 'content' => $parts];
+    }
+
+    private function send(array $body, array $options, bool $stream = false): Response
+    {
+        return $this->withKeyFailover(function (string $key) use ($body, $options, $stream) {
+            // AssemblyAI's gateway wants the bare key; everyone else wants "Bearer <key>".
+            $headers = ['Authorization' => $this->engine === EngineEnum::ASSEMBLYAI ? $key : "Bearer {$key}"];
+            if ($this->engine === EngineEnum::OPENROUTER) {
+                $headers['X-Title'] = 'Creator Studio';
+            }
+            if ($stream) {
+                $headers['Accept'] = 'text/event-stream';
+            }
+            $http = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)->withHeaders($headers);
+            if ($stream) {
+                $http = $http->withOptions(['stream' => true]);
+            }
+
+            return $http->post($this->baseUrl().'/chat/completions', $body);
+        });
     }
 }

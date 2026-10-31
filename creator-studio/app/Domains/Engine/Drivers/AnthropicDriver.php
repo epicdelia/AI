@@ -4,27 +4,17 @@ namespace App\Domains\Engine\Drivers;
 
 use App\Domains\Engine\Data\ChatResult;
 use App\Domains\Engine\Stream\SseParser;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-/** Anthropic's native Messages API. */
+/** Anthropic's native Messages API (ported from MagicAI's AnthropicService + viaAnthropicWithImage). */
 class AnthropicDriver extends BaseDriver
 {
     public function chat(string $system, array $messages, array $options = []): ChatResult
     {
-        $body = [
-            'model' => $this->model(),
-            'max_tokens' => $options['max_tokens'] ?? 8000,
-            'system' => $system,
-            'messages' => $messages,
-        ];
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        $resp = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)
-            ->withHeaders(['x-api-key' => $this->key(), 'anthropic-version' => '2023-06-01'])
-            ->post($this->baseUrl().'/messages', $body);
+        $body = $this->body($system, $messages, $options);
+        $resp = $this->send($body, $options);
 
         if ($resp->failed()) {
             throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($resp->json('error.message') ?? $resp->body()));
@@ -46,21 +36,8 @@ class AnthropicDriver extends BaseDriver
     /** Ported from MagicAI's anthropicChatStream, reading the body incrementally. */
     public function stream(string $system, array $messages, callable $onDelta, array $options = []): ChatResult
     {
-        $body = [
-            'model' => $this->model(),
-            'max_tokens' => $options['max_tokens'] ?? 8000,
-            'system' => $system,
-            'messages' => $messages,
-            'stream' => true,
-        ];
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        $resp = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)
-            ->withHeaders(['x-api-key' => $this->key(), 'anthropic-version' => '2023-06-01', 'Accept' => 'text/event-stream'])
-            ->withOptions(['stream' => true])
-            ->post($this->baseUrl().'/messages', $body);
+        $body = $this->body($system, $messages, $options) + ['stream' => true];
+        $resp = $this->send($body, $options, true);
 
         if ($resp->failed()) {
             throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($resp->json('error.message') ?? $resp->body()));
@@ -103,5 +80,48 @@ class AnthropicDriver extends BaseDriver
         }
 
         return new ChatResult(trim($text), $in, $out, $model);
+    }
+
+    private function body(string $system, array $messages, array $options): array
+    {
+        $body = [
+            'model' => $this->model(),
+            'max_tokens' => $options['max_tokens'] ?? 8000,
+            'system' => $system,
+            'messages' => array_map([$this, 'message'], $messages),
+        ];
+        if (isset($options['temperature'])) {
+            $body['temperature'] = $options['temperature'];
+        }
+
+        return $body;
+    }
+
+    /** Images as base64 image blocks before the text, as in MagicAI's viaAnthropicWithImage. */
+    private function message(array $m): array
+    {
+        if (empty($m['images'])) {
+            return ['role' => $m['role'], 'content' => $m['content']];
+        }
+        $blocks = [];
+        foreach ($m['images'] as $img) {
+            $blocks[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $img['mime'], 'data' => $img['data']]];
+        }
+        $blocks[] = ['type' => 'text', 'text' => (string) $m['content']];
+
+        return ['role' => $m['role'], 'content' => $blocks];
+    }
+
+    private function send(array $body, array $options, bool $stream = false): Response
+    {
+        return $this->withKeyFailover(function (string $key) use ($body, $options, $stream) {
+            $http = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)
+                ->withHeaders(['x-api-key' => $key, 'anthropic-version' => '2023-06-01'] + ($stream ? ['Accept' => 'text/event-stream'] : []));
+            if ($stream) {
+                $http = $http->withOptions(['stream' => true]);
+            }
+
+            return $http->post($this->baseUrl().'/messages', $body);
+        });
     }
 }

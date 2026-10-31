@@ -3,6 +3,7 @@
 namespace App\Domains\Media;
 
 use App\Domains\Usage\AiUsage;
+use App\Domains\Usage\UsageLimit;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -121,6 +122,7 @@ class TextToSpeech
         if (mb_strlen($text) > self::MAX_CHARS) {
             throw new RuntimeException('That’s longer than '.number_format(self::MAX_CHARS).' characters. Select a part of the script to hear instead.');
         }
+        UsageLimit::ensure('character', mb_strlen($text));
         $voice = $opts['voice'] ?? Setting::get('tts_voice') ?: ($provider === 'openai' ? 'coral' : null);
         if (! $voice) {
             throw new RuntimeException('Pick an ElevenLabs voice first.');
@@ -199,7 +201,7 @@ class TextToSpeech
             AiUsage::create([
                 'feature' => 'read_aloud', 'engine' => $provider,
                 'model' => $provider === 'openai' ? self::OPENAI_MODEL : self::ELEVEN_MODEL,
-                'input_tokens' => $chars, // characters, the unit both providers bill by
+                'unit' => 'character', 'quantity' => $chars, // the unit both providers bill by
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
                 'ok' => $error === null, 'error' => $error ? mb_substr($error, 0, 250) : null,
             ]);

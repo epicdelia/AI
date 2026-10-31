@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Domains\Engine\Catalog\ModelCatalog;
 use App\Domains\Engine\EngineManager;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Usage\AiUsage;
+use App\Domains\Usage\UsageLimit;
 use App\Models\Setting;
 use RuntimeException;
 use Throwable;
@@ -57,9 +59,26 @@ class Llm
         return $this->converse($system, [['role' => 'user', 'content' => $user]], $timeout);
     }
 
-    /** @param array<int, array{role: string, content: string}> $messages */
+    /**
+     * Ask about one or more images (port of MagicAI's AiCompletionService::completeWithImage).
+     *
+     * @param  array<int, array{mime: string, data: string}>  $images  base64 data
+     */
+    public function see(string $system, string $text, array $images, int $timeout = 180): string
+    {
+        $engine = $this->engines->current();
+        $model = Setting::get('llm_model') ?: $engine->defaultModel();
+        if (! self::$fake && ! ModelCatalog::supportsVision($engine, $model)) {
+            throw new RuntimeException("{$engine->label()} model '{$model}' can't look at images. Pick a vision model in Settings (e.g. GPT-4.1, GPT-5, Claude or Gemini).");
+        }
+
+        return $this->converse($system, [['role' => 'user', 'content' => $text, 'images' => $images]], $timeout);
+    }
+
+    /** @param array<int, array{role: string, content: string, images?: array}> $messages */
     public function converse(string $system, array $messages, int $timeout = 180): string
     {
+        UsageLimit::ensure('token');
         if (self::$fake) {
             $last = end($messages);
 
@@ -92,6 +111,7 @@ class Llm
      */
     public function stream(string $system, array $messages, callable $onDelta, int $timeout = 180): string
     {
+        UsageLimit::ensure('token');
         if (self::$fake) {
             $last = end($messages);
             $text = (self::$fake)($system, $last['content'] ?? '');

@@ -129,7 +129,7 @@ class ShortsClipper
         $resp = $method === 'post' ? $http->post(self::BASE.'/'.$path, $params) : $http->get(self::BASE.'/'.$path);
         if ($path === 'project/create') {
             try {
-                AiUsage::create(['feature' => 'shorts', 'engine' => 'vizard', 'model' => 'clipping',
+                AiUsage::create(['feature' => 'shorts', 'engine' => 'vizard', 'model' => 'clipping', 'unit' => 'job', 'quantity' => 1,
                     'duration_ms' => (int) round((microtime(true) - $started) * 1000), 'ok' => $resp->successful()]);
             } catch (Throwable) {
             }

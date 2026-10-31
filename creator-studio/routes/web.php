@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
+use App\Http\Controllers\Api\VisionController;
 use App\Http\Controllers\Api\YouTubeController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
@@ -132,6 +133,8 @@ Route::prefix('api')->group(function () {
         Route::post('media/photos', [MediaController::class, 'uploadPhoto']);
         Route::post('tts', [MediaController::class, 'speak']);
         Route::post('thumbnails', [MediaController::class, 'thumbnail']);
+        Route::post('thumbnails/review', [VisionController::class, 'thumbnailReview']);
+        Route::get('usage/limits', fn () => response()->json(\App\Domains\Usage\UsageLimit::summary()));
         Route::get('clips', [MediaController::class, 'clips']);
         Route::post('clips', [MediaController::class, 'submitClips']);
         Route::post('clips/{project}/refresh', [MediaController::class, 'refreshClips']);

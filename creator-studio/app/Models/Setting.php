@@ -33,6 +33,12 @@ class Setting extends Model
         'search_provider' => 'auto',      // auto | serper | perplexity | off (web search for fact-checks and chat)
         'embedding_model' => '',          // empty = provider default; used for Memory search
         'schedule_enabled' => '1',        // daily scan, feed refresh, Monday check-in (needs schedule:work)
+        'reasoning_effort' => '',         // '' = model default; none|minimal|low|medium|high|xhigh (resolved per model)
+        'monthly_token_limit' => '',      // '' = no limit (UsageLimit, after MagicAI's HasCreditLimit)
+        'monthly_image_limit' => '',
+        'monthly_tts_char_limit' => '',
+        'price_input_per_million' => '',  // her own prices, only for the spend estimate
+        'price_output_per_million' => '',
         'tts_provider' => 'auto',         // auto | openai | elevenlabs (read-aloud)
         'tts_voice' => '',                // OpenAI voice name or ElevenLabs voice id
         'image_provider' => 'auto',       // auto | openai | fal (thumbnail mockups)

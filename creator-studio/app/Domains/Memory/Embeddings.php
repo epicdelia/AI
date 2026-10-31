@@ -125,7 +125,7 @@ class Embeddings
     {
         try {
             AiUsage::create([
-                'feature' => 'memory:embed', 'engine' => 'embeddings', 'model' => $model,
+                'feature' => 'memory:embed', 'engine' => 'embeddings', 'model' => $model, 'unit' => 'request', 'quantity' => 1,
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
                 'ok' => $error === null, 'error' => $error ? mb_substr($error, 0, 250) : null,
             ]);

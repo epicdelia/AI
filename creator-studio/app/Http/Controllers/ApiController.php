@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Engine\Catalog\ModelCatalog;
 use App\Domains\Engine\EngineManager;
+use App\Domains\Usage\UsageLimit;
 use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Usage\AiUsage;
@@ -27,6 +29,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 class ApiController extends Controller
@@ -89,9 +92,21 @@ class ApiController extends Controller
             'password' => 'required',
         ]);
 
+        // Brute-force guard, after MagicAI's Helpers\RateLimiter (attempts per identifier,
+        // cached with a decay window): 5 wrong passwords per email+IP locks login for 15 minutes.
+        $key = 'login:'.strtolower($creds['email']).'|'.$request->ip();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
+            return response()->json(['error' => "Too many attempts. Try again in {$minutes} minute(s)."], 429);
+        }
+
         if (! Auth::attempt($creds, true)) {
+            RateLimiter::hit($key, 15 * 60);
+
             return response()->json(['error' => 'Incorrect email or password.'], 401);
         }
+        RateLimiter::clear($key);
 
         $request->session()->regenerate();
         $user = Auth::user();
@@ -707,7 +722,9 @@ class ApiController extends Controller
             'settings' => $settings,
             'secrets' => $secrets,
             'engines' => EngineEnum::catalog(),
+            'models' => ModelCatalog::forSettings(),
             'current_engine' => app(EngineManager::class)->current()->value,
+            'limits' => UsageLimit::summary(),
         ]);
     }
 

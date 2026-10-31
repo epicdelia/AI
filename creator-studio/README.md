@@ -29,7 +29,23 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Thumbnail mockups** | 16:9 mockups from a scene + text, optionally with her own photos as reference (OpenAI gpt-image or fal.ai) |
 | **Cut Shorts** | Vizard finds the best moments in a published video and returns vertical clips with captions and viral scores |
 
-Read-aloud, mockups and Shorts are optional and billed by each provider per use. Generated audio
+| **Thumbnail critic** | AI vision review of her thumbnail (upload, mockup or published video), optionally against up to 3 breakouts |
+| **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
+
+Read-aloud, mockups and Shorts are optional and billed by each provider per use.
+
+### Ported from MagicAI's domains
+
+- `app/Domains/Engine/Catalog/ModelCatalog` (from `Entity\Enums\EntityEnum`): known chat models with
+  reasoning rules (no temperature, `max_completion_tokens`, `reasoning_effort` resolved to the nearest
+  supported value), vision support and deprecation; drives the Settings model picker.
+- Vision (from `AiCompletionService::completeWithImage`): `Llm::see()`, images as OpenAI data-URI parts
+  or Anthropic base64 blocks.
+- Key pool (from `HasApiKeys`): several comma-separated keys per provider; the next one is tried on
+  401/403/429/5xx.
+- `app/Domains/Usage/UsageLimit` (from `Entity\Concerns\HasCreditLimit`) and per-unit usage rows
+  (from `AITokenType` / the Calculate concerns).
+- Login throttling (from `Helpers\RateLimiter`): 5 wrong passwords per email + IP → 15-minute lock. Generated audio
 and images are stored in `storage/app/private/media` and only served to the logged-in user.
 
 ## Automation

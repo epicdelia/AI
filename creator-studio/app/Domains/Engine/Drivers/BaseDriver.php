@@ -5,9 +5,10 @@ namespace App\Domains\Engine\Drivers;
 use App\Domains\Engine\Contracts\EngineDriver;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Models\Setting;
+use Illuminate\Http\Client\Response;
 use RuntimeException;
 
-/** Shared config lookup: the engine, base URL, model and key all come from Settings. */
+/** Shared config lookup: the engine, base URL, model and key(s) all come from Settings. */
 abstract class BaseDriver implements EngineDriver
 {
     public function __construct(protected EngineEnum $engine) {}
@@ -33,14 +34,42 @@ abstract class BaseDriver implements EngineDriver
         return Setting::get('llm_model') ?: $this->engine->defaultModel();
     }
 
-    protected function key(): string
+    /**
+     * Key pool, ported from MagicAI's HasApiKeys::setOpenAiKey(): the key field may hold several
+     * comma-separated keys. MagicAI picked one at random per request; here they're tried in a
+     * random order and the next one is used when a key is rate-limited or rejected.
+     *
+     * @return array<int, string>
+     */
+    protected function keys(): array
     {
-        $key = Setting::get('llm_api_key') ?: ($this->engine->canUseAssemblyKey() ? Setting::get('assemblyai_api_key') : null);
-        if (! $key) {
+        $raw = Setting::get('llm_api_key') ?: ($this->engine->canUseAssemblyKey() ? Setting::get('assemblyai_api_key') : null);
+        $keys = array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
+        if (! $keys) {
             throw new RuntimeException("No {$this->engine->label()} key yet. Add one under Settings.");
         }
+        shuffle($keys);
 
-        return $key;
+        return $keys;
+    }
+
+    /**
+     * Send with the first key; on 401/403/429 or a 5xx move to the next key in the pool.
+     *
+     * @param  callable(string $key): Response  $send
+     */
+    protected function withKeyFailover(callable $send): Response
+    {
+        $keys = $this->keys();
+        foreach ($keys as $i => $key) {
+            $resp = $send($key);
+            $retryable = in_array($resp->status(), [401, 403, 429], true) || $resp->serverError();
+            if (! $retryable || $i === count($keys) - 1) {
+                return $resp;
+            }
+        }
+
+        return $resp; // unreachable; keeps static analysis happy
     }
 
     protected static function clip(mixed $msg): string

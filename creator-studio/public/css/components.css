@@ -385,3 +385,9 @@ textarea[readonly].script-editor { background: var(--bg); }
 .clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
 .clip { display: grid; gap: 4px; align-content: start; }
 .clip video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 10px; object-fit: cover; }
+
+/* Thumbnail critic, limits */
+.choice-list.compact .choice { padding: 6px 10px; align-items: center; }
+.mini-thumb { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex: none; }
+.review-subject { display: block; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; margin-bottom: 14px; }
+.big-number { font-size: 1.6rem; font-weight: 800; padding: 4px 0; }

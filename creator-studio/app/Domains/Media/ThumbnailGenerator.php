@@ -3,6 +3,7 @@
 namespace App\Domains\Media;
 
 use App\Domains\Usage\AiUsage;
+use App\Domains\Usage\UsageLimit;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -83,6 +84,7 @@ class ThumbnailGenerator
             throw new RuntimeException('Thumbnail mockups need an OpenAI key (or a fal.ai key) in Settings.');
         }
         $provider ??= 'openai';
+        UsageLimit::ensure('image', 1);
         $refs = ! empty($o['use_photos']) ? MediaFile::where('kind', 'photo')->latest()->take(self::MAX_REFERENCES)->get() : collect();
         if (! empty($o['use_photos']) && $refs->isEmpty()) {
             throw new RuntimeException('Upload a photo of yourself first (Package tab → Your photos).');
@@ -187,7 +189,7 @@ class ThumbnailGenerator
     {
         try {
             AiUsage::create([
-                'feature' => 'thumbnail', 'engine' => $provider, 'model' => $model,
+                'feature' => 'thumbnail', 'engine' => $provider, 'model' => $model, 'unit' => 'image', 'quantity' => $error ? 0 : 1,
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
                 'ok' => $error === null, 'error' => $error ? mb_substr($error, 0, 250) : null,
             ]);

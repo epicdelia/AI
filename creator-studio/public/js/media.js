@@ -1,7 +1,8 @@
 // Read-aloud, thumbnail mockups and Shorts (Vizard) for the script editor.
 // Ported features: MagicAI's TTSController, OpenAI/fal image services and Vizard package.
-import { h, api, apiUpload, busy, toast, clear, confirmDialog, link, timeAgo } from './core.js';
+import { h, api, apiUpload, busy, toast, clear, confirmDialog, link, timeAgo, modal, field } from './core.js';
 import { icon } from './icons.js';
+import { outputPanel } from './components.js';
 
 let caps = null;
 async function capabilities(force = false) {
@@ -124,6 +125,7 @@ export function thumbnailStudio(script) {
       h('figcaption', { class: 'row-between' },
         h('span', { class: 'muted small clamp-1' }, m.title || ''),
         h('span', { class: 'row' },
+          h('button', { class: 'btn ghost sm', title: 'Get a critique', onclick: () => thumbnailReviewDialog({ mediaId: m.id, mediaUrl: m.url, title: script.title }) }, icon('eye', 13)),
           h('a', { href: `${m.url}?download=1`, class: 'btn ghost sm', title: 'Download' }, icon('download', 13)),
           h('button', {
             class: 'btn ghost sm danger', title: 'Delete',
@@ -157,7 +159,8 @@ export function thumbnailStudio(script) {
       h('div', { class: 'field' },
         h('label', { class: 'inline-check' }, usePhotos, 'Use my photos (so the mockup has your face)'),
         photos, photoInput),
-      h('div', { class: 'row' }, gen),
+      h('div', { class: 'row' }, gen,
+        h('button', { class: 'btn', type: 'button', onclick: () => thumbnailReviewDialog({ title: script.title }) }, icon('eye', 15), 'Review a thumbnail')),
       gallery);
     drawPhotos();
 
@@ -165,6 +168,53 @@ export function thumbnailStudio(script) {
   }).catch((e) => clear(box).append(h('p', { class: 'error-text' }, e.message)));
 
   return card;
+}
+
+// ------------------------------------------------------------------
+// Thumbnail critic (AI vision, ported from MagicAI's completeWithImage).
+// ------------------------------------------------------------------
+
+export function thumbnailReviewDialog({ mediaId = null, mediaUrl = null, title = '' } = {}) {
+  return modal('Thumbnail critic', () => {
+    const file = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
+    const yt = h('input', { type: 'url', placeholder: 'or a YouTube link to one of your videos' });
+    const titleIn = h('input', { type: 'text', value: title, maxlength: 200, placeholder: 'The video title (helps judge the pair)' });
+    const picks = h('div', { class: 'choice-list compact' }, h('p', { class: 'muted small' }, 'Loading breakouts…'));
+    const out = h('div');
+
+    api('GET', 'channels').then((r) => {
+      const top = [...r.outliers].sort((a, b) => b.outlier_score - a.outlier_score).slice(0, 8);
+      clear(picks).append(top.length ? top.map((o) => h('label', { class: 'choice' },
+        h('input', { type: 'checkbox', value: `outlier:${o.id}`, onchange: (e) => {
+          if (picks.querySelectorAll('input:checked').length > 3) { e.target.checked = false; toast('Compare with up to 3.', 'err'); }
+        } }),
+        h('img', { src: `https://i.ytimg.com/vi/${o.video_id}/mqdefault.jpg`, alt: '', class: 'mini-thumb', loading: 'lazy' }),
+        h('div', {}, h('strong', { class: 'clamp-1' }, o.title), h('div', { class: 'muted small' }, `${o.channel_title} · ${Number(o.outlier_score).toFixed(1)}×`))))
+        : h('p', { class: 'muted small' }, 'No breakouts yet: scan on the Breakouts page to compare against what’s working.'));
+    }).catch(() => clear(picks));
+
+    const go = h('button', {
+      class: 'btn primary', type: 'button',
+      onclick: () => busy(go, 'Looking closely…', async () => {
+        const fd = new FormData();
+        if (mediaId) fd.append('media_id', mediaId);
+        else if (file.files[0]) fd.append('image', file.files[0]);
+        else if (yt.value.trim()) fd.append('youtube_url', yt.value.trim());
+        else throw new Error('Choose a thumbnail to review.');
+        if (titleIn.value.trim()) fd.append('title', titleIn.value.trim());
+        picks.querySelectorAll('input:checked').forEach((c, i) => fd.append(`compare[${i}]`, c.value));
+        const r = await apiUpload('thumbnails/review', fd);
+        clear(out).append(outputPanel(r.review, { title: `Thumbnail review${titleIn.value ? `: ${titleIn.value}` : ''}`, tool: 'vision:thumbnail' }));
+      }),
+    }, icon('eye', 15), 'Review');
+
+    return h('div', {},
+      mediaUrl ? h('img', { src: mediaUrl, alt: 'Thumbnail to review', class: 'review-subject' }) : h('div', { class: 'grid grid-2 tight' }, field('Your thumbnail', file), field('Or', yt)),
+      field('Title', titleIn),
+      h('div', { class: 'field' }, h('label', {}, 'Compare with breakouts ', h('span', { class: 'hint' }, 'optional, up to 3')), picks),
+      h('div', { class: 'row' }, go),
+      out);
+  }, { wide: true });
 }
 
 // ------------------------------------------------------------------

@@ -143,6 +143,7 @@ class WebSearch
                 'feature' => 'web_search',
                 'engine' => $provider,
                 'model' => $provider === 'serper' ? 'google' : 'sonar',
+                'unit' => 'search', 'quantity' => 1,
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
                 'ok' => $error === null,
                 'error' => $error ? mb_substr($error, 0, 250) : null,

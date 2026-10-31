@@ -143,3 +143,70 @@ export function manageFeed() {
         h('div', { class: 'row' }, h('button', { class: 'btn ghost', onclick: () => close(false) }, 'Cancel'), saveBtn)));
   }, { wide: true });
 }
+
+const SOURCE_LABEL = { public: 'Public figure', manual: 'Your entry' };
+
+/**
+ * "Public reach": per network what visitors see in "Reach & Content" (synced, typed by her, or
+ * the public figure), its 30-day change and profile opens. She can type today's count (saved as a
+ * follower snapshot, so Analytics and the media kit get it too) and show or hide a network.
+ */
+export function reachCard(reach, onChange) {
+  if (!reach?.networks?.length) return null;
+  const inputs = {};
+  const shown = {};
+  const saveBtn = h('button', { class: 'btn primary sm', disabled: true, onclick: save }, 'Save');
+  const dirty = () => { saveBtn.disabled = false; };
+
+  const rows = reach.networks.map((n) => {
+    inputs[n.key] = h('input', {
+      type: 'number', min: '0', step: '1', inputmode: 'numeric', class: 'input reach-input',
+      placeholder: String(n.count), 'aria-label': `${n.label} ${n.unit} today`, oninput: dirty,
+    });
+    shown[n.key] = h('input', { type: 'checkbox', checked: !n.hidden, onchange: dirty, 'aria-label': `Show ${n.label} on your website` });
+    const status = n.live ? (SOURCE_LABEL[n.source] || 'Synced') : SOURCE_LABEL.public;
+    return h('tr', { class: n.hidden ? 'is-hidden' : '' },
+      h('td', {}, h('span', { class: 'reach-net' }, icon(`brand:${n.key}`, 16), h('strong', {}, n.label))),
+      h('td', { class: 'num' }, h('strong', {}, n.count_label),
+        n.change_30d ? h('span', { class: `reach-delta ${n.change_30d > 0 ? 'up' : 'down'}` }, `${n.change_30d > 0 ? '+' : '−'}${compact(Math.abs(n.change_30d))}`) : null),
+      h('td', {}, h('span', { class: `reach-src is-${n.live ? (n.source === 'manual' ? 'manual' : 'synced') : 'public'}` }, status)),
+      h('td', { class: 'num muted' }, String(n.opens_30d || 0)),
+      h('td', {}, inputs[n.key]),
+      h('td', { class: 'center' }, h('label', { class: 'switch-mini' }, shown[n.key], h('span', { 'aria-hidden': 'true' }))));
+  });
+
+  async function save() {
+    saveBtn.disabled = true;
+    const counts = {};
+    for (const [k, el] of Object.entries(inputs)) if (el.value !== '') counts[k] = Number(el.value);
+    const hidden = Object.entries(shown).filter(([, el]) => !el.checked).map(([k]) => k);
+    if (hidden.length === reach.networks.length) {
+      toast('Keep at least one network on your website.', 'err');
+      saveBtn.disabled = false;
+      return;
+    }
+    try {
+      if (Object.keys(counts).length) await api('POST', 'social/followers', { counts });
+      await api('PUT', 'landing/reach', { hidden });
+      toast('Your website reach is updated.');
+      onChange?.();
+    } catch (err) {
+      saveBtn.disabled = false;
+      toast(err.message || 'Could not save.', 'err');
+    }
+  }
+
+  return h('div', { class: 'card reach-card' },
+    h('div', { class: 'card-header' },
+      h('div', {},
+        h('h2', {}, 'Public reach'),
+        h('p', { class: 'muted small', style: { margin: '2px 0 0' } },
+          `${reach.headline} on your website · ${reach.live_networks} of ${reach.networks.filter((n) => !n.hidden).length} networks with your real numbers`)),
+      h('div', { class: 'row' }, link('/connections', { class: 'btn ghost sm' }, icon('link', 14), 'Connect to sync'), saveBtn)),
+    h('div', { class: 'table-wrap' },
+      h('table', { class: 'reach-table' },
+        h('thead', {}, h('tr', {}, ['Network', 'Shown', 'Source', 'Opens (30d)', 'Today’s count', 'On site'].map((t) => h('th', {}, t)))),
+        h('tbody', {}, rows))),
+    h('p', { class: 'muted small', style: { margin: '10px 0 0' } },
+      'Typing a count saves today’s snapshot (Analytics and your media kit use it too). Connected accounts update by themselves every hour.'));
+}

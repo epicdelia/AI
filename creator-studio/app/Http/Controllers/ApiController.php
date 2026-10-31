@@ -343,6 +343,7 @@ class ApiController extends Controller
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,
             'recent_notes' => $recentNotes,
+            'reach' => rescue(fn () => \App\Http\Controllers\LandingPageController::reach(), null),
             'journey' => \App\Domains\Landing\ClientJourney::summary(),
             'website' => rescue(fn () => \App\Http\Controllers\LandingPageController::summary(), null),
             'inbound' => [

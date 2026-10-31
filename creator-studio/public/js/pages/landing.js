@@ -5,6 +5,7 @@ import { h, link, navigate, api, modal, toast, field } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { contentSection } from '../landing-content.js';
+import { reachSection } from '../landing-reach.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -297,7 +298,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
           items: [
             { label: 'Ex-Google Software Engineer', desc: 'Production systems engineer turned independent creator and founder.', icon: 'briefcase', href: '#about' },
             { label: '69 Countries Digital Nomad', desc: 'Building products and shipping software from beach cafés globally.', icon: 'globe', href: '#about' },
-            { label: '472K+ Community', desc: 'Demystifying technology for hundreds of thousands across social platforms.', icon: 'users', href: '#content' },
+            { label: '472K+ Community', desc: 'Demystifying technology for hundreds of thousands across social platforms.', icon: 'users', href: '#reach' },
           ],
         },
         {
@@ -976,7 +977,7 @@ export function renderLanding(view, options = {}) {
   }
 
   // 7. Content & Social Channels: her real videos and posts, refreshed hourly (landing-content.js).
-  // Once her follower counts are synced, the "472K+" headline across the page follows them.
+  // The "472K+" written across the page becomes the total of the networks shown in Reach & Content.
   const content = contentSection({ onFeed: (feed) => applyAudienceHeadline(view, feed.headline) });
   const ytSection = content.el;
 
@@ -1307,34 +1308,8 @@ export function renderLanding(view, options = {}) {
                 h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Executive post-campaign performance report')),
                 h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Direct link tracking in bio & descriptions')))))))));
 
-  // 9. Section 05: Content & Community
-  const platforms = h('section', { class: 'landing-section', id: 'content' },
-    h('div', { class: 'landing-container' },
-      h('div', { class: 'landing-section-head' },
-        h('p', { class: 'landing-section-eyebrow' }, '05: Reach & Content'),
-        h('h2', {}, 'Where the ', h('em', {}, 'internet'), ' finds me')),
-      h('div', { class: 'grid grid-3', style: { gap: '20px' } },
-        h('a', { href: 'https://instagram.com/tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-card' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-            h('strong', {}, 'Instagram'),
-            h('span', { style: { color: 'var(--accent)' } }, icon('arrow', 13))),
-          h('div', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.8rem', fontWeight: '600', color: 'var(--accent)', margin: '10px 0' } }, '384K'),
-          h('p', { class: 'muted small' }, 'Daily tech news, AI experiments, and nomad engineering life in 60 seconds.'),
-          h('span', { class: 'small', style: { color: 'var(--accent)', fontWeight: '600' } }, '@tech.unicorn')),
-        h('a', { href: 'https://youtube.com/@Tech.Unicorn', target: '_blank', rel: 'noopener', class: 'landing-card' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-            h('strong', {}, 'YouTube'),
-            h('span', { style: { color: 'var(--accent)' } }, icon('arrow', 13))),
-          h('div', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.8rem', fontWeight: '600', color: 'var(--accent)', margin: '10px 0' } }, '22K'),
-          h('p', { class: 'muted small' }, 'Deep dives, build-alongs, and coding challenges from beach cafés.'),
-          h('span', { class: 'small', style: { color: 'var(--accent)', fontWeight: '600' } }, '@Tech.Unicorn')),
-        h('a', { href: 'https://linkedin.com/in/delialazarescu', target: '_blank', rel: 'noopener', class: 'landing-card' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-            h('strong', {}, 'LinkedIn'),
-            h('span', { style: { color: 'var(--accent)' } }, icon('arrow', 13))),
-          h('div', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.8rem', fontWeight: '600', color: 'var(--accent)', margin: '10px 0' } }, '25K'),
-          h('p', { class: 'muted small' }, 'Career honesty, industry architecture takes, and lessons from Big Tech.'),
-          h('span', { class: 'small', style: { color: 'var(--accent)', fontWeight: '600' } }, 'Delia Lazarescu')))));
+  // 9. Section 05: Reach & Content: all six networks, live numbers, shown/hidden from her dashboard.
+  const platforms = reachSection();
 
   // 10. Section 06: Speaking
   const speaking = h('section', { class: 'landing-section tinted', id: 'speaking' },
@@ -1479,7 +1454,7 @@ function handleLandingLinks({ onBookCall, onStripePay }) {
   else onBookCall(book, q.get('service') || '');
 }
 
-/** The page states "472K+"; once her synced follower counts give a different total, show that. */
+/** The copy says "472K+"; swap in the server's total (synced counts, else public figures) so it adds up. */
 function applyAudienceHeadline(root, headline) {
   if (!headline || headline === '472K+') return;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);

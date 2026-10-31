@@ -27,6 +27,9 @@ class SocialDashboard
             );
             $n++;
         }
+        if ($n && $source !== 'demo') {
+            \App\Domains\Landing\LandingFeed::forget();
+        }
 
         return $n;
     }

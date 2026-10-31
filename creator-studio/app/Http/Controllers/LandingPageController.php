@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
 use App\Domains\Media\MediaFile;
@@ -30,7 +31,7 @@ class LandingPageController extends Controller
     /** "Content & Social Channels": YouTube, Instagram, TikTok, X and Threads. */
     public function socialFeed(): JsonResponse
     {
-        return response()->json(LandingFeed::get())->header('Cache-Control', 'public, max-age=300');
+        return response()->json(LandingFeed::get())->header('Cache-Control', 'public, max-age=60');
     }
 
     /** Just the YouTube part (kept for older pages). */
@@ -54,7 +55,7 @@ class LandingPageController extends Controller
     {
         $data = $request->validate([
             'key' => ['required', 'string', 'regex:/^(yt:[\w-]{11}|post:\d{1,10}|profile:[a-z]{1,12})$/'],
-            'platform' => 'required|string|in:'.implode(',', array_keys(LandingFeed::PLATFORMS)),
+            'platform' => 'required|string|in:'.implode(',', array_unique([...array_keys(LandingFeed::PLATFORMS), ...array_keys(Audience::PROFILES)])),
         ]);
         LandingFeed::recordClick($data['key'], $data['platform']);
 
@@ -111,6 +112,32 @@ class LandingPageController extends Controller
         Setting::put('build_capacity', (string) $data['capacity']);
 
         return response()->json(ClientJourney::summary());
+    }
+
+    /** Show or hide networks in "Reach & Content" (at least one stays visible). */
+    public function saveReach(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'hidden' => 'present|array|max:5',
+            'hidden.*' => 'string|in:'.implode(',', array_keys(Audience::PROFILES)),
+        ]);
+        Setting::put('landing_reach_hidden', json_encode(array_values(array_unique($data['hidden']))));
+        LandingFeed::forget();
+
+        return response()->json(self::reach());
+    }
+
+    /** Her dashboard's "Public reach": what visitors see per network, plus profile opens in 30 days. */
+    public static function reach(): array
+    {
+        $reach = Audience::reach();
+        $clicks = LandingFeed::clicks(30);
+        foreach ($reach['networks'] as $i => $n) {
+            // X was "twitter" in the content tabs; both count as opening her X profile.
+            $reach['networks'][$i]['opens_30d'] = ($clicks["profile:{$n['key']}"] ?? 0) + ($n['key'] === 'x' ? ($clicks['profile:twitter'] ?? 0) : 0);
+        }
+
+        return $reach;
     }
 
     public function refresh(): JsonResponse

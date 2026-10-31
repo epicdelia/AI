@@ -56,7 +56,7 @@ class LandingFeedTest extends TestCase
         }
         $this->assertSame('22K Subs', $feed['stats']['youtube']);
         $this->assertSame('384K', $feed['stats']['instagram']);
-        $this->assertSame(Audience::CLAIM, $feed['headline']);
+        $this->assertSame('519K+', $feed['headline'], 'The headline adds up to the numbers shown');
     }
 
     public function test_her_published_posts_appear_with_their_real_numbers_and_demo_posts_never_do(): void
@@ -109,7 +109,7 @@ class LandingFeedTest extends TestCase
 
         $this->assertSame('384K', $feed['stats']['instagram']);
         $this->assertFalse($feed['followers']['instagram']['live']);
-        $this->assertSame(Audience::CLAIM, $feed['headline']);
+        $this->assertSame('519K+', $feed['headline']);
     }
 
     public function test_synced_follower_counts_replace_the_public_figures(): void
@@ -245,5 +245,63 @@ class LandingFeedTest extends TestCase
         $this->putJson('/api/landing/capacity', ['capacity' => 0])->assertOk();
         $this->getJson('/api/landing/availability')->assertExactJson(['show' => false]);
         $this->putJson('/api/landing/capacity', ['capacity' => 99])->assertUnprocessable();
+    }
+
+    public function test_reach_lists_all_six_networks_with_only_real_trends_and_stats(): void
+    {
+        $reach = $this->getJson('/api/landing/social-feed')->assertOk()->json('reach');
+        $this->assertSame(['instagram', 'youtube', 'linkedin', 'tiktok', 'x', 'threads'], array_column($reach['networks'], 'key'));
+        foreach ($reach['networks'] as $n) {
+            $this->assertFalse($n['live']);
+            $this->assertSame([], $n['trend'], 'No sparkline from public figures');
+            $this->assertNull($n['change_30d']);
+            $this->assertNotEmpty($n['url']);
+        }
+        $this->assertSame(519000, $reach['total']);
+        $this->assertNull($reach['total_change_30d']);
+
+        // Two real snapshots a month apart, plus three LinkedIn posts with views.
+        foreach ([[now()->subDays(31), 24000], [now(), 26500]] as [$day, $count]) {
+            DB::table('follower_snapshots')->insert(['platform' => 'linkedin', 'count' => $count, 'recorded_on' => $day->toDateString(), 'source' => 'linkedin', 'created_at' => now(), 'updated_at' => now()]);
+        }
+        foreach ([2, 4, 6] as $i => $likes) {
+            $this->published('linkedin', ['url' => "https://linkedin.example/p/{$i}", 'metrics' => ['impressions' => 100, 'likes' => $likes]]);
+        }
+        $this->published('linkedin', ['source' => 'demo', 'url' => 'https://linkedin.example/demo']);
+
+        $li = collect(LandingFeed::build()['reach']['networks'])->firstWhere('key', 'linkedin');
+        $this->assertTrue($li['live']);
+        $this->assertTrue($li['synced']);
+        $this->assertSame(2500, $li['change_30d']);
+        $this->assertSame([24000, 26500], $li['trend']);
+        $this->assertSame(3, $li['posts_30d']);
+        $this->assertSame(4.0, $li['engagement_rate']);
+    }
+
+    public function test_she_updates_and_hides_networks_from_the_dashboard(): void
+    {
+        $this->getJson('/api/landing/social-feed'); // warm the cache
+        $this->putJson('/api/landing/reach', ['hidden' => ['threads']])->assertUnauthorized();
+        $this->signIn();
+
+        // Typing today's count (the existing Analytics endpoint) refreshes the public page straight away.
+        $this->postJson('/api/social/followers', ['counts' => ['tiktok' => 51234]])->assertOk();
+        $this->putJson('/api/landing/reach', ['hidden' => ['threads']])->assertOk();
+
+        $public = $this->getJson('/api/landing/social-feed')->json('reach');
+        $this->assertNotContains('threads', array_column($public['networks'], 'key'));
+        $this->assertArrayNotHasKey('hidden', $public['networks'][0]);
+        $tiktok = collect($public['networks'])->firstWhere('key', 'tiktok');
+        $this->assertSame('51K', $tiktok['count_label']);
+        $this->assertFalse($tiktok['synced'], 'Typed by hand: real, but not marked as synced');
+        $this->assertSame(519000 - 45000 + 51234 - 15000, $public['total']);
+
+        $this->postJson('/api/landing/click', ['key' => 'profile:linkedin', 'platform' => 'linkedin'])->assertNoContent();
+        $dash = collect($this->getJson('/api/dashboard')->json('reach.networks'))->keyBy('key');
+        $this->assertTrue($dash['threads']['hidden']);
+        $this->assertSame('manual', $dash['tiktok']['source']);
+        $this->assertSame(1, $dash['linkedin']['opens_30d']);
+
+        $this->putJson('/api/landing/reach', ['hidden' => ['myspace']])->assertUnprocessable();
     }
 }

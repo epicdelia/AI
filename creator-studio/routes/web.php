@@ -198,6 +198,7 @@ Route::prefix('api')->group(function () {
         // Landing page content feed: what's on it, clicks, pin / hide, refresh now
         Route::get('landing/content', [\App\Http\Controllers\LandingPageController::class, 'content']);
         Route::put('landing/content', [\App\Http\Controllers\LandingPageController::class, 'curate']);
+        Route::put('landing/reach', [\App\Http\Controllers\LandingPageController::class, 'saveReach']);
         Route::put('landing/capacity', [\App\Http\Controllers\LandingPageController::class, 'saveCapacity']);
         Route::post('landing/content/refresh', [\App\Http\Controllers\LandingPageController::class, 'refresh']);
 

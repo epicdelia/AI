@@ -17,13 +17,20 @@ const METRIC_ICONS = { views: 'eye', likes: 'heart', comments: 'chat', shares: '
 const METRIC_LABELS = { views: 'views', likes: 'likes', comments: 'comments', shares: 'shares' };
 
 /** Count a visitor opening an item; fire-and-forget, never blocks the link. */
-function countClick(key, platform) {
+export function countClick(key, platform) {
   try {
     const body = new Blob([JSON.stringify({ key, platform })], { type: 'application/json' });
     if (!navigator.sendBeacon?.('/api/landing/click', body)) {
       fetch('/api/landing/click', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'application/json' } }).catch(() => {});
     }
   } catch { /* counting is best effort */ }
+}
+
+let feedPromise = null;
+/** The landing feed, fetched once per page for both the content and the reach sections. */
+export function loadFeed() {
+  feedPromise ||= api('GET', 'landing/social-feed').catch((err) => { feedPromise = null; throw err; });
+  return feedPromise;
 }
 
 const external = (href, props, ...children) => h('a', { href, target: '_blank', rel: 'noopener', ...props }, ...children);
@@ -168,7 +175,7 @@ export function contentSection({ onFeed } = {}) {
     requestAnimationFrame(updateArrows);
   }
 
-  api('GET', 'landing/social-feed').then((res) => {
+  loadFeed().then((res) => {
     feed = res;
     for (const tab of TABS) {
       const f = res.followers?.[tab.id];

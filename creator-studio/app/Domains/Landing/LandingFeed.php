@@ -19,17 +19,17 @@ use Illuminate\Support\Facades\DB;
  */
 class LandingFeed
 {
-    public const CACHE = 'landing_feed_v2';
+    public const CACHE = 'landing_feed_v4'; // bump when the feed's shape changes, so a cached old shape is never served
 
     public const PER_PLATFORM = 8;
 
     /** Feed key => studio platform and her public profile. "twitter" is kept as the key for X. */
     public const PLATFORMS = [
-        'youtube' => ['platform' => 'youtube', 'label' => 'YouTube', 'handle' => '@Tech.Unicorn', 'url' => 'https://youtube.com/@Tech.Unicorn', 'action' => 'Visit YouTube', 'unit' => 'subscribers'],
-        'instagram' => ['platform' => 'instagram', 'label' => 'Instagram', 'handle' => '@tech.unicorn', 'url' => 'https://instagram.com/tech.unicorn', 'action' => 'Follow on Instagram', 'unit' => 'followers'],
-        'tiktok' => ['platform' => 'tiktok', 'label' => 'TikTok', 'handle' => '@tech.unicorn', 'url' => 'https://tiktok.com/@tech.unicorn', 'action' => 'Follow on TikTok', 'unit' => 'followers'],
-        'twitter' => ['platform' => 'x', 'label' => 'X', 'handle' => '@techunicorn_', 'url' => 'https://x.com/techunicorn_', 'action' => 'Follow on X', 'unit' => 'followers'],
-        'threads' => ['platform' => 'threads', 'label' => 'Threads', 'handle' => '@tech.unicorn', 'url' => 'https://threads.net/@tech.unicorn', 'action' => 'Follow on Threads', 'unit' => 'followers'],
+        'youtube' => ['platform' => 'youtube', 'label' => 'YouTube', 'action' => 'Visit YouTube', 'unit' => 'subscribers'],
+        'instagram' => ['platform' => 'instagram', 'label' => 'Instagram', 'action' => 'Follow on Instagram', 'unit' => 'followers'],
+        'tiktok' => ['platform' => 'tiktok', 'label' => 'TikTok', 'action' => 'Follow on TikTok', 'unit' => 'followers'],
+        'twitter' => ['platform' => 'x', 'label' => 'X', 'action' => 'Follow on X', 'unit' => 'followers'],
+        'threads' => ['platform' => 'threads', 'label' => 'Threads', 'action' => 'Follow on Threads', 'unit' => 'followers'],
     ];
 
     /** Real videos of hers, shown only until the YouTube API (or a synced upload) has her latest. */
@@ -91,19 +91,32 @@ class LandingFeed
         return [
             'updated_at' => now()->toIso8601String(),
             'active' => 'youtube',
-            'channel' => self::PLATFORMS['youtube']['handle'],
+            'channel' => Audience::PROFILES['youtube']['handle'],
             'headline' => Audience::headline(),
             'followers' => $followers,
             // Short badges for the tabs ("22K Subs"), kept for older pages.
             'stats' => array_map(fn ($f) => $f['label'].($f['unit'] === 'subscribers' ? ' Subs' : ''), $followers),
-            'handles' => array_map(fn ($c) => $c['handle'], self::PLATFORMS),
-            'urls' => array_map(fn ($c) => $c['url'], self::PLATFORMS),
+            'handles' => array_map(fn ($c) => Audience::PROFILES[$c['platform']]['handle'], self::PLATFORMS),
+            'urls' => array_map(fn ($c) => Audience::PROFILES[$c['platform']]['url'], self::PLATFORMS),
             'labels' => array_map(fn ($c) => $c['label'], self::PLATFORMS),
             'actions' => array_map(fn ($c) => $c['action'], self::PLATFORMS),
             // live = her real, current content · sample = curated real videos until YouTube is connected · none = nothing published yet
             'sources' => $sources,
             'platforms' => $platforms,
+            // "Reach & Content": all six networks (LinkedIn too); hidden ones left out of the public copy.
+            'reach' => $withHidden ? Audience::reach() : self::publicReach(),
         ];
+    }
+
+    private static function publicReach(): array
+    {
+        $reach = Audience::reach();
+        $reach['networks'] = array_values(array_map(
+            fn ($n) => array_diff_key($n, ['hidden' => true]),
+            array_filter($reach['networks'], fn ($n) => ! $n['hidden']),
+        ));
+
+        return $reach;
     }
 
     /** @return array{0: list<array>, 1: string} */
@@ -112,7 +125,7 @@ class LandingFeed
         if (Setting::has('youtube_api_key')) {
             try {
                 $yt = app(YouTube::class);
-                [$uploadsId] = $yt->channelUploads(Setting::get('channel_id') ?: self::PLATFORMS['youtube']['handle']);
+                [$uploadsId] = $yt->channelUploads(Setting::get('channel_id') ?: Audience::PROFILES['youtube']['handle']);
                 $raw = $uploadsId ? $yt->recentVideos($uploadsId, 12) : [];
                 if ($raw) {
                     return [array_map(fn ($v) => self::video($v['id'], $v['title'], '',

@@ -531,6 +531,9 @@ export function link(path, props, ...children) {
     onclick: (e) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
+      if (props && typeof props.onclick === 'function') {
+        try { props.onclick(e); } catch (err) { console.error(err); }
+      }
       navigate(path);
     },
   }, ...children);

@@ -111,6 +111,19 @@ function openDrawer(open) {
 }
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('nav-open')) openDrawer(false);
+  // Ctrl+B / Cmd+B toggles sidebar (or off-canvas drawer in top/mobile nav mode)
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && !e.shiftKey && !e.altKey) {
+    const isEditing = ['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable;
+    if (!isEditing) {
+      e.preventDefault();
+      const drawerMode = window.matchMedia('(max-width: 1199px)').matches || document.documentElement.dataset.nav !== 'sidebar';
+      if (drawerMode) {
+        openDrawer(!document.body.classList.contains('nav-open'));
+      } else {
+        toggleNavCollapsed();
+      }
+    }
+  }
 });
 
 function buildShell() {
@@ -260,7 +273,7 @@ function megaMenus() {
       panel.hidden = false;
       requestAnimationFrame(() => panel.classList.add('open'));
       if (sec.id === 'social' && !counts) {
-        api('GET', 'agents/notifications').then((r) => { counts = { pending: r.pending, inbox: r.inbox }; if (open === sec) fill(sec); }).catch(() => {});
+        api('GET', 'agents/notifications').then((r) => { counts = { pending: r.pending, inbox: r.inbox }; if (open === sec) fill(sec); }).catch(() => { });
       }
     }
     if (focusFirst) links()[0]?.focus();
@@ -355,9 +368,15 @@ async function route() {
   const skTimer = setTimeout(() => {
     if (state.nav !== nav) return;
     clear(content).append(pageSkeleton(path));
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    content.scrollTop = 0;
   }, 120);
-  const settle = () => { clearTimeout(skTimer); content.inert = false; window.scrollTo(0, 0); };
+  const settle = () => {
+    clearTimeout(skTimer);
+    content.inert = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    content.scrollTop = 0;
+  };
 
   if (!match) {
     settle();

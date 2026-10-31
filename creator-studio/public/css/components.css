@@ -1625,9 +1625,9 @@ body.wf-full .content-area { max-width: none; padding: 0; }
 .auth-install-output { font-family: ui-monospace, monospace; font-size: 0.76rem; background: var(--code-bg); padding: 8px 12px; border-radius: 8px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
 
 /* Right side: No gradients, clean flat layout with anchored note */
-.auth-art { flex: 1 1 50%; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 28px; background: var(--bg); border-left: 1px solid var(--line); overflow: hidden; }
-.auth-mockup-wrap { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 320px; }
-.auth-mockup { width: 100%; max-width: 540px; height: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: none !important; display: block; }
+.auth-art { flex: 1 1 50%; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; background: var(--bg); border-left: 1px solid var(--line); overflow: hidden; height: 100%; box-sizing: border-box; }
+.auth-mockup-wrap { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 0; overflow: hidden; padding: 6px; box-sizing: border-box; }
+.auth-mockup { width: 100%; max-width: 560px; max-height: 100%; aspect-ratio: 1200 / 780; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); box-shadow: none !important; display: block; }
 .auth-mockup-light { display: block !important; }
 .auth-mockup-dark { display: none !important; }
 :root[data-theme="dark"] .auth-mockup-light { display: none !important; }

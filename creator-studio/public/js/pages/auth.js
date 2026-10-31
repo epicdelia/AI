@@ -428,7 +428,7 @@ export function renderAuth(root, initialized, welcome, onDone) {
     note ? h('figure', { class: 'auth-note' },
       h('span', { class: 'auth-note-heart' }, icon('mail', 18)),
       h('blockquote', {}, note),
-      h('figcaption', {}, 'Daily note from Dempsey 💕')) : null);
+      h('figcaption', {}, 'Daily note from Dempsey')) : null);
 
   const authBody = h('div', { class: 'auth-body' },
     h('main', { class: 'auth-side' },

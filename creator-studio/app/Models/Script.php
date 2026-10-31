@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Script extends Model
 {
@@ -19,9 +20,20 @@ class Script extends Model
         return ['published_on' => 'date', 'fact_checked_at' => 'datetime', 'outline' => 'array'];
     }
 
+    protected static function booted(): void
+    {
+        // Every path that rewrites the body (autosave, AI, Copilot, restore) keeps the old text first.
+        static::updating(fn (self $script) => ScriptVersion::beforeChange($script));
+    }
+
     public function idea(): BelongsTo
     {
         return $this->belongsTo(Idea::class);
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(ScriptVersion::class);
     }
 
     public function wordCount(): int

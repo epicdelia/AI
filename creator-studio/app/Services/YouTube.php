@@ -158,6 +158,78 @@ class YouTube
         return ['results' => $results, 'channels' => $channels];
     }
 
+    /**
+     * Her recent long-form uploads, each scored against her own median (the breakout maths
+     * pointed at her channel). Only videos at least $matureDays old form the baseline, so a
+     * video from yesterday isn't counted against her usual.
+     */
+    public function channelReport(string $channel, ?CarbonImmutable $now = null, float $matureDays = 7): array
+    {
+        $now ??= CarbonImmutable::now('UTC');
+        [$playlist, $title] = $this->channelUploads($channel);
+        if (! $playlist) {
+            throw new RuntimeException("Channel not found: {$channel}");
+        }
+
+        $videos = [];
+        foreach ($this->recentVideos($playlist) as $v) {
+            if ($v['seconds'] <= self::SHORTS_MAX_SECONDS) {
+                continue;
+            }
+            $v['age_days'] = round(($now->getTimestamp() - CarbonImmutable::parse($v['published_at'])->getTimestamp()) / 86400, 1);
+            $videos[] = $v;
+        }
+        $mature = array_values(array_map(fn ($v) => $v['views'], array_filter($videos, fn ($v) => $v['age_days'] >= $matureDays)));
+        $median = count($mature) >= 3 ? self::median($mature) : 0.0;
+
+        foreach ($videos as &$v) {
+            $v['url'] = "https://youtu.be/{$v['id']}";
+            $v['score'] = $median > 0 ? round($v['views'] / $median, 2) : null;
+            $v['early'] = $v['age_days'] < $matureDays;
+        }
+        unset($v);
+        usort($videos, fn ($a, $b) => strcmp($b['published_at'], $a['published_at']));
+
+        return ['title' => $title, 'median' => $median, 'mature_days' => $matureDays, 'videos' => $videos];
+    }
+
+    /** One video's title (1 quota unit). */
+    public function videoTitle(string $videoId): ?string
+    {
+        return $this->get('videos', ['part' => 'snippet', 'id' => $videoId])['items'][0]['snippet']['title'] ?? null;
+    }
+
+    /**
+     * Top-level comments, most relevant first (commentThreads.list: 1 quota unit per 100).
+     *
+     * @return array<int, array{text: string, likes: int, replies: int}>
+     */
+    public function comments(string $videoId, int $max = 100): array
+    {
+        try {
+            $data = $this->get('commentThreads', [
+                'part' => 'snippet', 'videoId' => $videoId, 'order' => 'relevance',
+                'maxResults' => max(1, min(100, $max)), 'textFormat' => 'plainText',
+            ]);
+        } catch (RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'disabled comments') || str_contains($e->getMessage(), 'commentsDisabled')) {
+                throw new RuntimeException('Comments are turned off on this video.', 0, $e);
+            }
+            throw $e;
+        }
+
+        $out = [];
+        foreach ($data['items'] ?? [] as $item) {
+            $c = $item['snippet']['topLevelComment']['snippet'] ?? [];
+            $text = trim((string) ($c['textDisplay'] ?? $c['textOriginal'] ?? ''));
+            if ($text !== '') {
+                $out[] = ['text' => mb_substr($text, 0, 1500), 'likes' => (int) ($c['likeCount'] ?? 0), 'replies' => (int) ($item['snippet']['totalReplyCount'] ?? 0)];
+            }
+        }
+
+        return $out;
+    }
+
     /** Her own uploads since a date (port of channel_stats.py). */
     public function uploadsSince(string $channel, CarbonImmutable $since, ?CarbonImmutable $now = null): array
     {

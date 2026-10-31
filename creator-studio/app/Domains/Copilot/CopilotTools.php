@@ -2,6 +2,7 @@
 
 namespace App\Domains\Copilot;
 
+use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Copilot\Models\CopilotAction;
 use App\Domains\Copilot\Models\CopilotThread;
 use App\Domains\Feeds\FeedReader;
@@ -49,11 +50,12 @@ class CopilotTools
             ['name' => 'list_scripts', 'description' => 'List her scripts (id, title, status, words, last edited).', 'parameters' => $s(['status' => $str('Filter', ['draft', 'reviewed', 'filmed', 'published'])])],
             ['name' => 'list_ideas', 'description' => 'List video ideas, optionally filtered by status or a search word.', 'parameters' => $s(['status' => $str('Filter', ['new', 'picked', 'scripted', 'dropped']), 'query' => $str('Search title/premise')])],
             ['name' => 'list_breakouts', 'description' => 'Recent breakout videos in her niche (views far above their channel median).', 'parameters' => $s(['limit' => $int('How many, max 20')])],
+            ['name' => 'list_viewer_requests', 'description' => 'What viewers asked for in the comments of her videos (and any competitor videos she read): questions, requests, confusion, pushback, each with mention counts and a real quote. Strongest signal for what to make next.', 'parameters' => $s([])],
             ['name' => 'search_my_work', 'description' => 'Search her past scripts, on-camera transcripts, notes, ideas and Library. Use to match her voice or check if she already covered something.', 'parameters' => $s(['query' => $str('What to look for')], ['query'])],
             ['name' => 'search_library', 'description' => 'Search saved Library documents (titles, captions, uploaded briefs) by keyword.', 'parameters' => $s(['query' => $str('Keyword')], ['query'])],
             ['name' => 'check_ai_tells', 'description' => 'Run the AI-tell linter on text (em dashes, banned clichés, missing contractions). Free and instant: use it on anything you write for her.', 'parameters' => $s(['text' => $str('Text to check')], ['text'])],
             ['name' => 'run_writing_tool', 'description' => 'Run a Toolkit template: yt_titles, yt_thumbnail, yt_hooks, yt_description, yt_tags, yt_chapters, yt_community, yt_replies, shorts_script, ig_caption, hashtags, x_thread, linkedin, newsletter, rewrite, tldr, proofread, pros_cons, sponsor_pitch, sponsor_read, media_kit. Inputs are the template fields (usually "topic", "title", "text" or "script").', 'parameters' => $s(['tool' => $str('Template key'), 'inputs' => ['type' => 'object', 'description' => 'Field values', 'additionalProperties' => ['type' => 'string']]], ['tool', 'inputs'])],
-            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
+            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
         ];
         if (WebSearch::available()) {
             $tools[] = ['name' => 'search_web', 'description' => 'Live web search. Use for facts, news, dates, prices or anything that may have changed. Cite the links.', 'parameters' => $s(['query' => $str('Search query')], ['query'])];
@@ -90,6 +92,7 @@ class CopilotTools
             'list_scripts' => 'Listing scripts',
             'list_ideas' => 'Looking through ideas',
             'list_breakouts' => 'Checking breakouts',
+            'list_viewer_requests' => 'Reading what your viewers asked for',
             'search_my_work' => 'Searching your past work for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
             'search_library' => 'Searching the Library',
             'search_web' => 'Searching the web for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
@@ -117,6 +120,8 @@ class CopilotTools
                 ->latest()->take(25)->get(['id', 'title', 'premise', 'angle', 'status', 'why_now'])),
             'list_breakouts' => $json(Outlier::orderByDesc('outlier_score')->take(min(20, max(1, (int) ($a['limit'] ?? 10))))
                 ->get(['id', 'title', 'channel_title', 'views', 'outlier_score', 'url', 'published_at'])),
+            'list_viewer_requests' => $json(AudienceInsight::latest('updated_at')->take(10)->get()
+                ->map(fn ($i) => ['video' => $i->video_title, 'her_video' => $i->own, 'url' => $i->url, 'summary' => $i->summary, 'items' => $i->items])),
             'search_my_work' => $json(array_map(fn ($h) => ['type' => $h['source_type'], 'id' => $h['source_id'], 'title' => $h['title'], 'excerpt' => mb_substr($h['content'], 0, 900)],
                 $this->memory->search((string) ($a['query'] ?? ''), 5))),
             'search_library' => $json(Document::query()->where(fn ($q) => $q->where('title', 'like', '%'.($a['query'] ?? '').'%')->orWhere('content', 'like', '%'.($a['query'] ?? '').'%'))

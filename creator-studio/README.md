@@ -37,6 +37,9 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Copilot** (Ctrl+I) | Agentic assistant on every page: floating or docked, page-aware (current script, selection), Agent/Ask modes, any model from any provider with a key, `/` commands, file attachments, voice input, stop, history, projects, feedback. In Agent mode it proposes changes you Apply (and can Undo) |
 | **Dark mode** | Light / Dark / System switch in the sidebar, login screen and Settings (Ctrl+Shift+L) |
 | **Love notes 💕** | A note of the day, a hello each morning and cheers at big moments; sign them and add your own in Settings |
+| **Teleprompter** | Full-screen prompter from any script: speed in words per minute with an honest time-left, `[VISUAL]`/`[B-ROLL]` cues hidden (toggle with C), `[YOUR STORY]` highlighted, ←/→ (or a clicker's PageUp/PageDown) to re-read a paragraph, mirror mode, 3-2-1 countdown, screen kept awake |
+| **Version history** | Every script keeps old text before it's overwritten: every 10 minutes while typing, before any large edit (AI, Copilot, big paste or delete), and when saved by hand. Compare with now, restore (which itself is kept) |
+| **My channel** | Her long-form videos scored against her own median (videos under 7 days marked early), and **Viewer asks**: comments (hers or any video, also from Breakouts) turned into questions, requests, confusion and pushback, with quotes checked word for word against the real comments. One click makes an idea; unused ones feed the next idea batch, alongside her own best and worst performers |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.

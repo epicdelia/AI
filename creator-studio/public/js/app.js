@@ -9,6 +9,7 @@ import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered } from 
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderBreakouts } from './pages/breakouts.js';
+import { renderAudience } from './pages/audience.js';
 import { renderIdeas } from './pages/ideas.js';
 import { renderScripts, renderScript } from './pages/scripts.js';
 import { renderGoals } from './pages/goals.js';
@@ -21,6 +22,7 @@ import { renderChat } from './pages/chat.js';
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
   { path: /^\/breakouts$/, render: renderBreakouts, nav: '/breakouts' },
+  { path: /^\/channel$/, render: renderAudience, nav: '/channel' },
   { path: /^\/ideas$/, render: renderIdeas, nav: '/ideas' },
   { path: /^\/scripts$/, render: renderScripts, nav: '/scripts' },
   { path: /^\/scripts\/(\d+)$/, render: renderScript, nav: '/scripts' },
@@ -43,6 +45,7 @@ const NAV = [
   { to: '/ideas', label: 'Ideas', icon: 'bulb' },
   { to: '/scripts', label: 'Scripts', icon: 'doc' },
   { to: '/goals', label: 'Weekly goals', icon: 'target' },
+  { to: '/channel', label: 'My channel', icon: 'users' },
   { header: 'Create' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle' },
   { to: '/chat', label: 'Producer chat', icon: 'chat' },

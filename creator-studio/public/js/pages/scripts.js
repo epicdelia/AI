@@ -11,6 +11,8 @@ import { scriptWizard } from '../wizard.js';
 import { celebrate, loveOn } from '../love.js';
 import { setCopilotContext } from '../copilot.js';
 import { readAloudCard, thumbnailStudio, shortsPanel, brollPanel, cleanAudioButton } from '../media.js';
+import { openPrompter } from '../prompter.js';
+import { versionsDialog } from '../versions.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -487,6 +489,29 @@ export async function renderScript(view, id) {
     paneBox.append(t.pane);
   }
 
+  // ---- filming and history: beside the tabs, so the title keeps its width ----
+  const prompterBtn = h('button', {
+    class: 'btn ghost sm', title: 'Read it on camera: full-screen teleprompter (from your selection, if any)',
+    onclick: () => {
+      const from = textarea.selectionEnd > textarea.selectionStart ? textarea.selectionStart : 0;
+      openPrompter(textarea.value.slice(from), { title: script.title }).then(() => textarea.focus());
+    },
+  }, icon('prompter', 15), 'Teleprompter');
+  const historyBtn = h('button', {
+    class: 'btn ghost sm', title: 'Earlier versions of this script',
+    onclick: () => versionsDialog(script, {
+      beforeOpen: () => saveSoon.flush(),
+      onRestored: (r) => {
+        script.body = r.script.body || '';
+        textarea.value = script.body;
+        drawStats();
+        drawLint(r.findings, r.has_hard);
+        saveState.textContent = 'Version restored';
+        showTab('write');
+      },
+    }).catch((err) => toast(err.message, 'err')),
+  }, icon('history', 15), 'History');
+
   view.append(
     h('div', { class: 'editor-head' },
       link('/scripts', { class: 'btn ghost sm' }, icon('back', 15), 'Scripts'),
@@ -497,7 +522,8 @@ export async function renderScript(view, id) {
     script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
       h('summary', {}, `Plan: ${script.outline.chapters.length} chapters · ~${script.outline.minutes || 10} min`),
       h('ol', {}, script.outline.chapters.map((c) => h('li', {}, h('strong', {}, c.title), c.beat ? h('span', { class: 'muted' }, ` · ${c.beat}`) : null)))) : null,
-    tabBar, paneBox);
+    h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn)),
+    paneBox);
 
   showTab('write');
 

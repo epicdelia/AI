@@ -2,6 +2,7 @@
 import { h, api, busy, toast, pageHead, emptyState, compact, timeAgo, fmtDay, link, confirmDialog, clear, pill } from '../core.js';
 import { icon } from '../icons.js';
 import { youtubeDialog } from '../components.js';
+import { commentsDialog } from './audience.js';
 
 export async function renderBreakouts(view) {
   let data = await api('GET', 'channels');
@@ -77,6 +78,9 @@ export async function renderBreakouts(view) {
           class: 'btn ghost sm', title: 'Why did it work?',
           onclick: () => youtubeDialog({ url: o.url, title: o.title, action: 'breakdown' }).catch((e) => toast(e.message, 'err')),
         }, icon('search', 16)), h('button', {
+          class: 'btn ghost sm', title: 'What are its viewers asking for? (reads the comments)',
+          onclick: () => commentsDialog(o.url, o.title),
+        }, icon('chat', 16)), h('button', {
           class: 'btn ghost sm', title: 'Dismiss',
           onclick: async () => {
             try {

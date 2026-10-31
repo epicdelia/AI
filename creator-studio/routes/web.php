@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AudienceController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\ExportController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
+use App\Http\Controllers\Api\ScriptVersionController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
 use App\Http\Controllers\Api\VisionController;
@@ -59,6 +61,20 @@ Route::prefix('api')->group(function () {
         Route::post('scripts/{script}/substack', [ApiController::class, 'substackScript']);
         Route::post('scripts/{script}/edit-brief', [ApiController::class, 'editBriefScript']);
         Route::post('scripts/lint', [ApiController::class, 'lintText']);
+
+        // Script version history
+        Route::scopeBindings()->group(function () {
+            Route::get('scripts/{script}/versions', [ScriptVersionController::class, 'index']);
+            Route::post('scripts/{script}/versions', [ScriptVersionController::class, 'store']);
+            Route::get('scripts/{script}/versions/{version}', [ScriptVersionController::class, 'show']);
+            Route::post('scripts/{script}/versions/{version}/restore', [ScriptVersionController::class, 'restore']);
+            Route::delete('scripts/{script}/versions/{version}', [ScriptVersionController::class, 'destroy']);
+        });
+
+        // My channel: her videos vs her own median, and what viewers ask for in comments
+        Route::get('audience', [AudienceController::class, 'index']);
+        Route::post('audience/comments', [AudienceController::class, 'comments']);
+        Route::delete('audience/insights/{insight}', [AudienceController::class, 'destroy']);
 
         // Goals & Weekly Mentor
         Route::get('goals', [ApiController::class, 'getGoals']);

@@ -256,6 +256,35 @@ Avoid: ...
 TXT;
     }
 
+    public static function commentsSystem(): string
+    {
+        $name = self::name();
+        $profile = self::profile();
+
+        return <<<TXT
+You read YouTube comments for {$name} and pull out what viewers want next. Viewers asking for something is the strongest idea signal she has: these people already watch.
+
+{$profile}
+
+Group comments that ask for the same thing. Types:
+- question: they asked something the video didn't answer
+- request: "do a video on...", "can you try..."
+- confusion: a part they didn't follow
+- objection: they disagree or think something was missing or wrong
+- praise: what they loved (only when several say it; it tells her what to keep)
+
+Honesty rules:
+- Only what the comments actually say. Never invent a need nobody wrote.
+- mentions = how many of the given comments say roughly this. Count, don't guess high.
+- quote = one comment copied exactly, character for character (shorten only by cutting from the end). If none fits, null.
+- idea = a working video title (under 60 characters) that answers the need, or null for praise or needs too small for a video.
+- Skip spam, self-promotion, timestamps-only and generic "great video" comments.
+
+Output JSON: {"summary": "one or two sentences on what this audience wants", "items": [{"type": "question", "text": "the need in one plain line", "mentions": 4, "quote": "exact comment text", "idea": "title or null"}]}
+At most 8 items, most mentions first. If nothing useful, return an empty items list and say so in the summary.
+TXT;
+    }
+
     public static function mentorSystem(): string
     {
         $name = self::name();

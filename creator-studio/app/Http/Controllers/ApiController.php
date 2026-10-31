@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Engine\Catalog\ModelCatalog;
+use App\Http\Controllers\Api\AudienceController;
+use Illuminate\Support\Facades\Cache;
 use App\Domains\Engine\EngineManager;
 use App\Domains\Usage\UsageLimit;
 use App\Domains\Feeds\Models\FeedItem;
@@ -303,6 +306,25 @@ class ApiController extends Controller
                 . $news->map->compactLine()->implode("\n") . "\n";
         }
 
+        // What her viewers (and competitors' viewers) asked for in the comments: demand that already exists.
+        $asks = AudienceInsight::where('used', false)->where('updated_at', '>=', now()->subDays(30))->latest('updated_at')->take(4)->get();
+        $askLines = $asks->flatMap->compactLines();
+        if ($askLines->isNotEmpty()) {
+            $userPrompt .= "\nWhat viewers asked for in comments (her_video=true means her own audience, the strongest signal; cite the url as source_url and the need in why_now):\n"
+                .$askLines->implode("\n")."\n";
+        }
+
+        // Her own recent winners and duds, if My channel was opened recently (no extra API call).
+        $channel = Setting::get('channel_id');
+        $report = $channel ? Cache::get(AudienceController::cacheKey($channel)) : null;
+        $own = collect($report['videos'] ?? [])->where('early', false)->whereNotNull('score')->sortByDesc('score');
+        if ($own->count() >= 3) {
+            $fmt = fn ($v) => "- \"{$v['title']}\": {$v['score']}x her median";
+            $userPrompt .= "\nHer own videos against her median (lean toward what her audience already rewards):\n"
+                .$own->take(3)->map($fmt)->implode("\n")."\n"
+                .($own->count() >= 5 ? $own->reverse()->take(2)->map($fmt)->implode("\n")."\n" : '');
+        }
+
         if ($extra !== '') {
             $userPrompt .= "\nPersonal notes/direction from creator:\n{$extra}\n";
         }
@@ -320,7 +342,7 @@ class ApiController extends Controller
 
         $brief = IdeaBrief::create([
             'summary' => $data['summary'] ?? null,
-            'signals' => $signals->toBase()->map->compactLine()->merge($news->toBase()->map->compactLine())->implode("\n"),
+            'signals' => $signals->toBase()->map->compactLine()->merge($news->toBase()->map->compactLine())->merge($askLines)->implode("\n"),
         ]);
 
         $createdIdeas = [];
@@ -337,10 +359,12 @@ class ApiController extends Controller
 
         Outlier::whereIn('id', $signals->pluck('id'))->update(['used' => true]);
         FeedItem::whereIn('id', $news->pluck('id'))->update(['used' => true]);
+        AudienceInsight::whereIn('id', $asks->pluck('id'))->update(['used' => true]);
 
         $sources = array_filter([
             $signals->isNotEmpty() ? $signals->count().' breakout signal(s)' : null,
             $news->isNotEmpty() ? $news->count().' news item(s)' : null,
+            $askLines->isNotEmpty() ? $askLines->count().' viewer request(s)' : null,
         ]);
 
         return response()->json([

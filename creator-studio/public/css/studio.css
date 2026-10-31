@@ -23,15 +23,15 @@
   --pre-bg: #f6edf2;
   --hover-line: #d1c1cb;
   --overlay: rgba(43, 34, 48, 0.42);
-  --tint-love-a: var(--tint-love-a);    /* love-note / soft gradient ends */
-  --tint-love-b: var(--tint-love-b);
-  --tint-love-line: var(--tint-love-line);
-  --tint-violet: var(--tint-violet);    /* proposed-change card */
-  --tint-violet-line: var(--tint-violet-line);
-  --tint-good: var(--tint-good);
-  --tint-good-line: var(--tint-good-line);
-  --diff-old: var(--diff-old);
-  --diff-new: var(--diff-new);
+  --tint-love-a: #fdeef4;    /* love-note / soft gradient ends */
+  --tint-love-b: #f2edfd;
+  --tint-love-line: #f3d3e1;
+  --tint-violet: #f6f2fe;    /* proposed-change card */
+  --tint-violet-line: #ddd3f7;
+  --tint-good: #edf8f2;
+  --tint-good-line: #c6e9d5;
+  --diff-old: #fde6e6;
+  --diff-new: #e3f5ec;
   --tool-hover: #e2cfd9;
   color-scheme: light;
 }

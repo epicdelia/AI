@@ -26,6 +26,7 @@ class GlobalSearchController extends Controller
         ['Breakouts', '/breakouts', 'trend', 'competitor channels outliers scan news feeds rss'],
         ['Ideas', '/ideas', 'bulb', 'generate brief pick'],
         ['Scripts', '/scripts', 'doc', 'write draft editor'],
+        ['My channel', '/channel', 'users', 'my videos performance median comments viewers questions audience'],
         ['Weekly goals', '/goals', 'target', 'scoreboard mentor check-in plan'],
         ['Toolkit', '/tools', 'sparkle', 'titles thumbnail description tags captions templates'],
         ['Producer chat', '/chat', 'chat', 'assistant brainstorm ask'],

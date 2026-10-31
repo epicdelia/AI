@@ -10,6 +10,7 @@ const STEPS = [
   { to: '/breakouts', title: 'Breakouts', text: 'Add channels in your niche (and news feeds). The scan finds videos doing far better than usual: proof a topic is hot.' },
   { to: '/ideas', title: 'Ideas', text: 'Fresh video ideas from those signals, filtered through your angle. Pick one, then “Plan it” or “Draft script”.' },
   { to: '/scripts', title: 'Scripts', text: 'Write with a live AI-tell checker, then review, fact-check, listen back, package titles and thumbnails, and export.' },
+  { to: '/channel', title: 'My channel', text: 'How each of your videos did against your own usual, and what viewers ask for in the comments. One click turns a question into an idea.' },
   { to: '/goals', title: 'Weekly goals', text: 'One video a week. The mentor checks your real uploads and keeps the score honest.' },
   { to: '/tools', title: 'Toolkit', text: 'Titles, descriptions, captions, sponsor emails and more, in your voice. Save your own templates too.' },
   { to: '/chat', title: 'Producer chat', text: 'A collaborator who knows your channel and past work. Tick “Web” for live search.' },

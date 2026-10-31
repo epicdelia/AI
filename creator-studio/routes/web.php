@@ -293,6 +293,8 @@ Route::prefix('api')->group(function () {
         Route::get('agents/{agent}/missions', [AgentsController::class, 'missions'])->whereNumber('agent');
         Route::post('agents/{agent}/prompt/optimize', [AgentsController::class, 'optimizePrompt'])->whereNumber('agent');
         Route::get('agents/{agent}/prompt/versions', [AgentsController::class, 'promptVersions'])->whereNumber('agent');
+        Route::post('agents/{agent}/tree-search', [AgentsController::class, 'treeSearch'])->whereNumber('agent');
+        Route::post('agents/{agent}/debate', [AgentsController::class, 'debate'])->whereNumber('agent');
         Route::post('mcp', [AgentsController::class, 'mcp']);
         Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 

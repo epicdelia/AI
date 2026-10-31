@@ -485,6 +485,189 @@ async function swarmModal(agent, onDone) {
   }, { wide: true });
 }
 
+async function treeSearchModal(agent, onDone) {
+  return modal(`Language Agent Tree Search (LATS / ToT)`, (close) => {
+    const topicInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '12px' },
+      placeholder: 'Enter a topic or technical architecture problem to explore (e.g. "Distributed transactions vs Event-Driven Sagas")',
+    });
+
+    const netSelect = h('select', { style: { marginBottom: '12px' } },
+      agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const searchBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim();
+        if (!topic) return toast('Please enter a topic.', 'err');
+        await busy(searchBtn, 'Exploring tree & evaluating nodes…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'LATS running: Expanding candidate angles → Generating draft leaves → Evaluating external verifiers → Pruning dead ends…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/tree-search`, {
+              topic,
+              platform: netSelect.value,
+              branches_per_level: 3,
+            });
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' } },
+                  h('strong', {}, 'Tree Search Trajectory Graph'),
+                  h('div', { class: 'row', style: { gap: '6px' } },
+                    h('span', { class: 'pill small' }, `Explored: ${r.stats.total_nodes_explored} nodes`),
+                    h('span', { class: 'pill WARN small' }, `Pruned: ${r.stats.branches_pruned}`),
+                    h('span', { class: 'pill ok small' }, `Highest: ${r.stats.highest_score}/100`))),
+
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' } },
+                  (r.tree.nodes || []).filter((n) => n.depth > 0).map((n) => {
+                    const isWinning = (r.tree.winning_path || []).includes(n.id);
+                    return h('div', {
+                      style: {
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        border: isWinning ? '1px solid var(--ok)' : n.is_pruned ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border)',
+                        background: isWinning ? 'rgba(34,197,94,0.06)' : n.is_pruned ? 'rgba(239,68,68,0.04)' : 'rgba(0,0,0,0.1)',
+                      },
+                    },
+                    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                      h('div', { class: 'row', style: { gap: '6px', alignItems: 'center' } },
+                        h('span', { class: `pill small ${n.type === 'angle' ? 'picked' : ''}` }, n.type.toUpperCase()),
+                        h('strong', { class: 'small' }, n.label)),
+                      h('div', { class: 'row', style: { gap: '6px' } },
+                        n.score != null ? h('span', { class: `pill small ${n.score >= 70 ? 'ok' : 'WARN'}` }, `Score: ${n.score}`) : null,
+                        n.is_pruned ? h('span', { class: 'pill WARN small' }, 'PRUNED') : null,
+                        isWinning ? h('span', { class: 'pill ok small' }, 'WINNING TRAJECTORY') : null)));
+                  })),
+
+                h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                  h('strong', { class: 'small' }, 'Winning Trajectory Post Draft:'),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '13px', marginTop: '6px', fontFamily: 'inherit' } }, r.post.body),
+                  h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', marginTop: '10px' } },
+                    h('button', {
+                      class: 'btn sm primary',
+                      onclick: async () => {
+                        await api('POST', 'social', {
+                          platform: r.post.platform,
+                          body: r.post.body,
+                          parts: r.post.parts,
+                          social_agent_id: agent.id,
+                        });
+                        toast('Winning trajectory saved to drafts queue.');
+                        close();
+                        if (onDone) onDone();
+                      },
+                    }, icon('check', 13), 'Save to drafts queue')))));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Tree search failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('sparkle', 14), 'Execute Tree Search');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'DeepMind/OpenAI-style inference-time search: simultaneously explores multiple strategic angles and draft trajectories, uses external verifiers (AiTellsLinter + Rubric) to prune dead ends, and backtracks to select the optimal path.'),
+      h('label', { class: 'small muted' }, 'Topic / Architecture:'),
+      topicInput,
+      h('label', { class: 'small muted' }, 'Target Network:'),
+      netSelect,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        searchBtn),
+      resultBox);
+  }, { wide: true });
+}
+
+async function debateModal(agent, onDone) {
+  return modal(`Adversarial Red-Team Debate Arena`, (close) => {
+    const topicInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '12px' },
+      placeholder: 'Enter a topic to debate, or leave blank to stress-test your agent persona (e.g. "Why microservices are an anti-pattern for 99% of startups")',
+    });
+
+    const netSelect = h('select', { style: { marginBottom: '12px' } },
+      agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
+
+    const debateBox = h('div', { style: { marginTop: '16px' } });
+
+    const debateBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim() || 'Why simpler architectures win in production';
+        await busy(debateBtn, 'Conducting adversarial debate…', async () => {
+          clear(debateBox).append(h('p', { class: 'muted small' }, 'Arena running: Creator Advocate → Red-Team Cynic Attack → Rebuttal Defense → Arbiter Armored Post…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/debate`, {
+              topic,
+              platform: netSelect.value,
+            });
+
+            clear(debateBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' } },
+                  h('strong', {}, 'Adversarial Debate Transcript (4 Rounds)'),
+                  h('span', { class: 'pill ok small' }, `Confidence: ${r.confidence_score}/100`)),
+
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' } },
+                  (r.transcript || []).map((round) => {
+                    const isCynic = round.agent === 'Red-Team Cynic';
+                    const isArbiter = round.agent === 'Arbiter Judge';
+                    return h('div', {
+                      style: {
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        border: isCynic ? '1px solid rgba(239,68,68,0.3)' : isArbiter ? '1px solid var(--ok)' : '1px solid var(--border)',
+                        background: isCynic ? 'rgba(239,68,68,0.05)' : isArbiter ? 'rgba(34,197,94,0.05)' : 'rgba(0,0,0,0.1)',
+                      },
+                    },
+                    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                      h('div', { class: 'row', style: { gap: '6px', alignItems: 'center' } },
+                        h('strong', { class: 'small', style: { color: isCynic ? 'var(--warn)' : isArbiter ? 'var(--ok)' : 'inherit' } }, `Round ${round.round}: ${round.agent}`),
+                        h('span', { class: 'muted small' }, `· ${round.role}`))),
+                    h('p', { class: 'small', style: { margin: '6px 0 0', whiteSpace: 'pre-wrap' } }, round.content));
+                  })),
+
+                h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                  h('strong', { class: 'small' }, 'Battle-Tested & Armored Draft:'),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '13px', marginTop: '6px', fontFamily: 'inherit' } }, r.post.body),
+                  h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', marginTop: '10px' } },
+                    h('button', {
+                      class: 'btn sm primary',
+                      onclick: async () => {
+                        await api('POST', 'social', {
+                          platform: r.post.platform,
+                          body: r.post.body,
+                          parts: r.post.parts,
+                          social_agent_id: agent.id,
+                        });
+                        toast('Armored post added to drafts queue.');
+                        close();
+                        if (onDone) onDone();
+                      },
+                    }, icon('check', 13), 'Save armored post to drafts queue')))));
+          } catch (err) {
+            clear(debateBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Debate failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('alert', 14), 'Start Red-Team Debate');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Simulates multi-agent adversarial debate (Society of Mind): an aggressive Red-Team Cynic attacks your thesis for hype, ungrounded claims, and missing edge-cases; an Arbiter synthesizes the debate into a bulletproof, battle-hardened post.'),
+      h('label', { class: 'small muted' }, 'Topic / Thesis to Stress-Test:'),
+      topicInput,
+      h('label', { class: 'small muted' }, 'Target Network:'),
+      netSelect,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        debateBtn),
+      debateBox);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -537,6 +720,8 @@ export async function renderAgent(view, id) {
           h('button', { class: 'btn sm ghost', onclick: () => breakoutSpikeModal(a, reload) }, icon('trend', 14), 'Breakout spike'),
           h('button', { class: 'btn sm ghost', onclick: () => deliberateModal(a, reload) }, icon('sparkle', 14), 'Deliberate committee'),
           h('button', { class: 'btn sm ghost', onclick: () => swarmModal(a, reload) }, icon('flow', 14), 'Swarm mission'),
+          h('button', { class: 'btn sm ghost', onclick: () => treeSearchModal(a, reload) }, icon('chart', 14), 'Tree search (ToT)'),
+          h('button', { class: 'btn sm ghost', onclick: () => debateModal(a, reload) }, icon('alert', 14), 'Red-team debate'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {

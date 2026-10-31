@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Agents\AgentLearner;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\BrandResearch;
+use App\Domains\Agents\Debate\AdversarialDebate;
 use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
 use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Harness\AgentHarness;
@@ -18,6 +19,7 @@ use App\Domains\Agents\Models\SwarmMission;
 use App\Domains\Agents\Optimization\PromptOptimizer;
 use App\Domains\Agents\Publisher;
 use App\Domains\Agents\Swarm\AgentSwarm;
+use App\Domains\Agents\TreeSearch\AgentTreeSearch;
 use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
@@ -330,6 +332,57 @@ class AgentsController extends Controller
     {
         return response()->json([
             'versions' => $agent->promptVersions()->orderByDesc('version')->take(10)->get(),
+        ]);
+    }
+
+    public function treeSearch(Request $request, SocialAgent $agent, AgentTreeSearch $treeSearch): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:500'],
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'branches_per_level' => ['nullable', 'integer', 'min:2', 'max:4'],
+        ]);
+
+        try {
+            $result = $treeSearch->search($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Language Agent Tree Search completed.',
+            'post' => $result['winning_post'],
+            'tree' => $result['tree'],
+            'stats' => $result['stats'],
+        ]);
+    }
+
+    public function debate(Request $request, SocialAgent $agent, AdversarialDebate $debate): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:500'],
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'initial_draft' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        try {
+            $result = $debate->debate($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Adversarial red-team debate concluded.',
+            'post' => $result['armored_post'],
+            'transcript' => $result['debate_transcript'],
+            'vulnerabilities_neutralized' => $result['vulnerabilities_neutralized'],
+            'confidence_score' => $result['confidence_score'],
         ]);
     }
 

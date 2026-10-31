@@ -442,10 +442,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 }
 
 /* ---- Sidebar: an icon rail by default, expandable (remembered); a slide-in drawer on phones ---- */
-.app-shell { grid-template-columns: var(--nav-w, 240px) minmax(0, 1fr); }
+.app-shell {
+  grid-template-columns: var(--nav-w, 240px) minmax(0, 1fr);
+  transition: grid-template-columns 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
 body.nav-collapsed { --nav-w: 72px; }
 .main-col { min-width: 0; display: flex; flex-direction: column; }
-.sidebar { overflow: hidden; }
+.sidebar {
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: width, transform;
+}
 .nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
 .nav-item .icon { flex: none; }
 .mobile-bar, .nav-backdrop, .drawer-close { display: none; }

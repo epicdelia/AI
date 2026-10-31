@@ -10446,10 +10446,95 @@ body.wf-full .content-area {
   }
 }
 
-/* ---- Sidebar: links only ---- */
+/* ---- Sidebar: brand header & polish ---- */
 .sidebar .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 6px 14px 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
-  font-size: 1.02rem;
+}
+
+.sidebar .brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+  min-width: 0;
+  transition: opacity 0.15s;
+}
+
+.sidebar .brand-link:hover {
+  text-decoration: none;
+  opacity: 0.9;
+}
+
+.sidebar .brand-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar .brand-title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.sidebar .brand-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.sidebar .brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.sidebar .drawer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: var(--field);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.sidebar .drawer-close:hover {
+  background: var(--bg);
+  color: var(--ink);
+  transform: scale(1.05);
+}
+
+body.nav-collapsed .sidebar .brand {
+  justify-content: center;
+  padding: 4px 0 12px;
+}
+
+body.nav-collapsed .sidebar .brand-text,
+body.nav-collapsed .sidebar .brand-actions {
+  display: none !important;
 }
 
 .sidebar-footer {
@@ -10492,18 +10577,24 @@ body.wf-full .content-area {
 
   .sidebar {
     width: min(320px, 86vw) !important;
-    border-radius: 0 22px 22px 0;
-    transition: transform 0.28s cubic-bezier(.22, 1, .36, 1), visibility 0.28s;
+    border-radius: 0 24px 24px 0;
+    transform: translate3d(-105%, 0, 0);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s, box-shadow 0.32s ease;
+    will-change: transform;
+    visibility: hidden;
   }
 
   body.nav-open .sidebar {
-    box-shadow: 18px 0 60px rgba(0, 0, 0, 0.22);
-    box-shadow: 18px 0 60px rgba(0, 0, 0, 0.28);
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    box-shadow: 20px 0 65px rgba(0, 0, 0, 0.28);
+  }
+
+  body.nav-open .sidebar .nav-item {
+    animation: sidedrawerItemIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
   .nav-backdrop {
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     background: rgba(18, 14, 22, 0.45);
@@ -10519,6 +10610,17 @@ body.wf-full .content-area {
 
   .sidebar .nav-item {
     justify-content: flex-start !important;
+  }
+}
+
+@keyframes sidedrawerItemIn {
+  from {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -11314,19 +11416,20 @@ a:hover>.logo.brand-mark,
   left: 0;
   width: min(320px, 86vw) !important;
   height: 100%;
-  padding: 16px 12px;
+  padding: 18px 14px;
   border-right: 1px solid var(--line);
-  border-radius: 0 22px 22px 0;
-  transform: translateX(-105%);
+  border-radius: 0 24px 24px 0;
+  transform: translate3d(-105%, 0, 0);
   visibility: hidden;
-  transition: transform 0.28s cubic-bezier(.22, 1, .36, 1), visibility 0.28s;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s, box-shadow 0.32s ease;
+  will-change: transform;
   z-index: 1100;
 }
 
 :root[data-nav="top"] body.nav-open .sidebar {
-  transform: none;
+  transform: translate3d(0, 0, 0);
   visibility: visible;
-  box-shadow: 18px 0 60px rgba(0, 0, 0, 0.22);
+  box-shadow: 20px 0 65px rgba(0, 0, 0, 0.28);
 }
 
 :root[data-nav="top"] .nav-backdrop {

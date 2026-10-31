@@ -413,14 +413,14 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
   // Header with brand logo and light/dark switch
   const authHeader = h('header', { class: 'auth-header' },
     h('div', { class: 'auth-header-brand' },
+      brandMark(28),
       onBackToLanding ? h('button', {
         type: 'button',
         class: 'btn ghost sm',
-        style: { marginRight: '10px' },
+        style: { marginLeft: '12px' },
         onclick: onBackToLanding,
-        title: 'Back to Tech Unicorn',
-      }, icon('chevron-left', 14), 'Tech Unicorn') : null,
-      brandMark(28)
+        title: 'Return to Home',
+      }, icon('home', 14), 'Home') : null
     ),
     h('div', { class: 'auth-header-actions' },
       themeSwitch()

@@ -22,8 +22,8 @@ class LandingPageController extends Controller
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tech Unicorn — {$creatorName} · {$creatorTitle}</title>
-  <meta name="description" content="Making tech less scary — from beach cafés in 60+ countries. Ex-Google engineer, content creator for 470K+, and founder building AI-powered apps.">
+  <title>Tech Unicorn: {$creatorName} · {$creatorTitle}</title>
+  <meta name="description" content="Making tech less scary: built from beach cafés in 60+ countries. Ex-Google engineer, content creator for 470K+, and founder building AI-powered apps.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦄</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -278,7 +278,12 @@ class LandingPageController extends Controller
   <header class="nav" id="top">
     <div class="container nav-inner">
       <a href="#top" class="logo">
-        <span>🦄</span>
+        <svg width="22" height="22" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:6px;">
+          <path d="M20 3L35 11.66V28.34L20 37L5 28.34V11.66L20 3Z" stroke="#f06a9b" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M20 3V37" stroke="#f06a9b" stroke-width="2" stroke-linecap="round"/>
+          <path d="M5 11.66L20 20.33L35 11.66" stroke="#f06a9b" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="20" cy="20.33" r="3.5" fill="#f06a9b"/>
+        </svg>
         <span>Tech&nbsp;Unicorn</span>
         <span class="logo-badge">PRO</span>
       </a>
@@ -290,7 +295,7 @@ class LandingPageController extends Controller
         <a href="#speaking">Speaking</a>
         <a href="/links" class="btn btn-sm btn-ghost">Link in Bio</a>
         <a href="mailto:{$email}?subject=Project%20Inquiry%20from%20Website" class="btn btn-sm btn-primary">Book an Intro Call</a>
-        <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">◐</button>
+        <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">Mode</button>
       </nav>
     </div>
   </header>
@@ -300,7 +305,7 @@ class LandingPageController extends Controller
     <div class="container hero-grid">
       <div class="hero-copy">
         <span class="eyebrow">{$creatorName} · Ex-Google Engineer · Digital Nomad</span>
-        <h1>Making tech <em>less scary</em> — from beach cafés in 60+ countries.</h1>
+        <h1>Making tech <em>less scary</em>: built from beach cafés in 60+ countries.</h1>
         <p class="lede">I'm a software engineer who left Big Tech to build apps, create content for 470K+ people, and prove you don't need a hoodie and a standing desk to ship great software.</p>
         <div class="hero-actions">
           <a href="mailto:{$email}?subject=Intro%20Call%20Booking" class="btn btn-primary btn-lg">Book an Intro Call</a>
@@ -318,7 +323,7 @@ class LandingPageController extends Controller
           <div class="stat-lbl">Countries traveled and worked from</div>
         </div>
         <div class="stat-box">
-          <div class="stat-num">2–4<span style="font-size:0.5em;color:var(--accent);">wks</span></div>
+          <div class="stat-num">2-4<span style="font-size:0.5em;color:var(--accent);">wks</span></div>
           <div class="stat-lbl">Idea to shipped production MVP</div>
         </div>
         <div class="stat-box">
@@ -367,16 +372,16 @@ class LandingPageController extends Controller
   <section class="about" id="about">
     <div class="container about-grid">
       <div>
-        <p class="section-eyebrow">01 — About</p>
+        <p class="section-eyebrow">01: About</p>
       </div>
       <div>
         <h2>Engineer first. <em>Storyteller</em> always.</h2>
         <p>I spent years writing production code at Google before trading the campus for a carry-on. Now I split my time between shipping AI-powered products for clients and explaining technology to a few hundred thousand people who were told it wasn't for them.</p>
-        <p>The thesis behind everything I make: <strong>tech feels scary because it's explained badly.</strong> Whether it's a 30-second reel, a conference keynote, or an MVP built in three weeks, my job is the same — take something intimidating and make it feel obvious.</p>
+        <p>The thesis behind everything I make: <strong>tech feels scary because it's explained badly.</strong> Whether it's a 30-second reel, a conference keynote, or an MVP built in three weeks, my job is the same: take something intimidating and make it feel obvious.</p>
         <ul class="about-points">
-          <li><span>✦</span> Self-taught engineer → Google → independent founder</li>
+          <li><span>✦</span> Self-taught engineer to Google to independent founder</li>
           <li><span>✦</span> Built and shipped products while living across 60+ countries</li>
-          <li><span>✦</span> 470K+ community across Instagram, YouTube, LinkedIn &amp; TikTok</li>
+          <li><span>✦</span> 472K+ community across Instagram, YouTube, LinkedIn &amp; TikTok</li>
         </ul>
       </div>
     </div>
@@ -386,14 +391,14 @@ class LandingPageController extends Controller
   <section class="services" id="services" style="background: var(--panel-2);">
     <div class="container">
       <div class="section-head">
-        <p class="section-eyebrow">02 — Services</p>
+        <p class="section-eyebrow">02: Services</p>
         <h2>Six ways we can <em>work together</em></h2>
       </div>
       <div class="services-grid">
         <article class="card">
           <div class="card-icon">⚡️</div>
           <h3>Vibecoded Apps</h3>
-          <p>AI-powered MVPs designed, built, and shipped in 2–4 weeks. From napkin sketch to live product — no six-month roadmap required.</p>
+          <p>AI-powered MVPs designed, built, and shipped in 2 to 4 weeks. From napkin sketch to live product with no six-month roadmap required.</p>
         </article>
         <article class="card">
           <div class="card-icon">🎥</div>
@@ -403,7 +408,7 @@ class LandingPageController extends Controller
         <article class="card">
           <div class="card-icon">🎤</div>
           <h3>Speaking &amp; Workshops</h3>
-          <p>Keynotes and hands-on workshops on AI, building in public, and the future of work — for conferences, companies, and communities.</p>
+          <p>Keynotes and hands-on workshops on AI, building in public, and the future of work for conferences, companies, and communities.</p>
         </article>
         <article class="card">
           <div class="card-icon">🤝</div>
@@ -413,12 +418,12 @@ class LandingPageController extends Controller
         <article class="card">
           <div class="card-icon">🧭</div>
           <h3>Technical Consulting</h3>
-          <p>An ex-Google engineer in your corner — architecture reviews, build-vs-buy decisions, and honest answers about what your team actually needs.</p>
+          <p>An ex-Google engineer in your corner for architecture reviews, build-vs-buy decisions, and honest answers about what your team actually needs.</p>
         </article>
         <article class="card">
           <div class="card-icon">✨</div>
           <h3>AI Integration</h3>
-          <p>Practical AI features for your existing product — shipped, not slide-decked. LLMs, automation, and agents that earn their keep.</p>
+          <p>Practical AI features for your existing product: shipped, not slide-decked. LLMs, automation, and agents that earn their keep.</p>
         </article>
       </div>
     </div>
@@ -428,7 +433,7 @@ class LandingPageController extends Controller
   <section class="process" id="process">
     <div class="container">
       <div class="section-head">
-        <p class="section-eyebrow">03 — How it works</p>
+        <p class="section-eyebrow">03: How it works</p>
         <h2>From first call to <em>shipped</em> in weeks</h2>
       </div>
       <ol class="process-steps">
@@ -455,7 +460,7 @@ class LandingPageController extends Controller
   <section class="pricing" id="pricing" style="background: var(--panel-2);">
     <div class="container">
       <div class="section-head">
-        <p class="section-eyebrow">04 — Packages &amp; Pricing</p>
+        <p class="section-eyebrow">04: Packages &amp; Pricing</p>
         <h2>Packages that <em>pay for themselves</em></h2>
         <p>Every engagement starts with a free intro call and a fixed quote. Prices below are transparent starting points for typical scope.</p>
       </div>
@@ -476,7 +481,7 @@ class LandingPageController extends Controller
           <span class="price-badge">Most popular</span>
           <h3>MVP Build</h3>
           <p><span class="price-num">from $12,000</span><span class="price-per">fixed</span></p>
-          <p>Your idea, live in 2–4 weeks — design, build, deploy.</p>
+          <p>Your idea, live in 2 to 4 weeks: design, build, and deploy.</p>
           <ul class="price-list">
             <li>Full product: UX design, AI build &amp; cloud deployment</li>
             <li>Weekly Friday demos so you always see progress</li>
@@ -505,14 +510,14 @@ class LandingPageController extends Controller
   <section class="content" id="content">
     <div class="container">
       <div class="section-head">
-        <p class="section-eyebrow">05 — Reach &amp; Community</p>
+        <p class="section-eyebrow">05: Reach &amp; Community</p>
         <h2>Where the <em>internet</em> finds me</h2>
       </div>
       <div class="platforms-grid">
         <a class="platform-card" href="https://www.instagram.com/tech.unicorn/" target="_blank" rel="noopener">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>Instagram</strong>
-            <span style="color:var(--accent);">↗</span>
+            <span style="color:var(--accent);">-></span>
           </div>
           <div class="platform-stat">384K</div>
           <p>Daily tech news, AI experiments, and nomad engineering life in 60 seconds.</p>
@@ -521,7 +526,7 @@ class LandingPageController extends Controller
         <a class="platform-card" href="https://www.youtube.com/@Tech.Unicorn" target="_blank" rel="noopener">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>YouTube</strong>
-            <span style="color:var(--accent);">↗</span>
+            <span style="color:var(--accent);">-></span>
           </div>
           <div class="platform-stat">22K</div>
           <p>Deep dives, build-alongs, and coding challenges from beach cafés.</p>
@@ -530,7 +535,7 @@ class LandingPageController extends Controller
         <a class="platform-card" href="https://www.linkedin.com/in/delialazarescu/" target="_blank" rel="noopener">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>LinkedIn</strong>
-            <span style="color:var(--accent);">↗</span>
+            <span style="color:var(--accent);">-></span>
           </div>
           <div class="platform-stat">25K</div>
           <p>Career honesty, industry architecture takes, and lessons from Big Tech.</p>
@@ -544,7 +549,7 @@ class LandingPageController extends Controller
   <section class="speaking" id="speaking" style="background: var(--panel-2);">
     <div class="container">
       <div class="section-head">
-        <p class="section-eyebrow">06 — On Stage</p>
+        <p class="section-eyebrow">06: On Stage</p>
         <h2>Recently <em>keynoting</em></h2>
       </div>
       <div style="display:grid;gap:8px;">
@@ -552,7 +557,7 @@ class LandingPageController extends Controller
           <span style="font-family:var(--serif);font-size:1.2rem;font-weight:600;color:var(--accent);">01</span>
           <div>
             <h3>Nomad Cruise</h3>
-            <p>Keynote on building a tech career without an address — engineering, content, and revenue on the move.</p>
+            <p>Keynote on building a tech career without a fixed address: engineering, content, and revenue on the move.</p>
           </div>
           <span class="talk-tag">Keynote</span>
         </div>
@@ -568,7 +573,7 @@ class LandingPageController extends Controller
           <span style="font-family:var(--serif);font-size:1.2rem;font-weight:600;color:var(--accent);">03</span>
           <div>
             <h3>Digital Garage Tokyo</h3>
-            <p>Workshop on practical AI for non-technical teams — making the intimidating feel obvious.</p>
+            <p>Workshop on practical AI for non-technical teams: making the intimidating feel obvious.</p>
           </div>
           <span class="talk-tag">Workshop</span>
         </div>
@@ -581,7 +586,7 @@ class LandingPageController extends Controller
     <div class="cta-banner">
       <p class="section-eyebrow">Let's build something</p>
       <h2 style="font-size: clamp(2rem, 4.5vw, 3.4rem); margin-bottom: 12px;">Have an idea that needs <em>shipping?</em></h2>
-      <p style="font-size: 1.15rem; max-width: 48ch; margin-inline: auto; margin-bottom: 28px;">App, campaign, keynote, or something bolder — if it makes tech less scary, let's talk.</p>
+      <p style="font-size: 1.15rem; max-width: 48ch; margin-inline: auto; margin-bottom: 28px;">App, campaign, keynote, or something bolder. If it makes tech less scary, let's talk.</p>
       <a href="mailto:{$email}?subject=Project%20Inquiry" class="btn btn-primary btn-lg">{$email}</a>
     </div>
   </section>

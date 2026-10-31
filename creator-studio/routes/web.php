@@ -33,6 +33,8 @@ use App\Http\Controllers\Api\TranscriptionController;
 use App\Http\Controllers\Api\VisionController;
 use App\Http\Controllers\Api\WorkflowsController;
 use App\Http\Controllers\Api\YouTubeController;
+use App\Http\Controllers\Api\StripePaymentController;
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +57,12 @@ Route::prefix('api')->group(function () {
     Route::post('install/test-db', [InstallController::class, 'testDatabase']);
     Route::post('install/setup-db', [InstallController::class, 'setupDatabase']);
     Route::post('install/run-migrations', [InstallController::class, 'runMigrations']);
+
+    // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
+    Route::get('stripe/packages', [StripePaymentController::class, 'packages']);
+    Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession']);
+    Route::post('stripe/webhook', [StripePaymentController::class, 'webhook']);
+    Route::post('booking', [BookingController::class, 'store']);
 
     // Authenticated API endpoints
     Route::middleware('auth')->group(function () {

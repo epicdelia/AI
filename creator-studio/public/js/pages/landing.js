@@ -234,11 +234,10 @@ export function openStripeModal(pkgId = 'retainer') {
 }
 
 /**
- * Multi-Column Mega Menus for the Landing Page Header.
- * Matches Creator Studio dashboard megaMenus() styling and interactive structure.
+ * Global Navigation Configuration for both Mega Menus and Mobile Side Drawer.
  */
-function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
-  const MEGA_CONFIG = [
+function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
+  return [
     {
       id: 'services',
       label: 'Services',
@@ -344,7 +343,14 @@ function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
       ],
     },
   ];
+}
 
+/**
+ * Multi-Column Mega Menus for the Landing Page Header.
+ * Matches Creator Studio dashboard megaMenus() styling and interactive structure.
+ */
+function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
+  const MEGA_CONFIG = getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth });
   const panel = h('div', { class: 'mega', id: 'landing-mega-panel', hidden: true, role: 'region' });
   let openSec = null;
   let timer = null;
@@ -482,6 +488,131 @@ function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
 }
 
 /**
+ * Mobile & Tablet Off-Canvas Side Drawer.
+ * Faithfully mirrors the Creator Studio dashboard mobile drawer navigation.
+ */
+function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
+  const MEGA_CONFIG = getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth });
+  const backdrop = h('div', { class: 'landing-drawer-backdrop' });
+
+  const closeBtn = h('button', {
+    type: 'button',
+    class: 'landing-drawer-close',
+    'aria-label': 'Close menu',
+  }, icon('x', 18));
+
+  const drawerHead = h('div', { class: 'landing-drawer-head' },
+    h('div', { class: 'row', style: { gap: '10px', alignItems: 'center' } },
+      brandMark(24),
+      h('strong', { style: { fontSize: '1.05rem', letterSpacing: '0.02em' } }, 'Tech Unicorn')),
+    closeBtn);
+
+  const actionsBox = h('div', { class: 'landing-drawer-actions' },
+    h('button', {
+      type: 'button',
+      class: 'btn primary',
+      onclick: () => { close(); onBookCall('mvp_build'); },
+    }, icon('calendar', 14), 'Book an Intro Call'),
+    h('button', {
+      type: 'button',
+      class: 'btn ghost',
+      onclick: () => { close(); onStripePay('retainer'); },
+    }, icon('credit-card', 14), 'Pay with Stripe'),
+    h('button', {
+      type: 'button',
+      class: 'btn ghost',
+      onclick: () => { close(); onAuthClick(); },
+    }, icon('sparkle', 14), isAuth ? 'Open Dashboard' : 'Studio Login'));
+
+  const sectionsBox = h('div', { class: 'landing-drawer-sections' },
+    MEGA_CONFIG.map((sec) =>
+      h('div', { class: 'landing-drawer-group' },
+        h('p', { class: 'landing-drawer-group-title' }, sec.label),
+        h('div', { class: 'landing-drawer-group-list', style: { display: 'grid', gap: '4px' } },
+          sec.groups.flatMap((g) => g.items).map((item) => {
+            const clickHandler = (e) => {
+              close();
+              if (item.onClick) {
+                e.preventDefault();
+                item.onClick();
+              } else if (item.href && item.href.startsWith('#')) {
+                const target = document.querySelector(item.href);
+                if (target) {
+                  e.preventDefault();
+                  target.scrollIntoView({ behavior: 'smooth' });
+                }
+              }
+            };
+
+            if (item.to) {
+              return link(item.to, { class: 'landing-drawer-link', onclick: () => close() },
+                icon(item.icon, 16),
+                h('span', {}, item.label));
+            }
+
+            return h('a', {
+              href: item.href || '#',
+              target: item.external ? '_blank' : undefined,
+              rel: item.external ? 'noopener' : undefined,
+              class: 'landing-drawer-link',
+              onclick: clickHandler,
+            },
+            icon(item.icon, 16),
+            h('span', {}, item.label));
+          })))));
+
+  const drawerFoot = h('div', { class: 'landing-drawer-footer' },
+    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+      h('span', { class: 'muted small' }, 'Appearance'),
+      themeSwitch()),
+    h('p', { class: 'muted small', style: { margin: 0 } }, 'Delia Lazarescu · @Tech.Unicorn'));
+
+  const drawerPanel = h('aside', { class: 'landing-drawer', role: 'dialog', 'aria-label': 'Navigation menu' },
+    drawerHead,
+    actionsBox,
+    sectionsBox,
+    drawerFoot);
+
+  const drawerWrap = h('div', { class: 'landing-drawer-wrap', 'aria-hidden': 'true' },
+    backdrop,
+    drawerPanel);
+
+  const close = () => {
+    drawerWrap.classList.remove('open');
+    drawerWrap.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('landing-drawer-open');
+  };
+
+  const open = () => {
+    drawerWrap.classList.add('open');
+    drawerWrap.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('landing-drawer-open');
+    closeBtn.focus();
+  };
+
+  closeBtn.addEventListener('click', close);
+  backdrop.addEventListener('click', close);
+  drawerPanel.addEventListener('click', (e) => e.stopPropagation());
+
+  const onKey = (e) => {
+    if (e.key === 'Escape' && drawerWrap.classList.contains('open')) {
+      close();
+    }
+  };
+  document.addEventListener('keydown', onKey);
+
+  return {
+    drawerWrap,
+    openDrawer: open,
+    closeDrawer: close,
+    destroy: () => {
+      document.removeEventListener('keydown', onKey);
+      drawerWrap.remove();
+    },
+  };
+}
+
+/**
  * Main Pure-JavaScript Landing Page Component.
  * Faithfully adapts https://www.thetechunicorn.com in the Creator Studio design system.
  */
@@ -492,8 +623,15 @@ export function renderLanding(view, options = {}) {
   const handleBookCall = (type = 'mvp_build') => openBookingModal(type);
   const handleStripePay = (pkg = 'retainer') => openStripeModal(pkg);
 
-  // 1. Navigation Header with official SVG brand logo and interactive mega menus
+  // 1. Navigation Header with official SVG brand logo, grouped actions, and side drawer
   const megaNav = landingMegaMenus({
+    onBookCall: handleBookCall,
+    onStripePay: handleStripePay,
+    onAuthClick,
+    isAuth,
+  });
+
+  const drawer = landingSideDrawer({
     onBookCall: handleBookCall,
     onStripePay: handleStripePay,
     onAuthClick,
@@ -502,25 +640,34 @@ export function renderLanding(view, options = {}) {
 
   const nav = h('header', { class: 'landing-nav', id: 'top' },
     h('div', { class: 'landing-container landing-nav-inner' },
-      h('a', { href: '#top', class: 'landing-logo', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-        brandMark(26),
-        h('span', { class: 'landing-logo-text' }, 'Tech Unicorn'),
-        h('span', { class: 'brand-badge' }, 'PRO')),
+      h('a', {
+        href: '#top',
+        class: 'landing-logo',
+        'aria-label': 'Tech Unicorn Home',
+        title: 'Tech Unicorn',
+      }, brandMark(28)),
       megaNav,
-      h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-        link('/links', { class: 'btn btn-ghost sm' }, icon('link', 14), 'Bio'),
+      h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+        h('div', { class: 'landing-btn-group' },
+          link('/links', { class: 'btn', title: 'Public Bio Page' }, icon('link', 14), 'Bio'),
+          h('button', {
+            type: 'button',
+            class: 'btn',
+            onclick: onAuthClick,
+            title: isAuth ? 'Open Creator Studio Dashboard' : 'Sign in to Creator Studio',
+          }, icon('sparkle', 14), isAuth ? 'Dashboard' : 'Studio')),
         h('button', {
           type: 'button',
           class: 'btn primary sm',
           onclick: () => handleBookCall('mvp_build'),
         }, icon('calendar', 13), 'Book an Intro Call'),
+        themeSwitch(),
         h('button', {
           type: 'button',
-          class: 'btn ghost sm',
-          onclick: onAuthClick,
-          title: isAuth ? 'Open Creator Studio Dashboard' : 'Sign in to Creator Studio',
-        }, icon('sparkle', 14), isAuth ? 'Dashboard' : 'Studio Login'),
-        themeSwitch())));
+          class: 'landing-drawer-toggle btn ghost sm',
+          'aria-label': 'Open navigation drawer',
+          onclick: () => drawer.openDrawer(),
+        }, icon('menu', 18)))));
 
   // 2. Hero Section
   const hero = h('section', { class: 'landing-hero' },
@@ -771,6 +918,7 @@ export function renderLanding(view, options = {}) {
 
   const landingWrapper = h('div', { class: 'landing-page' },
     nav,
+    drawer.drawerWrap,
     hero,
     marquee,
     trusted,
@@ -784,5 +932,8 @@ export function renderLanding(view, options = {}) {
     footer);
 
   view.replaceChildren(landingWrapper);
-  return () => landingWrapper.remove();
+  return () => {
+    drawer.destroy();
+    landingWrapper.remove();
+  };
 }

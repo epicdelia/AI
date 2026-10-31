@@ -7,9 +7,9 @@ import { themeSwitch } from '../theme.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
- * Logs lead directly into Creator Studio CRM deals pipeline and confirms meeting.
+ * Logs the lead into the Creator Studio deals pipeline; Delia confirms the time by email.
  */
-export function openBookingModal(initialType = 'mvp_build') {
+export function openBookingModal(initialType = 'mvp_build', service = '') {
   return modal('Book an Intro Call with Delia', (close) => {
     let submitting = false;
     const today = new Date().toISOString().slice(0, 10);
@@ -36,7 +36,7 @@ export function openBookingModal(initialType = 'mvp_build') {
       placeholder: 'Briefly share what you want to build or achieve...',
     });
 
-    const submitBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('calendar', 14), ' Confirm 30-Min Call');
+    const submitBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('calendar', 14), ' Request 30-Min Call');
     const cancelBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel');
 
     const form = h('form', {
@@ -46,7 +46,7 @@ export function openBookingModal(initialType = 'mvp_build') {
         if (submitting) return;
         submitting = true;
         submitBtn.disabled = true;
-        submitBtn.replaceChildren(icon('sparkle', 14), ' Scheduling call...');
+        submitBtn.replaceChildren(icon('sparkle', 14), ' Sending request...');
 
         try {
           const payload = {
@@ -57,6 +57,7 @@ export function openBookingModal(initialType = 'mvp_build') {
             preferred_date: dateInput.value,
             preferred_time: timeSelect.value,
             notes: notesInput.value.trim(),
+            service: service || undefined,
           };
 
           const res = await api('POST', 'booking', payload);
@@ -64,14 +65,14 @@ export function openBookingModal(initialType = 'mvp_build') {
         } catch (err) {
           submitting = false;
           submitBtn.disabled = false;
-          submitBtn.replaceChildren(icon('calendar', 14), ' Confirm 30-Min Call');
-          toast(err.message || 'Could not schedule call. Please try again.', 'err');
+          submitBtn.replaceChildren(icon('calendar', 14), ' Request 30-Min Call');
+          toast(err.message || 'Could not send your request. Please try again.', 'err');
         }
       },
     },
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Your Name', nameInput, 'Required'),
-        field('Work Email', emailInput, 'Calendar invite sent here')),
+        field('Work Email', emailInput, 'Delia confirms the time here')),
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Company or Brand', companyInput, 'Optional'),
         field('Project Type', typeSelect)),
@@ -88,7 +89,7 @@ export function openBookingModal(initialType = 'mvp_build') {
         brandMark(32),
         h('div', {},
           h('h3', { style: { margin: 0, fontSize: '1.15rem' } }, 'Free 30-Minute Intro Call'),
-          h('p', { class: 'muted small', style: { margin: 0 } }, 'Discuss your MVP, retainer, or brand partnership with Delia.'))),
+          h('p', { class: 'muted small', style: { margin: 0 } }, service ? `About: ${service}` : 'Discuss your MVP, retainer, or brand partnership with Delia.'))),
       form);
 
     function showSuccess(data) {
@@ -96,23 +97,19 @@ export function openBookingModal(initialType = 'mvp_build') {
       const successBox = h('div', { class: 'booking-confirmed-card', style: { textAlign: 'center', padding: '16px 8px' } },
         h('div', { style: { width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', display: 'grid', placeItems: 'center', margin: '0 auto 16px' } },
           icon('check', 28)),
-        h('h3', { style: { margin: '0 0 6px', fontSize: '1.4rem' } }, 'Intro Call Confirmed!'),
-        h('p', { class: 'muted', style: { margin: '0 0 20px' } }, data.message || `Invite sent to ${emailInput.value}.`),
+        h('h3', { style: { margin: '0 0 6px', fontSize: '1.4rem' } }, 'Request received!'),
+        h('p', { class: 'muted', style: { margin: '0 0 20px' } }, data.message || `Delia will confirm your time at ${emailInput.value}.`),
         h('div', { class: 'card', style: { textAlign: 'left', padding: '16px', marginBottom: '20px', background: 'var(--panel-2)', border: '1px solid var(--line)' } },
           h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
             h('span', { class: 'small muted' }, 'Booking Reference:'),
-            h('strong', { class: 'small' }, data.booking_ref || 'CONFIRMED')),
+            h('strong', { class: 'small' }, data.booking_ref || '-')),
           h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
-            h('span', { class: 'small muted' }, 'Scheduled Date:'),
+            h('span', { class: 'small muted' }, 'Requested time:'),
             h('strong', { class: 'small' }, `${appt.date} at ${appt.time}`)),
-          h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
+          h('div', { class: 'row', style: { justifyContent: 'space-between' } },
             h('span', { class: 'small muted' }, 'Service:'),
-            h('strong', { class: 'small' }, appt.service || 'Intro Consultation')),
-          appt.calendar_link ? h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-            h('span', { class: 'small muted' }, 'Meeting Room:'),
-            h('a', { href: appt.calendar_link, target: '_blank', rel: 'noopener', style: { color: 'var(--accent)', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' } }, 'Google Meet Link', icon('arrow', 12))) : null),
+            h('strong', { class: 'small' }, appt.service || 'Intro Consultation'))),
         h('div', { class: 'row', style: { justifyContent: 'center', gap: '12px' } },
-          appt.calendar_link ? h('a', { href: appt.calendar_link, target: '_blank', rel: 'noopener', class: 'btn primary' }, icon('play', 14), ' Open Google Meet') : null,
           h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Done')));
 
       contentBox.replaceChildren(successBox);
@@ -124,7 +121,7 @@ export function openBookingModal(initialType = 'mvp_build') {
 
 /**
  * Interactive Stripe Checkout Modal.
- * Generates verified Stripe checkout session or verified local receipt and logs into CRM.
+ * Redirects to Stripe Checkout when it's set up; otherwise logs an invoice request. Nothing is marked paid here.
  */
 export function openStripeModal(pkgId = 'retainer') {
   const PACKAGES = {
@@ -133,7 +130,7 @@ export function openStripeModal(pkgId = 'retainer') {
     mvp_full: { id: 'mvp_full', name: 'MVP Build: Full Fixed Package', price: '$12,000', desc: 'Complete fixed-scope MVP: UX design, AI build, cloud deployment, and 30-day post-launch support.' },
     brand_partnership: { id: 'brand_partnership', name: 'Brand Partnership Campaign', price: '$5,000', desc: 'Dedicated technical integration across Instagram (384K), YouTube (22K) & LinkedIn (25K).' },
     media_kit_sponsor: { id: 'media_kit_sponsor', name: 'Verified Media Kit Feature', price: '$1,500', desc: 'Featured sponsor placement in Delia’s live media kit and rate card deck.' },
-    advisory_session: { id: 'advisory_session', name: 'Strategy & Architecture Session', price: '$500', desc: '90-minute private architectural deep-dive and code review call.' },
+    advisory_session: { id: 'advisory_session', name: '1-Hour Architecture & Strategy Session', price: '$500', desc: '60-minute 1-on-1 architecture review, build-vs-buy analysis, or technical roadmap consultation.' },
   };
 
   const selected = PACKAGES[pkgId] || PACKAGES.retainer;
@@ -147,6 +144,12 @@ export function openStripeModal(pkgId = 'retainer') {
 
     const payBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('credit-card', 14), ` Pay ${selected.price} with Stripe`);
     const cancelBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel');
+    let payLabel = ` Pay ${selected.price} with Stripe`;
+    api('GET', 'stripe/packages').then((p) => {
+      if (p.stripe_configured || submitting) return;
+      payLabel = ' Request an invoice';
+      payBtn.replaceChildren(icon('file-text', 14), payLabel);
+    }).catch(() => {});
 
     const form = h('form', {
       onsubmit: async (e) => {
@@ -172,11 +175,11 @@ export function openStripeModal(pkgId = 'retainer') {
             return;
           }
 
-          showPaymentSuccess(res);
+          showRequested(res);
         } catch (err) {
           submitting = false;
           payBtn.disabled = false;
-          payBtn.replaceChildren(icon('credit-card', 14), ` Pay ${selected.price} with Stripe`);
+          payBtn.replaceChildren(icon('credit-card', 14), payLabel);
           toast(err.message || 'Stripe payment error. Please try again.', 'err');
         }
       },
@@ -188,7 +191,7 @@ export function openStripeModal(pkgId = 'retainer') {
         h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, selected.desc)),
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Cardholder or Client Name', nameInput, 'Required'),
-        field('Billing Email', emailInput, 'Invoice receipt sent here')),
+        field('Billing Email', emailInput, 'Receipt or invoice sent here')),
       field('Company or Brand Name', companyInput, 'For invoice heading'),
       field('Notes & Project Requirements', notesInput, 'Optional details'),
       h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' } },
@@ -203,27 +206,21 @@ export function openStripeModal(pkgId = 'retainer') {
           h('p', { class: 'muted small', style: { margin: 0 } }, 'Stripe Payments partner with instant invoice and contract logging.'))),
       form);
 
-    function showPaymentSuccess(data) {
+    // Only reached when Stripe isn't available: a request for an invoice, not a payment.
+    function showRequested(data) {
       const receipt = h('div', { style: { textAlign: 'center', padding: '16px 8px' } },
         h('div', { style: { width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', display: 'grid', placeItems: 'center', margin: '0 auto 16px' } },
           icon('check', 28)),
-        h('h3', { style: { margin: '0 0 6px', fontSize: '1.4rem' } }, 'Payment Successful!'),
-        h('p', { class: 'muted', style: { margin: '0 0 18px' } }, data.message || `Payment for ${selected.name} has been processed.`),
+        h('h3', { style: { margin: '0 0 6px', fontSize: '1.4rem' } }, 'Request received'),
+        h('p', { class: 'muted', style: { margin: '0 0 18px' } }, data.message || `Nothing was charged. You’ll get an invoice for ${selected.name} by email.`),
         h('div', { class: 'card', style: { textAlign: 'left', padding: '16px', marginBottom: '20px', background: 'var(--panel-2)', border: '1px solid var(--line)' } },
           h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
-            h('span', { class: 'small muted' }, 'Receipt Reference:'),
-            h('strong', { class: 'small' }, data.receipt_id || 'REC-VERIFIED')),
-          h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
-            h('span', { class: 'small muted' }, 'Amount Paid:'),
+            h('span', { class: 'small muted' }, 'Amount due:'),
             h('strong', { class: 'small', style: { color: 'var(--accent)' } }, `$${(data.amount || 0).toLocaleString()} USD`)),
-          h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
-            h('span', { class: 'small muted' }, 'Package:'),
-            h('strong', { class: 'small' }, selected.name)),
           h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-            h('span', { class: 'small muted' }, 'Creator Studio CRM:'),
-            h('span', { class: 'pill ok small' }, 'Contract Registered'))),
+            h('span', { class: 'small muted' }, 'Package:'),
+            h('strong', { class: 'small' }, selected.name))),
         h('div', { class: 'row', style: { justifyContent: 'center', gap: '12px' } },
-          h('button', { type: 'button', class: 'btn primary', onclick: () => window.print() }, icon('file-text', 14), ' Print Receipt'),
           h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Done')));
 
       contentBox.replaceChildren(receipt);
@@ -287,7 +284,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
       ],
       actions: [
         { label: 'Pay with Stripe', icon: 'credit-card', onClick: () => onStripePay('retainer') },
-        { label: 'Request Media Kit', icon: 'file-text', to: '/mediakit' },
+        { label: isAuth ? 'Open Media Kit' : 'Request Media Kit', icon: 'file-text', onClick: () => (isAuth ? navigate('/mediakit') : onBookCall('brand_deal')) },
       ],
     },
     {
@@ -312,7 +309,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
         },
       ],
       actions: [
-        { label: 'Open Public Bio Page', icon: 'link', to: '/links' },
+        { label: 'Open Public Bio Page', icon: 'link', href: '/links' },
         { label: 'Instagram @tech.unicorn', icon: 'brand:instagram', href: 'https://instagram.com/tech.unicorn', external: true },
       ],
     },
@@ -594,8 +591,10 @@ export function renderLanding(view, options = {}) {
   const onAuthClick = options.onAuthClick || (() => navigate('/login'));
   const isAuth = !!options.user;
 
-  const handleBookCall = (type = 'mvp_build') => openBookingModal(type);
+  const handleBookCall = (type = 'mvp_build', service = '') => openBookingModal(type, service);
   const handleStripePay = (pkg = 'retainer') => openStripeModal(pkg);
+  // The media kit lives inside the studio; visitors ask for it through the brand-deal form.
+  const openMediaKit = () => (isAuth ? navigate('/mediakit') : handleBookCall('brand_deal'));
 
   // 1. Navigation Header with official SVG brand logo, grouped actions, and side drawer
   const megaNav = landingMegaMenus({
@@ -637,7 +636,7 @@ export function renderLanding(view, options = {}) {
         h('strong', {}, 'Delia Lazarescu'),
         h('span', { class: 'muted small' }, '@Tech.Unicorn · Ex-Google Engineer')),
       themeSwitch(),
-      link('/links', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeProfileMenu },
+      h('a', { href: '/links', class: 'hdr-menu-item', role: 'menuitem' },
         icon('link', 15), 'Link in Bio'),
       h('button', {
         class: 'hdr-menu-item',
@@ -843,7 +842,7 @@ export function renderLanding(view, options = {}) {
         'Optimized inference latency with streaming responses',
       ],
       tags: ['Claude Code', 'Gemini API', 'Agents', 'Vector DB'],
-      ctaService: 'retainer',
+      ctaService: 'consulting',
     },
     {
       category: 'Ex-Google Advisory',
@@ -857,7 +856,7 @@ export function renderLanding(view, options = {}) {
         'Async code reviews and emergency escalation coverage',
       ],
       tags: ['Architecture', 'Cloud Security', 'Scalability'],
-      ctaService: 'strategy_session',
+      ctaService: 'consulting',
     },
     {
       category: 'Audience & Growth',
@@ -885,7 +884,7 @@ export function renderLanding(view, options = {}) {
         'Interactive Q&A and VIP speaker session engagement',
       ],
       tags: ['Nomad Cruise', 'Tech Summits', 'Live Coding'],
-      ctaService: 'strategy_session',
+      ctaService: 'speaking',
     },
     {
       category: 'Creator Partnerships',
@@ -903,32 +902,77 @@ export function renderLanding(view, options = {}) {
     },
   ];
 
+  // The first three services show; "Show all services" under the grid reveals the rest.
+  const SERVICES_SHOWN = 3;
+  const serviceGridEl = h('div', { class: 'landing-service-grid', id: 'landing-service-grid' }, servicesData.map(serviceCard));
+  const hiddenCount = Math.max(0, servicesData.length - SERVICES_SHOWN);
+  const allLabel = (open) => (open ? 'Show fewer services' : `Show all ${servicesData.length} services`);
+  const allBtn = hiddenCount ? h('button', {
+    type: 'button',
+    class: 'landing-service-all-btn',
+    'aria-expanded': 'false',
+    'aria-controls': 'landing-service-grid',
+    onclick: (e) => {
+      const open = serviceGridEl.classList.toggle('show-all');
+      allBtn.setAttribute('aria-expanded', String(open));
+      allBtn.replaceChildren(allLabel(open), icon('chevron-down', 14));
+      // Keyboard users (click detail 0) jump to the first revealed card; mouse users stay put.
+      if (open && e.detail === 0) serviceGridEl.querySelector('.is-more .landing-service-more')?.focus({ preventScroll: true });
+      else serviceGridEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    },
+  }, allLabel(false), icon('chevron-down', 14)) : null;
+  const serviceGrid = [serviceGridEl, allBtn ? h('div', { class: 'landing-service-all' }, allBtn) : null];
+
   const services = h('section', { class: 'landing-section tinted', id: 'services' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '02: Services'),
         h('h2', {}, 'Six ways we can ', h('em', {}, 'work together')),
         h('p', { class: 'muted' }, 'Every engagement comes with direct access to Delia, transparent deliverables, and zero corporate fluff.')),
-      h('div', { class: 'grid grid-3', style: { gap: '20px' } },
-        servicesData.map((s) => h('article', { class: 'landing-service-card' },
-          h('div', {},
-            h('div', { class: 'landing-service-head' },
-              h('span', { class: 'landing-service-cat-badge' }, icon(s.icon, 13), s.category),
-              h('span', { class: 'landing-service-badge' }, s.badge)),
-            h('h3', { class: 'landing-service-title' }, s.title),
-            h('p', { class: 'landing-service-desc' }, s.desc),
-            h('ul', { class: 'landing-service-deliverables' },
-              s.deliverables.map((d) => h('li', { class: 'landing-service-deliv-item' },
-                h('span', { class: 'landing-service-deliv-check' }, icon('check', 13)),
-                h('span', {}, d))))),
-          h('div', { class: 'landing-service-footer' },
-            h('div', { class: 'landing-service-tags' },
-              s.tags.map((t) => h('span', { class: 'landing-service-tag' }, t))),
-            h('button', {
-              type: 'button',
-              class: 'landing-service-btn',
-              onclick: () => handleBookCall(s.ctaService),
-            }, 'Book Call', icon('arrow', 12))))))));
+      serviceGrid));
+
+  // One service: the description is clamped and only the first deliverable shows until "Show more";
+  // tags stay on one row and the actions sit on the card's bottom edge so every card lines up.
+  function serviceCard(s, i) {
+    const VISIBLE = 1;
+    const id = `svc-more-${i}`;
+    const card = h('article', { class: `landing-service-card${i >= SERVICES_SHOWN ? ' is-more' : ''}`, 'aria-labelledby': `${id}-title` });
+    const extra = s.deliverables.slice(VISIBLE);
+    const toggle = h('button', {
+      type: 'button',
+      class: 'landing-service-more',
+      'aria-expanded': 'false',
+      'aria-controls': id,
+      onclick: () => {
+        const open = card.classList.toggle('expanded');
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.replaceChildren(open ? 'Show less' : `Show more${extra.length ? ` (+${extra.length})` : ''}`, icon('chevron-down', 12));
+      },
+    }, `Show more${extra.length ? ` (+${extra.length})` : ''}`, icon('chevron-down', 12));
+
+    card.append(
+      h('div', { class: 'landing-service-head' },
+        h('span', { class: 'landing-service-cat-badge' }, icon(s.icon, 13), s.category),
+        h('span', { class: 'landing-service-badge' }, s.badge)),
+      h('h3', { class: 'landing-service-title', id: `${id}-title` }, s.title),
+      h('div', { class: 'landing-service-body', id },
+        h('p', { class: 'landing-service-desc' }, s.desc),
+        h('ul', { class: 'landing-service-deliverables' },
+          s.deliverables.map((d, n) => h('li', { class: `landing-service-deliv-item${n >= VISIBLE ? ' is-extra' : ''}` },
+            h('span', { class: 'landing-service-deliv-check' }, icon('check', 13)),
+            h('span', {}, d))))),
+      h('ul', { class: 'landing-service-tags', 'aria-label': `${s.title} focus areas` },
+        s.tags.map((t) => h('li', { class: 'landing-service-tag' }, t))),
+      h('div', { class: 'landing-service-footer' },
+        toggle,
+        h('button', {
+          type: 'button',
+          class: 'landing-service-btn',
+          'aria-label': `Book a call about ${s.title}`,
+          onclick: () => handleBookCall(s.ctaService, s.title),
+        }, icon('calendar', 13), 'Book a call', icon('arrow', 12))));
+    return card;
+  }
 
   // 7. Multi-Platform Social Media Showcase with Tabs (YouTube Default, Instagram Reels, TikTok, Twitter/X, Threads)
   let activePlatform = 'youtube';
@@ -1924,7 +1968,7 @@ export function renderLanding(view, options = {}) {
               h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('brand_partnership') }, 'Save 20% on 3-episode package'),
               h('div', { class: 'ag-pt-desc-block' },
                 h('p', { class: 'ag-pt-desc' }, 'Your product explained to an engaged audience of 472K+ tech professionals.'),
-                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => navigate('/mediakit') }, 'View Media Kit'))),
+                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: openMediaKit }, isAuth ? 'View Media Kit' : 'Request Media Kit'))),
             h('div', { class: 'ag-pt-actions' },
               h('div', { class: 'ag-pt-cta' },
                 h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('brand_partnership') }, 'Book campaign ($5,000)'),
@@ -2054,15 +2098,15 @@ export function renderLanding(view, options = {}) {
           h('a', { href: 'https://instagram.com/tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'Instagram & Reels'),
           h('a', { href: 'https://linkedin.com/in/delialazarescu', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'LinkedIn Articles'),
           h('a', { href: 'https://tiktok.com/@tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'TikTok Shorts'),
-          link('/mediakit', { class: 'landing-footer-link' }, 'Media Kit & Demographics')),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: openMediaKit }, 'Media Kit & Demographics')),
 
         // Column 3: Platform & Connect
         h('div', { class: 'landing-footer-col' },
           h('h3', { class: 'landing-footer-col-title' }, 'Studio & Connect'),
-          link('/auth', { class: 'landing-footer-link', style: { color: 'var(--accent)', fontWeight: '700' } }, 'Studio Suite Sign In'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', style: { color: 'var(--accent)', fontWeight: '700' }, onclick: () => onAuthClick() }, isAuth ? 'Open Studio Dashboard' : 'Studio Suite Sign In'),
           h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleBookCall('mvp_build') }, 'Book an Intro Call'),
           h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('retainer') }, 'Pay with Stripe'),
-          link('/links', { class: 'landing-footer-link' }, 'Link in Bio Hub'),
+          h('a', { href: '/links', class: 'landing-footer-link' }, 'Link in Bio Hub'),
           h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-link' }, 'hello@thetechunicorn.com'))),
 
       // Subfooter Bar
@@ -2071,8 +2115,8 @@ export function renderLanding(view, options = {}) {
           h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.')),
         h('div', { class: 'landing-footer-sub-right' },
           h('a', { href: '#top', class: 'landing-footer-sub-link' }, 'Back to top'),
-          link('/links', { class: 'landing-footer-sub-link' }, 'Links'),
-  link('/mediakit', { class: 'landing-footer-sub-link' }, 'Media Kit')))));
+          h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links'),
+  h('button', { type: 'button', class: 'landing-footer-link-btn landing-footer-sub-link', onclick: openMediaKit }, 'Media Kit')))));
 
   const landingBox = h('div', { class: 'landing-box' },
     nav,
@@ -2094,10 +2138,29 @@ export function renderLanding(view, options = {}) {
     landingBox);
 
   view.replaceChildren(landingWrapper);
+  handleLandingLinks({ onBookCall: handleBookCall, onStripePay: handleStripePay });
   return () => {
     document.removeEventListener('click', closeProfileMenu);
     document.removeEventListener('keydown', onEsc);
     drawer.destroy();
     landingWrapper.remove();
   };
+}
+
+/**
+ * Links into the landing page from outside it: /?book=<type> and /?pay=<package> (from /techunicorn
+ * and the bio page) open the form, and /?payment=success|cancelled is where Stripe Checkout returns.
+ * The query is removed afterwards so a refresh doesn't open it again.
+ */
+function handleLandingLinks({ onBookCall, onStripePay }) {
+  const q = new URLSearchParams(location.search);
+  const book = q.get('book');
+  const pay = q.get('pay');
+  const payment = q.get('payment');
+  if (!book && !pay && !payment) return;
+  history.replaceState(history.state, '', location.pathname + location.hash);
+  if (payment === 'success') toast('Payment received. Thank you! Delia will be in touch by email.', 'ok');
+  else if (payment === 'cancelled') toast('Checkout cancelled. Nothing was charged.');
+  else if (pay) onStripePay(pay);
+  else onBookCall(book, q.get('service') || '');
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Agents\Models\AgentEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +24,9 @@ class BookingController extends Controller
             'preferred_date' => 'required|string|max:50',
             'preferred_time' => 'required|string|max:50',
             'notes' => 'nullable|string|max:2000',
+            'service' => 'nullable|string|max:100', // the landing-page service card it came from
         ]);
+        $service = ($data['service'] ?? null) ?: null;
 
         $projectRates = [
             'mvp_build' => 12000,
@@ -43,9 +46,10 @@ class BookingController extends Controller
             'other' => 'General Project Discussion',
         ];
 
-        $company = $data['company'] ?: ($data['name'].' Inquiry');
+        $company = ($data['company'] ?? null) ?: ($data['name'].' Inquiry');
         $label = $projectLabels[$data['project_type']] ?? 'Intro Call';
         $estRate = $projectRates[$data['project_type']] ?? 2000;
+        $bookingRef = 'CAL-'.strtoupper(Str::random(6));
 
         $deal = Deal::create([
             'brand_name' => $company,
@@ -56,17 +60,18 @@ class BookingController extends Controller
             'currency' => 'USD',
             'payment_status' => 'pending',
             'deliverables' => [
-                ['platform' => 'meeting', 'format' => 'Intro Call: '.$label],
+                array_filter(['platform' => 'meeting', 'format' => 'Intro Call: '.$label, 'service' => $service]),
             ],
-            'key_talking_points' => "Scheduled: {$data['preferred_date']} at {$data['preferred_time']}. Topic: {$label}",
-            'notes' => "Intro call booked via website. Notes from client: ".($data['notes'] ?: 'None provided.'),
+            'key_talking_points' => "Requested: {$data['preferred_date']} at {$data['preferred_time']}. Topic: {$label}",
+            'notes' => "Intro call requested via website (ref {$bookingRef}). Confirm the time by email. Notes from client: ".(($data['notes'] ?? null) ?: 'None provided.'),
         ]);
 
-        $bookingRef = 'CAL-'.strtoupper(Str::random(6));
+        AgentEvent::log('lead', "Intro call request: {$data['name']} ({$data['email']}), ".($service ?: $label).", {$data['preferred_date']} at {$data['preferred_time']}.");
 
+        // Nothing is sent from here: she confirms the slot herself, so the visitor is told exactly that.
         return response()->json([
             'success' => true,
-            'status' => 'confirmed',
+            'status' => 'requested',
             'name' => $data['name'],
             'project_type' => $data['project_type'],
             'booking_ref' => $bookingRef,
@@ -75,9 +80,8 @@ class BookingController extends Controller
                 'date' => $data['preferred_date'],
                 'time' => $data['preferred_time'],
                 'service' => $label,
-                'calendar_link' => 'https://meet.google.com/'.strtolower(Str::random(3).'-'.Str::random(4).'-'.Str::random(3)),
             ],
-            'message' => 'Intro call confirmed! A calendar invite has been sent to '.$data['email'].'.',
+            'message' => "Request received! Delia will confirm your time at {$data['email']}, usually within one business day.",
         ]);
     }
 }

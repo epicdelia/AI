@@ -60,9 +60,10 @@ Route::prefix('api')->group(function () {
 
     // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
     Route::get('stripe/packages', [StripePaymentController::class, 'packages']);
-    Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession']);
+    // Visitors write to her CRM, so cap it per IP (Stripe's webhook is signed instead).
+    Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession'])->middleware('throttle:5,1');
     Route::post('stripe/webhook', [StripePaymentController::class, 'webhook']);
-    Route::post('booking', [BookingController::class, 'store']);
+    Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
 

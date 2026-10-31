@@ -62,7 +62,7 @@ const ROUTES = [
   { path: /^\/deals$/, render: renderDeals, nav: '/deals' },
   { path: /^\/mediakit$/, render: renderMediaKit, nav: '/mediakit' },
   { path: /^\/snippets$/, render: renderSnippets, nav: '/snippets' },
-  { path: /^\/landing$/, render: renderLanding, nav: '/landing' },
+  { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
   { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
@@ -345,8 +345,12 @@ async function logout() {
   boot();
 }
 
+/** /login, /auth or ?login=1 ask for the sign-in screen instead of the public landing page. */
+const isLoginPath = () => location.pathname === '/login' || location.pathname === '/auth' || location.search.includes('login=1');
+
 async function route() {
-  if (!state.user) return;
+  // Signed out: links on the landing page (e.g. "Studio Suite Sign In") still need to work.
+  if (!state.user) { state.guestNav?.(); return; }
   if (!state.shell) {
     state.shell = buildShell();
     clear(root).append(state.shell.el);
@@ -438,6 +442,10 @@ async function boot() {
 
     const onLoginSuccess = async (user) => {
       state.user = user;
+      state.guestCleanup?.();
+      state.guestNav = state.guestCleanup = null;
+      // Signed in from /login: land on the dashboard (or her start page), not "Page not found".
+      if (isLoginPath()) history.replaceState({}, '', '/');
       // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
       const st = await api('GET', 'auth/status').catch(() => ({}));
       setLove(st.love);
@@ -455,22 +463,28 @@ async function boot() {
     };
 
     const showAuth = () => {
+      state.guestCleanup?.();
+      state.guestCleanup = null;
+      state.guestView = 'auth';
       renderAuth(root, status.initialized, status.welcome, onLoginSuccess, showLanding);
     };
 
     const showLanding = () => {
+      state.guestCleanup?.();
+      state.guestView = 'landing';
       const view = h('div');
-      renderLanding(view, { onAuthClick: showAuth, user: null });
+      state.guestCleanup = renderLanding(view, { onAuthClick: showAuth, user: null });
       clear(root).append(view);
     };
 
-    // If explicit login requested via path or query, show auth; otherwise show public Tech Unicorn landing page on top
-    const isLoginPath = location.pathname === '/login' || location.pathname === '/auth' || location.search.includes('login=1');
-    if (isLoginPath) {
-      showAuth();
-    } else {
-      showLanding();
-    }
+    // Explicit login (path or query) shows sign-in; otherwise the public Tech Unicorn landing page.
+    // Back/forward and in-page links switch between the two without re-rendering on #anchors.
+    state.guestNav = () => {
+      const want = isLoginPath() ? 'auth' : 'landing';
+      if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
+    };
+    state.guestView = null;
+    state.guestNav();
     return;
   }
   state.user = status.user;

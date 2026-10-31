@@ -91,6 +91,28 @@ function nextStepCard(step) {
     link(step.link, { class: 'btn primary' }, step.action, icon('arrow', 15)));
 }
 
+/** Intro-call requests and checkouts from the public landing page, waiting in Deals. */
+function inboundCard(inb) {
+  if (!inb || (!inb.new_inquiries && !inb.awaiting_payment && !inb.paid_this_month)) return null;
+  const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString()}`;
+  return h('div', { class: 'card' },
+    h('div', { class: 'card-header' },
+      h('h2', {}, 'From your website'),
+      link('/deals', { class: 'btn ghost sm' }, 'Open deals', icon('arrow', 14))),
+    h('div', { class: 'grid grid-3' },
+      statBox(inb.new_inquiries, inb.new_inquiries === 1 ? 'new inquiry' : 'new inquiries', 'tone-accent'),
+      statBox(usd(inb.awaiting_payment), 'agreed, not paid yet', 'tone-warn'),
+      statBox(usd(inb.paid_this_month), 'paid this month', 'tone-good')),
+    inb.by_service?.length ? h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px', marginTop: '12px' }, 'aria-label': 'Open inquiries by service' },
+      h('span', { class: 'muted small' }, 'Asked about:'),
+      inb.by_service.map((s) => link('/deals', { class: 'pill' }, `${s.service} · ${s.count}`))) : null,
+    inb.latest.length ? h('ul', { class: 'item-list', style: { marginTop: '12px' } }, inb.latest.map((d) => h('li', {},
+      link('/deals', { class: 'item-main' },
+        h('strong', {}, d.brand_name),
+        h('div', { class: 'muted clamp-1' }, `${d.deliverables?.[0]?.service || d.deliverables?.[0]?.format || 'Inquiry'} · ${d.contact_email} · ${timeAgo(d.created_at)}`)),
+      h('span', { class: 'score' }, usd(d.rate))))) : null);
+}
+
 function listCard(title, to, items, renderItem, empty) {
   return h('div', { class: 'card' },
     h('div', { class: 'card-header' }, h('h2', {}, title), link(to, { class: 'btn ghost sm' }, 'See all', icon('arrow', 14))),
@@ -110,6 +132,7 @@ export async function renderDashboard(view) {
     { id: 'due', label: 'Due now', node: dueStrip() },
     { id: 'composer', label: 'Composer', node: homeComposer() },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
+    { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
     { id: 'love', label: 'Today’s note', node: love },
     { id: 'setup', label: 'Setup checklist', node: setupCard(d.setup_checks) },

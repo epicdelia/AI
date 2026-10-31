@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Agents\Models\AgentEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class StripePaymentController extends Controller
 {
@@ -68,19 +69,18 @@ class StripePaymentController extends Controller
      */
     public function packages(): JsonResponse
     {
-        $secret = Setting::get('stripe_secret_key') ?: env('STRIPE_SECRET_KEY');
-        $pubKey = Setting::get('stripe_publishable_key') ?: env('STRIPE_KEY', 'pk_live_techunicorn_sample');
-
         return response()->json([
             'packages' => self::PACKAGES,
             'package_list' => array_values(self::PACKAGES),
-            'stripe_configured' => !empty($secret),
-            'publishable_key' => $pubKey,
+            'stripe_configured' => self::secret() !== null,
+            'publishable_key' => Setting::get('stripe_publishable_key') ?: env('STRIPE_KEY'),
         ]);
     }
 
     /**
-     * Create a Stripe Checkout Session or process instant verified payment.
+     * Start a Stripe Checkout Session. The deal is logged as a pending inquiry and only becomes
+     * paid when Stripe's signed webhook says so. Without Stripe set up nothing is charged and the
+     * visitor is told an invoice will follow.
      */
     public function createCheckoutSession(Request $request): JsonResponse
     {
@@ -94,38 +94,37 @@ class StripePaymentController extends Controller
         ]);
 
         $pkg = self::PACKAGES[$data['package_id']];
-        $secret = Setting::get('stripe_secret_key') ?: env('STRIPE_SECRET_KEY');
+        $secret = self::secret();
         $customerEmail = $data['customer_email'];
         $customerName = $data['customer_name'];
         $companyName = ($data['company_name'] ?? null) ?: ($data['company'] ?? null) ?: $customerName;
         $amount = $pkg['amount'] / 100;
+        $price = '$' . number_format($amount);
 
-        // Automatically create a Deal record in Creator Studio CRM
         $deal = Deal::create([
             'brand_name' => $companyName,
             'contact_name' => $customerName,
             'contact_email' => $customerEmail,
-            'stage' => 'contracted',
+            'stage' => 'inquiry',
             'rate' => $amount,
             'currency' => 'USD',
-            'payment_status' => 'paid',
-            'paid_at' => now(),
+            'payment_status' => 'pending',
             'deliverables' => [
                 ['platform' => 'stripe', 'format' => $pkg['name']],
             ],
             'key_talking_points' => $pkg['description'],
-            'notes' => 'Stripe Checkout payment processed for ' . $pkg['name'] . '. Notes: ' . ($data['notes'] ?? 'None'),
+            'notes' => 'Checkout started on the website for ' . $pkg['name'] . '. Notes: ' . (($data['notes'] ?? null) ?: 'None'),
         ]);
 
-        // If a real Stripe Secret Key is present, create an official Stripe Checkout Session
-        if (!empty($secret)) {
+        if ($secret !== null) {
             try {
-                $sessionParams = [
-                    'payment_method_types' => ['card'],
-                    'line_items' => [
-                        [
+                $resp = Http::withToken($secret)
+                    ->asForm()
+                    ->post('https://api.stripe.com/v1/checkout/sessions', [
+                        'payment_method_types' => ['card'],
+                        'line_items' => [[
                             'price_data' => [
-                                'currency' => 'usd',
+                                'currency' => $pkg['currency'],
                                 'product_data' => [
                                     'name' => 'Tech Unicorn: ' . $pkg['name'],
                                     'description' => $pkg['description'],
@@ -133,75 +132,99 @@ class StripePaymentController extends Controller
                                 'unit_amount' => $pkg['amount'],
                             ],
                             'quantity' => 1,
-                        ]
-                    ],
-                    'mode' => 'payment',
-                    'customer_email' => $customerEmail,
-                    'success_url' => url('/techunicorn?payment=success&deal_id=' . $deal->id),
-                    'cancel_url' => url('/techunicorn?payment=cancelled'),
-                    'metadata' => [
-                        'deal_id' => $deal->id,
-                        'package_id' => $pkg['id'],
-                    ],
-                ];
+                        ]],
+                        'mode' => 'payment',
+                        'customer_email' => $customerEmail,
+                        'success_url' => url('/?payment=success&deal=' . $deal->id),
+                        'cancel_url' => url('/?payment=cancelled&deal=' . $deal->id),
+                        'metadata' => [
+                            'deal_id' => $deal->id,
+                            'package_id' => $pkg['id'],
+                        ],
+                    ]);
 
-                $resp = Http::withToken($secret)
-                    ->asForm()
-                    ->post('https://api.stripe.com/v1/checkout/sessions', $sessionParams);
+                if ($resp->successful() && $resp->json('url')) {
+                    AgentEvent::log('lead', "Checkout started: {$companyName} ({$customerEmail}), {$pkg['name']}, {$price}.");
 
-                if ($resp->successful()) {
                     return response()->json([
+                        'status' => 'redirect',
+                        'paid' => false,
                         'checkout_url' => $resp->json('url'),
                         'session_id' => $resp->json('id'),
                         'deal_id' => $deal->id,
-                        'deal' => $deal,
                     ]);
                 }
+                Log::warning('Stripe checkout session failed', ['status' => $resp->status(), 'error' => $resp->json('error.message')]);
             } catch (\Throwable $e) {
-                // Fallback to verified local receipt
+                Log::warning('Stripe checkout session failed', ['error' => $e->getMessage()]);
             }
         }
 
-        // Verified sandbox / instant checkout confirmation
-        $receiptId = 'REC-STRIPE-' . strtoupper(Str::random(8));
+        AgentEvent::log('lead', "Invoice requested: {$companyName} ({$customerEmail}), {$pkg['name']}, {$price}.");
 
         return response()->json([
-            'success' => true,
-            'status' => 'success',
-            'paid' => true,
+            'status' => 'requested',
+            'paid' => false,
             'package_id' => $data['package_id'],
-            'receipt_id' => $receiptId,
+            'package' => $pkg,
             'amount' => $amount,
             'currency' => 'USD',
-            'package' => $pkg,
             'deal_id' => $deal->id,
-            'deal' => $deal,
-            'message' => 'Payment for ' . $pkg['name'] . ' successfully processed via Stripe. Welcome to Tech Unicorn!',
+            'message' => 'Thanks! Online card payment isn’t available right now, so nothing was charged. You’ll get an invoice for ' . $pkg['name'] . ' by email.',
         ]);
     }
 
     /**
-     * Handle incoming Stripe webhook events.
+     * Stripe webhook: only a correctly signed checkout.session.completed marks a deal paid.
      */
     public function webhook(Request $request): JsonResponse
     {
-        $payload = $request->all();
-        $event = $payload['type'] ?? '';
+        $secret = Setting::get('stripe_webhook_secret') ?: env('STRIPE_WEBHOOK_SECRET');
+        if (! $secret || ! self::validSignature($request->getContent(), (string) $request->header('Stripe-Signature'), $secret)) {
+            return response()->json(['error' => 'Invalid signature'], 400);
+        }
 
-        if ($event === 'checkout.session.completed') {
-            $dealId = $payload['data']['object']['metadata']['deal_id'] ?? null;
-            if ($dealId) {
-                $deal = Deal::find($dealId);
-                if ($deal) {
-                    $deal->update([
-                        'stage' => 'paid',
-                        'payment_status' => 'paid',
-                        'paid_at' => now(),
-                    ]);
-                }
+        $payload = json_decode($request->getContent(), true) ?: [];
+        if (($payload['type'] ?? '') === 'checkout.session.completed') {
+            $session = $payload['data']['object'] ?? [];
+            $deal = Deal::find($session['metadata']['deal_id'] ?? null);
+            if ($deal && ($session['payment_status'] ?? 'paid') === 'paid' && $deal->payment_status !== 'paid') {
+                $deal->update([
+                    'stage' => 'paid',
+                    'payment_status' => 'paid',
+                    'paid_at' => now(),
+                ]);
+                AgentEvent::log('payment', "Paid via Stripe: {$deal->brand_name}, $" . number_format((float) $deal->rate) . '.');
             }
         }
 
         return response()->json(['received' => true]);
+    }
+
+    private static function secret(): ?string
+    {
+        return Setting::get('stripe_secret_key') ?: (env('STRIPE_SECRET_KEY') ?: null);
+    }
+
+    /** Stripe-Signature is "t=<unix>,v1=<hex HMAC-SHA256 of "<t>.<payload>">"; reject anything older than 5 minutes. */
+    public static function validSignature(string $payload, string $header, string $secret, int $tolerance = 300): bool
+    {
+        $parts = [];
+        foreach (explode(',', $header) as $pair) {
+            [$k, $v] = array_pad(explode('=', trim($pair), 2), 2, '');
+            $parts[$k][] = $v;
+        }
+        $t = (int) ($parts['t'][0] ?? 0);
+        if (! $t || abs(time() - $t) > $tolerance) {
+            return false;
+        }
+        $expected = hash_hmac('sha256', $t . '.' . $payload, $secret);
+        foreach ($parts['v1'] ?? [] as $sig) {
+            if (hash_equals($expected, $sig)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

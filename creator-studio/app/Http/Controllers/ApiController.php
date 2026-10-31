@@ -12,6 +12,7 @@ use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Usage\AiUsage;
 use App\Models\Channel;
+use App\Models\Deal;
 use App\Models\Idea;
 use App\Models\IdeaBrief;
 use App\Models\Note;
@@ -342,6 +343,17 @@ class ApiController extends Controller
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,
             'recent_notes' => $recentNotes,
+            'inbound' => [
+                'new_inquiries' => Deal::where('stage', 'inquiry')->count(),
+                'awaiting_payment' => Deal::whereNotIn('stage', ['inquiry', 'paid'])->where('payment_status', '!=', 'paid')->sum('rate'),
+                'paid_this_month' => Deal::where('payment_status', 'paid')->where('paid_at', '>=', now()->startOfMonth())->sum('rate'),
+                'latest' => Deal::where('stage', 'inquiry')->latest()->take(4)
+                    ->get(['id', 'brand_name', 'contact_name', 'contact_email', 'rate', 'deliverables', 'created_at']),
+                // Which landing-page services open inquiries asked about, most asked first.
+                'by_service' => Deal::where('stage', 'inquiry')->get(['deliverables'])
+                    ->map(fn (Deal $d) => $d->deliverables[0]['service'] ?? null)->filter()
+                    ->countBy()->sortDesc()->map(fn ($n, $s) => ['service' => $s, 'count' => $n])->values(),
+            ],
         ]);
     }
 

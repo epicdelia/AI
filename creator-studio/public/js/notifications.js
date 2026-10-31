@@ -5,7 +5,7 @@ import { icon } from './icons.js';
 import { PLATFORM_ICONS } from './pages/social.js';
 
 const POLL_MS = 90000;
-const TYPE_ICON = { drafted: 'bot', approved: 'check', rejected: 'x', published: 'external', failed: 'x', learned: 'sparkle', created: 'bot', comment: 'chat', dm: 'chat' };
+const TYPE_ICON = { lead: 'briefcase', payment: 'tag', drafted: 'bot', approved: 'check', rejected: 'x', published: 'external', failed: 'x', learned: 'sparkle', created: 'bot', comment: 'chat', dm: 'chat' };
 const buttons = new Set();
 let timer = null;
 let last = null;
@@ -82,7 +82,7 @@ async function openDrawer() {
     ].filter(Boolean);
     if (todo.length) list.append(h('div', { class: 'nf-todos' }, todo));
     if (!d.events.length) {
-      list.append(h('div', { class: 'nf-empty' }, icon('bell', 28), h('p', {}, 'Nothing yet.'), h('p', { class: 'muted small' }, 'Your agents and automations report here: posts planned, published, lessons learned, comments answered.')));
+      list.append(h('div', { class: 'nf-empty' }, icon('bell', 28), h('p', {}, 'Nothing yet.'), h('p', { class: 'muted small' }, 'Your agents and automations report here: posts planned, published, lessons learned, comments answered, plus intro calls and payments from your website.')));
     }
     for (const e of d.events) {
       list.append(h('div', { class: `nf-item nf-${e.type}${e.read_at ? '' : ' unread'}` },
@@ -90,7 +90,8 @@ async function openDrawer() {
         h('div', { class: 'nf-main' },
           h('p', {}, e.message),
           h('span', { class: 'muted small' }, [e.agent?.name, timeAgo(e.created_at)].filter(Boolean).join(' · ')),
-          e.social_agent_id ? link(`/agents/${e.social_agent_id}`, { class: 'small', onclick: close }, 'Open agent') : null)));
+          e.social_agent_id ? link(`/agents/${e.social_agent_id}`, { class: 'small', onclick: close }, 'Open agent')
+            : ['lead', 'payment'].includes(e.type) ? link('/deals', { class: 'small', onclick: close }, 'Open deals') : null)));
     }
     if (d.unread) { await api('POST', 'agents/notifications/read').catch(() => {}); refresh(); }
   }

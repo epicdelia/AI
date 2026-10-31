@@ -29,7 +29,7 @@ class LandingPageController extends Controller
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/studio.css?v=7">
-  <link rel="stylesheet" href="/css/components.css?v=31">
+  <link rel="stylesheet" href="/css/components.css?v=32">
   <link rel="stylesheet" href="/css/copilot.css?v=2">
   <style>
     :root {
@@ -297,7 +297,7 @@ class LandingPageController extends Controller
         <a href="#content">Content</a>
         <a href="#speaking">Speaking</a>
         <a href="/links" class="btn btn-sm btn-ghost">Link in Bio</a>
-        <a href="mailto:{$email}?subject=Project%20Inquiry%20from%20Website" class="btn btn-sm btn-primary">Book an Intro Call</a>
+        <a href="/?book=mvp_build" class="btn btn-sm btn-primary">Book an Intro Call</a>
         <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">Mode</button>
       </nav>
     </div>
@@ -311,7 +311,7 @@ class LandingPageController extends Controller
         <h1>Making tech <em>less scary</em>: built from beach cafés in 60+ countries.</h1>
         <p class="lede">I'm a software engineer who left Big Tech to build apps, create content for 470K+ people, and prove you don't need a hoodie and a standing desk to ship great software.</p>
         <div class="hero-actions">
-          <a href="mailto:{$email}?subject=Intro%20Call%20Booking" class="btn btn-primary btn-lg">Book an Intro Call</a>
+          <a href="/?book=mvp_build" class="btn btn-primary btn-lg">Book an Intro Call</a>
           <a href="#pricing" class="btn btn-ghost btn-lg">See Packages &amp; Pricing</a>
         </div>
         <p class="hero-note">Free 30-minute call · fixed-scope proposal within 48 hours · no surprise invoices</p>
@@ -478,7 +478,7 @@ class LandingPageController extends Controller
             <li>Direct Slack/Telegram access with 24h response</li>
             <li>Cancel anytime with no minimum lock-in</li>
           </ul>
-          <a href="mailto:{$email}?subject=Advisory%20Retainer%20Inquiry" class="btn btn-ghost">Start a Retainer</a>
+          <a href="/?pay=retainer" class="btn btn-ghost">Start a Retainer</a>
         </article>
         <article class="price-card featured">
           <span class="price-badge">Most popular</span>
@@ -491,7 +491,7 @@ class LandingPageController extends Controller
             <li>30 days of post-launch support included</li>
             <li>You own 100% of all source code, IP, and accounts</li>
           </ul>
-          <a href="mailto:{$email}?subject=MVP%20Build%20Inquiry" class="btn btn-primary">Get a Fixed Quote</a>
+          <a href="/?book=mvp_build" class="btn btn-primary">Get a Fixed Quote</a>
         </article>
         <article class="price-card">
           <h3>Brand Partnership</h3>
@@ -503,7 +503,7 @@ class LandingPageController extends Controller
             <li>54M+ lifetime reach track record</li>
             <li>Full digital ad usage rights included</li>
           </ul>
-          <a href="mailto:{$email}?subject=Brand%20Partnership%20Inquiry" class="btn btn-ghost">Request Media Kit</a>
+          <a href="/?book=brand_deal" class="btn btn-ghost">Request Media Kit</a>
         </article>
       </div>
     </div>

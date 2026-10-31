@@ -75,7 +75,7 @@ export async function renderDeals(view) {
           pill(STAGE_PILLS[deal.stage] || 'new', STAGE_LABELS[deal.stage] || deal.stage),
           h('strong', { class: 'deal-rate' }, `${deal.currency || 'USD'} $${Number(deal.rate || 0).toLocaleString()}`))),
       deliverables.length ? h('div', { class: 'deliverables-row' },
-        deliverables.map((d) => h('span', { class: 'pf-chip' }, icon('check', 12), typeof d === 'string' ? d : `${d.platform || ''} ${d.format || ''}`))) : null,
+        deliverables.map((d) => h('span', { class: 'pf-chip' }, icon('check', 12), typeof d === 'string' ? d : `${d.platform || ''} ${d.format || ''}${d.service ? ` · ${d.service}` : ''}`))) : null,
       deal.coupon_code || deal.tracking_url ? h('div', { class: 'row small muted', style: { margin: '8px 0' } },
         deal.coupon_code ? h('span', {}, h('strong', {}, 'Code: '), deal.coupon_code) : null,
         deal.tracking_url ? h('a', { href: deal.tracking_url, target: '_blank', rel: 'noopener' }, 'Tracking Link ↗') : null) : null,

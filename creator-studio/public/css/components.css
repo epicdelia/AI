@@ -14401,3 +14401,18 @@ a.landing-about-fact:focus-visible { outline: 2px solid var(--accent); outline-o
   .landing-about-fact { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; align-items: center; padding: 10px 12px; }
   .landing-about-fact-icon { grid-row: span 2; margin: 0; }
 }
+
+/* Reach cards: top three until "Show all networks" (like Services). */
+.landing-reach-grid:not(.show-all) > .landing-reach-card.is-more { display: none; }
+.landing-reach-grid.show-all > .landing-reach-card.is-more { animation: landing-service-reveal 0.25s var(--ease, ease) both; }
+.landing-reach-grid + .landing-service-all:empty { display: none; }
+.landing-reach-rank {
+  margin-left: auto; flex-shrink: 0; font-size: 0.68rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  padding: 2px 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+}
+.landing-reach-card:first-child .landing-reach-rank { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.landing-reach-rank + .landing-reach-live, .landing-reach-rank + .landing-reach-go { margin-left: 4px; }
+.landing-reach-card { min-height: 100%; }
+.landing-reach-card .landing-reach-blurb { min-height: 3em; }
+.landing-reach-card:hover .landing-reach-share { opacity: 1; height: 4px; }
+.landing-reach-share { transition: height 0.2s, opacity 0.2s; }

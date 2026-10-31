@@ -85,7 +85,10 @@ function changeChip(change, small = false) {
     icon(up ? 'trend' : 'chevron-down', 12), `${up ? '+' : '−'}${compact(Math.abs(change))}`, h('span', { class: 'muted' }, ' in 30 days'));
 }
 
-function networkCard(n) {
+/** Cards shown before "Show all networks" (biggest first). */
+const SHOWN = 3;
+
+function networkCard(n, i) {
   const facts = [
     n.posts_30d ? `${n.posts_30d} ${n.posts_30d === 1 ? 'post' : 'posts'} this month` : null,
     n.engagement_rate !== null && n.engagement_rate !== undefined ? `${n.engagement_rate}% engagement` : null,
@@ -94,7 +97,7 @@ function networkCard(n) {
     href: n.url,
     target: '_blank',
     rel: 'noopener',
-    class: `landing-reach-card net-${n.key}`,
+    class: `landing-reach-card net-${n.key}${i >= SHOWN ? ' is-more' : ''}`,
     'data-net': n.key,
     'aria-label': `${n.label}: ${Number(n.count).toLocaleString()} ${n.unit}. Follow ${n.handle}`,
     onclick: () => countClick(`profile:${n.key}`, n.key),
@@ -104,6 +107,7 @@ function networkCard(n) {
       h('div', { class: 'landing-reach-who' },
         h('strong', {}, n.label),
         h('span', { class: 'muted' }, n.handle)),
+      h('span', { class: 'landing-reach-rank', title: `Her #${i + 1} network by followers` }, `#${i + 1}`),
       n.synced ? h('span', { class: 'landing-reach-live', title: 'Synced from her account' }, h('i', { 'aria-hidden': 'true' }), 'Live') : null,
       h('span', { class: 'landing-reach-go', 'aria-hidden': 'true' }, icon('external', 14))),
     h('div', { class: 'landing-reach-count' },
@@ -122,7 +126,7 @@ function networkCard(n) {
  * The summary panel: her total on the left, the audience mix on the right. Hovering or focusing a
  * legend item lights up its bar segment and card; clicking it scrolls to the card.
  */
-function summaryPanel(reach, networks, updatedAt, grid) {
+function summaryPanel(reach, networks, updatedAt, grid, reveal) {
   const segments = networks.map((n) => h('span', {
     class: 'landing-reach-seg', 'data-net': n.key, title: `${n.label}: ${n.share}%`,
     style: { flexGrow: String(Math.max(n.share, 0.6)), background: MIX_COLORS[n.key] },
@@ -140,6 +144,7 @@ function summaryPanel(reach, networks, updatedAt, grid) {
   const goTo = (key) => {
     const card = grid.querySelector(`.landing-reach-card[data-net="${key}"]`);
     if (!card) return;
+    if (card.classList.contains('is-more')) reveal(); // a hidden network: show them all first
     card.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' });
     card.classList.remove('is-flash');
     void card.offsetWidth; // restart the flash
@@ -196,13 +201,14 @@ function summaryPanel(reach, networks, updatedAt, grid) {
 }
 
 function skeleton() {
-  return Array.from({ length: 6 }, () => h('div', { class: 'landing-reach-card is-skeleton', 'aria-hidden': 'true' },
+  return Array.from({ length: SHOWN }, () => h('div', { class: 'landing-reach-card is-skeleton', 'aria-hidden': 'true' },
     h('div', { class: 'sk sk-logo' }), h('div', { class: 'sk sk-num' }), h('div', { class: 'sk sk-line' }), h('div', { class: 'sk sk-line short' })));
 }
 
 /** @returns {HTMLElement} */
 export function reachSection() {
-  const grid = h('div', { class: 'landing-reach-grid', 'aria-busy': 'true' }, skeleton());
+  const grid = h('div', { class: 'landing-reach-grid', id: 'landing-reach-grid', 'aria-busy': 'true' }, skeleton());
+  const more = h('div', { class: 'landing-service-all' });
   const summary = h('div', { class: 'landing-reach-summary' });
 
   loadFeed().then((feed) => {
@@ -211,7 +217,25 @@ export function reachSection() {
     // Biggest first, so the grid reads like the mix bar.
     const networks = [...reach.networks].sort((a, b) => b.count - a.count);
     grid.replaceChildren(...networks.map(networkCard));
-    summary.replaceChildren(summaryPanel(reach, networks, feed.updated_at, grid));
+    const hidden = networks.length - SHOWN;
+    const label = (open) => (open ? 'Show fewer networks' : `Show all ${networks.length} networks`);
+    const setOpen = (open) => {
+      grid.classList.toggle('show-all', open);
+      moreBtn.setAttribute('aria-expanded', String(open));
+      moreBtn.replaceChildren(label(open), icon('chevron-down', 14));
+    };
+    const moreBtn = h('button', {
+      type: 'button', class: 'landing-service-all-btn', 'aria-expanded': 'false', 'aria-controls': 'landing-reach-grid',
+      onclick: (e) => {
+        const open = !grid.classList.contains('show-all');
+        setOpen(open);
+        // Keyboard users land on the first revealed card; closing brings the grid back into view.
+        if (open && e.detail === 0) grid.querySelector('.landing-reach-card.is-more')?.focus();
+        if (!open) grid.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'nearest' });
+      },
+    }, label(false), icon('chevron-down', 14));
+    more.replaceChildren(...(hidden > 0 ? [moreBtn] : []));
+    summary.replaceChildren(summaryPanel(reach, networks, feed.updated_at, grid, () => setOpen(true)));
     grid.removeAttribute('aria-busy');
   }).catch(() => {
     grid.removeAttribute('aria-busy');
@@ -224,5 +248,6 @@ export function reachSection() {
         h('p', { class: 'landing-section-eyebrow' }, '05: Reach & Content'),
         h('h2', { id: 'landing-reach-title' }, 'Where the ', h('em', {}, 'internet'), ' finds me')),
       summary,
-      grid));
+      grid,
+      more));
 }

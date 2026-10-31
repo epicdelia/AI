@@ -236,4 +236,19 @@ class LandingPageTest extends TestCase
         ], $this->getJson('/api/dashboard')->json('inbound.by_service'));
         $this->assertStringContainsString('Technical Consulting', $this->getJson('/api/agents/notifications')->json('events.0.message'));
     }
+
+    public function test_closing_section_leads_are_attributed_on_the_dashboard(): void
+    {
+        foreach (['Let us build: An app or MVP', 'Let us build: An app or MVP', 'Let us build: A keynote or workshop'] as $i => $service) {
+            $this->postJson('/api/booking', [
+                'name' => "Lead {$i}", 'email' => "lead{$i}@example.com", 'project_type' => str_contains($service, 'keynote') ? 'speaking' : 'mvp_build',
+                'preferred_date' => '2026-11-20', 'preferred_time' => '15:00 UTC', 'service' => $service,
+            ])->assertOk();
+        }
+
+        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $dash = $this->getJson('/api/dashboard')->json();
+        $this->assertSame(['service' => 'Let us build: An app or MVP', 'count' => 2], $dash['inbound']['by_service'][0]);
+        $this->assertSame(1, $dash['speaking']['requests'], 'The keynote tile counts as a speaking request');
+    }
 }

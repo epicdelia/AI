@@ -2,7 +2,7 @@
 // (synced ones once she connects or types them on her dashboard, else her public figures), the
 // real 30-day change and trend, posts this month and engagement from her own published posts, and
 // each network's share of her audience. Networks she hides on the dashboard aren't sent at all.
-import { h, compact } from './core.js';
+import { h, compact, timeAgo } from './core.js';
 import { icon } from './icons.js';
 import { loadFeed, countClick } from './landing-content.js';
 
@@ -95,6 +95,7 @@ function networkCard(n) {
     target: '_blank',
     rel: 'noopener',
     class: `landing-reach-card net-${n.key}`,
+    'data-net': n.key,
     'aria-label': `${n.label}: ${Number(n.count).toLocaleString()} ${n.unit}. Follow ${n.handle}`,
     onclick: () => countClick(`profile:${n.key}`, n.key),
   },
@@ -117,13 +118,81 @@ function networkCard(n) {
     h('span', { class: 'landing-reach-share', style: { width: `${Math.max(2, n.share)}%`, background: MIX_COLORS[n.key] }, 'aria-hidden': 'true' }));
 }
 
-function mixBar(networks) {
-  return h('div', { class: 'landing-reach-mix' },
-    h('div', { class: 'landing-reach-bar', role: 'img', 'aria-label': `Audience mix: ${networks.map((n) => `${n.label} ${n.share}%`).join(', ')}` },
-      networks.map((n) => h('span', { style: { flexGrow: String(Math.max(n.share, 0.6)), background: MIX_COLORS[n.key] }, title: `${n.label}: ${n.share}%` }))),
-    h('ul', { class: 'landing-reach-legend' }, networks.map((n) => h('li', {},
+/**
+ * The summary panel: her total on the left, the audience mix on the right. Hovering or focusing a
+ * legend item lights up its bar segment and card; clicking it scrolls to the card.
+ */
+function summaryPanel(reach, networks, updatedAt, grid) {
+  const segments = networks.map((n) => h('span', {
+    class: 'landing-reach-seg', 'data-net': n.key, title: `${n.label}: ${n.share}%`,
+    style: { flexGrow: String(Math.max(n.share, 0.6)), background: MIX_COLORS[n.key] },
+  }));
+  const bar = h('div', { class: 'landing-reach-bar', role: 'img', 'aria-label': `Audience mix: ${networks.map((n) => `${n.label} ${n.share}%`).join(', ')}` }, segments);
+
+  const panel = h('div', { class: 'landing-reach-panel' });
+  const highlight = (key) => {
+    panel.classList.toggle('is-focusing', !!key);
+    grid.classList.toggle('is-focusing', !!key);
+    for (const el of [...segments, ...panel.querySelectorAll('.landing-reach-legend-item'), ...grid.querySelectorAll('.landing-reach-card')]) {
+      el.classList.toggle('is-active', el.dataset.net === key);
+    }
+  };
+  const goTo = (key) => {
+    const card = grid.querySelector(`.landing-reach-card[data-net="${key}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' });
+    card.classList.remove('is-flash');
+    void card.offsetWidth; // restart the flash
+    card.classList.add('is-flash');
+    card.focus({ preventScroll: true });
+  };
+
+  const legend = h('ul', { class: 'landing-reach-legend' }, networks.map((n) => h('li', {},
+    h('button', {
+      type: 'button', class: 'landing-reach-legend-item', 'data-net': n.key,
+      'aria-label': `${n.label}: ${n.share}% of her audience, ${Number(n.count).toLocaleString()} ${n.unit}. Show the card`,
+      onmouseenter: () => highlight(n.key), onmouseleave: () => highlight(null),
+      onfocus: () => highlight(n.key), onblur: () => highlight(null),
+      onclick: () => goTo(n.key),
+    },
       h('i', { style: { background: MIX_COLORS[n.key] }, 'aria-hidden': 'true' }),
-      icon(`brand:${n.key}`, 13), n.label, h('b', {}, `${n.share}%`)))));
+      icon(`brand:${n.key}`, 14),
+      h('span', { class: 'landing-reach-legend-name' }, n.label),
+      h('b', {}, `${n.share}%`),
+      h('span', { class: 'landing-reach-legend-count' }, n.count_label)))));
+
+  const live = reach.live_networks || 0;
+  const facts = [
+    live ? `${live} of ${networks.length} synced live` : null,
+    updatedAt ? `updated ${timeAgo(updatedAt)}` : null,
+  ].filter(Boolean);
+
+  panel.append(
+    h('div', { class: 'landing-reach-total' },
+      h('strong', { class: 'landing-reach-total-num' }, reach.headline || `${reach.total_label}+`),
+      h('p', { class: 'landing-reach-total-label' }, `people follow along across ${networks.length} ${networks.length === 1 ? 'network' : 'networks'}`),
+      h('div', { class: 'landing-reach-total-meta' },
+        changeChip(reach.total_change_30d),
+        facts.length ? h('span', { class: 'muted small' }, facts.join(' · ')) : null)),
+    h('div', { class: 'landing-reach-mix' },
+      h('div', { class: 'landing-reach-mix-head' },
+        h('span', {}, 'Audience mix'),
+        h('span', { class: 'muted' }, `Largest: ${networks[0].label} ${networks[0].share}%`)),
+      bar,
+      legend));
+
+  // The bar fills in from the left the first time it's on screen.
+  if (!reduceMotion() && typeof IntersectionObserver === 'function') {
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      requestAnimationFrame(() => bar.classList.add('is-in'));
+    }, { threshold: 0.5 });
+    io.observe(bar);
+  } else {
+    bar.classList.add('is-in');
+  }
+  return panel;
 }
 
 function skeleton() {
@@ -141,13 +210,8 @@ export function reachSection() {
     if (!reach?.networks?.length) throw new Error('no reach');
     // Biggest first, so the grid reads like the mix bar.
     const networks = [...reach.networks].sort((a, b) => b.count - a.count);
-    summary.replaceChildren(
-      h('p', { class: 'landing-reach-total' },
-        h('strong', {}, reach.headline || `${reach.total_label}+`),
-        ` people follow along across ${networks.length} ${networks.length === 1 ? 'network' : 'networks'}`),
-      changeChip(reach.total_change_30d),
-      mixBar(networks));
     grid.replaceChildren(...networks.map(networkCard));
+    summary.replaceChildren(summaryPanel(reach, networks, feed.updated_at, grid));
     grid.removeAttribute('aria-busy');
   }).catch(() => {
     grid.removeAttribute('aria-busy');
@@ -158,7 +222,7 @@ export function reachSection() {
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '05: Reach & Content'),
-        h('h2', { id: 'landing-reach-title' }, 'Where the ', h('em', {}, 'internet'), ' finds me'),
-        summary),
+        h('h2', { id: 'landing-reach-title' }, 'Where the ', h('em', {}, 'internet'), ' finds me')),
+      summary,
       grid));
 }

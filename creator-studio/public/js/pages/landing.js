@@ -7,6 +7,7 @@ import { themeSwitch } from '../theme.js';
 import { contentSection } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
+import { ctaSection } from '../landing-cta.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -1315,16 +1316,8 @@ export function renderLanding(view, options = {}) {
   // 10. Section 06: On Stage: her talks, managed from the dashboard's Speaking card.
   const speaking = speakingSection({ onBookCall: handleBookCall });
 
-  // 11. Conversion CTA Banner
-  const cta = h('section', { class: 'landing-container' },
-    h('div', { class: 'landing-cta-banner' },
-      h('p', { class: 'landing-section-eyebrow' }, 'Let us build something'),
-      h('h2', { style: { fontSize: 'clamp(2rem, 4.5vw, 3.4rem)', marginBottom: '12px' } }, 'Have an idea that needs ', h('em', {}, 'shipping?')),
-      h('p', { style: { fontSize: '1.15rem', maxWidth: '48ch', marginInline: 'auto', marginBottom: '28px' } }, 'App, campaign, keynote, or something bolder. If it makes tech less scary, let us talk.'),
-      h('div', { class: 'row', style: { justifyContent: 'center', gap: '14px', flexWrap: 'wrap' } },
-        h('button', { type: 'button', class: 'btn primary lg', onclick: () => handleBookCall('mvp_build') }, icon('calendar', 16), 'Book an Intro Call'),
-        h('button', { type: 'button', class: 'btn ghost lg', onclick: () => handleStripePay('retainer') }, icon('credit-card', 16), 'Pay with Stripe'),
-        h('a', { href: 'mailto:hello@thetechunicorn.com?subject=Project%20Inquiry', class: 'btn ghost lg' }, 'hello@thetechunicorn.com'))));
+  // 11. Closing section above the footer; its leads and availability come from her dashboard.
+  const cta = ctaSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
 
   // 12. Multi-column Refined Footer with Voxel Logo and Platform Columns
   const footer = h('footer', { class: 'landing-footer' },

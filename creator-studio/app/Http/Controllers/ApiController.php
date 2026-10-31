@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Engine\Catalog\ModelCatalog;
+use App\Domains\Social\Models\SocialPost;
 use App\Http\Controllers\Api\AudienceController;
 use Illuminate\Support\Facades\Cache;
 use App\Domains\Engine\EngineManager;
@@ -312,9 +313,87 @@ class ApiController extends Controller
 
         $pickedIdeas = Idea::where('status', 'picked')->latest()->take(6)->get();
         $newIdeasCount = Idea::where('status', 'new')->count();
-        $recentScripts = Script::latest('updated_at')->take(5)->get();
+        $recentScripts = Script::with('deals:id,script_id,brand_name,rate')->latest('updated_at')->take(5)->get();
         $recentOutliers = Outlier::orderByDesc('outlier_score')->take(6)->get();
         $recentNotes = Note::latest()->take(4)->get();
+
+        // Active sponsor deliverables & revenue summary for tight dashboard integration
+        $activeDeliverables = [];
+        $activeDeals = Deal::with('script:id,title')
+            ->whereIn('stage', ['contracted', 'production', 'in_review', 'scheduled'])
+            ->get();
+
+        foreach ($activeDeals as $deal) {
+            if (! is_array($deal->deliverables)) {
+                continue;
+            }
+            foreach ($deal->deliverables as $deliv) {
+                if (($deliv['status'] ?? 'pending') === 'done') {
+                    continue;
+                }
+                $days = null;
+                $dueLabel = null;
+                if (! empty($deliv['due_date'])) {
+                    $dueDate = rescue(fn () => CarbonImmutable::parse($deliv['due_date']), null);
+                    if ($dueDate) {
+                        $days = (int) now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
+                        $dueLabel = match (true) {
+                            $days > 1 => "Due in {$days} days",
+                            $days === 1 => 'Due tomorrow',
+                            $days === 0 => 'Due today',
+                            default => abs($days).'d past due',
+                        };
+                    }
+                }
+                $activeDeliverables[] = [
+                    'deal_id' => $deal->id,
+                    'brand_name' => $deal->brand_name,
+                    'platform' => $deliv['platform'] ?? 'video',
+                    'format' => $deliv['format'] ?? 'deliverable',
+                    'rate' => $deal->rate,
+                    'currency' => $deal->currency ?: 'USD',
+                    'stage' => $deal->stage,
+                    'due_date' => $deliv['due_date'] ?? null,
+                    'days_until' => $days,
+                    'due_label' => $dueLabel,
+                    'script_id' => $deal->script_id,
+                    'script_title' => $deal->script?->title,
+                ];
+            }
+        }
+        usort($activeDeliverables, function ($a, $b) {
+            if ($a['days_until'] === null && $b['days_until'] === null) {
+                return 0;
+            }
+            if ($a['days_until'] === null) {
+                return 1;
+            }
+            if ($b['days_until'] === null) {
+                return -1;
+            }
+
+            return $a['days_until'] <=> $b['days_until'];
+        });
+
+        // Pending AI agent drafts awaiting review
+        $pendingAgentPosts = SocialPost::whereNotNull('social_agent_id')
+            ->where('approval', 'pending')
+            ->with('socialAgent:id,name')
+            ->latest('created_at')
+            ->take(5)
+            ->get();
+
+        $agentApprovals = [
+            'total' => SocialPost::whereNotNull('social_agent_id')->where('approval', 'pending')->count(),
+            'items' => $pendingAgentPosts->map(fn (SocialPost $p) => [
+                'id' => $p->id,
+                'platform' => $p->platform,
+                'format' => $p->format,
+                'title' => $p->title ?: mb_substr(strip_tags((string) $p->body), 0, 80),
+                'scheduled_for' => $p->scheduled_for?->toIso8601String(),
+                'agent_name' => $p->socialAgent?->name ?? 'Social Agent',
+            ])->values(),
+        ];
 
         $setupChecks = [
             ['key' => 'channel_id', 'label' => 'Your YouTube Channel', 'done' => Setting::has('channel_id')],
@@ -343,6 +422,13 @@ class ApiController extends Controller
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,
             'recent_notes' => $recentNotes,
+            'active_deliverables' => array_slice($activeDeliverables, 0, 6),
+            'agent_approvals' => $agentApprovals,
+            'deals_summary' => [
+                'active_count' => $activeDeals->count(),
+                'confirmed_revenue' => $activeDeals->sum('rate'),
+                'pipeline_total' => Deal::whereNotIn('stage', ['paid'])->sum('rate'),
+            ],
             'reach' => rescue(fn () => \App\Http\Controllers\LandingPageController::reach(), null),
             'hero' => rescue(fn () => \App\Domains\Landing\Hero::dashboard(), null),
             'marquee' => rescue(fn () => \App\Domains\Landing\Marquee::dashboard(), null),
@@ -639,7 +725,7 @@ class ApiController extends Controller
 
     public function getScript(Script $script): JsonResponse
     {
-        $script->load('idea');
+        $script->load(['idea', 'deals']);
         $findings = AiTellsLinter::lint((string) $script->body);
 
         return response()->json([
@@ -649,6 +735,44 @@ class ApiController extends Controller
             'word_count' => $script->wordCount(),
             'est_minutes' => $script->minutes(),
             'structure' => ScriptStructure::analyse((string) $script->body),
+        ]);
+    }
+
+    public function attachDeal(Request $request, Script $script): JsonResponse
+    {
+        $data = $request->validate([
+            'deal_id' => 'required|exists:deals,id',
+            'inject_segment' => 'nullable|boolean',
+        ]);
+
+        $deal = Deal::findOrFail($data['deal_id']);
+        $deal->update([
+            'script_id' => $script->id,
+            'stage' => in_array($deal->stage, ['inquiry', 'pitching', 'negotiating', 'contracted']) ? 'production' : $deal->stage,
+        ]);
+
+        if ($data['inject_segment'] ?? true) {
+            $coupon = $deal->coupon_code ? "Use promo code: `{$deal->coupon_code}`" : '';
+            $link = $deal->tracking_url ? "Link: {$deal->tracking_url}" : '';
+            $points = $deal->key_talking_points ? trim($deal->key_talking_points) : 'Highlight key benefits & developer experience.';
+
+            $segment = "\n\n## [SPONSORED SEGMENT: {$deal->brand_name}]\n"
+                . "[VISUAL: {$deal->brand_name} logo & dashboard screencast]\n"
+                . "(Sponsor integration: ~60-90s)\n"
+                . "*Disclosure: \"This video is sponsored by {$deal->brand_name}.\"*\n\n"
+                . "Key points to cover:\n"
+                . "{$points}\n\n"
+                . "Call to action:\n"
+                . trim("{$link}\n{$coupon}")."\n";
+
+            $script->body = trim((string) $script->body).$segment;
+            $script->save();
+        }
+
+        return response()->json([
+            'message' => "Attached {$deal->brand_name} sponsorship to script.",
+            'script' => $script->fresh(['idea', 'deals']),
+            'deal' => $deal,
         ]);
     }
 

@@ -171,6 +171,75 @@ function journeyCard(j) {
         h('button', { class: 'btn ghost sm', 'aria-label': 'One more', onclick: () => setCap(1) }, '+'))));
 }
 
+/** Studio quick launchpad to jump straight into key creator workflows. */
+function launchpadCard() {
+  return h('div', { class: 'card launchpad-card' },
+    h('div', { class: 'card-header' },
+      h('h2', {}, 'Studio launchpad'),
+      h('span', { class: 'muted small' }, '1-click quick actions')),
+    h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '8px', marginTop: '4px' } },
+      link('/flow', { class: 'btn sm primary' }, icon('mic', 14), 'Dictate note'),
+      link('/scripts', { class: 'btn sm' }, icon('pen', 14), 'New script'),
+      link('/repurpose', { class: 'btn sm' }, icon('sparkle', 14), 'Social post'),
+      link('/snippets', { class: 'btn sm' }, icon('code', 14), 'Tech code card'),
+      link('/deals', { class: 'btn sm' }, icon('briefcase', 14), 'New brand deal'),
+      link('/ideas', { class: 'btn sm ghost' }, icon('bulb', 14), 'Breakout ideas')));
+}
+
+/** Active sponsorship deliverables card. */
+function deliverablesCard(delivs, summary) {
+  if (!delivs?.length && !summary?.active_count) return null;
+  const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString()}`;
+  return h('div', { class: 'card' },
+    h('div', { class: 'card-header' },
+      h('div', {},
+        h('h2', {}, 'Active sponsorship deliverables'),
+        h('p', { class: 'muted small', style: { margin: '2px 0 0' } },
+          `${delivs?.length || 0} deliverable${delivs?.length === 1 ? '' : 's'} · ${usd(summary?.confirmed_revenue)} committed`)),
+      link('/deals', { class: 'btn ghost sm' }, 'Open deals CRM', icon('arrow', 14))),
+    delivs?.length ? h('ul', { class: 'item-list', style: { marginTop: '8px' } }, delivs.map((d) => h('li', {},
+      h('div', { class: 'item-main' },
+        h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+          h('strong', {}, d.brand_name),
+          d.due_label ? pill(d.due_label, d.days_until !== null && d.days_until <= 2 ? 'bad' : d.days_until <= 5 ? 'warn' : 'ok') : null),
+        h('div', { class: 'muted clamp-1 small' },
+          `${d.platform} · ${d.format} · ${usd(d.rate)}` + (d.script_title ? ` · Script: “${d.script_title}”` : ''))),
+      d.script_id
+        ? link(`/scripts/${d.script_id}`, { class: 'btn sm primary' }, 'Open script', icon('arrow', 13))
+        : link('/deals', { class: 'btn sm ghost' }, 'View in deals', icon('arrow', 13))))) : h('p', { class: 'muted small' }, 'No active deliverables pending.'));
+}
+
+/** Autonomous agent approvals card on Dashboard. */
+function agentApprovalsCard(approvals, onApproved) {
+  if (!approvals || approvals.total === 0) return null;
+  const items = approvals.items || [];
+  return h('div', { class: 'card' },
+    h('div', { class: 'card-header' },
+      h('div', {},
+        h('h2', {}, 'AI agent drafts to review'),
+        h('p', { class: 'muted small', style: { margin: '2px 0 0' } }, `${approvals.total} post${approvals.total === 1 ? '' : 's'} waiting for your sign-off`)),
+      link('/agents', { class: 'btn ghost sm' }, 'View all agents', icon('arrow', 14))),
+    h('ul', { class: 'item-list', style: { marginTop: '8px' } }, items.map((p) => h('li', {},
+      link(`/posts/${p.id}`, { class: 'item-main' },
+        h('strong', {}, p.agent_name),
+        h('div', { class: 'muted clamp-1 small' }, `${p.platform} · ${p.format || 'post'} · “${p.title}”`)),
+      h('div', { class: 'row', style: { gap: '6px' } },
+        h('button', {
+          class: 'btn sm primary',
+          onclick: async (e) => {
+            e.stopPropagation();
+            try {
+              await api('POST', `agents/posts/${p.id}/approve`, {});
+              toast('Post approved and scheduled.');
+              if (onApproved) onApproved();
+            } catch (err) {
+              toast(err.message || 'Could not approve.', 'err');
+            }
+          }
+        }, icon('check', 13), 'Approve'),
+        link(`/posts/${p.id}`, { class: 'btn sm ghost' }, 'Edit'))))));
+}
+
 function listCard(title, to, items, renderItem, empty) {
   return h('div', { class: 'card' },
     h('div', { class: 'card-header' }, h('h2', {}, title), link(to, { class: 'btn ghost sm' }, 'See all', icon('arrow', 14))),
@@ -185,11 +254,14 @@ export async function renderDashboard(view) {
   if (love) loveExtras().then((x) => love.append(x));
   // Every block has an id so she can hide and reorder them (Customise).
   const blocks = [
+    { id: 'launchpad', label: 'Studio launchpad', node: launchpadCard() },
     { id: 'hero', label: 'Week & greeting', node: heroCard(d) },
+    { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
+    { id: 'agent-approvals', label: 'AI agent approvals', node: agentApprovalsCard(d.agent_approvals, () => redraw()) },
+    { id: 'deliverables', label: 'Active brand deliverables', node: deliverablesCard(d.active_deliverables, d.deals_summary) },
     { id: 'brief', label: 'Your day', node: briefCard() },
     { id: 'due', label: 'Due now', node: dueStrip() },
     { id: 'composer', label: 'Composer', node: homeComposer() },
-    { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
     { id: 'journey', label: 'Client journey', node: journeyCard(d.journey) },
     { id: 'hero-site', label: 'Website hero', node: siteHeroCard(d.hero, () => redraw()) },
@@ -222,7 +294,11 @@ export async function renderDashboard(view) {
       pill(i.status)), 'Nothing picked yet. Generate ideas and pick one you love.'),
 
     listCard('Recent scripts', '/scripts', d.recent_scripts, (sc) => h('li', {},
-      link(`/scripts/${sc.id}`, { class: 'item-main' }, h('strong', {}, sc.title), h('div', { class: 'muted' }, `edited ${timeAgo(sc.updated_at)}`)),
+      link(`/scripts/${sc.id}`, { class: 'item-main' },
+        h('div', { class: 'row', style: { gap: '6px', alignItems: 'center' } },
+          h('strong', {}, sc.title),
+          sc.deals?.length ? h('span', { class: 'pill tone-accent small' }, sc.deals[0].brand_name) : null),
+        h('div', { class: 'muted' }, `edited ${timeAgo(sc.updated_at)}`)),
       pill(sc.status)), 'No scripts yet.'),
 
     listCard('Top breakouts', '/breakouts', d.recent_outliers, (o) => h('li', {},

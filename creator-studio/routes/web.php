@@ -104,6 +104,7 @@ Route::prefix('api')->group(function () {
         Route::post('scripts/{script}/review', [ApiController::class, 'reviewScript']);
         Route::post('scripts/{script}/substack', [ApiController::class, 'substackScript']);
         Route::post('scripts/{script}/edit-brief', [ApiController::class, 'editBriefScript']);
+        Route::post('scripts/{script}/sponsor', [ApiController::class, 'attachDeal']);
         Route::post('scripts/lint', [ApiController::class, 'lintText']);
 
         // Script version history

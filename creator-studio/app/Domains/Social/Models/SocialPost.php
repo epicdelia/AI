@@ -67,6 +67,11 @@ class SocialPost extends Model
         return $this->belongsTo(Script::class);
     }
 
+    public function socialAgent(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domains\Agents\Models\SocialAgent::class, 'social_agent_id');
+    }
+
     /** Likes + comments + shares + saves, and the rate against impressions when she logged them. */
     public function getEngagementAttribute(): ?array
     {

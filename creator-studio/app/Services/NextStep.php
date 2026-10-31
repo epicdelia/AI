@@ -2,28 +2,40 @@
 
 namespace App\Services;
 
+use App\Domains\Social\Models\SocialPost;
+use App\Models\Deal;
 use App\Models\Idea;
 use App\Models\Script;
 use App\Models\Setting;
 use App\Models\Week;
+use Carbon\CarbonImmutable;
 
 /**
- * The one thing to do next for this week's video, so the dashboard (and the Copilot) can say
- * "fill the 2 [YOUR STORY] gaps" instead of just "2 days left". Walks the pipeline in order:
- * pick → draft → fix hard AI tells → fill gaps → review → film → publish → check in.
+ * The one thing to do next for this week's video and high-priority studio tasks,
+ * so the dashboard (and the Copilot) can say "fill the 2 [YOUR STORY] gaps" or
+ * flag urgent brand deliverables. Walks the priority pipeline:
+ * urgent brand deliverable → script pipeline → agent approvals.
  */
 class NextStep
 {
     /** @return array{key: string, title: string, detail: string, action: string, link: string, script_id: ?int}|null */
     public static function current(): ?array
     {
+        // 1. Highest financial urgency: Urgent brand sponsorship deliverables due in <= 3 days or overdue
+        $urgentDeal = self::urgentDeal();
+        if ($urgentDeal) {
+            return $urgentDeal;
+        }
+
         $week = Week::current()?->load('script');
         if ($week && $week->status === 'shipped') {
             $next = Week::where('number', $week->number + 1)->first();
 
-            return $next && ! $next->video_title
-                ? self::step('pick', "Week {$week->number} shipped. Pick next week’s video", 'Choose it now, while the momentum’s there.', 'Open Ideas', '/ideas')
-                : null;
+            if ($next && ! $next->video_title) {
+                return self::step('pick', "Week {$week->number} shipped. Pick next week’s video", 'Choose it now, while the momentum’s there.', 'Open Ideas', '/ideas');
+            }
+
+            return self::pendingAgentDraft();
         }
 
         // This week's script, or failing that the one she's been working on.
@@ -31,9 +43,15 @@ class NextStep
         $due = $week ? self::due($week) : '';
 
         if (! $script) {
-            return Idea::where('status', 'picked')->exists()
-                ? self::step('pick', 'Pick this week’s video and draft it', trim("You have picked ideas waiting. {$due}"), 'Open Ideas', '/ideas')
-                : self::step('ideas', 'Get ideas for this week’s video', trim("Nothing is picked yet. {$due}"), 'Get fresh ideas', '/ideas');
+            if (Idea::where('status', 'picked')->exists()) {
+                return self::step('pick', 'Pick this week’s video and draft it', trim("You have picked ideas waiting. {$due}"), 'Open Ideas', '/ideas');
+            }
+
+            if (Week::exists() || ! Idea::exists()) {
+                return self::step('ideas', 'Get ideas for this week’s video', trim("Nothing is picked yet. {$due}"), 'Get fresh ideas', '/ideas');
+            }
+
+            return self::pendingAgentDraft();
         }
 
         $body = (string) $script->body;
@@ -43,7 +61,7 @@ class NextStep
         if ($script->status === 'published') {
             return $week && $week->status !== 'shipped'
                 ? self::step('checkin', "{$name} is published. Score the week", 'Run the check-in so it counts on your scoreboard.', 'Open Weekly goals', '/goals', $script->id)
-                : null;
+                : self::pendingAgentDraft();
         }
         if (str_word_count($body) < 150) {
             return self::step('draft', "Write the draft of {$name}", trim("Dictate it, use the script wizard, or start typing. {$due}"), 'Open the script', $link, $script->id);
@@ -70,6 +88,69 @@ class NextStep
 
         // Filmed.
         return self::step('publish', "Package and publish {$name}", trim("Titles, thumbnail and description are on the Package tab; add the link on Publish. {$due}"), 'Package it', "{$link}?tab=package", $script->id);
+    }
+
+    private static function urgentDeal(): ?array
+    {
+        $deals = Deal::whereIn('stage', ['contracted', 'production', 'in_review'])->get();
+
+        foreach ($deals as $deal) {
+            if (! is_array($deal->deliverables)) {
+                continue;
+            }
+
+            foreach ($deal->deliverables as $deliv) {
+                if (($deliv['status'] ?? 'pending') === 'done' || empty($deliv['due_date'])) {
+                    continue;
+                }
+
+                $dueDate = rescue(fn () => CarbonImmutable::parse($deliv['due_date']), null);
+                if (! $dueDate) {
+                    continue;
+                }
+
+                $days = (int) now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
+                if ($days <= 3) {
+                    $platform = ucfirst($deliv['platform'] ?? 'video');
+                    $format = $deliv['format'] ?? 'deliverable';
+                    $when = match (true) {
+                        $days > 1 => "Due in {$days} days.",
+                        $days === 1 => 'Due tomorrow.',
+                        $days === 0 => 'Due today.',
+                        default => 'Past due by '.abs($days).' day(s).',
+                    };
+
+                    $link = $deal->script_id ? "/scripts/{$deal->script_id}" : "/deals";
+
+                    return self::step(
+                        'deal_deliverable',
+                        "Sponsorship: deliver {$deal->brand_name} ({$platform} {$format})",
+                        "Sponsored deliverable {$when} Key talking points and guidelines are in Deals.",
+                        $deal->script_id ? 'Open the script' : 'Open Deal',
+                        $link,
+                        $deal->script_id
+                    );
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function pendingAgentDraft(): ?array
+    {
+        $count = rescue(fn () => SocialPost::whereNotNull('social_agent_id')->where('approval', 'pending')->count(), 0);
+        if ($count > 0) {
+            return self::step(
+                'agent_approval',
+                "Review {$count} post draft".($count === 1 ? '' : 's')." from your AI agent",
+                'Your autonomous agent generated fresh drafts based on breakout signals. Approve or tweak them.',
+                'Review drafts',
+                '/agents'
+            );
+        }
+
+        return null;
     }
 
     private static function due(Week $week): string

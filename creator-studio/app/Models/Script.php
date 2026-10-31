@@ -31,6 +31,11 @@ class Script extends Model
         return $this->belongsTo(Idea::class);
     }
 
+    public function deals(): HasMany
+    {
+        return $this->hasMany(Deal::class);
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(ScriptVersion::class);

@@ -1,154 +1,234 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 960" width="1440" height="960">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" width="1200" height="780">
   <defs>
-    <filter id="shadow-dark" x="-5%" y="-5%" width="110%" height="115%">
-      <feDropShadow dx="0" dy="20" stdDeviation="30" flood-color="#000000" flood-opacity="0.65" />
-    </filter>
     <linearGradient id="unicorn-grad-dark" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f06a9b" />
-      <stop offset="50%" stop-color="#c084fc" />
-      <stop offset="100%" stop-color="#818cf8" />
-    </linearGradient>
-    <linearGradient id="card-grad-dark" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#241d29" />
-      <stop offset="100%" stop-color="#1b1520" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#6366f1" />
     </linearGradient>
   </defs>
 
-  <!-- Dark Desktop Background Canvas -->
-  <rect x="0" y="0" width="1440" height="960" rx="20" fill="#0d0912" />
-  
-  <!-- Outer Boxed Frame (Dark Studio Sheet) -->
-  <rect x="40" y="30" width="1360" height="900" rx="24" fill="#17131a" stroke="#372d3c" stroke-width="1.5" filter="url(#shadow-dark)" />
+  <!-- Browser Window Frame -->
+  <rect width="1200" height="780" rx="16" fill="#1b161f" stroke="#372d3c" stroke-width="1.5" />
 
-  <!-- App Header -->
-  <rect x="40" y="30" width="1360" height="68" rx="24" fill="#1f1823" />
-  <rect x="40" y="97" width="1360" height="1" fill="#372d3c" />
+  <!-- Window Chrome Header -->
+  <rect width="1200" height="44" rx="16" fill="#17131a" />
+  <line x1="0" y1="44" x2="1200" y2="44" stroke="#372d3c" stroke-width="1" />
+  <circle cx="24" cy="22" r="5" fill="#ff5f56" />
+  <circle cx="40" cy="22" r="5" fill="#ffbd2e" />
+  <circle cx="56" cy="22" r="5" fill="#27c93f" />
 
-  <!-- Brand Mark Icon -->
-  <rect x="68" y="48" width="32" height="32" rx="9" fill="url(#unicorn-grad-dark)" />
-  <text x="84" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">🦄</text>
+  <!-- URL Bar -->
+  <rect x="360" y="9" width="480" height="26" rx="6" fill="#211b25" stroke="#372d3c" />
+  <text x="600" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" fill="#a99cae" text-anchor="middle">🔒 https://studio.techunicorn.dev/dashboard</text>
 
-  <!-- Mega Menu Tabs (Dark) -->
-  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#f2eaf1">
-    <text x="124" y="69" fill="#f06a9b">Dashboard</text>
-    <circle cx="118" cy="65" r="3" fill="#f06a9b" />
-    <text x="230" y="69">YouTube</text>
-    <text x="316" y="69">Social</text>
-    <text x="382" y="69">Brand Deals</text>
-    <text x="490" y="69">Code Cards</text>
-  </g>
+  <!-- ================= SIDEBAR ================= -->
+  <g transform="translate(0, 44)">
+    <rect width="220" height="736" fill="#17131a" />
+    <line x1="220" y1="0" x2="220" y2="736" stroke="#372d3c" stroke-width="1" />
 
-  <!-- Search Bar (Ctrl+K Dark) -->
-  <rect x="620" y="44" width="380" height="40" rx="10" fill="#261e2b" stroke="#3d3043" stroke-width="1" />
-  <circle cx="642" cy="64" r="6" stroke="#9d8ba2" stroke-width="1.8" fill="none" />
-  <line x1="646" y1="68" x2="652" y2="74" stroke="#9d8ba2" stroke-width="1.8" stroke-linecap="round" />
-  <text x="664" y="69" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#9d8ba2">Search scripts, brand deals, ideas…</text>
-  <rect x="946" y="52" width="42" height="24" rx="6" fill="#382c3f" />
-  <text x="967" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#cbbacb" text-anchor="middle">⌘ K</text>
-
-  <!-- Header Right Actions: Bell, Copilot, Avatar -->
-  <circle cx="1270" cy="64" r="18" fill="#281f2d" />
-  <circle cx="1278" cy="56" r="4" fill="#f06a9b" />
-  <rect x="1302" y="46" width="76" height="36" rx="18" fill="#2e1b27" stroke="#4a2538" stroke-width="1" />
-  <circle cx="1320" cy="64" r="10" fill="url(#unicorn-grad-dark)" />
-  <text x="1320" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">D</text>
-  <text x="1346" y="69" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#f06a9b">Delia</text>
-
-  <!-- Main Content Layout (Dark) -->
-  <!-- 1. Hero Card -->
-  <rect x="76" y="124" width="1288" height="150" rx="16" fill="url(#card-grad-dark)" stroke="#372d3c" stroke-width="1.2" />
-  <text x="108" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#f06a9b" letter-spacing="0.08em">GOOD AFTERNOON, DELIA (@TECH.UNICORN)</text>
-  <text x="108" y="202" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#f2eaf1">Week 4 of 12 · 3 days left</text>
-  <text x="108" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#a99cae">This week’s video: “Why Senior Engineers Write Less Code (And What They Do Instead)”</text>
-
-  <rect x="1170" y="152" width="162" height="94" rx="12" fill="#341825" stroke="#4c2136" stroke-width="1" />
-  <text x="1251" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="900" fill="#f06a9b" text-anchor="middle">4🔥</text>
-  <text x="1251" y="222" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#f9a8d4" text-anchor="middle">WEEK STREAK</text>
-
-  <!-- 2. Four KPI Metric Boxes (Dark) -->
-  <g font-family="system-ui, -apple-system, sans-serif">
-    <!-- Box 1 -->
-    <rect x="76" y="296" width="308" height="96" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-    <text x="102" y="342" font-size="32" font-weight="900" fill="#f06a9b">184,500</text>
-    <text x="102" y="370" font-size="13" font-weight="600" fill="#a99cae">Total Tech Community</text>
-
-    <!-- Box 2 -->
-    <rect x="402" y="296" width="308" height="96" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-    <text x="428" y="342" font-size="32" font-weight="900" fill="#38bdf8">$16,200</text>
-    <text x="428" y="370" font-size="13" font-weight="600" fill="#a99cae">Active Sponsorship Deals</text>
-
-    <!-- Box 3 -->
-    <rect x="728" y="296" width="308" height="96" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-    <text x="754" y="342" font-size="32" font-weight="900" fill="#4ade80">7.8%</text>
-    <text x="754" y="370" font-size="13" font-weight="600" fill="#a99cae">Avg LinkedIn Engagement</text>
-
-    <!-- Box 4 -->
-    <rect x="1054" y="296" width="310" height="96" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-    <text x="1080" y="342" font-size="32" font-weight="900" fill="#c084fc">14</text>
-    <text x="1080" y="370" font-size="13" font-weight="600" fill="#a99cae">Videos & Posts Shipped</text>
-  </g>
-
-  <!-- 3. Left Column: Next Step & Brand Deals (Dark) -->
-  <!-- Next Step Card -->
-  <rect x="76" y="414" width="624" height="230" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-  <text x="102" y="446" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#f06a9b" letter-spacing="0.08em">NEXT STEP FOR THIS WEEK’S VIDEO</text>
-  <text x="102" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="800" fill="#f2eaf1">Fill 1 [YOUR STORY] and review Notion ad read segue</text>
-  <text x="102" y="508" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#a99cae">Your 60s sponsor read for Notion is inserted with natural transition hook at 03:45.</text>
-  <rect x="102" y="534" width="180" height="38" rx="8" fill="#f06a9b" />
-  <text x="192" y="558" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Open Script Editor →</text>
-
-  <!-- Brand Deals Summary Card -->
-  <rect x="76" y="666" width="624" height="236" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-  <text x="102" y="698" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#f2eaf1">Active Brand Sponsorships</text>
-  
-  <rect x="102" y="718" width="572" height="48" rx="8" fill="#1b1520" stroke="#2d2232" stroke-width="1" />
-  <text x="120" y="747" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#f2eaf1">Supabase</text>
-  <rect x="210" y="731" width="130" height="22" rx="6" fill="#0c4a6e" />
-  <text x="275" y="746" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">YouTube 60s + LinkedIn</text>
-  <text x="650" y="747" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="800" fill="#f06a9b" text-anchor="end">$3,500 · Contracted</text>
-
-  <rect x="102" y="776" width="572" height="48" rx="8" fill="#1b1520" stroke="#2d2232" stroke-width="1" />
-  <text x="120" y="805" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#f2eaf1">Cursor AI</text>
-  <rect x="200" y="789" width="110" height="22" rx="6" fill="#78350f" />
-  <text x="255" y="804" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#fde047" text-anchor="middle">Omnichannel Tech</text>
-  <text x="650" y="805" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="800" fill="#f06a9b" text-anchor="end">$5,200 · Production</text>
-
-  <rect x="102" y="834" width="572" height="48" rx="8" fill="#1b1520" stroke="#2d2232" stroke-width="1" />
-  <text x="120" y="863" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#f2eaf1">Linear</text>
-  <rect x="180" y="847" width="90" height="22" rx="6" fill="#14532d" />
-  <text x="225" y="862" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#86efac" text-anchor="middle">LinkedIn Post</text>
-  <text x="650" y="863" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="800" fill="#4ade80" text-anchor="end">$2,500 · Invoiced</text>
-
-  <!-- 4. Right Column: Code Card Studio Preview (Dark) -->
-  <rect x="722" y="414" width="642" height="488" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1.2" />
-  <text x="750" y="446" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#f2eaf1">Tech & Code Snippet Studio</text>
-  <text x="750" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#a99cae">Visual code card ready for LinkedIn carousel and Instagram:</text>
-
-  <!-- Rendered Neon Gradient Code Card -->
-  <g transform="translate(750, 484)">
-    <rect width="586" height="394" rx="14" fill="url(#unicorn-grad-dark)" />
-    
-    <!-- Code Window inside card -->
-    <rect x="24" y="24" width="538" height="346" rx="10" fill="#0f0c14" />
-    
-    <!-- Window buttons -->
-    <circle cx="44" cy="44" r="5" fill="#ff5f56" />
-    <circle cx="60" cy="44" r="5" fill="#ffbd2e" />
-    <circle cx="76" cy="44" r="5" fill="#27c93f" />
-    <text x="293" y="48" font-family="system-ui, sans-serif" font-size="11" fill="#9d8ba2" text-anchor="middle">agent.ts</text>
-
-    <!-- Code Lines -->
-    <g font-family="monospace" font-size="13" fill="#e2d9e6">
-      <text x="44" y="84"><tspan fill="#f43f5e">import</tspan> { Agent, Tool } <tspan fill="#f43f5e">from</tspan> <tspan fill="#a7f3d0">'@unicorn/ai'</tspan>;</text>
-      <text x="44" y="112"><tspan fill="#c084fc">const</tspan> agent = <tspan fill="#38bdf8">new</tspan> Agent({</text>
-      <text x="64" y="140">model: <tspan fill="#a7f3d0">'claude-3-7-sonnet'</tspan>,</text>
-      <text x="64" y="168">voice: <tspan fill="#a7f3d0">'Delia (@Tech.Unicorn)'</tspan>,</text>
-      <text x="64" y="196">tools: [Tool.webSearch(), Tool.codeSandbox()],</text>
-      <text x="44" y="224">});</text>
-      <text x="44" y="260"><tspan fill="#c084fc">const</tspan> audit = <tspan fill="#f43f5e">await</tspan> agent.auditCodebase();</text>
-      <text x="44" y="288">console.log(audit.summary);</text>
+    <!-- Brand Header in Sidebar -->
+    <g transform="translate(20, 20)">
+      <rect width="32" height="32" rx="8" fill="url(#unicorn-grad-dark)" />
+      <text x="16" y="22" font-family="system-ui, sans-serif" font-size="17" font-weight="900" fill="#ffffff" text-anchor="middle">🦄</text>
+      <text x="42" y="16" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#f2eaf1">@Tech.Unicorn</text>
+      <text x="42" y="30" font-family="system-ui, sans-serif" font-size="10.5" font-weight="600" fill="#a99cae">Delia Lazarescu</text>
     </g>
 
-    <text x="542" y="356" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ffffff" opacity="0.9" text-anchor="end">@Tech.Unicorn</text>
+    <!-- Sidebar Navigation Items -->
+    <g transform="translate(14, 76)">
+      <!-- Section: TODAY -->
+      <text x="10" y="10" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#7a6d7f" letter-spacing="0.06em">TODAY</text>
+      
+      <!-- Active Item: Dashboard -->
+      <rect y="18" width="192" height="34" rx="8" fill="rgba(240, 106, 155, 0.16)" />
+      <rect y="21" width="3.5" height="28" rx="2" fill="#f06a9b" />
+      <text x="14" y="40" font-family="system-ui, sans-serif" font-size="13">📊</text>
+      <text x="36" y="40" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f06a9b">Dashboard</text>
+
+      <!-- Dictate -->
+      <text x="14" y="74" font-family="system-ui, sans-serif" font-size="13">🎙️</text>
+      <text x="36" y="74" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Dictate / Flow</text>
+
+      <!-- For you (love notes) -->
+      <text x="14" y="106" font-family="system-ui, sans-serif" font-size="13">💖</text>
+      <text x="36" y="106" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">For You</text>
+      <rect x="156" y="94" width="28" height="16" rx="8" fill="rgba(240, 106, 155, 0.2)" />
+      <text x="170" y="106" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#f06a9b" text-anchor="middle">NEW</text>
+
+      <!-- Section: YOUTUBE -->
+      <text x="10" y="146" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#7a6d7f" letter-spacing="0.06em">YOUTUBE</text>
+      <text x="14" y="172" font-family="system-ui, sans-serif" font-size="13">📈</text>
+      <text x="36" y="172" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Breakouts</text>
+      <text x="14" y="204" font-family="system-ui, sans-serif" font-size="13">💡</text>
+      <text x="36" y="204" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Ideas &amp; Signals</text>
+      <text x="14" y="236" font-family="system-ui, sans-serif" font-size="13">📝</text>
+      <text x="36" y="236" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Scripts &amp; Prompter</text>
+      <text x="14" y="268" font-family="system-ui, sans-serif" font-size="13">🎯</text>
+      <text x="36" y="268" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Weekly Goals</text>
+
+      <!-- Section: SOCIAL & MONETIZE -->
+      <text x="10" y="308" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#7a6d7f" letter-spacing="0.06em">MONETIZE &amp; SOCIAL</text>
+      <text x="14" y="334" font-family="system-ui, sans-serif" font-size="13">💼</text>
+      <text x="36" y="334" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#d2c5d4">Brand Deals CRM</text>
+      <rect x="146" y="322" width="40" height="16" rx="8" fill="rgba(79, 199, 141, 0.2)" />
+      <text x="166" y="334" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#4fc78d" text-anchor="middle">$5.7K</text>
+      
+      <text x="14" y="366" font-family="system-ui, sans-serif" font-size="13">📅</text>
+      <text x="36" y="366" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Content Calendar</text>
+      <text x="14" y="398" font-family="system-ui, sans-serif" font-size="13">💻</text>
+      <text x="36" y="398" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Code Cards Studio</text>
+      <text x="14" y="430" font-family="system-ui, sans-serif" font-size="13">📑</text>
+      <text x="36" y="430" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Media Kit (182K)</text>
+
+      <!-- Section: STUDIO -->
+      <text x="10" y="470" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#7a6d7f" letter-spacing="0.06em">SYSTEM</text>
+      <text x="14" y="496" font-family="system-ui, sans-serif" font-size="13">⚙️</text>
+      <text x="36" y="496" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#d2c5d4">Studio Settings</text>
+    </g>
+
+    <!-- Couple Footer in Sidebar -->
+    <g transform="translate(14, 670)">
+      <rect width="192" height="42" rx="10" fill="#211b25" stroke="#372d3c" />
+      <text x="12" y="20" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f06a9b">Built for Delia 💕</text>
+      <text x="12" y="33" font-family="system-ui, sans-serif" font-size="9.5" fill="#a99cae">With love by Dempsey</text>
+    </g>
+  </g>
+
+  <!-- ================= TOP APP HEADER ================= -->
+  <g transform="translate(220, 44)">
+    <rect width="980" height="56" fill="#211b25" />
+    <line x1="0" y1="56" x2="980" y2="56" stroke="#372d3c" stroke-width="1" />
+
+    <text x="24" y="34" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#f2eaf1">Creator Studio Dashboard</text>
+    <rect x="226" y="16" width="60" height="22" rx="11" fill="rgba(240, 106, 155, 0.2)" />
+    <text x="256" y="31" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f06a9b" text-anchor="middle">Week 44</text>
+
+    <!-- Quick Search -->
+    <rect x="310" y="12" width="340" height="32" rx="8" fill="#1b161f" stroke="#372d3c" />
+    <text x="326" y="32" font-family="system-ui, sans-serif" font-size="11.5" fill="#7a6d7f">🔍 Search ideas, scripts, deals, sponsors...</text>
+
+    <!-- Right Profile Pill -->
+    <g transform="translate(800, 12)">
+      <rect width="156" height="32" rx="16" fill="#1b161f" stroke="#372d3c" />
+      <circle cx="16" cy="16" r="11" fill="url(#unicorn-grad-dark)" />
+      <text x="16" y="20" font-family="system-ui, sans-serif" font-size="9.5" font-weight="800" fill="#ffffff" text-anchor="middle">DL</text>
+      <text x="34" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f2eaf1">Delia Lazarescu</text>
+    </g>
+  </g>
+
+  <!-- ================= DASHBOARD MAIN CANVAS ================= -->
+  <g transform="translate(220, 100)">
+    <!-- Canvas background -->
+    <rect width="980" height="680" fill="#17131a" />
+
+    <!-- 1. Top KPI Row (3 cards) -->
+    <g transform="translate(24, 20)">
+      <!-- KPI 1: Reach -->
+      <rect width="292" height="92" rx="12" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+      <text x="16" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a99cae">MULTI-PLATFORM COMMUNITY</text>
+      <text x="16" y="58" font-family="system-ui, sans-serif" font-size="24" font-weight="800" fill="#f2eaf1">182.4K</text>
+      <text x="16" y="78" font-family="system-ui, sans-serif" font-size="11.5" font-weight="600" fill="#4fc78d">↑ +14.2% · YouTube, LinkedIn &amp; TikTok</text>
+
+      <!-- KPI 2: Deals -->
+      <rect x="316" width="292" height="92" rx="12" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+      <text x="332" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a99cae">ACTIVE SPONSORSHIPS PIPELINE</text>
+      <text x="332" y="58" font-family="system-ui, sans-serif" font-size="24" font-weight="800" fill="#f2eaf1">$5,700</text>
+      <text x="332" y="78" font-family="system-ui, sans-serif" font-size="11.5" font-weight="600" fill="#f06a9b">Supabase &amp; Vercel · 2 Active</text>
+
+      <!-- KPI 3: Weekly Goal -->
+      <rect x="632" width="300" height="92" rx="12" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+      <text x="648" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a99cae">WEEKLY GOAL PROGRESS</text>
+      <text x="648" y="58" font-family="system-ui, sans-serif" font-size="24" font-weight="800" fill="#f2eaf1">Week 44 ✓</text>
+      <text x="648" y="78" font-family="system-ui, sans-serif" font-size="11.5" font-weight="600" fill="#4fc78d">Script ready for Teleprompter · 6-wk streak</text>
+    </g>
+
+    <!-- 2. Two-Column Dashboard Content -->
+    <g transform="translate(24, 130)">
+      <!-- Left Column: Current Script & Teleprompter Focus (width: 480) -->
+      <rect width="470" height="500" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+      <text x="20" y="32" font-family="system-ui, sans-serif" font-size="14.5" font-weight="800" fill="#f2eaf1">Current Script: Autonomous AI Agents in 2026</text>
+      <text x="20" y="52" font-family="system-ui, sans-serif" font-size="11.5" fill="#a99cae">9 min target · 1,420 words · Teleprompter calibrated for Delia</text>
+
+      <!-- Script Highlights & Chapters -->
+      <g transform="translate(20, 70)">
+        <rect width="430" height="54" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="14" y="24" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f06a9b">CHAPTER 1: THE MULTI-AGENT SHIFT (0:00 - 2:15)</text>
+        <text x="14" y="42" font-family="system-ui, sans-serif" font-size="11" fill="#d2c5d4">"Single LLM prompts are yesterday's news. Today we build teams."</text>
+
+        <rect y="64" width="430" height="54" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="14" y="88" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f06a9b">CHAPTER 2: LIVE CODE &amp; ARCHITECTURE (2:15 - 5:30)</text>
+        <text x="14" y="106" font-family="system-ui, sans-serif" font-size="11" fill="#d2c5d4">Code walkthrough with Claude 3.7 Sonnet &amp; Tool execution.</text>
+
+        <rect y="128" width="430" height="54" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="14" y="152" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f06a9b">CHAPTER 3: SPONSOR INTEGRATION (5:30 - 6:45)</text>
+        <text x="14" y="170" font-family="system-ui, sans-serif" font-size="11" fill="#d2c5d4">Supabase pgvector native storage integration. Script approved.</text>
+
+        <rect y="192" width="430" height="54" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="14" y="216" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f06a9b">CHAPTER 4: PRODUCTION VERIFICATION (6:45 - 9:00)</text>
+        <text x="14" y="234" font-family="system-ui, sans-serif" font-size="11" fill="#d2c5d4">Zero AI hallucinations flagged · Fact check: 100% verified.</text>
+      </g>
+
+      <!-- Action buttons at bottom of script card -->
+      <g transform="translate(20, 340)">
+        <rect width="180" height="38" rx="8" fill="#f06a9b" />
+        <text x="90" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#17131a" text-anchor="middle">⚡ Launch Teleprompter</text>
+
+        <rect x="194" width="140" height="38" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="264" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#f2eaf1" text-anchor="middle">Version History (12)</text>
+      </g>
+
+      <!-- Viewer Asks Signal -->
+      <g transform="translate(20, 400)">
+        <rect width="430" height="74" rx="10" fill="#1b161f" stroke="#372d3c" />
+        <text x="14" y="22" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f06a9b">TOP AUDIENCE REQUEST FROM DELIA'S CHANNEL</text>
+        <text x="14" y="42" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#f2eaf1">"Could you show how to connect this to WhatsApp or Slack?"</text>
+        <text x="14" y="60" font-family="system-ui, sans-serif" font-size="10" fill="#a99cae">+242 likes on YouTube · 1-click: Turn into Next Week's Idea</text>
+      </g>
+
+      <!-- Right Column: Brand Deals + Ray.so Code Card (width: 440) -->
+      <g transform="translate(492, 0)">
+        <!-- Top: Deals Card -->
+        <rect width="440" height="190" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+        <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13.5" font-weight="800" fill="#f2eaf1">Tech Sponsorships Pipeline</text>
+        <text x="18" y="46" font-family="system-ui, sans-serif" font-size="11" fill="#a99cae">Dynamic Rate Card: $45 CPM · Tech &amp; Developer Audience</text>
+
+        <!-- Deal 1 -->
+        <rect x="18" y="58" width="404" height="52" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="32" y="80" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f2eaf1">Supabase: Dedicated Video + Newsletter</text>
+        <text x="32" y="98" font-family="system-ui, sans-serif" font-size="11" fill="#a99cae">Deliverable: Script Chapter 3 · Due: Friday</text>
+        <text x="408" y="88" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#4fc78d" text-anchor="end">$2,500 · Invoiced</text>
+
+        <!-- Deal 2 -->
+        <rect x="18" y="118" width="404" height="52" rx="8" fill="#1b161f" stroke="#372d3c" />
+        <text x="32" y="140" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f2eaf1">Vercel: Tech Stack Carousel + YouTube Short</text>
+        <text x="32" y="158" font-family="system-ui, sans-serif" font-size="11" fill="#a99cae">Multi-platform package · Contract Signed</text>
+        <text x="408" y="148" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#f06a9b" text-anchor="end">$3,200 · Active</text>
+
+        <!-- Bottom: Ray.so Code Card Snippet Preview -->
+        <g transform="translate(0, 206)">
+          <rect width="440" height="294" rx="14" fill="#211b25" stroke="#372d3c" stroke-width="1" />
+          <text x="18" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#f2eaf1">Code Card Studio (Ray.so / Carbon)</text>
+          <text x="18" y="44" font-family="system-ui, sans-serif" font-size="11" fill="#a99cae">Visual snippet ready for Delia's LinkedIn Carousel</text>
+
+          <!-- Rendered Card with Unicorn Gradient -->
+          <g transform="translate(18, 56)">
+            <rect width="404" height="220" rx="12" fill="url(#unicorn-grad-dark)" />
+            <rect x="14" y="14" width="376" height="192" rx="8" fill="#18141d" />
+            <circle cx="32" cy="30" r="4" fill="#ff5f56" />
+            <circle cx="46" cy="30" r="4" fill="#ffbd2e" />
+            <circle cx="60" cy="30" r="4" fill="#27c93f" />
+            <text x="202" y="34" font-family="system-ui, sans-serif" font-size="10.5" fill="#a99cae" text-anchor="middle">agent.ts</text>
+            <g font-family="ui-monospace, monospace" font-size="11" fill="#f2eaf1">
+              <text x="30" y="66"><tspan fill="#f06a9b">import</tspan> { Agent } <tspan fill="#f06a9b">from</tspan> <tspan fill="#4fc78d">'@unicorn/ai'</tspan>;</text>
+              <text x="30" y="92"><tspan fill="#a68cf2">const</tspan> studio = <tspan fill="#5aa9e6">new</tspan> Agent({</text>
+              <text x="48" y="118">creator: <tspan fill="#4fc78d">'Delia Lazarescu'</tspan>,</text>
+              <text x="48" y="144">voice: <tspan fill="#4fc78d">'@Tech.Unicorn'</tspan>,</text>
+              <text x="30" y="170">});</text>
+            </g>
+            <text x="376" y="192" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#ffffff" opacity="0.9" text-anchor="end">@Tech.Unicorn</text>
+          </g>
+        </g>
+      </g>
+    </g>
   </g>
 </svg>

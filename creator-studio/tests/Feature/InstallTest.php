@@ -73,3 +73,4 @@ class InstallTest extends TestCase
         ])->assertStatus(422);
     }
 }
+

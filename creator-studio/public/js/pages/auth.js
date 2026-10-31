@@ -62,105 +62,6 @@ function passwordMeter(input) {
   return wrap;
 }
 
-// Inline SVG Studio Preview: 100% reliable, zero HTTP request, cannot be broken, adapts to theme
-function studioPreviewGraphic() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 740 490');
-  svg.setAttribute('class', 'auth-mockup-svg');
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="unicorn-grad-auth" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f43f5e" />
-        <stop offset="50%" stop-color="#d946ef" />
-        <stop offset="100%" stop-color="#8b5cf6" />
-      </linearGradient>
-    </defs>
-    <!-- Studio Window Frame -->
-    <rect width="740" height="490" rx="16" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5" />
-    
-    <!-- Window Chrome Header -->
-    <rect width="740" height="46" rx="16" fill="var(--bg)" />
-    <line x1="0" y1="46" x2="740" y2="46" stroke="var(--line)" stroke-width="1" />
-    <circle cx="24" cy="23" r="5" fill="#ff5f56" />
-    <circle cx="40" cy="23" r="5" fill="#ffbd2e" />
-    <circle cx="56" cy="23" r="5" fill="#27c93f" />
-    
-    <!-- Title & Brand -->
-    <rect x="80" y="11" width="24" height="24" rx="6" fill="url(#unicorn-grad-auth)" />
-    <text x="92" y="27" font-family="system-ui, sans-serif" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">🦄</text>
-    <text x="114" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">@Tech.Unicorn Studio</text>
-    <text x="690" y="27" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--accent)" text-anchor="end">Made for Delia 💕</text>
-
-    <!-- Top Stats Row -->
-    <g transform="translate(20, 60)">
-      <!-- Card 1: Community Reach -->
-      <rect width="218" height="96" rx="10" fill="var(--bg)" stroke="var(--line)" />
-      <text x="14" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--muted)">MULTI-PLATFORM REACH</text>
-      <text x="14" y="58" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="var(--ink)">182.4K</text>
-      <text x="14" y="80" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#22c55e">↑ +14.2% · YouTube &amp; LinkedIn</text>
-
-      <!-- Card 2: Brand Deals CRM -->
-      <rect x="238" width="224" height="96" rx="10" fill="var(--bg)" stroke="var(--line)" />
-      <text x="252" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--muted)">BRAND DEALS PIPELINE</text>
-      <text x="252" y="58" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="var(--ink)">$5,700</text>
-      <text x="252" y="80" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--accent)">Supabase &amp; Vercel · Active</text>
-
-      <!-- Card 3: Scripts & Production -->
-      <rect x="480" width="220" height="96" rx="10" fill="var(--bg)" stroke="var(--line)" />
-      <text x="494" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--muted)">WEEKLY PRODUCTION</text>
-      <text x="494" y="58" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="var(--ink)">Week 44 ✓</text>
-      <text x="494" y="80" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#22c55e">Shipped · Script &amp; Teleprompter</text>
-    </g>
-
-    <!-- Main Content Area: Ray.so Code Card + Deal Preview -->
-    <g transform="translate(20, 172)">
-      <!-- Left: Ray.so Code Snippet Studio Preview -->
-      <rect width="400" height="296" rx="12" fill="var(--bg)" stroke="var(--line)" />
-      <text x="16" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">Code &amp; Tech Snippet Studio</text>
-      <text x="16" y="44" font-family="system-ui, sans-serif" font-size="11" fill="var(--muted)">Visual code cards for Delia’s carousels</text>
-      
-      <!-- Mini Code Window -->
-      <g transform="translate(16, 56)">
-        <rect width="368" height="224" rx="10" fill="url(#unicorn-grad-auth)" />
-        <rect x="12" y="12" width="344" height="200" rx="8" fill="#18141d" />
-        <circle cx="28" cy="26" r="3.5" fill="#ff5f56" />
-        <circle cx="40" cy="26" r="3.5" fill="#ffbd2e" />
-        <circle cx="52" cy="26" r="3.5" fill="#27c93f" />
-        <text x="184" y="29" font-family="system-ui, sans-serif" font-size="10" fill="#a99cae" text-anchor="middle">agent.ts</text>
-        <g font-family="ui-monospace, monospace" font-size="11" fill="#f2eaf1">
-          <text x="26" y="58"><tspan fill="#f06a9b">import</tspan> { Agent } <tspan fill="#f06a9b">from</tspan> <tspan fill="#4fc78d">'@unicorn/ai'</tspan>;</text>
-          <text x="26" y="82"><tspan fill="#a68cf2">const</tspan> studio = <tspan fill="#5aa9e6">new</tspan> Agent({</text>
-          <text x="42" y="106">creator: <tspan fill="#4fc78d">'Delia Lazarescu'</tspan>,</text>
-          <text x="42" y="130">voice: <tspan fill="#4fc78d">'@Tech.Unicorn'</tspan>,</text>
-          <text x="26" y="154">});</text>
-          <text x="26" y="180"><tspan fill="#f06a9b">await</tspan> studio.shipNextVideo();</text>
-        </g>
-        <text x="340" y="198" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#ffffff" opacity="0.85" text-anchor="end">@Tech.Unicorn</text>
-      </g>
-
-      <!-- Right: Latest Video & Deal Highlights -->
-      <g transform="translate(416, 0)">
-        <rect width="284" height="142" rx="12" fill="var(--bg)" stroke="var(--line)" />
-        <text x="14" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="var(--ink)">Top Video Performance</text>
-        <text x="14" y="44" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--ink)">Building AI Agents in 2026</text>
-        <text x="14" y="62" font-family="system-ui, sans-serif" font-size="10.5" fill="var(--muted)">84.2K views · 98.4% retention</text>
-        <text x="14" y="84" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="var(--accent)">Viewer asks: "Can you review LangGraph?"</text>
-        <rect x="14" y="100" width="130" height="26" rx="6" fill="var(--panel)" stroke="var(--line)" />
-        <text x="79" y="117" font-family="system-ui, sans-serif" font-size="10.5" font-weight="600" fill="var(--ink)" text-anchor="middle">Turn into Idea →</text>
-
-        <rect y="154" width="284" height="142" rx="12" fill="var(--bg)" stroke="var(--line)" />
-        <text x="14" y="178" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="var(--ink)">Active Sponsorship</text>
-        <text x="14" y="198" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="var(--ink)">Supabase · Dedicated Video</text>
-        <text x="14" y="216" font-family="system-ui, sans-serif" font-size="10.5" fill="var(--muted)">Rate: $2,500 · Invoiced</text>
-        <rect x="14" y="234" width="256" height="8" rx="4" fill="var(--line)" />
-        <rect x="14" y="234" width="190" height="8" rx="4" fill="var(--good)" />
-        <text x="14" y="260" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--good)">Deliverable Ready for Review</text>
-      </g>
-    </g>
-  `;
-  return svg;
-}
-
 function renderGuidedInstall() {
   let open = false;
   const statusContainer = h('div', { class: 'auth-install-status' });
@@ -519,10 +420,11 @@ export function renderAuth(root, initialized, welcome, onDone) {
       themeSwitch()
     ));
 
-  // Right side: Inline SVG (impossible to break) + anchored note of the day with NO shadow
+  // Right side: Dashboard Preview with Sidebar (Light & Dark) + anchored note of the day with NO shadow
   const authArt = h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
     h('div', { class: 'auth-mockup-wrap' },
-      studioPreviewGraphic()),
+      h('img', { class: 'auth-mockup auth-mockup-light', src: '/images/auth-mockup-light.svg', alt: 'Creator Studio Dashboard with Sidebar (Light)' }),
+      h('img', { class: 'auth-mockup auth-mockup-dark', src: '/images/auth-mockup-dark.svg', alt: 'Creator Studio Dashboard with Sidebar (Dark)' })),
     note ? h('figure', { class: 'auth-note' },
       h('span', { class: 'auth-note-heart' }, icon('mail', 18)),
       h('blockquote', {}, note),

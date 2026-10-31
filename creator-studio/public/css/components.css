@@ -1627,7 +1627,11 @@ body.wf-full .content-area { max-width: none; padding: 0; }
 /* Right side: No gradients, clean flat layout with anchored note */
 .auth-art { flex: 1 1 50%; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 28px; background: var(--bg); border-left: 1px solid var(--line); overflow: hidden; }
 .auth-mockup-wrap { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 320px; }
-.auth-mockup-svg { width: 100%; max-width: 520px; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); box-shadow: none !important; }
+.auth-mockup { width: 100%; max-width: 540px; height: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: none !important; display: block; }
+.auth-mockup-light { display: block !important; }
+.auth-mockup-dark { display: none !important; }
+:root[data-theme="dark"] .auth-mockup-light { display: none !important; }
+:root[data-theme="dark"] .auth-mockup-dark { display: block !important; }
 .auth-couple-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; padding: 4px 12px; border-radius: 100px; background: var(--accent-soft); color: var(--accent); margin-right: 8px; }
 .auth-code-box { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border: 1px solid var(--good); color: var(--good); font-size: 0.88rem; font-weight: 600; }
 .auth-code-val { font-family: ui-monospace, monospace; font-size: 1.15rem; letter-spacing: 0.1em; background: var(--panel); padding: 4px 10px; border-radius: 6px; }

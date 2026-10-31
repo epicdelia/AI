@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\GrowthController;
 use App\Http\Controllers\Api\ScriptWizardController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\LoveController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
@@ -114,6 +115,19 @@ Route::prefix('api')->group(function () {
         Route::post('social/bios/options', [SocialInsightsController::class, 'bioOptions']);
         Route::put('social/bios', [SocialInsightsController::class, 'saveBio']);
         Route::post('stream/social/review', [SocialInsightsController::class, 'review']);
+
+        // For you: love letters, special dates, milestones, her photo
+        Route::get('love/status', [LoveController::class, 'status']);
+        Route::get('love', [LoveController::class, 'index']);
+        Route::put('love/dates', [LoveController::class, 'saveDates']);
+        Route::post('love/photo', [LoveController::class, 'uploadPhoto']);
+        Route::get('love/photo', [LoveController::class, 'photo']);
+        Route::delete('love/photo', [LoveController::class, 'deletePhoto']);
+        Route::post('love/letters', [LoveController::class, 'store']);
+        Route::get('love/letters/{letter}', [LoveController::class, 'show']);
+        Route::put('love/letters/{letter}', [LoveController::class, 'update']);
+        Route::delete('love/letters/{letter}', [LoveController::class, 'destroy']);
+        Route::post('love/letters/{letter}/open', [LoveController::class, 'open']);
 
         // Post score & hook lab, daily brief, follower goals
         Route::post('social/score', [GrowthController::class, 'score']);

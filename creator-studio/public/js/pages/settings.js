@@ -2,6 +2,8 @@
 import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link } from '../core.js';
 import { icon } from '../icons.js';
 import { themeSwitch } from '../theme.js';
+import { personaliseCard } from '../prefs.js';
+import { NAV_ITEMS } from '../nav.js';
 
 const TIMEZONES = (() => {
   try { return Intl.supportedValuesOf('timeZone'); } catch { return ['Europe/London', 'Europe/Brussels', 'Europe/Amsterdam', 'America/New_York', 'America/Los_Angeles', 'UTC']; }
@@ -100,6 +102,7 @@ export async function renderSettings(view) {
       });
     },
   },
+  personaliseCard(NAV_ITEMS),
   h('div', { class: 'card callout-card' },
     h('div', { class: 'row-between wrap' },
       h('div', {}, h('h2', {}, 'Connected accounts'),
@@ -160,7 +163,8 @@ export async function renderSettings(view) {
       field('Love notes', (inputs.love_notes = h('select', { name: 'love_notes' },
         [['1', 'On 💕'], ['0', 'Off']].map(([v, l]) => h('option', { value: v, selected: v === (s.love_notes ?? '1') }, l))))),
       field('Signed by', text('love_from', { placeholder: 'e.g. your name or a nickname' }), 'shown under each note'),
-      h('div', { class: 'span-2' }, field('Your own notes', area('love_custom', 4, { placeholder: 'One note per line. Use {name} for her name.\nI love you, {name} ❤️\nCoffee date after you film this? ☕😘' }), 'mixed in with the built-in ones')))),
+      h('div', { class: 'span-2' }, field('Your own notes', area('love_custom', 4, { placeholder: 'One note per line. Use {name} for her name.\nI love you, {name} ❤️\nCoffee date after you film this? ☕😘' }), 'mixed in with the built-in ones')),
+      h('p', { class: 'span-2 muted small' }, 'Sealed “open when…” letters, special dates, a days-together counter and your photo live on ', link('/love', {}, 'For you 💌'), ' (Writer’s desk at the bottom).'))),
 
   section('Usage limits', 'Monthly caps so a busy week can’t run up a surprise bill. Leave empty for no limit. When a cap is reached the AI stops politely until the 1st (or until you raise it).',
     h('div', { class: 'grid grid-3 tight' },

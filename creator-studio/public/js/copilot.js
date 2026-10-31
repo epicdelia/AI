@@ -65,6 +65,14 @@ export function mountCopilot() {
   return ui;
 }
 
+/** Open or close the panel (the header's Copilot button). */
+export function toggleCopilot(open) {
+  if (!ui) return;
+  ui.toggle(open ?? ui.el.hidden);
+}
+
+export const COPILOT_MARK = SVG.mark;
+
 export function unmountCopilot() {
   ui?.destroy();
   ui = null;
@@ -237,6 +245,7 @@ class CopilotPanel {
     const el = this.el;
     el.hidden = !open;
     this.launcher.hidden = open;
+    window.dispatchEvent(new CustomEvent('copilot:state', { detail: { open } }));
     el.dataset.position = position;
     el.classList.toggle('is-floating', position === 'floating' && !max);
     el.classList.toggle('is-docked', position === 'docked' && !max);

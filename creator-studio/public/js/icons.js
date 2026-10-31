@@ -54,6 +54,9 @@ const PATHS = {
   flow: '<rect x="8" y="2" width="8" height="6" rx="1.5"/><rect x="8" y="16" width="8" height="6" rx="1.5"/><path d="M12 8v8"/><path d="M12 12h7v4"/><rect x="16" y="16" width="6" height="0" rx="0"/>',
   dots: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
   alert: '<path d="M12 9v4"/><path d="M10.36 3.59 2.26 17.13A1.91 1.91 0 0 0 3.9 20h16.2a1.91 1.91 0 0 0 1.64-2.87L13.64 3.59a1.91 1.91 0 0 0-3.28 0z"/><path d="M12 16h.01"/>',
+  'chevron-right': '<path d="M9 6l6 6-6 6"/>',
+  'chevron-left': '<path d="M15 6l-6 6 6 6"/>',
+  'chevron-down': '<path d="M6 9l6 6 6-6"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
 };
 

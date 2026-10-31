@@ -54,15 +54,24 @@ class ApiController extends Controller
             'tour_done' => $user ? Setting::has('tour_done') : null,
             // Login screen: her first name and whether love notes are on (nothing else before sign-in).
             'welcome' => $hasUsers && ! $user ? [
-                'name' => trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]),
+                'name' => Setting::get('nickname') ?: trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]),
+                'accent' => Setting::get('accent', 'rose'),
                 'love' => Setting::get('love_notes', '1') === '1',
                 'google' => \App\Http\Controllers\GoogleLoginController::available(),
             ] : null,
             'love' => $user ? [
                 'enabled' => Setting::get('love_notes', '1') === '1',
-                'name' => Setting::get('creator_name') ?: $user->name,
+                'name' => Setting::get('nickname') ?: (Setting::get('creator_name') ?: $user->name),
                 'from' => Setting::get('love_from', ''),
                 'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) Setting::get('love_custom', ''))))),
+            ] : null,
+            'prefs' => $user ? [
+                'nickname' => Setting::get('nickname', ''),
+                'accent' => Setting::get('accent', 'rose'),
+                'text_size' => Setting::get('text_size', 'default'),
+                'density' => Setting::get('density', 'comfortable'),
+                'nav_hidden' => json_decode((string) Setting::get('nav_hidden', '[]'), true) ?: [],
+                'dashboard_layout' => json_decode((string) Setting::get('dashboard_layout', ''), true) ?: null,
             ] : null,
             'user' => $user ? [
                 'id' => $user->id,

@@ -7,7 +7,7 @@ import { themeSwitch } from './theme.js';
 import { setLove, dailyHello, heartButton } from './love.js';
 import { pageSkeleton } from './skeleton.js';
 import { startReminders, stopReminders } from './queue.js';
-import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered } from './copilot.js';
+import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered, toggleCopilot, COPILOT_MARK } from './copilot.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderBreakouts } from './pages/breakouts.js';
@@ -29,6 +29,10 @@ import { renderInbox } from './pages/inbox.js';
 import { renderWorkflows, renderWorkflow } from './pages/workflows.js';
 import { notificationsButton, stopNotifications } from './notifications.js';
 import { registerServiceWorker, installButton, installShortcutsHelp } from './pwa.js';
+import { applyPrefs, prefs } from './prefs.js';
+import { renderLove, checkLove } from './pages/love.js';
+import { loveOn } from './love.js';
+import { NAV_ITEMS, MEGA } from './nav.js';
 
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
@@ -51,6 +55,7 @@ const ROUTES = [
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
   { path: /^\/inbox$/, render: renderInbox, nav: '/inbox' },
+  { path: /^\/love$/, render: renderLove, nav: '/love' },
   { path: /^\/workflows$/, render: renderWorkflows, nav: '/workflows' },
   { path: /^\/workflows\/(\d+)$/, render: renderWorkflow, nav: '/workflows' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
@@ -58,36 +63,7 @@ const ROUTES = [
   { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
 ];
 
-const NAV = [
-  { header: 'Today' },
-  { to: '/', label: 'Dashboard', icon: 'home' },
-  { to: '/flow', label: 'Dictate', icon: 'mic' },
-  { header: 'YouTube' },
-  { to: '/breakouts', label: 'Breakouts', icon: 'trend' },
-  { to: '/ideas', label: 'Ideas', icon: 'bulb' },
-  { to: '/scripts', label: 'Scripts', icon: 'doc' },
-  { to: '/goals', label: 'Weekly goals', icon: 'target' },
-  { to: '/channel', label: 'My channel', icon: 'users' },
-  { header: 'Social' },
-  { to: '/calendar', label: 'Calendar', icon: 'calendar' },
-  { to: '/analytics', label: 'Analytics', icon: 'chart' },
-  { to: '/agents', label: 'Agents', icon: 'bot' },
-  { to: '/workflows', label: 'Workflows', icon: 'flow' },
-  { to: '/inbox', label: 'Inbox', icon: 'inbox' },
-  { to: '/repurpose', label: 'Repurpose', icon: 'repeat' },
-  { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin' },
-  { to: '/instagram', label: 'Instagram', icon: 'brand:instagram' },
-  { to: '/x', label: 'X', icon: 'brand:x' },
-  { to: '/tiktok', label: 'TikTok', icon: 'brand:tiktok' },
-  { to: '/threads', label: 'Threads', icon: 'brand:threads' },
-  { header: 'Create' },
-  { to: '/tools', label: 'Toolkit', icon: 'sparkle' },
-  { to: '/chat', label: 'Producer chat', icon: 'chat' },
-  { to: '/library', label: 'Library', icon: 'book' },
-  { header: 'Studio' },
-  { to: '/connections', label: 'Connections', icon: 'plug' },
-  { to: '/settings', label: 'Settings', icon: 'gear' },
-];
+const NAV = NAV_ITEMS;
 
 const root = document.getElementById('app');
 const state = { user: null, cleanup: null, shell: null };
@@ -117,7 +93,10 @@ document.addEventListener('keydown', (e) => {
 
 function buildShell() {
   const label = (text) => h('span', { class: 'nav-label' }, text);
-  const navLinks = NAV.map((item) => item.header
+  const hidden = new Set(prefs().nav_hidden || []);
+  const shown = NAV.filter((item) => item.header || (!hidden.has(item.to) && (!item.love || loveOn())))
+    .filter((item, i, all) => !item.header || (all[i + 1] && !all[i + 1].header));
+  const navLinks = shown.map((item) => item.header
     ? h('div', { class: 'nav-header' }, label(item.header))
     : link(item.to, { class: 'nav-item', dataset: { to: item.to }, title: item.label, 'aria-label': item.label }, icon(item.icon), label(item.label)));
 
@@ -138,27 +117,159 @@ function buildShell() {
       h('div', { class: 'brand' },
         h('div', { class: 'logo' }, '🎬'), label('Creator Studio'), heartButton(),
         h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x'))),
-      h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)', 'aria-label': 'Search' }, icon('search', 16), label('Search'), h('kbd', { class: 'nav-label' }, 'Ctrl K')),
-      notificationsButton({ withLabel: true }),
       h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
-      h('div', { class: 'sidebar-footer' },
-        h('div', { class: 'nav-label' }, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
-        h('div', { class: 'nav-label' }, themeSwitch()),
-        h('button', { class: 'btn ghost sm', title: 'Take the tour', onclick: () => { openDrawer(false); startTour(); } }, icon('play', 14), label('Take the tour')),
-        installButton(label),
-        h('button', { class: 'btn sm', title: 'Log out', onclick: logout }, icon('logout'), label('Log out')),
-        collapseBtn)),
+      h('div', { class: 'sidebar-footer' }, collapseBtn)),
     h('div', { class: 'nav-backdrop', onclick: () => openDrawer(false) }),
     h('div', { class: 'main-col' },
-      h('header', { class: 'mobile-bar' },
-        drawerToggle,
-        link('/', { class: 'mobile-brand' }, h('span', { class: 'logo' }, '🎬'), 'Creator Studio'),
-        notificationsButton(),
-        h('button', { class: 'btn ghost sm', 'aria-label': 'Search', onclick: openPalette }, icon('search'))),
+      appHeader(drawerToggle),
       content));
 
   applyNavPref();
   return { el: shell, content, syncToggle, drawerToggle };
+}
+
+/** The top bar on every page: search (opens Ctrl K), notifications, Copilot and her menu. */
+function appHeader(drawerToggle) {
+  const copilotBtn = h('button', {
+    class: 'hdr-copilot', type: 'button', 'aria-pressed': 'false', title: 'Copilot (Ctrl+I)',
+    onclick: () => toggleCopilot(),
+  }, h('span', { class: 'hdr-copilot-mark', html: COPILOT_MARK }), h('span', { class: 'hdr-label' }, 'Copilot'));
+  window.addEventListener('copilot:state', (e) => copilotBtn.setAttribute('aria-pressed', String(!!e.detail.open)));
+
+  const name = (window.__studioName || state.user?.name || '').trim();
+  const avatar = h('button', { class: 'hdr-avatar', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Your menu', title: name },
+    (name[0] || '♥').toUpperCase());
+  let menu = null;
+  const closeMenu = () => { menu?.remove(); menu = null; avatar.setAttribute('aria-expanded', 'false'); };
+  avatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (menu) { closeMenu(); return; }
+    menu = h('div', { class: 'hdr-menu', role: 'menu', onclick: (ev) => ev.stopPropagation() },
+      h('div', { class: 'hdr-menu-head' }, h('strong', {}, name || 'You'), h('span', { class: 'muted small' }, state.user?.email || '')),
+      themeSwitch(),
+      link('/love', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('heart', 15), 'For you'),
+      link('/settings', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('gear', 15), 'Settings'),
+      h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); } }, icon('key', 15), 'Keyboard shortcuts'),
+      h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); startTour(); } }, icon('play', 15), 'Take the tour'),
+      (() => { const b = installButton((t) => t); b.className = 'hdr-menu-item'; b.setAttribute('role', 'menuitem'); return b; })(),
+      h('button', { class: 'hdr-menu-item danger', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); logout(); } }, icon('logout', 15), 'Log out'));
+    avatar.parentElement.append(menu);
+    avatar.setAttribute('aria-expanded', 'true');
+    menu.querySelector('a, button.hdr-menu-item')?.focus();
+  });
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu) { closeMenu(); avatar.focus(); } });
+
+  return h('header', { class: 'app-header' },
+    h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, h('span', { class: 'logo' }, '🎬'), h('span', { class: 'hdr-label' }, 'Creator Studio'))),
+    h('button', { class: 'hdr-search', type: 'button', onclick: openPalette, 'aria-label': 'Search (Ctrl+K)' },
+      icon('search', 16), h('span', { class: 'hdr-search-text' }, 'Search scripts, posts, ideas…'), h('kbd', {}, 'Ctrl K')),
+    megaMenus(),
+    h('div', { class: 'hdr-actions' },
+      notificationsButton(),
+      copilotBtn,
+      h('div', { class: 'hdr-avatar-wrap' }, avatar)));
+}
+
+/**
+ * Mega menus: a tab per section in the header; hover (with a short intent delay), click or
+ * keyboard (Enter / ↓) opens a full-width panel with the section's pages grouped into columns,
+ * each with a one-line description, live counts, and quick actions.
+ */
+function megaMenus() {
+  const byTo = Object.fromEntries(NAV_ITEMS.filter((i) => i.to).map((i) => [i.to, i]));
+  const hiddenNav = new Set(prefs().nav_hidden || []);
+  const visible = (to) => byTo[to] && !hiddenNav.has(to) && (!byTo[to].love || loveOn());
+  const panel = h('div', { class: 'mega', id: 'mega-panel', hidden: true, role: 'region' });
+  let open = null;
+  let timer = null;
+  let counts = null;
+  const tabs = [];
+
+  const close = (focusTab = false) => {
+    clearTimeout(timer);
+    if (!open) return;
+    const t = tabs.find((x) => x.sec === open);
+    t?.btn.setAttribute('aria-expanded', 'false');
+    panel.classList.remove('open');
+    panel.hidden = true;
+    if (focusTab) t?.btn.focus();
+    open = null;
+  };
+  const links = () => [...panel.querySelectorAll('a')];
+
+  function fill(sec) {
+    const badges = Object.assign({}, ...sec.groups.map((g) => g.badges || {}));
+    const item = (to, compact) => {
+      const it = byTo[to];
+      const n = counts && badges[to] ? counts[badges[to]] : 0;
+      return link(to, { class: `mega-link${compact ? ' compact' : ''}${location.pathname === to ? ' current' : ''}`, onclick: () => close() },
+        h('span', { class: 'mega-ico' }, icon(it.icon, compact ? 16 : 18)),
+        h('span', { class: 'mega-text' }, h('strong', {}, it.label, n ? h('span', { class: 'mega-badge' }, n) : null), compact ? null : h('span', { class: 'muted small' }, it.desc)));
+    };
+    const groups = sec.groups.map((g) => ({ ...g, items: g.items.filter(visible) })).filter((g) => g.items.length);
+    panel.replaceChildren(h('div', { class: 'mega-inner' },
+      h('div', { class: `mega-cols cols-${groups.length}` }, groups.map((g) => h('div', { class: 'mega-col' },
+        h('p', { class: 'mega-title' }, g.title),
+        h('div', { class: g.compact ? 'mega-chips' : 'mega-list' }, g.items.map((to) => item(to, g.compact)))))),
+      h('aside', { class: 'mega-side' },
+        h('p', { class: 'mega-title' }, 'Quick actions'),
+        sec.actions.filter((a) => !a.love || loveOn()).map((a) => link(a.to, { class: 'mega-action', onclick: () => close() }, icon(a.icon, 15), a.label, icon('arrow', 13))),
+        sec.id === 'social' && counts ? h('div', { class: 'mega-stats' },
+          h('span', {}, h('strong', {}, counts.pending), ' to approve'), h('span', {}, h('strong', {}, counts.inbox), ' to answer')) : null)));
+  }
+
+  function show(sec, focusFirst = false) {
+    clearTimeout(timer);
+    if (open !== sec) {
+      tabs.forEach((t) => t.btn.setAttribute('aria-expanded', String(t.sec === sec)));
+      open = sec;
+      fill(sec);
+      panel.hidden = false;
+      requestAnimationFrame(() => panel.classList.add('open'));
+      if (sec.id === 'social' && !counts) {
+        api('GET', 'agents/notifications').then((r) => { counts = { pending: r.pending, inbox: r.inbox }; if (open === sec) fill(sec); }).catch(() => {});
+      }
+    }
+    if (focusFirst) links()[0]?.focus();
+  }
+
+  for (const sec of MEGA) {
+    if (!sec.groups.some((g) => g.items.some(visible))) continue;
+    const btn = h('button', { class: 'mega-tab', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'mega-panel' }, sec.label, icon('chevron-down', 14));
+    btn.addEventListener('mouseenter', () => { clearTimeout(timer); timer = setTimeout(() => show(sec), open ? 0 : 110); });
+    btn.addEventListener('mouseleave', () => { clearTimeout(timer); timer = setTimeout(() => close(), 220); });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); open === sec ? close() : show(sec); });
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(sec, true); }
+      if (e.key === 'Escape') close();
+      const i = tabs.findIndex((t) => t.btn === btn);
+      if (e.key === 'ArrowRight') tabs[(i + 1) % tabs.length].btn.focus();
+      if (e.key === 'ArrowLeft') tabs[(i - 1 + tabs.length) % tabs.length].btn.focus();
+    });
+    tabs.push({ sec, btn });
+  }
+  panel.addEventListener('mouseenter', () => clearTimeout(timer));
+  panel.addEventListener('mouseleave', () => { timer = setTimeout(() => close(), 220); });
+  panel.addEventListener('click', (e) => e.stopPropagation());
+  panel.addEventListener('keydown', (e) => {
+    const all = links();
+    const i = all.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); close(true); }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); all[(i + 1) % all.length]?.focus(); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); all[(i - 1 + all.length) % all.length]?.focus(); }
+  });
+  document.addEventListener('click', () => close());
+  window.addEventListener('popstate', () => close());
+
+  const current = () => {
+    const path = location.pathname;
+    tabs.forEach((t) => t.btn.classList.toggle('current', t.sec.groups.some((g) => g.items.some((to) => to === path || (to !== '/' && path.startsWith(`${to}/`))))));
+  };
+  window.addEventListener('popstate', current);
+  current();
+
+  return h('div', { class: 'mega-wrap' }, h('nav', { class: 'mega-tabs', 'aria-label': 'Sections' }, tabs.map((t) => t.btn)), panel);
 }
 
 /** Highlight a sidebar item (pages without a fixed item, like a post, call this themselves). */
@@ -236,7 +347,7 @@ async function route() {
     state.cleanup = cleanup;
     clear(content).append(view);
     const heading = view.querySelector('h1')?.textContent || '';
-    document.title = `${heading || 'Creator Studio'} · Creator Studio`;
+    document.title = heading ? `${heading} · Creator Studio` : (view.querySelector('.wf-name')?.value ? `${view.querySelector('.wf-name').value} · Creator Studio` : 'Creator Studio');
     pageRendered(heading);
   } catch (err) {
     console.error(err);
@@ -270,6 +381,7 @@ async function boot() {
       // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
       const st = await api('GET', 'auth/status').catch(() => ({}));
       setLove(st.love);
+      applyPrefs(st.prefs);
       window.__studioName = st.love?.name || user?.name || '';
       state.shell = null;
       mountCopilot();
@@ -278,18 +390,24 @@ async function boot() {
       // A brand-new studio gets the tour; a returning login only if it was never finished.
       if (st.tour_done === false) startTour({ onDone: dailyHello });
       else dailyHello();
+      checkLove();
     });
     return;
   }
   state.user = status.user;
   setLove(status.love);
+  applyPrefs(status.prefs);
   window.__studioName = status.love?.name || status.user?.name || '';
   mountCopilot();
   startReminders();
   await route();
   if (status.tour_done === false) startTour({ onDone: dailyHello });
   else dailyHello();
+  checkLove();
 }
+
+// Sidebar items hidden or shown again in Settings → Make it yours: rebuild the shell.
+window.addEventListener('prefs:nav', () => { state.shell = null; route(); });
 
 setUnauthorizedHandler(() => {
   if (!state.user) return;

@@ -209,3 +209,6 @@ body.sbcp-docked-body .app-shell { margin-right: var(--sbcp-dock-width, 480px); 
 @media (prefers-reduced-motion: reduce) {
   .sbcp-voice.is-rec, .sbcp-step.is-running .sbcp-step-dot, .sbcp-md .caret { animation: none; }
 }
+
+/* The header's Copilot button replaces the floating launcher. */
+.sbcp-launch { display: none !important; }

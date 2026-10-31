@@ -7,6 +7,8 @@ import { socialStrip } from './social.js';
 import { homeComposer } from '../composer.js';
 import { dueStrip } from '../queue.js';
 import { briefCard } from '../growth.js';
+import { arrangeDashboard, customiseDashboard } from '../prefs.js';
+import { loveExtras } from './love.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -98,27 +100,30 @@ export async function renderDashboard(view) {
   const d = await api('GET', 'dashboard');
   const s = d.stats;
 
-  view.append(
-    heroCard(d),
-    briefCard(),
-    dueStrip(),
-    homeComposer(),
-    nextStepCard(d.next_step),
-    socialStrip(d.social),
-    loveCard(),
-    setupCard(d.setup_checks),
-    h('div', { class: 'grid grid-4', style: { marginTop: '18px' } },
+  const love = loveCard();
+  if (love) loveExtras().then((x) => love.append(x));
+  // Every block has an id so she can hide and reorder them (Customise).
+  const blocks = [
+    { id: 'hero', label: 'Week & greeting', node: heroCard(d) },
+    { id: 'brief', label: 'Your day', node: briefCard() },
+    { id: 'due', label: 'Due now', node: dueStrip() },
+    { id: 'composer', label: 'Composer', node: homeComposer() },
+    { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
+    { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
+    { id: 'love', label: 'Today’s note 💌', node: love },
+    { id: 'setup', label: 'Setup checklist', node: setupCard(d.setup_checks) },
+    { id: 'stats', label: 'YouTube stats', node: h('div', { class: 'grid grid-4' },
       statBox(s.shipped, s.missed ? `shipped · ${s.missed} missed` : 'videos shipped', 'tone-good'),
       statBox(s.streak, s.streak === 1 ? 'week streak' : 'week streak', 'tone-accent'),
       statBox(s.new_ideas, `new ideas · ${s.picked_ideas} picked`, 'tone-violet'),
-      statBox(s.breakouts, 'breakouts found', 'tone-warn')),
-  );
-
-  if (d.weeks.length) {
-    view.append(h('div', { class: 'card' },
+      statBox(s.breakouts, 'breakouts found', 'tone-warn')) },
+    { id: 'scoreboard', label: 'Scoreboard', node: d.weeks.length ? h('div', { class: 'card' },
       h('div', { class: 'card-header' }, h('h2', {}, 'Scoreboard'), link('/goals', { class: 'btn ghost sm' }, 'Open', icon('arrow', 14))),
-      weekDots(d.weeks, d.current_week?.id)));
-  }
+      weekDots(d.weeks, d.current_week?.id)) : null },
+  ];
+  const redraw = () => { view.replaceChildren(); renderDashboard(view); };
+  view.append(arrangeDashboard(blocks).map((b) => b.node),
+    h('div', { class: 'dash-customise' }, h('button', { class: 'btn ghost sm', onclick: () => customiseDashboard(blocks, redraw) }, icon('sliders', 14), 'Customise dashboard')));
 
   view.append(h('div', { class: 'grid grid-2', style: { marginTop: '18px' } },
     listCard('Picked ideas', '/ideas', d.picked_ideas, (i) => h('li', {},

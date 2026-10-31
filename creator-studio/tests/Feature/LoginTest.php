@@ -25,14 +25,14 @@ class LoginTest extends TestCase
     public function test_status_shows_only_first_name_love_and_google_before_sign_in(): void
     {
         $r = $this->getJson('/api/auth/status')->assertOk();
-        $this->assertSame(['name' => 'Delia', 'love' => true, 'google' => false], $r->json('welcome'));
+        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => true, 'google' => false], $r->json('welcome'));
         $this->assertNull($r->json('love'));
         $this->assertStringNotContainsString('delia@example.com', $r->getContent());
 
         Setting::put('youtube_client_id', 'gid');
         Setting::put('youtube_client_secret', 'gsecret');
         Setting::put('love_notes', '0');
-        $this->assertSame(['name' => 'Delia', 'love' => false, 'google' => true], $this->getJson('/api/auth/status')->json('welcome'));
+        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => false, 'google' => true], $this->getJson('/api/auth/status')->json('welcome'));
     }
 
     public function test_remember_me_is_respected(): void

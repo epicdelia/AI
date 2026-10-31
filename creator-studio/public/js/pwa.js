@@ -43,6 +43,7 @@ const SHORTCUTS = [
     ['Ctrl K', 'Search everything'],
     ['/', 'Search (or the page’s own search)'],
     ['?', 'This list'],
+    ['Ctrl I', 'Open or close Copilot'],
     ['Ctrl Shift L', 'Light / dark'],
     ['Esc', 'Close a dialog, panel or menu'],
   ]],

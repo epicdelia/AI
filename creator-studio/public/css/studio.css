@@ -128,7 +128,7 @@ code { background: var(--code-bg); padding: 2px 6px; border-radius: 6px; font-si
   color: #fff;
   background: linear-gradient(135deg, var(--accent), var(--violet));
   font-size: 19px;
-  box-shadow: 0 3px 10px rgba(216, 72, 126, 0.35);
+  box-shadow: 0 3px 10px var(--accent-glow);
 }
 
 .nav { display: flex; flex-direction: column; gap: 3px; }
@@ -213,7 +213,7 @@ code { background: var(--code-bg); padding: 2px 6px; border-radius: 6px; font-si
   background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
   color: #fff;
   border: 0;
-  box-shadow: 0 8px 30px rgba(216, 72, 126, 0.25);
+  box-shadow: 0 8px 30px var(--accent-glow);
 }
 .hero-card h1, .hero-card h2, .hero-card h3 { color: #fff; }
 .hero-card .muted { color: rgba(255, 255, 255, 0.8); }
@@ -246,7 +246,7 @@ code { background: var(--code-bg); padding: 2px 6px; border-radius: 6px; font-si
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(216, 72, 126, 0.25);
+  box-shadow: 0 2px 8px var(--accent-glow);
 }
 .btn.primary:hover { filter: brightness(0.96); }
 .btn.violet {
@@ -359,7 +359,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   font-weight: 800;
   background: linear-gradient(135deg, var(--accent), var(--violet));
   color: #fff;
-  box-shadow: 0 4px 18px rgba(216, 72, 126, 0.3);
+  box-shadow: 0 4px 18px var(--accent-glow);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;

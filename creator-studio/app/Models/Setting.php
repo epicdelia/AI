@@ -69,7 +69,14 @@ class Setting extends Model
         'cadence_threads' => '',
         'cadence_youtube' => '',          // Shorts and community posts (long-form is on Weekly goals)
         'brand_color' => '#d8487e',
-        'content_pillars' => '',          // her content pillars, one per line (tags for posts)       // carousel slide background
+        'content_pillars' => '',          // her content pillars, one per line (tags for posts)
+        // Make it yours (Settings → Personalise); also sent with auth/status so every device matches
+        'nickname' => '',                 // what the studio (and the love notes) call her
+        'accent' => 'rose',               // rose | violet | coral | ocean | forest | plum
+        'text_size' => 'default',         // default | large
+        'density' => 'comfortable',       // comfortable | compact
+        'nav_hidden' => '[]',             // sidebar items she hid (paths)
+        'dashboard_layout' => '',         // JSON: [{id, hidden}] in her order; '' = default
     ];
 
     private static ?array $cache = null;

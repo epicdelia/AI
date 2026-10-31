@@ -11,6 +11,7 @@ import { ctaSection } from '../landing-cta.js';
 import { aboutSection } from '../landing-about.js';
 import { pricingSection } from '../landing-pricing.js';
 import { partnersSection } from '../landing-partners.js';
+import { marqueeSection } from '../landing-marquee.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -730,17 +731,8 @@ export function renderLanding(view, options = {}) {
           h('div', { class: 'landing-stat-num' }, 'ex-G'),
           h('div', { class: 'landing-stat-lbl' }, 'Google engineering background')))));
 
-  // 3. Live Animated Capabilities Marquee
-  const marqueeItems = [
-    'Vibecoded Apps', 'Content Creation', 'Speaking & Keynotes', 'AI Integration', 'Brand Partnerships', 'Technical Advisory',
-    'Vibecoded Apps', 'Content Creation', 'Speaking & Keynotes', 'AI Integration', 'Brand Partnerships', 'Technical Advisory',
-  ];
-  const marquee = h('div', { class: 'landing-marquee', 'aria-hidden': 'true' },
-    h('div', { class: 'landing-marquee-track' },
-      marqueeItems.flatMap((item) => [
-        h('span', {}, item),
-        h('span', { class: 'dot' }, '✦'),
-      ])));
+  // 3. Marquee: her phrases and live facts from the dashboard, shown just above the footer.
+  const marquee = marqueeSection();
 
   // 4. Brand Partners & Stages: brands from her dashboard plus the stages from her talks.
   const trusted = partnersSection();
@@ -1128,7 +1120,6 @@ export function renderLanding(view, options = {}) {
   const landingBox = h('div', { class: 'landing-box' },
     nav,
     hero,
-    marquee,
     trusted,
     about,
     services,
@@ -1138,6 +1129,7 @@ export function renderLanding(view, options = {}) {
     platforms,
     speaking,
     cta,
+    marquee,
     footer);
 
   const landingWrapper = h('div', { class: 'landing-page' },

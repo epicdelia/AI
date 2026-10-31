@@ -6,6 +6,7 @@ use App\Domains\Landing\About;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
+use App\Domains\Landing\Marquee;
 use App\Domains\Landing\Partners;
 use App\Domains\Landing\Pricing;
 use App\Domains\Landing\Talk;
@@ -52,6 +53,35 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** The band above the footer: her phrases and live facts, at her speed. */
+    public function marquee(): JsonResponse
+    {
+        return response()->json(Marquee::publicData())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function marqueeEdit(): JsonResponse
+    {
+        return response()->json(Marquee::dashboard());
+    }
+
+    public function marqueeSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'items' => 'present|array|max:12',
+            'items.*.label' => 'nullable|string|max:40',
+            'items.*.target' => 'required|string|in:'.implode(',', array_keys(Marquee::TARGETS)),
+            'show_live' => 'required|boolean',
+            'speed' => 'required|string|in:'.implode(',', array_keys(Marquee::SPEEDS)),
+        ]);
+        $data['items'] = array_values(array_filter(array_map(fn ($i) => ['label' => trim((string) ($i['label'] ?? '')), 'target' => $i['target']], $data['items']), fn ($i) => $i['label'] !== ''));
+        if (! $data['items'] && ! $data['show_live']) {
+            return response()->json(['message' => 'Keep at least one phrase or the live facts.', 'errors' => ['items' => ['Add a phrase or turn on live facts.']]], 422);
+        }
+        Marquee::save($data);
+
+        return response()->json(Marquee::dashboard());
     }
 
     /** "Brand Partners & Stages": her brands, then the stages from her talks. */

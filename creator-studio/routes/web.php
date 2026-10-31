@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/marquee', [\App\Http\Controllers\LandingPageController::class, 'marquee']);
     Route::get('landing/partners', [\App\Http\Controllers\LandingPageController::class, 'partners']);
     Route::get('landing/pricing', [\App\Http\Controllers\LandingPageController::class, 'pricing']);
     Route::get('landing/about', [\App\Http\Controllers\LandingPageController::class, 'about']);
@@ -198,6 +199,10 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // The moving band above the footer
+        Route::get('marquee', [\App\Http\Controllers\LandingPageController::class, 'marqueeEdit']);
+        Route::put('marquee', [\App\Http\Controllers\LandingPageController::class, 'marqueeSave']);
 
         // Brand partners & stages strip
         Route::get('partners', [\App\Http\Controllers\LandingPageController::class, 'partnersEdit']);

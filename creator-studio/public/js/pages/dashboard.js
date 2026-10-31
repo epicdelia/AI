@@ -14,6 +14,7 @@ import { speakingCard } from '../speaking.js';
 import { aboutCard } from '../about-editor.js';
 import { pricingCard } from '../pricing-editor.js';
 import { partnersCard } from '../partners-editor.js';
+import { marqueeCard } from '../marquee-editor.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -190,6 +191,7 @@ export async function renderDashboard(view) {
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
     { id: 'journey', label: 'Client journey', node: journeyCard(d.journey) },
+    { id: 'marquee', label: 'Marquee', node: marqueeCard(d.marquee, () => redraw()) },
     { id: 'partners', label: 'Brand partners & stages', node: partnersCard(d.partners, () => redraw()) },
     { id: 'pricing', label: 'Packages & pricing', node: pricingCard(d.pricing, () => redraw()) },
     { id: 'about', label: 'About you', node: aboutCard(d.about, () => redraw()) },

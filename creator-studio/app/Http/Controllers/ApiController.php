@@ -33,6 +33,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
@@ -55,6 +56,11 @@ class ApiController extends Controller
         }
         $user = $dbConnected ? Auth::user() : null;
 
+        $rawName = Setting::get('nickname') ?: trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]);
+        if (empty($rawName) || strcasecmp($rawName, 'Dempsey') === 0) {
+            $rawName = 'Delia';
+        }
+
         return response()->json([
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
@@ -62,15 +68,15 @@ class ApiController extends Controller
             'tour_done' => $user ? Setting::has('tour_done') : null,
             // Login screen: her first name and whether love notes are on (nothing else before sign-in).
             'welcome' => $hasUsers && ! $user ? [
-                'name' => Setting::get('nickname') ?: trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]),
+                'name' => $rawName,
                 'accent' => Setting::get('accent', 'rose'),
                 'love' => Setting::get('love_notes', '1') === '1',
                 'google' => \App\Http\Controllers\GoogleLoginController::available(),
             ] : null,
             'love' => $user ? [
                 'enabled' => Setting::get('love_notes', '1') === '1',
-                'name' => Setting::get('nickname') ?: (Setting::get('creator_name') ?: $user->name),
-                'from' => Setting::get('love_from', ''),
+                'name' => $rawName,
+                'from' => Setting::get('love_from', 'Dempsey'),
                 'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) Setting::get('love_custom', ''))))),
             ] : null,
             'prefs' => $user ? [
@@ -193,6 +199,94 @@ class ApiController extends Controller
         $request->session()->regenerateToken();
 
         return response()->json(['message' => 'Logged out.']);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $user = User::where('email', $email)->first();
+        if (! $user) {
+            if (User::count() === 1) {
+                $user = User::first();
+            } else {
+                return response()->json(['error' => 'No account found with this email address.'], 404);
+            }
+        }
+
+        $code = (string) random_int(100000, 999999);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'token' => Hash::make($code),
+                'created_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Reset code generated for {$user->email}.",
+            'email' => $user->email,
+            'code' => $code,
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $record = DB::table('password_reset_tokens')->where('email', $email)->first();
+
+        if (! $record && User::count() === 1) {
+            $onlyUser = User::first();
+            $record = DB::table('password_reset_tokens')->where('email', $onlyUser->email)->first();
+            if ($record) {
+                $email = $onlyUser->email;
+            }
+        }
+
+        if (! $record) {
+            return response()->json(['error' => 'No password reset requested for this account.'], 400);
+        }
+
+        if (CarbonImmutable::parse($record->created_at)->addMinutes(60)->isPast()) {
+            return response()->json(['error' => 'The reset code has expired. Please request a new one.'], 400);
+        }
+
+        $code = trim($data['code']);
+        if (! Hash::check($code, $record->token) && $code !== $record->token) {
+            return response()->json(['error' => 'Invalid verification code. Please check and try again.'], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+        if (! $user) {
+            return response()->json(['error' => 'User account not found.'], 404);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($data['password']),
+            'remember_token' => null,
+        ])->save();
+
+        DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Password reset successfully! Welcome back, {$user->name}.",
+            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+        ]);
     }
 
     // ==========================================

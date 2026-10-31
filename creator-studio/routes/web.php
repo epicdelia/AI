@@ -47,6 +47,8 @@ Route::prefix('api')->group(function () {
     Route::post('auth/register', [ApiController::class, 'register']);
     Route::post('auth/login', [ApiController::class, 'login']);
     Route::post('auth/logout', [ApiController::class, 'logout']);
+    Route::post('auth/forgot-password', [ApiController::class, 'forgotPassword']);
+    Route::post('auth/reset-password', [ApiController::class, 'resetPassword']);
 
     // Guided Server & Database Install (Optional)
     Route::get('install/status', [InstallController::class, 'status']);

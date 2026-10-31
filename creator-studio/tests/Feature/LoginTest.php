@@ -87,4 +87,26 @@ class LoginTest extends TestCase
             ->expectsQuestion('New password for delia@example.com (at least 8 characters)', 'short')
             ->assertExitCode(1); // too short: rejected before asking again
     }
+
+    public function test_in_app_password_reset_flow(): void
+    {
+        // 1. Request code
+        $forgot = $this->postJson('/api/auth/forgot-password', [
+            'email' => 'delia@example.com',
+        ])->assertOk();
+
+        $code = $forgot->json('code');
+        $this->assertNotEmpty($code);
+
+        // 2. Reset password
+        $reset = $this->postJson('/api/auth/reset-password', [
+            'email' => 'delia@example.com',
+            'code' => $code,
+            'password' => 'new-secret-password-123',
+            'password_confirmation' => 'new-secret-password-123',
+        ])->assertOk();
+
+        $this->assertAuthenticated();
+        $this->assertTrue(Hash::check('new-secret-password-123', User::first()->fresh()->password));
+    }
 }

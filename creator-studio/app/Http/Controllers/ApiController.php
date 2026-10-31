@@ -52,6 +52,12 @@ class ApiController extends Controller
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
             'tour_done' => $user ? Setting::has('tour_done') : null,
+            // Login screen: her first name and whether love notes are on (nothing else before sign-in).
+            'welcome' => $hasUsers && ! $user ? [
+                'name' => trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]),
+                'love' => Setting::get('love_notes', '1') === '1',
+                'google' => \App\Http\Controllers\GoogleLoginController::available(),
+            ] : null,
             'love' => $user ? [
                 'enabled' => Setting::get('love_notes', '1') === '1',
                 'name' => Setting::get('creator_name') ?: $user->name,
@@ -103,6 +109,7 @@ class ApiController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
+        $remember = $request->boolean('remember', true);
 
         // Brute-force guard, after MagicAI's Helpers\RateLimiter (attempts per identifier,
         // cached with a decay window): 5 wrong passwords per email+IP locks login for 15 minutes.
@@ -113,7 +120,7 @@ class ApiController extends Controller
             return response()->json(['error' => "Too many attempts. Try again in {$minutes} minute(s)."], 429);
         }
 
-        if (! Auth::attempt($creds, true)) {
+        if (! Auth::attempt($creds, $remember)) {
             RateLimiter::hit($key, 15 * 60);
 
             return response()->json(['error' => 'Incorrect email or password.'], 401);

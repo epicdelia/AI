@@ -29,6 +29,7 @@ class YouTubeProvider extends Provider
                 'OAuth consent screen: External, add your Google account as a test user, then press “Publish app” so sign-ins don’t expire after 7 days.',
                 'Credentials → Create credentials → OAuth client ID → Web application.',
                 'Under “Authorised redirect URIs” paste the address below, then copy the Client ID and Client secret here.',
+                'Optional, for “Login with Google” on the sign-in page: add a second redirect URI, '.rtrim((string) config('app.url'), '/').'/auth/google/callback',
             ],
         ];
     }

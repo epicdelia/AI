@@ -8,6 +8,7 @@ import {
 import { icon } from '../icons.js';
 import { carouselCard } from '../carousel.js';
 import { bioCard, importDialog, demoControl } from '../social-tools.js';
+import { scoreCard } from '../growth.js';
 
 export const PLATFORM_ICONS = { linkedin: 'brand:linkedin', instagram: 'brand:instagram', x: 'brand:x', tiktok: 'brand:tiktok', threads: 'brand:threads', youtube: 'brand:youtube' };
 const STATUS_PILL = { idea: 'new', draft: 'WARN', scheduled: 'picked', posted: 'ok' };
@@ -224,6 +225,20 @@ export async function renderPost(view, id) {
   setActiveNav(post.platform === 'youtube' ? '/calendar' : `/${post.platform}`);
 
   const pending = {};
+  // Live post score; "Use" in the hook lab swaps the opening line of the text (or of the first part).
+  const score = post.status === 'posted' ? null : scoreCard(
+    () => ({ platform: post.platform, format: post.format, body: post.body || '', parts: post.parts || [], scheduled_for: post.scheduled_for || null,
+      pillar: post.pillar || null, media: (post.media || []).length, post_id: post.id }),
+    (hook) => {
+      const swap = (t) => { const i = (t || '').indexOf('\n'); return i < 0 ? hook : hook + t.slice(i); };
+      if ((post.body || '').trim()) {
+        bodyArea.value = swap(post.body);
+        change('body', bodyArea.value, true);
+        drawCounter();
+      } else if (post.parts?.length) {
+        setParts([swap(post.parts[0]), ...post.parts.slice(1)]);
+      }
+    });
   const saveState = h('span', { class: 'save-state muted' }, 'Saved');
   const checksBox = h('div', { class: 'lint-box' });
   const preview = h('div', { class: 'sp-preview' });
@@ -254,6 +269,7 @@ export async function renderPost(view, id) {
     pending[k] = v;
     saveState.textContent = 'Unsaved changes…';
     drawPreview();
+    score?.refresh();
     if (now) saveSoon.flush(); else saveSoon();
   }
 
@@ -540,6 +556,7 @@ export async function renderPost(view, id) {
         slidesBox),
       h('aside', { class: 'sp-side' },
         h('div', { class: 'card' }, h('h3', {}, 'Preview'), preview, h('p', { class: 'muted small' }, 'Roughly how it shows in the feed. Cut-offs are typical phone values; check in the app before posting.')),
+        score,
         h('div', { class: 'card' }, h('h3', {}, 'Checks'), checksBox),
         h('div', { class: 'card' }, h('h3', {}, 'Publishing'), statusBox),
         h('div', { class: 'card' },

@@ -1,0 +1,21 @@
+{
+  "name": "Creator Studio",
+  "short_name": "Studio",
+  "description": "Her studio for YouTube and every social network: write, plan, publish and grow.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fdfaf8",
+  "theme_color": "#d8487e",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Calendar", "url": "/calendar" },
+    { "name": "Inbox", "url": "/inbox" },
+    { "name": "Agents", "url": "/agents" }
+  ]
+}

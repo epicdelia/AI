@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
+use App\Http\Controllers\Api\GrowthController;
 use App\Http\Controllers\Api\ScriptWizardController;
 use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\MediaController;
@@ -113,6 +114,13 @@ Route::prefix('api')->group(function () {
         Route::post('social/bios/options', [SocialInsightsController::class, 'bioOptions']);
         Route::put('social/bios', [SocialInsightsController::class, 'saveBio']);
         Route::post('stream/social/review', [SocialInsightsController::class, 'review']);
+
+        // Post score & hook lab, daily brief, follower goals
+        Route::post('social/score', [GrowthController::class, 'score']);
+        Route::post('social/hooks', [GrowthController::class, 'hooks']);
+        Route::get('brief', [GrowthController::class, 'brief']);
+        Route::get('social/goals', [GrowthController::class, 'goals']);
+        Route::put('social/goals', [GrowthController::class, 'saveGoals']);
 
         // Connected accounts (OAuth): sign in to each network and pull its numbers
         Route::get('social/accounts', [SocialAccountsController::class, 'index']);
@@ -308,6 +316,10 @@ Route::prefix('api')->group(function () {
         Route::delete('feed-items/{item}', [FeedController::class, 'destroyItem']);
     });
 });
+
+// "Login with Google" (uses the Google app from Connections → YouTube; only her own email)
+Route::get('auth/google/redirect', [\App\Http\Controllers\GoogleLoginController::class, 'redirect']);
+Route::get('auth/google/callback', [\App\Http\Controllers\GoogleLoginController::class, 'callback']);
 
 // OAuth return from each network (a browser redirect, so it uses the session, not the JSON API)
 Route::get('oauth/{platform}/callback', [SocialAccountsController::class, 'callback'])->where('platform', '[a-z]+');

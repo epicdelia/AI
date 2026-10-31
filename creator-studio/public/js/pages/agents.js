@@ -5,6 +5,7 @@ import { h, api, busy, toast, pageHead, clear, field, timeAgo, compact, modal, c
 import { icon } from '../icons.js';
 import { PLATFORM_ICONS } from './social.js';
 import { refreshNotifications } from '../notifications.js';
+import { scoreBadge } from '../growth.js';
 
 const when = (iso) => iso ? new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'not scheduled';
 const netChip = (p, label) => h('span', { class: `pf-chip pf-${p}` }, icon(PLATFORM_ICONS[p], 13), label);
@@ -351,8 +352,11 @@ export async function renderAgent(view, id) {
         },
       }, icon('x', 14), 'Reject');
       const why = (p.notes || '').split('\n').filter(Boolean);
+      const scoreSlot = h('span');
+      api('POST', 'social/score', { platform: p.platform, format: p.format, body: p.body || '', parts: p.parts || [], scheduled_for: p.scheduled_for, pillar: p.pillar, post_id: p.id })
+        .then((r) => scoreSlot.replaceWith(scoreBadge(r.score, `${r.label} (${r.basis})`))).catch(() => {});
       return h('div', { class: `card ag-post pf-${p.platform}` },
-        h('div', { class: 'ag-post-top' }, netChip(p.platform, labelOf(p.platform)), h('strong', { class: 'clamp-1' }, p.title || ''),
+        h('div', { class: 'ag-post-top' }, netChip(p.platform, labelOf(p.platform)), h('strong', { class: 'clamp-1' }, p.title || ''), scoreSlot,
           h('span', { class: 'muted small ag-when' }, icon('calendar', 13), when(p.scheduled_for))),
         p.publish_error ? h('p', { class: 'error-text small' }, `Last try failed: ${p.publish_error}`) : null,
         body,

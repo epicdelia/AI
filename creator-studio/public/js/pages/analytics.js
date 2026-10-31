@@ -7,6 +7,7 @@ import { platformChip } from './social.js';
 import { importDialog, demoControl } from '../social-tools.js';
 import { printMarkdown } from '../components.js';
 import { skLines } from '../skeleton.js';
+import { goalsCard } from '../growth.js';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const NS = 'http://www.w3.org/2000/svg';
@@ -254,6 +255,7 @@ export async function renderAnalytics(view) {
       meta.demo ? null : demoControl(0)),
     meta.demo ? demoControl(meta.demo) : null,
     dashBox,
+    goalsCard(),
     h('div', { class: 'section-head' }, h('h2', { class: 'section-title' }, 'By network'), h('div', { class: 'row' }, periodBtns)),
     cardsBox,
     h('div', { class: 'grid grid-2', style: { marginTop: '18px' } }, timesBox, h('div', {}, topBox, recycleBox)),

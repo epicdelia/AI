@@ -28,6 +28,7 @@ import { renderAgents, renderAgent } from './pages/agents.js';
 import { renderInbox } from './pages/inbox.js';
 import { renderWorkflows, renderWorkflow } from './pages/workflows.js';
 import { notificationsButton, stopNotifications } from './notifications.js';
+import { registerServiceWorker, installButton, installShortcutsHelp } from './pwa.js';
 
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
@@ -144,6 +145,7 @@ function buildShell() {
         h('div', { class: 'nav-label' }, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
         h('div', { class: 'nav-label' }, themeSwitch()),
         h('button', { class: 'btn ghost sm', title: 'Take the tour', onclick: () => { openDrawer(false); startTour(); } }, icon('play', 14), label('Take the tour')),
+        installButton(label),
         h('button', { class: 'btn sm', title: 'Log out', onclick: logout }, icon('logout'), label('Log out')),
         collapseBtn)),
     h('div', { class: 'nav-backdrop', onclick: () => openDrawer(false) }),
@@ -263,7 +265,7 @@ async function boot() {
   if (!status.authenticated) {
     state.user = null;
     state.shell = null;
-    renderAuth(root, status.initialized, async (user) => {
+    renderAuth(root, status.initialized, status.welcome, async (user) => {
       state.user = user;
       // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
       const st = await api('GET', 'auth/status').catch(() => ({}));
@@ -300,4 +302,6 @@ setUnauthorizedHandler(() => {
 
 window.addEventListener('popstate', route);
 installPalette();
+installShortcutsHelp();
+registerServiceWorker();
 boot();

@@ -216,6 +216,25 @@ Artisan::command('studio:workflows', function (WorkflowEngine $engine) use ($tra
     });
 })->purpose('Start scheduled workflows and run queued or waiting workflow steps');
 
+Artisan::command('studio:password {email? : the account email (defaults to the only account)}', function () {
+    $user = $this->argument('email') ? \App\Models\User::where('email', $this->argument('email'))->first() : \App\Models\User::orderBy('id')->first();
+    if (! $user) {
+        $this->error('No such account.');
+
+        return 1;
+    }
+    $password = $this->secret("New password for {$user->email} (at least 8 characters)");
+    if (strlen((string) $password) < 8 || $password !== $this->secret('Type it again')) {
+        $this->error('Too short, or the two didn’t match. Nothing changed.');
+
+        return 1;
+    }
+    $user->forceFill(['password' => \Illuminate\Support\Facades\Hash::make($password), 'remember_token' => null])->save();
+    $this->info('Password changed. Sign in with the new one.');
+
+    return 0;
+})->purpose('Reset the studio login password (the “Forgot password?” way, from this computer)');
+
 // ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
 
 try {

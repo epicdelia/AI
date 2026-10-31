@@ -21,7 +21,8 @@ class Publisher
     {
         $published = $failed = 0;
         $accounts = SocialAccount::where('status', 'connected')->get()->keyBy('platform');
-        $posts = SocialPost::where('status', 'scheduled')->where('approval', 'approved')->whereNotNull('social_agent_id')
+        $posts = SocialPost::where('status', 'scheduled')->where('approval', 'approved')
+            ->where(fn ($q) => $q->whereNotNull('social_agent_id')->orWhere('source', 'workflow'))
             ->where('scheduled_for', '<=', now())->where('scheduled_for', '>=', now()->subHours(6)) // never fire a stale backlog
             ->orderBy('scheduled_for')->limit(20)->get();
 

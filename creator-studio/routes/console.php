@@ -18,6 +18,9 @@ use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Publisher;
 use App\Domains\Engagement\Engagement;
 use App\Domains\Social\Connect\Connections;
+use App\Domains\Workflows\Engine as WorkflowEngine;
+use App\Domains\Workflows\Models\Workflow;
+use App\Domains\Workflows\Models\WorkflowRun;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Usage\AiUsage;
 use App\Models\Setting;
@@ -205,6 +208,14 @@ Artisan::command('studio:engage', function (Engagement $engagement) use ($track)
     });
 })->purpose('Pull new comments and DMs and run her automations');
 
+Artisan::command('studio:workflows', function (WorkflowEngine $engine) use ($track) {
+    return $track($this, 'workflows', function () use ($engine) {
+        $fired = WorkflowEngine::tick();
+
+        return "Started {$fired} scheduled workflow(s); ran ".$engine->drain().' queued or waiting run(s).';
+    });
+})->purpose('Start scheduled workflows and run queued or waiting workflow steps');
+
 // ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
 
 try {
@@ -236,4 +247,5 @@ Schedule::command('studio:agents')->hourlyAt(5)->when(fn () => $enabled() && res
 Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => rescue(fn () => \App\Domains\Social\Models\SocialPost::where('approval', 'approved')->where('status', 'scheduled')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->when(fn () => $enabled() && rescue(fn () => SocialAgent::exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:workflows')->everyMinute()->when(fn () => rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

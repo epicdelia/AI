@@ -10,6 +10,7 @@ use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\Platforms;
+use App\Domains\Workflows\Engine;
 use App\Models\Setting;
 use App\Services\Llm;
 use App\Services\Prompts;
@@ -62,11 +63,16 @@ class Engagement
                     continue;
                 }
                 $new++;
+                // Workflows first; a comment a workflow picked up isn't also answered by a rule.
+                if (Engine::dispatch($item->kind === 'dm' ? 'dm' : 'comment', Engine::itemContext($item), "item:{$item->id}")) {
+                    continue;
+                }
                 $result = $this->applyRules($item);
                 $sent += $result === 'replied' ? 1 : 0;
                 $drafted += $result === 'drafted' ? 1 : 0;
             }
         }
+        app(Engine::class)->drain();
         if ($new) {
             $waiting = EngagementItem::whereIn('status', ['new', 'drafted'])->count();
             AgentEvent::log('comment', "{$new} new comment(s)/DM(s)".($sent ? ", {$sent} answered by your automations" : '')
@@ -125,7 +131,10 @@ class Engagement
         if ($dm !== null && trim($dm) !== '' && $item->kind === 'comment') {
             $p->privateReply($account, $token, $item->forProvider(), trim($dm));
         }
-        $item->update(['status' => 'replied', 'reply' => trim(implode("\n\n[DM] ", array_filter([$reply, $dm]))), 'replied_by' => $by,
+        // A second send (a workflow's reply, then its DM) adds to what was already sent.
+        $sent = array_filter([$reply !== null && trim($reply) !== '' ? trim($reply) : null, $dm !== null && trim($dm) !== '' ? '[DM] '.trim($dm) : null]);
+        $before = $item->status === 'replied' && $item->reply ? $item->reply."\n\n" : '';
+        $item->update(['status' => 'replied', 'reply' => $before.implode("\n\n", $sent), 'replied_by' => $by,
             'replied_at' => now(), 'error' => null]);
     }
 

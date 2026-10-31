@@ -26,6 +26,7 @@ import { renderAnalytics } from './pages/analytics.js';
 import { renderConnections } from './pages/connections.js';
 import { renderAgents, renderAgent } from './pages/agents.js';
 import { renderInbox } from './pages/inbox.js';
+import { renderWorkflows, renderWorkflow } from './pages/workflows.js';
 import { notificationsButton, stopNotifications } from './notifications.js';
 
 const ROUTES = [
@@ -49,6 +50,8 @@ const ROUTES = [
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
   { path: /^\/inbox$/, render: renderInbox, nav: '/inbox' },
+  { path: /^\/workflows$/, render: renderWorkflows, nav: '/workflows' },
+  { path: /^\/workflows\/(\d+)$/, render: renderWorkflow, nav: '/workflows' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
   { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: renderPlatform, nav: null }, // nav = the platform
   { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
@@ -68,6 +71,7 @@ const NAV = [
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
   { to: '/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/agents', label: 'Agents', icon: 'bot' },
+  { to: '/workflows', label: 'Workflows', icon: 'flow' },
   { to: '/inbox', label: 'Inbox', icon: 'inbox' },
   { to: '/repurpose', label: 'Repurpose', icon: 'repeat' },
   { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin' },

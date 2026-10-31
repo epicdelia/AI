@@ -6,6 +6,7 @@ use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\Platforms;
 use App\Domains\Social\SocialDashboard;
+use App\Domains\Workflows\Engine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -144,6 +145,11 @@ class Connections
             SocialDashboard::recordFollowers([$account->platform => $data['followers']], 'api');
         }
         [$updated, $added] = self::savePosts($account->platform, $data['posts'] ?? []);
+        try {
+            Engine::checkPerformance($account->platform); // "Post takes off" workflows
+        } catch (Throwable $e) {
+            report($e);
+        }
         $account->update([
             'status' => 'connected', 'last_error' => null, 'last_synced_at' => now(),
             'meta' => array_filter(($data['meta'] ?? []) + ['followers' => $data['followers'] ?? null], fn ($v) => $v !== null),

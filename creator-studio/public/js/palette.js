@@ -76,7 +76,9 @@ export function installPalette() {
   document.addEventListener('keydown', (e) => {
     if (!document.querySelector('.app-shell')) return; // logged out
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable;
-    if ((e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing && !document.querySelector('.modal-overlay'))) {
+    // A page with its own search (the workflow canvas) keeps "/"; Ctrl+K still opens this.
+    const ownSlash = document.querySelector('[data-slash-search]');
+    if ((e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing && !ownSlash && !document.querySelector('.modal-overlay'))) {
       e.preventDefault();
       openPalette();
     }

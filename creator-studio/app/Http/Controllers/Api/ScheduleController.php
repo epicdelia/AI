@@ -24,6 +24,7 @@ class ScheduleController extends Controller
         'publish' => ['command' => 'studio:publish', 'label' => 'Publish approved agent posts', 'when' => 'Every 5 min while any are scheduled'],
         'learn' => ['command' => 'studio:agents-learn', 'label' => 'Agents learn from results & your edits', 'when' => 'Sundays at 20:00'],
         'engage' => ['command' => 'studio:engage', 'label' => 'Check comments & DMs, run automations', 'when' => 'Every 10 min while Instagram, Threads or YouTube is connected'],
+        'workflows' => ['command' => 'studio:workflows', 'label' => 'Run workflows (schedules, waits)', 'when' => 'Every minute while any workflow is on'],
         'backup' => ['command' => 'studio:backup', 'label' => 'Back up the studio', 'when' => 'Daily at 03:00 (always, even when paused)'],
         'prune' => ['command' => 'studio:prune', 'label' => 'Clean up old logs & uploads', 'when' => 'Daily at 04:00'],
     ];

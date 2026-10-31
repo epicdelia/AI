@@ -3,6 +3,7 @@
 namespace App\Domains\Social\Models;
 
 use App\Domains\Social\Platforms;
+use App\Domains\Workflows\Engine;
 use App\Models\Script;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,17 @@ class SocialPost extends Model
             }
             if ($post->status === 'scheduled' && ! $post->scheduled_for) {
                 $post->status = 'draft';
+            }
+        });
+
+        // "Post published" workflows, whichever way it became posted (published here, marked, synced).
+        static::saved(function (self $post) {
+            if ($post->status === 'posted' && $post->wasChanged('status') && $post->source !== 'demo') {
+                try {
+                    Engine::dispatch('post_published', Engine::postContext($post), "post:{$post->id}");
+                } catch (\Throwable $e) {
+                    report($e); // never block saving a post
+                }
             }
         });
     }

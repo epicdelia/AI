@@ -110,6 +110,8 @@ const ROUTES = [
   [/^\/calendar$/, 'calendar', 'your calendar'],
   [/^\/analytics$/, 'analytics', 'your analytics'],
   [/^\/(linkedin|instagram|x|tiktok|threads|tools)/, 'cards', 'posts'],
+  [/^\/(connections|agents|workflows)$/, 'cards', 'this page'],
+  [/^\/(agents|workflows)\/\d+$/, 'list', 'this page'],
   [/^\/chat/, 'chat', 'your chats'],
   [/^\/settings$/, 'settings', 'settings'],
   [/^\/(repurpose|flow)$/, 'form', 'this page'],

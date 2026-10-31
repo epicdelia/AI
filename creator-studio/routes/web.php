@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\ScriptVersionController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
 use App\Http\Controllers\Api\VisionController;
+use App\Http\Controllers\Api\WorkflowsController;
 use App\Http\Controllers\Api\YouTubeController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
@@ -137,6 +138,16 @@ Route::prefix('api')->group(function () {
         Route::delete('agents/{agent}', [AgentsController::class, 'destroy'])->whereNumber('agent');
         Route::post('agents/{agent}/run', [AgentsController::class, 'run'])->whereNumber('agent');
         Route::post('agents/{agent}/learn', [AgentsController::class, 'learn'])->whereNumber('agent');
+
+        // Workflows: trigger + steps automations, built on the node canvas
+        Route::get('workflows', [WorkflowsController::class, 'index']);
+        Route::post('workflows', [WorkflowsController::class, 'store']);
+        Route::get('workflows/{workflow}', [WorkflowsController::class, 'show']);
+        Route::put('workflows/{workflow}', [WorkflowsController::class, 'update']);
+        Route::delete('workflows/{workflow}', [WorkflowsController::class, 'destroy']);
+        Route::post('workflows/{workflow}/duplicate', [WorkflowsController::class, 'duplicate']);
+        Route::post('workflows/{workflow}/run', [WorkflowsController::class, 'run']);
+        Route::post('workflows/{workflow}/test-step', [WorkflowsController::class, 'testStep']);
 
         // Inbox: comments & DMs, replies, automations
         Route::get('engage', [EngagementController::class, 'index']);

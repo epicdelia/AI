@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\YouTubeStudioController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CopilotController;
+use App\Http\Controllers\Api\DealsController;
 use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
@@ -119,6 +120,17 @@ Route::prefix('api')->group(function () {
         Route::post('social/bios/options', [SocialInsightsController::class, 'bioOptions']);
         Route::put('social/bios', [SocialInsightsController::class, 'saveBio']);
         Route::post('stream/social/review', [SocialInsightsController::class, 'review']);
+
+        // Brand Deals, Sponsorships & Media Kit
+        Route::get('deals', [DealsController::class, 'index']);
+        Route::post('deals', [DealsController::class, 'store']);
+        Route::get('deals/rate-card', [DealsController::class, 'rateCard']);
+        Route::get('deals/media-kit', [DealsController::class, 'mediaKit']);
+        Route::post('deals/pitch', [DealsController::class, 'generatePitch']);
+        Route::get('deals/{deal}', [DealsController::class, 'show']);
+        Route::patch('deals/{deal}', [DealsController::class, 'update']);
+        Route::delete('deals/{deal}', [DealsController::class, 'destroy']);
+        Route::post('deals/{deal}/sponsor-script', [DealsController::class, 'generateSponsorScript']);
 
         // For you: love letters, special dates, milestones, her photo
         Route::get('love/status', [LoveController::class, 'status']);

@@ -2018,3 +2018,46 @@ a:hover > .logo.brand-mark, .brand:hover .logo.brand-mark { transform: scale(1.0
   .mega { left: 12px; right: 12px; }
 }
 @media (min-width: 1200px) { :root[data-nav="sidebar"] .main-col { width: calc(100% - 28px); } }
+
+/* ---- Deals, Sponsorships & Media Kit ---- */
+.deal-card { display: flex; flex-direction: column; gap: 8px; border-left: 4px solid var(--accent); }
+.deal-rate { font-size: 1.15rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.deliverables-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.mediakit-hero { padding: 24px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, var(--panel)), var(--panel)); border: 1px solid var(--line); }
+.mediakit-hero-inner { display: flex; align-items: center; gap: 20px; }
+.mediakit-avatar { font-size: 2.8rem; width: 68px; height: 68px; border-radius: 50%; background: var(--panel-2); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.mediakit-tagline { font-size: 1.05rem; margin: 8px 0; line-height: 1.45; color: var(--ink); }
+.mediakit-platform { border-top: 3px solid var(--line); }
+.mediakit-platform.pf-youtube { border-top-color: #ff0000; }
+.mediakit-platform.pf-linkedin { border-top-color: #0077b5; }
+.mediakit-platform.pf-tiktok { border-top-color: #00f2fe; }
+.mediakit-platform.pf-instagram { border-top-color: #e1306c; }
+.mediakit-platform.pf-x { border-top-color: var(--ink); }
+.mediakit-platform.pf-threads { border-top-color: #101010; }
+.data-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+.data-table th { font-weight: 700; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ---- Snippet Studio ---- */
+#snippet-canvas { display: block; margin: 0 auto; background: transparent; }
+
+/* ---- Flat containers in inner content (no shadows; boxed layout carries the framing shadow) ---- */
+.content-area .card,
+.content-area .stat-box,
+.content-area .hero-card,
+.content-area .post-card,
+.content-area .doc-card,
+.content-area .tool-card,
+.content-area .output-panel,
+.content-area .sbcp-box,
+.content-area .deal-card,
+.content-area .mediakit-hero,
+.content-area .mediakit-avatar,
+.content-area .brand-slide,
+.content-area .slide-thumb,
+.hero-card,
+:root[data-theme="dark"] .hero-card,
+.post-card,
+.card {
+  box-shadow: none !important;
+}

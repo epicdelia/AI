@@ -90,6 +90,9 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Drawer sidebar** | Below 1200px (phones, tablets) the sidebar is fully hidden and slides over the page from the header's menu button; focus moves in and back, Esc or the backdrop closes it |
 | **Notifications** | A bell (sidebar and phone bar) with a drawer: posts to approve, comments to answer, and what agents and automations did |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
+| **Brand deals & sponsors** | Pipeline / CRM for brand sponsorships (`/deals`): track stages (`inquiry` through `paid`), fees, payment terms, deliverables, coupon codes and tracking links. **Rate card calculator**: automatic pricing benchmarks based on actual viewership. **AI pitch generator** and **Sponsor script integration** with natural transitions and FTC disclosures |
+| **Media kit** | `/mediakit`: interactive, verified press kit for Delia (@Tech.Unicorn) with cross-platform reach, audience engineering demographics, partnership packages and printable/shareable link |
+| **Code & tech snippet studio** | `/snippets`: Ray.so / Carbon-style visual code cards and terminal graphics with syntax highlighting, macOS window chrome, Unicorn neon gradients, line numbers, and 1-click PNG download / copy / social draft creation |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.
 

@@ -86,7 +86,7 @@ export function renderAuth(root, initialized, welcome, onDone) {
   clear(root).append(h('div', { class: 'auth-split' },
     h('main', { class: 'auth-side' },
       h('div', { class: 'auth-top' },
-        h('div', { class: 'auth-brand' }, brandMark(20), 'Creator Studio'),
+        h('div', { class: 'auth-brand' }, brandMark(24)),
         h('div', { class: 'auth-theme' }, themeSwitch())),
       h('div', { class: 'auth-inner' },
         h('h1', {}, initialized ? 'Sign in' : 'Set up your studio'),

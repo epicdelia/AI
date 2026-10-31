@@ -28,6 +28,9 @@ class GlobalSearchController extends Controller
         ['Scripts', '/scripts', 'doc', 'write draft editor'],
         ['My channel', '/channel', 'users', 'my videos performance median comments viewers questions audience'],
         ['Analytics', '/analytics', 'chart', 'social analytics best time to post engagement import csv bio review recycle'],
+        ['Brand deals & sponsors', '/deals', 'briefcase', 'sponsors brand deals sponsorships partnerships rate card revenue deliverable'],
+        ['Media kit', '/mediakit', 'file-text', 'media kit rate card press audience reach demographics sponsorship options'],
+        ['Code & tech snippets', '/snippets', 'code', 'code snippets terminal card syntax ray.so carbon carousel visual tech graphic'],
         ['Calendar', '/calendar', 'calendar', 'schedule plan week posts social content calendar'],
         ['Repurpose', '/repurpose', 'repeat', 'turn script into posts linkedin instagram x thread carousel reel short'],
         ['LinkedIn', '/linkedin', 'briefcase', 'linkedin posts carousel document'],
@@ -77,6 +80,11 @@ class GlobalSearchController extends Controller
             ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('premise', 'like', $like)->orWhere('notes', 'like', $like))
             ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'status'])
             ->map(fn ($i) => ['label' => $i->title, 'context' => 'Idea · '.$i->status, 'url' => '/ideas', 'icon' => 'bulb'])];
+
+        $groups[] = ['title' => 'Brand Deals', 'items' => \App\Models\Deal::query()
+            ->where(fn ($w) => $w->where('brand_name', 'like', $like)->orWhere('contact_name', 'like', $like)->orWhere('notes', 'like', $like))
+            ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'brand_name', 'stage', 'rate', 'currency'])
+            ->map(fn ($d) => ['label' => $d->brand_name.' ('.$d->currency.' '.number_format($d->rate).')', 'context' => 'Deal · '.$d->stage, 'url' => '/deals', 'icon' => 'briefcase'])];
 
         $groups[] = ['title' => 'Library', 'items' => Document::query()
             ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('content', 'like', $like))

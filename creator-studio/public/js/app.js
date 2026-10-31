@@ -35,6 +35,9 @@ import { renderYouTubeStudio } from './pages/ytstudio.js';
 import { renderMediaLibrary } from './pages/mediapage.js';
 import { renderBrand } from './pages/brand.js';
 import { renderBio } from './pages/bio.js';
+import { renderDeals } from './pages/deals.js';
+import { renderMediaKit } from './pages/mediakit.js';
+import { renderSnippets } from './pages/snippets.js';
 import { loveOn } from './love.js';
 import { NAV_ITEMS, MEGA } from './nav.js';
 
@@ -55,6 +58,9 @@ const ROUTES = [
   { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
   { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
   { path: /^\/analytics$/, render: renderAnalytics, nav: '/analytics' },
+  { path: /^\/deals$/, render: renderDeals, nav: '/deals' },
+  { path: /^\/mediakit$/, render: renderMediaKit, nav: '/mediakit' },
+  { path: /^\/snippets$/, render: renderSnippets, nav: '/snippets' },
   { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
@@ -131,7 +137,7 @@ function buildShell() {
   const shell = h('div', { class: 'app-shell' },
     h('aside', { class: 'sidebar', id: 'sidebar' },
       h('div', { class: 'brand' },
-        brandMark(), label('Creator Studio'), heartButton(),
+        brandMark(), heartButton(),
         h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x'))),
       h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
       h('div', { class: 'sidebar-footer' }, collapseBtn)),
@@ -187,7 +193,7 @@ function appHeader(drawerToggle) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu) { closeMenu(); avatar.focus(); } });
 
   return h('header', { class: 'app-header' },
-    h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, brandMark(16), h('span', { class: 'hdr-label' }, 'Creator Studio'))),
+    h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, brandMark(18))),
     h('button', { class: 'hdr-search', type: 'button', onclick: openPalette, 'aria-label': 'Search (Ctrl+K)' },
       icon('search', 16), h('span', { class: 'hdr-search-text' }, 'Search scripts, posts, ideas…'), h('kbd', {}, 'Ctrl K')),
     megaMenus(),

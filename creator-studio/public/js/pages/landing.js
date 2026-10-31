@@ -8,6 +8,7 @@ import { contentSection } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
 import { ctaSection } from '../landing-cta.js';
+import { aboutSection } from '../landing-about.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -738,85 +739,8 @@ export function renderLanding(view, options = {}) {
         ['IBM', 'Adobe', 'Airalo', 'Temporal', 'Nomad Cruise', 'Digital Garage Tokyo', 'Vently'].map((name) =>
           h('li', {}, name)))));
 
-  // 5. Section 01: About with single authentic Delia portrait & credentials in rows with show more / show less
-  const aboutPhoto = h('div', { class: 'landing-about-showcase' },
-    h('div', { class: 'landing-about-photo-card' },
-      h('img', {
-        src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
-        alt: 'Delia Lazarescu · Ex-Google Engineer & Founder',
-        class: 'landing-about-photo',
-        loading: 'eager',
-      }),
-      h('div', { class: 'landing-about-badge' },
-        h('span', { style: { color: 'var(--accent)' } }, '✦'),
-  'Delia Lazarescu · Ex-Google Engineer & Founder')));
-
-  const credsData = [
-    {
-      title: '69 Countries',
-      desc: 'Shipped code from beach cafes, bullet trains, and colivings.',
-      icon: 'globe',
-      extra: 'Tested remote workflows across Japan, Indonesia, Portugal, Brazil, and 65+ other countries while maintaining high reliability on client production apps.',
-    },
-    {
-      title: 'Keynote Speaker',
-      desc: 'Nomad Cruise, WestVisions, and Tech Summits worldwide.',
-      icon: 'mic',
-      extra: 'Keynote talks breaking down practical AI agents, vibecoding production software, and navigating the tech industry without losing your humanity.',
-    },
-    {
-      title: '472K+ Community',
-      desc: 'Explaining AI, software engineering, and nomadic building in plain English.',
-      icon: 'sparkle',
-      extra: 'Demystifying complex systems, AI tooling, and engineering truths for a community of developers, founders, and tech professionals across YouTube, Instagram, and LinkedIn.',
-    },
-  ];
-
-  let credsExpanded = false;
-  const credsList = h('div', { class: 'landing-about-rows' });
-  const toggleCredsBtn = h('button', {
-    type: 'button',
-    class: 'landing-about-toggle-btn',
-    'aria-expanded': 'false',
-    onclick: () => {
-      credsExpanded = !credsExpanded;
-      renderCredsRows();
-    },
-  });
-
-  function renderCredsRows() {
-    toggleCredsBtn.setAttribute('aria-expanded', String(credsExpanded));
-    toggleCredsBtn.replaceChildren(
-      credsExpanded ? 'Show less' : 'Show more',
-      icon(credsExpanded ? 'chevron-up' : 'chevron-down', 13));
-
-    credsList.replaceChildren(
-      ...credsData.map((c) =>
-        h('div', { class: 'landing-about-row-item' },
-          h('div', { class: 'landing-about-row-icon' }, icon(c.icon, 18)),
-          h('div', { style: { flex: '1' } },
-            h('h4', { class: 'landing-about-row-title' }, c.title),
-            h('p', { class: 'landing-about-row-desc' }, c.desc),
-            credsExpanded ? h('p', { class: 'landing-about-row-extra' }, c.extra) : null))),
-      toggleCredsBtn);
-  }
-
-  renderCredsRows();
-
-  const about = h('section', { class: 'landing-section', id: 'about' },
-    h('div', { class: 'landing-container' },
-      h('div', { class: 'grid grid-2', style: { gap: 'clamp(32px, 5vw, 64px)', alignItems: 'center' } },
-        h('div', {},
-          h('p', { class: 'landing-section-eyebrow' }, '01: About'),
-          h('h2', {}, 'Engineer first. ', h('em', {}, 'Storyteller'), ' always.'),
-          h('p', {}, 'I spent years writing production code at Google before trading the campus for a carry-on. Now I split my time between shipping AI-powered products for clients and explaining technology to a few hundred thousand people who were told it was not for them.'),
-          h('p', {}, 'The thesis behind everything I make: ', h('strong', {}, 'tech feels scary because it is explained badly.'), ' Whether it is a 30-second reel, a conference keynote, or an MVP built in three weeks, my job is the same: take something intimidating and make it feel obvious.'),
-          h('ul', { class: 'about-points', style: { listStyle: 'none', padding: 0, marginTop: '20px', display: 'grid', gap: '12px' } },
-            h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Self-taught engineer to Google to independent founder'),
-            h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Built and shipped products while living across 60+ countries'),
-  h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), '472K+ community across Instagram, YouTube, LinkedIn & TikTok')),
-          credsList),
-        aboutPhoto)));
+  // 5. Section 01: About: her words from the dashboard's "About you" card, plus live facts.
+  const about = aboutSection({ onBookCall: handleBookCall });
 
   // 6. Section 02: Services with dashboard composer polish
   const servicesData = [

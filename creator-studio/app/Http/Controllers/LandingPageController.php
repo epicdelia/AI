@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Landing\About;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
@@ -49,6 +50,79 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** "01: About": her words plus live facts (audience, latest talk, build-slot availability). */
+    public function about(): JsonResponse
+    {
+        return response()->json(About::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /** The dashboard's "About you" editor. */
+    public function aboutEdit(): JsonResponse
+    {
+        $about = About::get();
+
+        return response()->json(['about' => $about + ['portrait_url' => About::portraitUrl($about)], 'preview' => About::publicSection()]);
+    }
+
+    public function aboutSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'headline' => 'required|string|max:120',
+            'bio' => 'present|array|max:3',
+            'bio.*' => 'nullable|string|max:900',
+            'thesis' => 'nullable|string|max:160',
+            'thesis_detail' => 'nullable|string|max:400',
+            'now' => 'nullable|string|max:120',
+            'location' => 'nullable|string|max:80',
+            'countries' => 'required|integer|min:0|max:250',
+            'story_url' => 'nullable|url:http,https|max:300',
+            'milestones' => 'present|array|max:6',
+            'milestones.*.label' => 'nullable|string|max:60',
+            'milestones.*.detail' => 'nullable|string|max:200',
+        ]);
+        $data['bio'] = array_values(array_map(fn ($p) => trim((string) $p), $data['bio']));
+        $data['milestones'] = array_values(array_map(fn ($m) => ['label' => trim((string) ($m['label'] ?? '')), 'detail' => trim((string) ($m['detail'] ?? ''))], $data['milestones']));
+        foreach (['thesis', 'thesis_detail', 'now', 'location', 'story_url'] as $k) {
+            $data[$k] = trim((string) ($data[$k] ?? ''));
+        }
+        About::save($data);
+
+        return $this->aboutEdit();
+    }
+
+    /** Her own portrait for the About section (JPEG, PNG or WebP up to 8 MB). */
+    public function aboutPortrait(Request $request): JsonResponse
+    {
+        $file = $request->validate(['image' => 'required|file|mimes:jpg,jpeg,png,webp|max:8192'])['image'];
+        $old = About::get()['portrait'];
+        $path = $file->storeAs('about', \Illuminate\Support\Str::uuid().'.'.strtolower($file->getClientOriginalExtension() ?: 'jpg'), 'local');
+        About::save(['portrait' => $path]);
+        if ($old) {
+            Storage::disk('local')->delete($old);
+        }
+
+        return $this->aboutEdit();
+    }
+
+    public function aboutPortraitReset(): JsonResponse
+    {
+        $old = About::get()['portrait'];
+        About::save(['portrait' => null]);
+        if ($old) {
+            Storage::disk('local')->delete($old);
+        }
+
+        return $this->aboutEdit();
+    }
+
+    public function aboutPortraitFile(): Response
+    {
+        $path = About::get()['portrait'];
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path, null, ['Cache-Control' => 'public, max-age=86400']);
     }
 
     /** "On Stage": her talks (featured, upcoming, past), stats from that list, and her talk topics. */

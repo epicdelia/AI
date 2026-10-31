@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/about', [\App\Http\Controllers\LandingPageController::class, 'about']);
     Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
@@ -195,6 +196,12 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // "About you" for the landing page's About section
+        Route::get('about', [\App\Http\Controllers\LandingPageController::class, 'aboutEdit']);
+        Route::put('about', [\App\Http\Controllers\LandingPageController::class, 'aboutSave']);
+        Route::post('about/portrait', [\App\Http\Controllers\LandingPageController::class, 'aboutPortrait']);
+        Route::delete('about/portrait', [\App\Http\Controllers\LandingPageController::class, 'aboutPortraitReset']);
 
         // Talks for the landing page's "On Stage"
         Route::get('talks', [\App\Http\Controllers\Api\TalksController::class, 'index']);
@@ -423,6 +430,7 @@ Route::prefix('api')->group(function () {
 // The public Tech Unicorn landing page is "/" (signed out); old addresses redirect there.
 Route::get('techunicorn', [\App\Http\Controllers\LandingPageController::class, 'show']);
 Route::get('landing-page', [\App\Http\Controllers\LandingPageController::class, 'show']);
+Route::get('landing/about-portrait', [\App\Http\Controllers\LandingPageController::class, 'aboutPortraitFile']);
 Route::get('landing/talk-image/{talk}', [\App\Http\Controllers\LandingPageController::class, 'talkImage'])->whereNumber('talk');
 Route::get('landing/thumb/{post}', [\App\Http\Controllers\LandingPageController::class, 'thumb'])->whereNumber('post');
 

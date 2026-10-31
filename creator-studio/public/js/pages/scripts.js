@@ -3,9 +3,10 @@
 import {
   h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData,
   navigate, link, timeAgo, debounce, wordCount, mdBlock, copyText, download, slug, isoDay,
+  apiStream, liveMarkdown,
 } from '../core.js';
 import { icon } from '../icons.js';
-import { outputPanel } from '../components.js';
+import { outputPanel, transcribeButton } from '../components.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -204,17 +205,29 @@ export async function renderScript(view, id) {
 
   async function runReview(btn = reviewBtn) {
     await saveSoon.flush();
-    await busy(btn, 'Reviewing… (up to a minute)', async () => {
+    await busy(btn, 'Reviewing…', async () => {
+      const live = liveMarkdown('Reading your script…');
+      let started = false;
       try {
-        const r = await api('POST', `scripts/${script.id}/review`);
+        const r = await apiStream(`scripts/${script.id}/review`, {}, {
+          onDelta: (t) => {
+            if (!started) {
+              started = true;
+              showTab('review');
+              clear(reviewPane).append(h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'AI review'), h('span', { class: 'muted' }, 'writing…')), live.el));
+            }
+            live.append(t);
+          },
+        });
         script.review = r.review;
         script.status = r.script.status;
         statusSelect.value = script.status;
-        toast(r.message);
+        toast('Review done: voice, retention, facts and hostile comments.');
         drawReview();
         showTab('review');
       } catch (err) {
         if (err.data?.findings) drawLint(err.data.findings, true);
+        if (started) drawReview();
         throw err;
       }
     });
@@ -234,9 +247,16 @@ export async function renderScript(view, id) {
           onclick: () => busy(b, `${t.label}…`, async () => {
             await saveSoon.flush();
             if (!script.body.trim() && t.key !== 'yt_chapters') throw new Error('Write some of the script first.');
-            const r = await api('POST', 'tools/run', { tool: t.key, inputs: t.input(script), results: 3 });
-            clear(outBox).append(h('h3', { style: { marginTop: '16px' } }, t.label),
-              outputPanel(r.output, { title: `${t.label}: ${script.title}`, tool: t.key, scriptId: script.id }));
+            const live = liveMarkdown();
+            clear(outBox).append(h('h3', { style: { marginTop: '16px' } }, t.label), h('div', { class: 'output-panel' }, h('div', { class: 'output-body' }, live.el)));
+            try {
+              const r = await apiStream('tools/run', { tool: t.key, inputs: t.input(script), results: 3 }, { onDelta: live.append });
+              clear(outBox).append(h('h3', { style: { marginTop: '16px' } }, t.label),
+                outputPanel(r.output, { title: `${t.label}: ${script.title}`, tool: t.key, scriptId: script.id }));
+            } catch (err) {
+              if (!live.text) clear(outBox);
+              throw err;
+            }
           }),
         }, t.label);
         return b;
@@ -251,13 +271,18 @@ export async function renderScript(view, id) {
       const value = script[fieldName] || '';
       const genBtn = generate ? h('button', {
         class: 'btn primary sm',
-        onclick: () => busy(genBtn, 'Writing… (up to a minute)', async () => {
+        onclick: () => busy(genBtn, 'Writing…', async () => {
           await saveSoon.flush();
-          const r = await api('POST', generate.path, generate.body?.() );
-          script[fieldName] = r[fieldName];
-          toast(r.message);
-          editing = false;
-          draw();
+          const live = liveMarkdown();
+          clear(pane.querySelector('.doc-body')).append(live.el);
+          try {
+            const r = await apiStream(generate.path, {}, { onDelta: live.append });
+            script[fieldName] = r[fieldName];
+            toast(`${title} ready.`);
+          } finally {
+            editing = false;
+            draw();
+          }
         }),
       }, icon('sparkle', 15), value ? 'Regenerate' : 'Generate') : null;
 
@@ -279,7 +304,7 @@ export async function renderScript(view, id) {
             h('button', { class: 'btn ghost sm', onclick: () => { editing = !editing; draw(); } }, icon('pen', 15), editing ? 'Done' : 'Edit'),
             genBtn)),
         help ? h('p', { class: 'muted small' }, help) : null,
-        body));
+        h('div', { class: 'doc-body' }, body)));
     }
     draw();
     return pane;
@@ -304,6 +329,13 @@ export async function renderScript(view, id) {
     clear(transcriptPane).append(h('div', { class: 'card' },
       h('h2', {}, 'Recording transcript'),
       h('div', { class: 'row', style: { marginBottom: '12px' } }, h('div', { style: { flex: '1', minWidth: '240px' } }, urlIn), fetchBtn),
+      h('div', { class: 'row', style: { marginBottom: '12px' } },
+        transcribeButton((text, res) => {
+          ta.value = text;
+          script.transcript = text;
+          if (res.script) Object.assign(script, { transcript: res.script.transcript });
+        }, { scriptId: script.id, timestamps: true, label: 'Upload your recording' }),
+        h('span', { class: 'muted small' }, 'Exact words from your own audio or video file, with timestamps. Saved to this script.')),
       h('p', { class: 'muted small' }, 'Captions are fetched from the public video. If YouTube blocks it, copy the transcript from YouTube (⋯ → Show transcript) and paste it here.'),
       ta));
   }
@@ -388,6 +420,40 @@ export async function renderScript(view, id) {
 
   showTab('write');
 
+  // Arrived from Ideas → "Draft script": write the draft straight into the editor.
+  let draftAbort = null;
+  if (new URLSearchParams(location.search).get('draft') === '1' && script.idea && !script.body.trim()) {
+    history.replaceState({}, '', `/scripts/${script.id}`);
+    draftAbort = new AbortController();
+    textarea.readOnly = true;
+    saveState.textContent = 'Drafting with AI…';
+    let first = true;
+    apiStream(`scripts/${script.id}/draft`, {}, {
+      signal: draftAbort.signal,
+      onDelta: (t) => {
+        if (first) { first = false; textarea.value = ''; }
+        const atEnd = textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight < 60;
+        textarea.value += t;
+        if (atEnd) textarea.scrollTop = textarea.scrollHeight;
+        drawStats();
+      },
+    }).then((r) => {
+      script.body = r.script.body || '';
+      textarea.value = script.body;
+      drawStats();
+      drawLint(r.findings, r.findings.some((f) => f.severity === 'HARD'));
+      saveState.textContent = 'Draft saved';
+      toast('Draft ready. Read it out loud and make it yours.');
+    }).catch((err) => {
+      if (err.name === 'AbortError') return;
+      saveState.textContent = 'Draft failed';
+      toast(err.message, 'err');
+    }).finally(() => {
+      textarea.readOnly = false;
+      draftAbort = null;
+    });
+  }
+
   const onKey = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveSoon.flush(); }
   };
@@ -396,6 +462,7 @@ export async function renderScript(view, id) {
   window.addEventListener('beforeunload', onUnload);
 
   return () => {
+    draftAbort?.abort();
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('beforeunload', onUnload);
     lintSoon.cancel();

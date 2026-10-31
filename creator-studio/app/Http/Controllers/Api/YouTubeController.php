@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Engine\Stream\StreamService;
 use App\Http\Controllers\Controller;
 use App\Services\Llm;
 use App\Services\Prompts;
 use App\Services\YouTubeTranscript;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /** "AI YouTube": pull any video's transcript, then summarise, break it down or repurpose it. */
@@ -41,6 +43,37 @@ class YouTubeController extends Controller
 
     public function analyze(Request $request, YouTubeTranscript $yt, Llm $llm): JsonResponse
     {
+        $job = $this->prepare($request, $yt);
+        if ($job instanceof JsonResponse) {
+            return $job;
+        }
+
+        try {
+            $output = $llm->as('youtube:'.$job['action'])->chat($job['system'], $job['user']);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
+
+        return response()->json(['output' => $output] + $job['meta']);
+    }
+
+    public function analyzeStream(Request $request, YouTubeTranscript $yt, Llm $llm, StreamService $sse): JsonResponse|StreamedResponse
+    {
+        $job = $this->prepare($request, $yt);
+        if ($job instanceof JsonResponse) {
+            return $job;
+        }
+
+        return $sse->respond(function (StreamService $sse) use ($llm, $job) {
+            $output = $llm->as('youtube:'.$job['action'])->stream($job['system'], [['role' => 'user', 'content' => $job['user']]], $sse->chunk(...));
+
+            return ['output' => $output] + $job['meta'];
+        });
+    }
+
+    /** Validate, fetch the transcript if needed, and build the prompts. */
+    private function prepare(Request $request, YouTubeTranscript $yt): array|JsonResponse
+    {
         $actions = Prompts::transcriptActions();
         $data = $request->validate([
             'action' => 'required|in:'.implode(',', array_keys($actions)),
@@ -66,22 +99,14 @@ class YouTubeController extends Controller
         }
 
         $instruction = str_replace('{name}', Prompts::name(), $actions[$data['action']]['prompt']);
-        $system = "You're a sharp YouTube strategist and editor working for ".Prompts::name().".\n\n".Prompts::profile()
-            ."\n\n".Prompts::writingRules()."\n\nWork only from the transcript. Return Markdown, no preamble.";
-        $user = ($title ? "Video title: {$title}\n" : '').($url ? "URL: {$url}\n" : '')
-            ."\nTask: {$instruction}\n\nTranscript:\n".mb_substr($transcript, 0, 120000);
 
-        try {
-            $output = $llm->as('youtube:'.$data['action'])->chat($system, $user);
-        } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 502);
-        }
-
-        return response()->json([
-            'output' => $output,
-            'title' => $title,
-            'transcript' => $transcript,
-            'action_label' => $actions[$data['action']]['label'],
-        ]);
+        return [
+            'action' => $data['action'],
+            'system' => "You're a sharp YouTube strategist and editor working for ".Prompts::name().".\n\n".Prompts::profile()
+                ."\n\n".Prompts::writingRules()."\n\nWork only from the transcript. Return Markdown, no preamble.",
+            'user' => ($title ? "Video title: {$title}\n" : '').($url ? "URL: {$url}\n" : '')
+                ."\nTask: {$instruction}\n\nTranscript:\n".mb_substr($transcript, 0, 120000),
+            'meta' => ['title' => $title, 'transcript' => $transcript, 'action_label' => $actions[$data['action']]['label']],
+        ];
     }
 }

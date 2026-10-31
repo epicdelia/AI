@@ -312,3 +312,9 @@ details.options { margin: 4px 0 16px; }
   .idea-grid { grid-template-columns: 1fr; }
   .search-input { max-width: none; }
 }
+
+/* Streaming output */
+.markdown-body.live .caret { display: inline-block; width: 8px; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); border-radius: 2px; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.transcribe-btn { gap: 8px; }
+textarea[readonly].script-editor { background: var(--bg); }

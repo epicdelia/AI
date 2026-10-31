@@ -71,7 +71,7 @@ export async function renderIdeas(view) {
     drawList();
     freshText.textContent = state.fresh
       ? `${state.fresh} fresh breakout signal${state.fresh === 1 ? '' : 's'} ready to use.`
-      : 'No fresh breakout signals: ideas will come from your niche (evergreen). Scan breakouts for timely ones.';
+      : 'No fresh breakout signals. Fresh news-feed items (if any) and your niche will drive this batch. Scan breakouts for more timely ones.';
   }
 
   function drawTabs() {
@@ -93,10 +93,10 @@ export async function renderIdeas(view) {
   }
 
   async function startScript(idea, blank, btn) {
-    await busy(btn, blank ? 'Creating…' : 'Drafting script with AI… (up to a minute)', async () => {
-      const res = await api('POST', 'scripts', { idea_id: idea.id, blank });
-      toast(res.message);
-      navigate(`/scripts/${res.script.id}`);
+    await busy(btn, 'Creating…', async () => {
+      // Always create it blank; for an AI draft the editor streams the text in live.
+      const res = await api('POST', 'scripts', { idea_id: idea.id, blank: true });
+      navigate(`/scripts/${res.script.id}${blank ? '' : '?draft=1'}`);
     });
   }
 

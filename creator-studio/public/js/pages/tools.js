@@ -1,5 +1,5 @@
 // Toolkit: one-click writing tools for creators, her own templates, and AI YouTube.
-import { h, api, busy, toast, pageHead, clear, modal, confirmDialog, field, navigate, link, emptyState } from '../core.js';
+import { h, api, apiStream, liveMarkdown, busy, toast, pageHead, clear, modal, confirmDialog, field, navigate, link, emptyState } from '../core.js';
 import { icon } from '../icons.js';
 import { outputPanel, youtubeDialog } from '../components.js';
 
@@ -108,13 +108,20 @@ function renderRunner(view, tool, data) {
       e.preventDefault();
       busy(runBtn, 'Writing…', async () => {
         const inputs = Object.fromEntries(Object.entries(values).map(([k, el]) => [k, el.value]));
-        const r = await api('POST', 'tools/run', {
-          tool: tool.key, inputs, tone: tone.value || null, language: language.value || null,
-          results: tool.results ? Number(results.value) : 1, creativity: Number(creativity.value),
-        });
-        const titleSource = inputs.title || inputs.topic || inputs.subject || inputs.brand || inputs.keywords || '';
-        clear(out).append(outputPanel(r.output, { title: `${tool.name}: ${titleSource.slice(0, 80)}`.replace(/: $/, ''), tool: tool.key, inputs }));
+        const live = liveMarkdown();
+        clear(out).append(h('div', { class: 'output-panel' }, h('div', { class: 'output-body' }, live.el)));
         out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        try {
+          const r = await apiStream('tools/run', {
+            tool: tool.key, inputs, tone: tone.value || null, language: language.value || null,
+            results: tool.results ? Number(results.value) : 1, creativity: Number(creativity.value),
+          }, { onDelta: live.append });
+          const titleSource = inputs.title || inputs.topic || inputs.subject || inputs.brand || inputs.keywords || '';
+          clear(out).append(outputPanel(r.output, { title: `${tool.name}: ${titleSource.slice(0, 80)}`.replace(/: $/, ''), tool: tool.key, inputs }));
+        } catch (err) {
+          if (!live.text) clear(out);
+          throw err;
+        }
       });
     },
   },

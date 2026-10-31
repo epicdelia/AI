@@ -28,6 +28,7 @@ class Setting extends Model
         'llm_engine' => '',   // empty = guessed from llm_base_url (see EngineManager::current)
         'llm_base_url' => '', // empty = the engine's own default
         'llm_model' => '',    // empty = the engine's default model
+        'transcription_engine' => 'auto', // auto | assemblyai | openai
         'lookback_days' => '4',
         'min_outlier_score' => '3',
         'min_views' => '20000',

@@ -84,6 +84,108 @@ export async function api(method, path, body) {
   return data;
 }
 
+/**
+ * POST to a streaming endpoint (/api/stream/...) and read its Server-Sent Events.
+ * onDelta(text) gets each chunk; resolves with the "done" payload; throws ApiError on
+ * an "error" event or a normal JSON error response (validation runs before streaming).
+ */
+export async function apiStream(path, body, { onDelta = () => {}, onMessage = () => {}, signal } = {}) {
+  let res;
+  try {
+    res = await fetch(`/api/stream/${path}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'text/event-stream, application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+      signal,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    throw new ApiError("Can't reach the server. Is `php artisan serve` still running?", 0, {});
+  }
+
+  if (!(res.headers.get('Content-Type') || '').includes('text/event-stream')) {
+    let data = {};
+    try { data = await res.json(); } catch { /* not JSON */ }
+    if (res.status === 401) onUnauthorized();
+    throw new ApiError(errorMessage(data, res.status), res.status, data);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let result = null;
+  let failure = null;
+
+  const handle = (event, data) => {
+    if (event === 'data') onDelta(JSON.parse(data));
+    else if (event === 'message') onMessage(data);
+    else if (event === 'done') result = JSON.parse(data);
+    else if (event === 'error') failure = new ApiError(JSON.parse(data), 502, { streamed: true }); // request was accepted, then the AI failed
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+      const block = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      let event = 'message';
+      const lines = [];
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) lines.push(line.slice(5).replace(/^ /, ''));
+      }
+      if (lines.length) handle(event, lines.join('\n'));
+    }
+  }
+
+  if (failure) throw failure;
+  if (!result) throw new ApiError('The connection closed before the answer finished. Try again.', 0, {});
+  return result;
+}
+
+/** Multipart upload with progress (fetch can't report upload progress). */
+export function apiUpload(path, formData, { onProgress = () => {} } = {}) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/${path}`);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onerror = () => reject(new ApiError('Upload failed: the connection dropped.', 0, {}));
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* non-JSON */ }
+      if (xhr.status === 401) onUnauthorized();
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new ApiError(xhr.status === 413 && !data.error ? 'That file is too big for the server.' : errorMessage(data, xhr.status), xhr.status, data));
+    };
+    xhr.send(formData);
+  });
+}
+
+/** A Markdown block that re-renders as text streams in (at most once per frame). */
+export function liveMarkdown(placeholder = 'Writing…') {
+  let text = '';
+  let queued = false;
+  const el = h('div', { class: 'markdown-body live' }, h('p', { class: 'muted' }, h('span', { class: 'spinner' }), ' ', placeholder));
+  const render = () => {
+    queued = false;
+    el.innerHTML = markdown(text) + '<span class="caret"></span>';
+  };
+  return {
+    el,
+    append(chunk) {
+      text += chunk;
+      if (!queued) { queued = true; requestAnimationFrame(render); }
+    },
+    get text() { return text; },
+  };
+}
+
 function errorMessage(data, status) {
   if (data.errors) {
     const first = Object.values(data.errors)[0];

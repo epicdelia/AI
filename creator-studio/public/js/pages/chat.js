@@ -1,5 +1,5 @@
 // Producer chat: brainstorm with an assistant that already knows her channel, ideas and week.
-import { h, api, toast, clear, mdBlock, copyText, confirmDialog, navigate, timeAgo, modal } from '../core.js';
+import { h, api, apiStream, liveMarkdown, toast, clear, mdBlock, copyText, confirmDialog, navigate, timeAgo, modal } from '../core.js';
 import { icon } from '../icons.js';
 import { outputPanel } from '../components.js';
 
@@ -75,7 +75,18 @@ export async function renderChat(view, id) {
       }
       messages.push({ role: 'user', content });
       drawThread();
-      const r = await api('POST', `chats/${current.id}/messages`, { content });
+      const live = liveMarkdown('Thinking…');
+      const liveBubble = h('div', { class: 'msg assistant' }, h('div', { class: 'msg-avatar' }, '🎬'), h('div', { class: 'msg-body' }, live.el));
+      thread.querySelector('.msg.assistant:last-child .typing')?.closest('.msg')?.remove();
+      thread.append(liveBubble);
+      thread.scrollTop = thread.scrollHeight;
+      const r = await apiStream(`chats/${current.id}/messages`, { content }, {
+        onDelta: (t) => {
+          const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
+          live.append(t);
+          if (atBottom) requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+        },
+      });
       messages[messages.length - 1] = r.user_message;
       messages.push(r.message);
       Object.assign(current, r.conversation);
@@ -84,7 +95,8 @@ export async function renderChat(view, id) {
     } catch (err) {
       toast(err.message, 'err');
       if (err.data?.conversation) Object.assign(current, err.data.conversation);
-      if (!err.data?.user_message) { messages.pop(); input.value = content; }
+      // A mid-stream failure means the question was saved; only un-send it if it never reached the server.
+      if (!err.data?.user_message && !err.data?.streamed) { messages.pop(); input.value = content; }
     } finally {
       sending = false;
       sendBtn.disabled = false;

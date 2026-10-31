@@ -106,7 +106,10 @@ export async function renderSettings(view) {
   section('YouTube & dictation keys', null,
     h('div', { class: 'grid grid-2 tight' },
       secretField('youtube_api_key', 'YouTube Data API key', 'for breakout scans and check-ins (free quota)', 'https://console.cloud.google.com/apis/library/youtube.googleapis.com'),
-      secretField('assemblyai_api_key', 'AssemblyAI key', 'for live dictation', 'https://www.assemblyai.com/dashboard/api-keys'))),
+      secretField('assemblyai_api_key', 'AssemblyAI key', 'for live dictation and recording transcripts', 'https://www.assemblyai.com/dashboard/api-keys'),
+      field('Transcribe recordings with', (inputs.transcription_engine = h('select', { name: 'transcription_engine' },
+        [['auto', 'Automatic (AssemblyAI if set, else OpenAI Whisper)'], ['assemblyai', 'AssemblyAI (full video files)'], ['openai', 'OpenAI Whisper (25 MB max)']]
+          .map(([v, l]) => h('option', { value: v, selected: v === (s.transcription_engine || 'auto') }, l))))))),
 
   section('Breakout research', 'What counts as a breakout when scanning competitor channels.',
     h('div', { class: 'grid grid-3 tight' },

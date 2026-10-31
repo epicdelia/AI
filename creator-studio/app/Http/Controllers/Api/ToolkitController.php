@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Engine\Stream\StreamService;
 use App\Domains\Toolkit\Models\CustomTool;
 use App\Domains\Toolkit\ToolRegistry;
 use App\Http\Controllers\Controller;
@@ -10,6 +11,7 @@ use App\Services\Llm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class ToolkitController extends Controller
@@ -26,6 +28,43 @@ class ToolkitController extends Controller
 
     public function run(Request $request, Llm $llm): JsonResponse
     {
+        [$tool, $data, $error] = $this->prepare($request);
+        if ($error) {
+            return $error;
+        }
+
+        try {
+            $output = $this->llmFor($llm, $data)->chat(ToolRegistry::system(), ToolRegistry::userPrompt($tool, $data['inputs'] ?? [], $data));
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
+
+        return response()->json(['output' => $output, 'tool' => $tool['name']]);
+    }
+
+    public function runStream(Request $request, Llm $llm, StreamService $sse): JsonResponse|StreamedResponse
+    {
+        [$tool, $data, $error] = $this->prepare($request);
+        if ($error) {
+            return $error;
+        }
+        $user = ToolRegistry::userPrompt($tool, $data['inputs'] ?? [], $data);
+
+        return $sse->respond(function (StreamService $sse) use ($llm, $data, $user, $tool) {
+            $output = $this->llmFor($llm, $data)->stream(ToolRegistry::system(), [['role' => 'user', 'content' => $user]], $sse->chunk(...));
+
+            return ['output' => $output, 'tool' => $tool['name']];
+        });
+    }
+
+    private function llmFor(Llm $llm, array $data): Llm
+    {
+        return $llm->as('tool:'.$data['tool'])->creativity(isset($data['creativity']) ? (float) $data['creativity'] : null);
+    }
+
+    /** @return array{0: ?array, 1: array, 2: ?JsonResponse} */
+    private function prepare(Request $request): array
+    {
         $data = $request->validate([
             'tool' => 'required|string|max:60',
             'inputs' => 'nullable|array',
@@ -39,25 +78,17 @@ class ToolkitController extends Controller
         try {
             $tool = ToolRegistry::find($data['tool']);
         } catch (InvalidArgumentException $e) {
-            return response()->json(['error' => $e->getMessage()], 404);
+            return [null, $data, response()->json(['error' => $e->getMessage()], 404)];
         }
 
         $inputs = $data['inputs'] ?? [];
         foreach ($tool['fields'] as $f) {
             if (! empty($f['required']) && trim((string) ($inputs[$f['name']] ?? '')) === '') {
-                return response()->json(['error' => "Fill in “{$f['label']}” first."], 422);
+                return [$tool, $data, response()->json(['error' => "Fill in “{$f['label']}” first."], 422)];
             }
         }
 
-        try {
-            $output = $llm->as('tool:'.$data['tool'])
-                ->creativity(isset($data['creativity']) ? (float) $data['creativity'] : null)
-                ->chat(ToolRegistry::system(), ToolRegistry::userPrompt($tool, $inputs, $data));
-        } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 502);
-        }
-
-        return response()->json(['output' => $output, 'tool' => $tool['name']]);
+        return [$tool, $data, null];
     }
 
     public function storeCustom(Request $request): JsonResponse

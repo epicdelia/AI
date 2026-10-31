@@ -5,6 +5,7 @@ import { youtubeDialog } from '../components.js';
 
 export async function renderBreakouts(view) {
   let data = await api('GET', 'channels');
+  const feeds = await feedSection();
 
   const channelsBox = h('div');
   const outliersBox = h('div');
@@ -124,14 +125,17 @@ export async function renderBreakouts(view) {
     pageHead('Breakouts', 'Videos in your niche that are massively outperforming their channel right now. They feed the idea generator.',
       scanBtn, link('/ideas', { class: 'btn' }, icon('sparkle'), 'Turn into ideas')),
     h('div', { class: 'grid grid-sidebar' },
-      h('div', { class: 'card' },
-        h('div', { class: 'card-header' }, h('h2', {}, 'Breakout videos'), freshLabel),
-        outliersBox),
+      h('div', {},
+        h('div', { class: 'card' },
+          h('div', { class: 'card-header' }, h('h2', {}, 'Breakout videos'), freshLabel),
+          outliersBox),
+        feeds.itemsCard),
       h('div', {},
         h('div', { class: 'card' },
           h('h2', {}, 'Watchlist'),
           addForm,
           h('div', { style: { marginTop: '16px' } }, channelsBox)),
+        feeds.feedsCard,
         h('div', { class: 'card' },
           h('h3', {}, 'How scoring works'),
           h('p', { class: 'muted' }, 'Score = a video’s views ÷ the median views of that channel’s older long-form uploads. Shorts are ignored.'),
@@ -139,4 +143,98 @@ export async function renderBreakouts(view) {
 
   drawChannels();
   drawOutliers();
+}
+
+/** News & blog feeds: a second idea signal (ported from MagicAI's RSS reader). */
+async function feedSection() {
+  let state = await api('GET', 'feeds');
+  const listBox = h('div');
+  const itemsBox = h('div');
+  const freshText = h('span', { class: 'muted' });
+
+  function drawFeeds() {
+    clear(listBox);
+    if (!state.feeds.length) {
+      listBox.append(h('p', { class: 'muted small' }, 'Add RSS or Atom feeds from news sites, blogs, newsletters or subreddits (add .rss to a subreddit URL).'));
+      return;
+    }
+    listBox.append(h('ul', { class: 'channel-list' }, state.feeds.map((f) => h('li', { class: f.active ? '' : 'inactive' },
+      h('div', { class: 'item-main' },
+        h('strong', { class: 'clamp-1' }, f.title || f.url),
+        h('div', { class: 'muted small' }, `${f.items_count} item${f.items_count === 1 ? '' : 's'} · fetched ${timeAgo(f.last_fetched_at)}`),
+        f.last_error ? h('div', { class: 'error-text' }, f.last_error) : null),
+      h('div', { class: 'row' },
+        h('label', { class: 'switch', title: f.active ? 'Included' : 'Paused' },
+          h('input', {
+            type: 'checkbox', checked: f.active,
+            onchange: async (e) => {
+              try { Object.assign(f, (await api('PATCH', `feeds/${f.id}/toggle`)).feed); } catch (err) { toast(err.message, 'err'); e.target.checked = f.active; }
+            },
+          }), h('span', { class: 'slider' })),
+        h('button', {
+          class: 'btn ghost sm danger', 'aria-label': 'Remove feed',
+          onclick: async () => {
+            if (!(await confirmDialog(`Remove “${f.title || f.url}” and its items?`, { ok: 'Remove' }))) return;
+            try { await api('DELETE', `feeds/${f.id}`); state = await api('GET', 'feeds'); drawFeeds(); drawItems(); } catch (err) { toast(err.message, 'err'); }
+          },
+        }, icon('trash', 16)))))));
+  }
+
+  function drawItems() {
+    clear(itemsBox);
+    freshText.textContent = `${state.fresh_count} not yet used for ideas`;
+    if (!state.items.length) {
+      itemsBox.append(h('p', { class: 'muted' }, 'Nothing yet. Add a feed on the right, then refresh.'));
+      return;
+    }
+    itemsBox.append(h('ul', { class: 'item-list' }, state.items.map((it) => h('li', {},
+      h('div', { class: 'item-main' },
+        it.link ? h('a', { href: it.link, target: '_blank', rel: 'noopener' }, h('strong', {}, it.title)) : h('strong', {}, it.title),
+        h('div', { class: 'muted small' }, it.feed?.title || '', it.published_at ? ` · ${timeAgo(it.published_at)}` : '', ' ', it.used ? pill('used', 'used for ideas') : pill('new', 'fresh')),
+        it.summary ? h('div', { class: 'muted small clamp-2' }, it.summary) : null),
+      h('button', {
+        class: 'btn ghost sm', title: 'Dismiss',
+        onclick: async () => {
+          try { await api('DELETE', `feed-items/${it.id}`); state.items = state.items.filter((x) => x.id !== it.id); if (!it.used) state.fresh_count--; drawItems(); } catch (err) { toast(err.message, 'err'); }
+        },
+      }, icon('x', 16))))));
+  }
+
+  const urlIn = h('input', { type: 'url', placeholder: 'https://example.com/feed', required: true });
+  const addBtn = h('button', { class: 'btn sm', type: 'submit' }, icon('plus', 15), 'Add feed');
+  const form = h('form', {
+    class: 'row',
+    onsubmit: (e) => {
+      e.preventDefault();
+      busy(addBtn, 'Checking…', async () => {
+        state = await api('POST', 'feeds', { url: urlIn.value.trim() });
+        toast(state.message);
+        urlIn.value = '';
+        drawFeeds();
+        drawItems();
+      });
+    },
+  }, h('div', { style: { flex: '1', minWidth: '180px' } }, urlIn), addBtn);
+
+  const refreshBtn = h('button', {
+    class: 'btn ghost sm',
+    onclick: () => busy(refreshBtn, 'Refreshing…', async () => {
+      state = await api('POST', 'feeds/refresh');
+      toast(state.message);
+      drawFeeds();
+      drawItems();
+    }),
+  }, icon('refresh', 15), 'Refresh');
+
+  drawFeeds();
+  drawItems();
+  return {
+    feedsCard: h('div', { class: 'card' },
+      h('div', { class: 'card-header' }, h('h2', {}, 'News feeds'), refreshBtn),
+      form, h('div', { style: { marginTop: '12px' } }, listBox)),
+    itemsCard: h('div', { class: 'card' },
+      h('div', { class: 'card-header' }, h('h2', {}, 'News & blog signals'), freshText),
+      h('p', { class: 'muted small' }, 'Fresh items from the last two weeks go into the next idea batch, next to the breakout videos.'),
+      itemsBox),
+  };
 }

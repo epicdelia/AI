@@ -1,5 +1,49 @@
 // Reusable UI pieces built on core.js: AI output panels and the YouTube analysis dialog.
-import { h, api, busy, toast, mdBlock, copyText, download, slug, modal, field, clear } from './core.js';
+import { h, api, apiStream, apiUpload, liveMarkdown, busy, toast, mdBlock, copyText, download, slug, modal, field, clear } from './core.js';
+
+let transcribeInfo = null;
+
+/**
+ * "Upload recording" button: pick an audio/video file, upload with progress, transcribe.
+ * onText(transcript, response) runs on success. opts: { scriptId, timestamps, label }
+ */
+export function transcribeButton(onText, opts = {}) {
+  const fileInput = h('input', { type: 'file', accept: 'audio/*,video/*', hidden: true });
+  const status = h('span', { class: 'muted small' });
+  const btn = h('button', { type: 'button', class: 'btn sm', onclick: () => fileInput.click() }, icon('mic', 15), opts.label || 'Upload recording');
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    try {
+      transcribeInfo ??= await api('GET', 'transcribe');
+      if (!transcribeInfo.engine) throw new Error('Add an AssemblyAI key (or use OpenAI as your AI engine) in Settings to transcribe recordings.');
+      const mb = file.size / 1048576;
+      if (mb > transcribeInfo.upload_limit_mb) throw new Error(`That file is ${mb.toFixed(0)} MB; the server accepts up to ${transcribeInfo.upload_limit_mb} MB. Upload the audio track only, or raise upload_max_filesize / post_max_size in php.ini.`);
+      if (transcribeInfo.engine === 'openai' && mb > transcribeInfo.whisper_max_mb) throw new Error(`Whisper accepts up to ${transcribeInfo.whisper_max_mb} MB. Export the audio (m4a/mp3) or add an AssemblyAI key for full videos.`);
+
+      btn.disabled = true;
+      const fd = new FormData();
+      fd.append('file', file);
+      if (opts.scriptId) fd.append('script_id', opts.scriptId);
+      if (opts.timestamps) fd.append('timestamps', '1');
+      const res = await apiUpload('transcribe', fd, {
+        onProgress: (p) => { status.textContent = p < 1 ? `Uploading… ${Math.round(p * 100)}%` : 'Transcribing… (about a quarter of the recording’s length)'; },
+      });
+      status.textContent = '';
+      toast(`${res.message} ${res.words.toLocaleString()} words.`);
+      onText(res.transcript, res);
+    } catch (err) {
+      status.textContent = '';
+      toast(err.message, 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  return h('span', { class: 'row transcribe-btn' }, btn, status, fileInput);
+}
 import { icon } from './icons.js';
 
 /**
@@ -83,18 +127,20 @@ export async function youtubeDialog(opts = {}) {
     const form = h('form', {
       onsubmit: (e) => {
         e.preventDefault();
-        busy(run, 'Reading the video… (up to a minute)', async () => {
-          clear(out);
+        busy(run, transcript.value ? 'Analysing…' : 'Reading the video…', async () => {
+          const live = liveMarkdown(transcript.value ? 'Analysing…' : 'Fetching the transcript…');
+          clear(out).append(h('div', { class: 'output-panel', style: { marginTop: '18px' } }, h('div', { class: 'output-body' }, live.el)));
           try {
-            const res = await api('POST', 'youtube/analyze', {
+            const res = await apiStream('youtube/analyze', {
               action: action.value, url: url.value || null, transcript: transcript.value || null, title: opts.title || null,
-            });
+            }, { onDelta: live.append });
             if (!transcript.value) transcript.value = res.transcript;
             tHint.hidden = false;
             tHint.textContent = `Transcript loaded (${res.transcript.split(/\s+/).length} words). Change the analysis and run again without re-fetching.`;
-            out.append(h('h3', { style: { marginTop: '18px' } }, res.action_label),
+            clear(out).append(h('h3', { style: { marginTop: '18px' } }, res.action_label),
               outputPanel(res.output, { title: `${res.action_label}: ${res.title || url.value}`, tool: `youtube:${action.value}`, inputs: { url: url.value } }));
           } catch (err) {
+            if (!live.text) clear(out);
             if (err.data?.needs_transcript) transcript.focus();
             throw err;
           }
@@ -104,6 +150,9 @@ export async function youtubeDialog(opts = {}) {
     field('Video link', url),
     h('div', { class: 'grid grid-2 tight' }, field('What do you want?', action), h('div')),
     field('Transcript', transcript),
+    h('div', { class: 'row', style: { margin: '-6px 0 10px' } },
+      h('span', { class: 'muted small' }, 'Or use a recording:'),
+      transcribeButton((text) => { transcript.value = text; tHint.hidden = false; tHint.textContent = 'Transcript ready. Pick an analysis and press Analyse.'; })),
     tHint,
     h('div', { class: 'row' }, run),
     out);

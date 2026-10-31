@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Chat\Models\ChatMessage;
 use App\Domains\Chat\Models\Conversation;
+use App\Domains\Engine\Stream\StreamService;
 use App\Http\Controllers\Controller;
 use App\Models\Idea;
 use App\Models\Outlier;
@@ -12,6 +14,7 @@ use App\Services\Llm;
 use App\Services\Prompts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /** Producer chat: a persistent conversation with an assistant that knows her channel. */
@@ -55,7 +58,22 @@ class ChatController extends Controller
         return response()->json(['message' => 'Chat deleted.']);
     }
 
-    public function send(Request $request, Conversation $conversation, Llm $llm): JsonResponse
+    public function sendStream(Request $request, Conversation $conversation, Llm $llm, StreamService $sse): StreamedResponse
+    {
+        [$userMsg, $history] = $this->addUserMessage($request, $conversation);
+        $system = Prompts::chatSystem($this->context());
+
+        return $sse->respond(function (StreamService $sse) use ($llm, $history, $system, $conversation, $userMsg) {
+            $sse->emit('message', (string) $userMsg->id);
+            $reply = $llm->as('chat')->stream($system, $history, $sse->chunk(...));
+            $assistant = $conversation->messages()->create(['role' => 'assistant', 'content' => $reply]);
+
+            return ['user_message' => $userMsg, 'message' => $assistant, 'conversation' => $conversation->fresh()];
+        });
+    }
+
+    /** @return array{0: ChatMessage, 1: array} the saved user message and the history to send */
+    private function addUserMessage(Request $request, Conversation $conversation): array
     {
         $content = trim((string) $request->validate(['content' => 'required|string|max:30000'])['content']);
 
@@ -68,6 +86,13 @@ class ChatController extends Controller
 
         $history = $conversation->messages()->reorder()->orderByDesc('id')->take(self::HISTORY)->get()->reverse()
             ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])->values()->all();
+
+        return [$userMsg, $history];
+    }
+
+    public function send(Request $request, Conversation $conversation, Llm $llm): JsonResponse
+    {
+        [$userMsg, $history] = $this->addUserMessage($request, $conversation);
 
         try {
             $reply = $llm->as('chat')->converse(Prompts::chatSystem($this->context()), $history);

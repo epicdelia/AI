@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\ScriptStreamController;
 use App\Http\Controllers\Api\ToolkitController;
+use App\Http\Controllers\Api\TranscriptionController;
 use App\Http\Controllers\Api\YouTubeController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
@@ -95,6 +98,27 @@ Route::prefix('api')->group(function () {
         Route::patch('chats/{conversation}', [ChatController::class, 'update']);
         Route::delete('chats/{conversation}', [ChatController::class, 'destroy']);
         Route::post('chats/{conversation}/messages', [ChatController::class, 'send']);
+
+        // Streaming (Server-Sent Events) versions of the slow AI actions
+        Route::post('stream/tools/run', [ToolkitController::class, 'runStream']);
+        Route::post('stream/chats/{conversation}/messages', [ChatController::class, 'sendStream']);
+        Route::post('stream/youtube/analyze', [YouTubeController::class, 'analyzeStream']);
+        Route::post('stream/scripts/{script}/draft', [ScriptStreamController::class, 'draft']);
+        Route::post('stream/scripts/{script}/review', [ScriptStreamController::class, 'review']);
+        Route::post('stream/scripts/{script}/substack', [ScriptStreamController::class, 'substack']);
+        Route::post('stream/scripts/{script}/edit-brief', [ScriptStreamController::class, 'editBrief']);
+
+        // Transcribe uploaded recordings
+        Route::get('transcribe', [TranscriptionController::class, 'info']);
+        Route::post('transcribe', [TranscriptionController::class, 'store']);
+
+        // News & blog feeds (idea signals)
+        Route::get('feeds', [FeedController::class, 'index']);
+        Route::post('feeds', [FeedController::class, 'store']);
+        Route::post('feeds/refresh', [FeedController::class, 'refresh']);
+        Route::patch('feeds/{feed}/toggle', [FeedController::class, 'toggle']);
+        Route::delete('feeds/{feed}', [FeedController::class, 'destroy']);
+        Route::delete('feed-items/{item}', [FeedController::class, 'destroyItem']);
     });
 });
 

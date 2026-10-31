@@ -11,7 +11,7 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 |---|---|
 | **Dashboard** | This week's commitment, streak, setup checklist, latest ideas/scripts/breakouts/notes |
 | **Dictate** | Hold Space, ramble, release: live transcript (AssemblyAI streaming) → clean note, idea, email… |
-| **Breakouts** | Watch competitor channels; flags recent long-form videos doing ≥ N× their channel median. "Why it worked" analysis per video |
+| **Breakouts** | Watch competitor channels; flags recent long-form videos doing ≥ N× their channel median. "Why it worked" analysis per video. **News feeds**: RSS/Atom feeds whose fresh items also feed the idea generator |
 | **Ideas** | AI briefs from breakout signals (or your niche), pick / drop / edit, draft a script in one click |
 | **Scripts** | Editor with autosave and a live AI-tell linter, AI review panel, **Package** tab (titles, thumbnails, hooks, description, tags, chapters, Shorts, thread, newsletter), transcript fetch, Substack post, editor brief |
 | **Weekly goals** | 12-week plan, scoreboard from your real uploads, blunt mentor verdict |
@@ -50,15 +50,34 @@ AssemblyAI LLM Gateway (can reuse the dictation key) · any OpenAI-compatible se
 
 Every call is logged in `ai_usages` (feature, model, tokens, time) and summarised in Settings.
 
+**Streaming.** Script drafts, reviews, Substack posts, edit briefs, Toolkit runs, AI YouTube and the
+producer chat stream their text as it's written (Server-Sent Events, `POST /api/stream/...`).
+The transport is ported from MagicAI's `StreamService` but reads the provider's stream
+incrementally (`app/Domains/Engine/Stream`). Behind nginx keep `X-Accel-Buffering: no` honoured;
+`php artisan serve` handles one request at a time, so other requests wait while a stream runs.
+
+**Recording transcripts.** Upload an audio or video file on a script's Transcript tab (or in AI YouTube).
+AssemblyAI handles full video files with the dictation key; OpenAI Whisper (25 MB max) is used when
+OpenAI is the AI engine and there's no AssemblyAI key. For big video files raise PHP's limits:
+
+```ini
+upload_max_filesize = 512M
+post_max_size = 512M
+```
+
 ## Code map
 
 ```
 app/Domains/Engine/     provider enum, driver contract, OpenAI-compatible + Anthropic drivers, EngineManager
 app/Domains/Toolkit/    ToolRegistry (built-in templates), CustomTool + Document models
 app/Domains/Chat/       Conversation + ChatMessage models
+app/Domains/Engine/Stream/  SSE transport (StreamService) and incremental upstream SseParser
+app/Domains/Feeds/      FeedReader (RSS + Atom, private-address guard) and Feed/FeedItem models
 app/Domains/Usage/      AiUsage model and summary
-app/Services/           Llm (the one door to the AI), Prompts, AiTellsLinter, YouTube, YouTubeTranscript, Dictation
-app/Http/Controllers/   ApiController (core pipeline) and Api/* (Toolkit, Library, YouTube, Chat)
+app/Services/           Llm (the one door to the AI), Prompts, AiTellsLinter, YouTube, YouTubeTranscript,
+                        Transcription (AssemblyAI + Whisper), Dictation
+app/Http/Controllers/   ApiController (core pipeline) and Api/* (Toolkit, Library, YouTube, Chat,
+                        ScriptStream, Transcription, Feeds)
 routes/web.php          /api/* JSON routes; everything else serves public/index.html
 public/js/              core.js (DOM, API, Markdown, router), components.js, icons.js, pages/*.js
 public/css/             studio.css (tokens, layout), components.css
@@ -70,7 +89,8 @@ public/css/             studio.css (tokens, layout), components.css
 php vendor/bin/phpunit
 ```
 
-The AI and YouTube calls are faked in tests (`Llm::$fake`, `YouTubeTranscript::$fake`, `Http::fake`).
+The AI, YouTube, transcription and feed calls are faked in tests (`Llm::$fake`, `YouTubeTranscript::$fake`,
+`Transcription::$fake`, `FeedReader::$fake`, `Http::fake`).
 
 ## Notes
 

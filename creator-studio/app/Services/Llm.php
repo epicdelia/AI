@@ -84,6 +84,42 @@ class Llm
         return $result->text;
     }
 
+    /**
+     * Like converse(), but $onDelta receives text as it's written. Returns the full text.
+     *
+     * @param  array<int, array{role: string, content: string}>  $messages
+     * @param  callable(string): void  $onDelta
+     */
+    public function stream(string $system, array $messages, callable $onDelta, int $timeout = 180): string
+    {
+        if (self::$fake) {
+            $last = end($messages);
+            $text = (self::$fake)($system, $last['content'] ?? '');
+            foreach (preg_split('/(?<=\s)/', $text) as $piece) {
+                $onDelta($piece);
+            }
+
+            return $text;
+        }
+
+        @set_time_limit($timeout + 30);
+        $engine = $this->engines->current();
+        $started = microtime(true);
+        $options = ['timeout' => $timeout] + ($this->temperature !== null ? ['temperature' => $this->temperature] : []);
+
+        try {
+            $result = $this->engines->driver($engine)->stream($system, $messages, $onDelta, $options);
+        } catch (Throwable $e) {
+            $this->record($engine, null, null, null, $started, $e->getMessage());
+
+            throw $e instanceof RuntimeException ? $e : new RuntimeException($e->getMessage(), 0, $e);
+        }
+
+        $this->record($engine, $result->model, $result->inputTokens, $result->outputTokens, $started);
+
+        return $result->text;
+    }
+
     /** Ask for JSON and decode it, tolerating ```json fences and chatter around the object. */
     public function json(string $system, string $user): array
     {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domains\Engine\EngineManager;
+use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Usage\AiUsage;
 use App\Models\Channel;
@@ -305,6 +306,16 @@ class ApiController extends Controller
             ? "No breakout signals in database today.\n"
             : "Long-form breakout videos (doing 3x+ channel median):\n" . $signals->map->compactLine()->implode("\n") . "\n";
 
+        // News & blog signals from her feeds: timely topics, cited the same way as breakouts.
+        $news = FeedItem::with('feed:id,title')->where('used', false)
+            ->whereHas('feed', fn ($q) => $q->where('active', true))
+            ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '>=', now()->subDays(14)))
+            ->orderByDesc('published_at')->take(12)->get();
+        if ($news->isNotEmpty()) {
+            $userPrompt .= "\nNews and blog posts in her niche (timely topics; a news idea's why_now must cite one of these URLs):\n"
+                . $news->map->compactLine()->implode("\n") . "\n";
+        }
+
         if ($extra !== '') {
             $userPrompt .= "\nPersonal notes/direction from creator:\n{$extra}\n";
         }
@@ -322,7 +333,7 @@ class ApiController extends Controller
 
         $brief = IdeaBrief::create([
             'summary' => $data['summary'] ?? null,
-            'signals' => $signals->map->compactLine()->implode("\n"),
+            'signals' => $signals->toBase()->map->compactLine()->merge($news->toBase()->map->compactLine())->implode("\n"),
         ]);
 
         $createdIdeas = [];
@@ -338,9 +349,15 @@ class ApiController extends Controller
         }
 
         Outlier::whereIn('id', $signals->pluck('id'))->update(['used' => true]);
+        FeedItem::whereIn('id', $news->pluck('id'))->update(['used' => true]);
+
+        $sources = array_filter([
+            $signals->isNotEmpty() ? $signals->count().' breakout signal(s)' : null,
+            $news->isNotEmpty() ? $news->count().' news item(s)' : null,
+        ]);
 
         return response()->json([
-            'message' => count($createdIdeas).' new idea(s) generated'.($signals->isEmpty() ? ' from your niche.' : ' from '.$signals->count().' breakout signal(s).'),
+            'message' => count($createdIdeas).' new idea(s) generated'.($sources ? ' from '.implode(' and ', $sources).'.' : ' from your niche.'),
             'summary' => $data['summary'] ?? '',
             'created' => $createdIdeas,
         ]);

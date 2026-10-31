@@ -1,6 +1,4 @@
-// Sign in (and first-run setup): a split screen, the form on the left and a peek at her studio
-// on the right with today's love note. Google sign-in appears once the Google app is set up
-// (Connections → YouTube) and only lets her own account in.
+// Sign in, Register and First-run Setup with Boxed Layout, Header & Optional Guided Server Install.
 import { h, api, clear, field, formData, modal } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
@@ -20,89 +18,379 @@ function passwordField(name, label, autocomplete, extra = {}) {
       eye.replaceChildren(icon(show ? 'x' : 'eye', 18));
     },
   }, icon('eye', 18));
-  return field(label, h('div', { class: 'auth-pass' }, input, eye));
+  return { container: field(label, h('div', { class: 'auth-pass' }, input, eye)), input };
+}
+
+function passwordMeter(input) {
+  const fill = h('div', { class: 'auth-strength-fill' });
+  const bar = h('div', { class: 'auth-strength-bar' }, fill);
+  const text = h('div', { class: 'auth-strength-text' }, '');
+  const wrap = h('div', { class: 'auth-strength' }, bar, text);
+
+  input.addEventListener('input', () => {
+    const v = input.value;
+    if (!v) {
+      wrap.className = 'auth-strength';
+      text.textContent = '';
+      return;
+    }
+    let score = 0;
+    if (v.length >= 8) score++;
+    if (v.length >= 12) score++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+
+    let level = 'weak';
+    let label = 'Weak';
+    if (score >= 4) {
+      level = 'strong';
+      label = 'Strong';
+    } else if (score >= 2) {
+      level = 'good';
+      label = 'Good';
+    } else {
+      level = 'weak';
+      label = 'Weak (at least 8 chars, mix letters & numbers)';
+    }
+
+    wrap.className = `auth-strength auth-strength-${level}`;
+    text.textContent = label;
+  });
+
+  return wrap;
 }
 
 function forgotHelp() {
   modal('Forgot your password?', () => h('div', { class: 'auth-forgot' },
-    h('p', {}, 'The studio runs on your computer and doesn’t send emails, so the password is reset there:'),
+    h('p', {}, 'The studio is hosted on your server or computer. You can reset your password using the CLI:'),
     h('ol', {},
-      h('li', {}, 'Open a terminal in the creator-studio folder.'),
+      h('li', {}, 'Open a terminal in your project directory.'),
       h('li', {}, 'Run ', h('code', {}, 'php artisan studio:password'), ' and type the new password twice.'),
-      h('li', {}, 'Sign in here with it.')),
-    h('p', { class: 'muted small' }, 'If Google sign-in is set up, “Login with Google” works without the password too.')));
+      h('li', {}, 'Return here and sign in with the new password.')),
+    h('p', { class: 'muted small' }, 'If Google sign-in is configured, “Login with Google” also works directly.')));
+}
+
+function renderGuidedInstall() {
+  let open = false;
+  const statusContainer = h('div', { class: 'auth-install-status' });
+  const messageArea = h('div', { class: 'form-error', hidden: true });
+  const outputArea = h('pre', { class: 'auth-install-output', hidden: true });
+
+  const driverSelect = h('select', { name: 'driver', class: 'input' },
+    h('option', { value: 'sqlite' }, 'SQLite (Zero setup, local file)'),
+    h('option', { value: 'mysql' }, 'MySQL / MariaDB (Recommended for server)'),
+    h('option', { value: 'pgsql' }, 'PostgreSQL'));
+
+  const hostInput = h('input', { type: 'text', name: 'host', value: '127.0.0.1', placeholder: '127.0.0.1' });
+  const portInput = h('input', { type: 'number', name: 'port', value: '3306', placeholder: '3306' });
+  const dbInput = h('input', { type: 'text', name: 'database', value: 'database/database.sqlite', placeholder: 'database/database.sqlite or db name' });
+  const userInput = h('input', { type: 'text', name: 'username', placeholder: 'Database username' });
+  const passInput = h('input', { type: 'password', name: 'password', placeholder: 'Database password' });
+  const appUrlInput = h('input', { type: 'url', name: 'app_url', value: window.location.origin, placeholder: window.location.origin });
+
+  const hostField = field('Host', hostInput);
+  const portField = field('Port', portInput);
+  const userField = field('Username', userInput);
+  const passField = field('Password', passInput);
+
+  function syncDriverFields() {
+    const isSqlite = driverSelect.value === 'sqlite';
+    hostField.style.display = isSqlite ? 'none' : 'block';
+    portField.style.display = isSqlite ? 'none' : 'block';
+    userField.style.display = isSqlite ? 'none' : 'block';
+    passField.style.display = isSqlite ? 'none' : 'block';
+    if (isSqlite) {
+      dbInput.value = 'database/database.sqlite';
+      dbInput.placeholder = 'database/database.sqlite';
+    } else {
+      if (dbInput.value === 'database/database.sqlite') dbInput.value = 'creator_studio';
+      portInput.value = driverSelect.value === 'pgsql' ? '5432' : '3306';
+    }
+  }
+  driverSelect.addEventListener('change', syncDriverFields);
+  syncDriverFields();
+
+  async function checkServerEnv() {
+    statusContainer.replaceChildren(h('span', { class: 'auth-install-status-pill' }, icon('refresh', 14), ' Checking environment...'));
+    try {
+      const res = await api('GET', 'install/status');
+      const s = res.server;
+      const db = res.database;
+      statusContainer.replaceChildren(
+        h('span', { class: `auth-install-status-pill ${s.php_ok ? 'ok' : 'warn'}` }, `PHP ${s.php_version}`),
+        h('span', { class: `auth-install-status-pill ${s.storage_writable ? 'ok' : 'warn'}` }, s.storage_writable ? 'Storage ✓' : 'Storage read-only'),
+        h('span', { class: `auth-install-status-pill ${s.extensions?.pdo_mysql ? 'ok' : ''}` }, 'MySQL PDO'),
+        h('span', { class: `auth-install-status-pill ${s.extensions?.pdo_sqlite ? 'ok' : ''}` }, 'SQLite PDO'),
+        h('span', { class: `auth-install-status-pill ${db.connected ? 'ok' : 'warn'}` }, db.connected ? 'DB Connected ✓' : 'DB Not Connected')
+      );
+    } catch (e) {
+      statusContainer.replaceChildren(h('span', { class: 'auth-install-status-pill warn' }, 'Status check unavailable'));
+    }
+  }
+
+  const testBtn = h('button', {
+    type: 'button', class: 'btn secondary small',
+    onclick: async () => {
+      messageArea.hidden = true;
+      testBtn.disabled = true;
+      try {
+        const payload = {
+          driver: driverSelect.value,
+          host: hostInput.value,
+          port: portInput.value,
+          database: dbInput.value,
+          username: userInput.value,
+          password: passInput.value,
+        };
+        const res = await api('POST', 'install/test-db', payload);
+        messageArea.className = 'form-error';
+        messageArea.style.borderColor = 'var(--good)';
+        messageArea.style.color = 'var(--good)';
+        messageArea.style.background = 'var(--good-soft)';
+        messageArea.textContent = res.message || 'Connection successful!';
+        messageArea.hidden = false;
+      } catch (err) {
+        messageArea.className = 'form-error';
+        messageArea.style.borderColor = '';
+        messageArea.style.color = '';
+        messageArea.style.background = '';
+        messageArea.textContent = err.message;
+        messageArea.hidden = false;
+      } finally {
+        testBtn.disabled = false;
+      }
+    },
+  }, icon('check', 14), ' Test Connection');
+
+  const saveBtn = h('button', {
+    type: 'button', class: 'btn primary small',
+    onclick: async () => {
+      messageArea.hidden = true;
+      outputArea.hidden = true;
+      saveBtn.disabled = true;
+      try {
+        const payload = {
+          driver: driverSelect.value,
+          host: hostInput.value,
+          port: portInput.value,
+          database: dbInput.value,
+          username: userInput.value,
+          password: passInput.value,
+          app_url: appUrlInput.value,
+        };
+        const res = await api('POST', 'install/setup-db', payload);
+        messageArea.className = 'form-error';
+        messageArea.style.borderColor = 'var(--good)';
+        messageArea.style.color = 'var(--good)';
+        messageArea.style.background = 'var(--good-soft)';
+        messageArea.textContent = res.message;
+        messageArea.hidden = false;
+        if (res.output) {
+          outputArea.textContent = res.output;
+          outputArea.hidden = false;
+        }
+        checkServerEnv();
+      } catch (err) {
+        messageArea.className = 'form-error';
+        messageArea.style.borderColor = '';
+        messageArea.style.color = '';
+        messageArea.style.background = '';
+        messageArea.textContent = err.message;
+        messageArea.hidden = false;
+      } finally {
+        saveBtn.disabled = false;
+      }
+    },
+  }, icon('gear', 14), ' Save & Migrate');
+
+  const body = h('div', { class: 'auth-install-body', hidden: true },
+    h('p', { class: 'auth-install-desc' }, 'Optional server & database setup. If you already configured your database in .env or via CLI, you can skip this section and create your administrator account directly.'),
+    statusContainer,
+    field('Database Driver', driverSelect),
+    h('div', { class: 'auth-install-grid' }, hostField, portField),
+    field('Database Name / File Path', dbInput),
+    h('div', { class: 'auth-install-grid' }, userField, passField),
+    field('App URL', appUrlInput),
+    h('div', { class: 'auth-install-actions' }, testBtn, saveBtn),
+    messageArea,
+    outputArea);
+
+  const toggleBtn = h('button', {
+    type: 'button', class: 'auth-install-toggle',
+    onclick: () => {
+      open = !open;
+      body.hidden = !open;
+      toggleBtn.setAttribute('aria-expanded', String(open));
+      if (open && !statusContainer.children.length) {
+        checkServerEnv();
+      }
+    },
+  },
+    h('span', { class: 'auth-install-title' }, icon('gear', 16), ' Server & Database Setup'),
+    h('span', { class: 'auth-install-badge' }, 'Optional'));
+
+  return h('div', { class: 'auth-install-card' }, toggleBtn, body);
 }
 
 export function renderAuth(root, initialized, welcome, onDone) {
   const params = new URLSearchParams(location.search);
-  const error = h('div', { class: 'form-error', role: 'alert', hidden: !params.get('login_error') }, params.get('login_error') || '');
+  const errorMsg = params.get('login_error') || '';
   if (params.get('login_error')) history.replaceState({}, '', '/');
-  const submit = h('button', { class: 'btn primary block auth-submit', type: 'submit' }, initialized ? 'Sign in' : 'Create my studio');
-  const remember = h('input', { type: 'checkbox', name: 'remember', checked: true });
-  const name = welcome?.name || '';
 
-  const fields = initialized
-    ? [
+  let mode = initialized ? 'login' : 'setup'; // 'login' | 'register' | 'setup'
+
+  const container = h('div', { class: 'auth-inner' });
+
+  function updateView() {
+    clear(container);
+    const error = h('div', { class: 'form-error', role: 'alert', hidden: !errorMsg }, errorMsg);
+    const remember = h('input', { type: 'checkbox', name: 'remember', checked: true });
+    const name = welcome?.name || '';
+
+    // Header tabs when initialized
+    const tabs = initialized ? h('div', { class: 'auth-tabs' },
+      h('button', {
+        type: 'button',
+        class: `auth-tab ${mode === 'login' ? 'active' : ''}`,
+        onclick: () => { mode = 'login'; updateView(); },
+      }, 'Sign in'),
+      h('button', {
+        type: 'button',
+        class: `auth-tab ${mode === 'register' ? 'active' : ''}`,
+        onclick: () => { mode = 'register'; updateView(); },
+      }, 'Create account')
+    ) : null;
+
+    let titleText = 'Sign in';
+    let subText = 'Welcome back. Pick up right where you left off.';
+    let submitLabel = 'Sign in';
+
+    if (mode === 'register') {
+      titleText = 'Create account';
+      subText = 'Create an account to manage your channels, ideas, and sponsorships.';
+      submitLabel = 'Create account';
+    } else if (mode === 'setup') {
+      titleText = 'Set up your studio';
+      subText = 'Create your administrator account to launch your creator studio.';
+      submitLabel = 'Create my studio';
+    } else if (mode === 'login' && name) {
+      subText = `Welcome back, ${name}. Pick up right where you left off.`;
+    }
+
+    const formFields = [];
+
+    if (mode === 'setup' || mode === 'register') {
+      formFields.push(
+        field('Your name', h('input', { type: 'text', name: 'name', required: true, maxlength: 100, autocomplete: 'name', placeholder: 'Your name or handle' }), 'used on your dashboard and in AI prompts'),
+        field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' }))
+      );
+      const pass = passwordField('password', 'Password', 'new-password', { minlength: 8, placeholder: 'At least 8 characters' });
+      formFields.push(pass.container);
+      formFields.push(passwordMeter(pass.input));
+      formFields.push(passwordField('password_confirmation', 'Confirm password', 'new-password', { minlength: 8, placeholder: 'Once more' }).container);
+    } else {
+      // Login mode
+      formFields.push(
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })),
-        passwordField('password', 'Password', 'current-password'),
+        passwordField('password', 'Password', 'current-password').container,
         h('div', { class: 'auth-row' },
           h('label', { class: 'auth-remember' }, remember, ' Remember me'),
-          h('button', { type: 'button', class: 'auth-link', onclick: forgotHelp }, 'Forgot password?')),
-      ]
-    : [
-        field('Your name', h('input', { type: 'text', name: 'name', required: true, maxlength: 100, autocomplete: 'name' }), 'shown on your dashboard and used in the AI prompts'),
-        field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })),
-        passwordField('password', 'Password', 'new-password', { minlength: 8, placeholder: 'At least 8 characters' }),
-        passwordField('password_confirmation', 'Confirm password', 'new-password', { minlength: 8, placeholder: 'Once more' }),
-      ];
+          h('button', { type: 'button', class: 'auth-link', onclick: forgotHelp }, 'Forgot password?'))
+      );
+    }
 
-  const form = h('form', {
-    class: 'auth-form', novalidate: false,
-    onsubmit: async (e) => {
-      e.preventDefault();
-      error.hidden = true;
-      submit.disabled = true;
-      try {
-        const body = formData(form);
-        const res = await api('POST', initialized ? 'auth/login' : 'auth/setup', body);
-        onDone(res.user);
-      } catch (err) {
-        error.textContent = err.message;
-        error.hidden = false;
-        submit.disabled = false;
+    const submit = h('button', { class: 'btn primary block auth-submit', type: 'submit' }, submitLabel);
+
+    const form = h('form', {
+      class: 'auth-form', novalidate: false,
+      onsubmit: async (e) => {
+        e.preventDefault();
+        error.hidden = true;
+        submit.disabled = true;
+        try {
+          const body = formData(form);
+          let endpoint = 'auth/login';
+          if (mode === 'register') endpoint = 'auth/register';
+          else if (mode === 'setup') endpoint = 'auth/setup';
+
+          const res = await api('POST', endpoint, body);
+          onDone(res.user);
+        } catch (err) {
+          error.textContent = err.message;
+          error.hidden = false;
+          submit.disabled = false;
+        }
+      },
+    }, formFields, error, submit);
+
+    const google = (mode === 'login' && initialized && welcome?.google) ? [
+      h('a', { class: 'auth-social', href: '/auth/google/redirect', onclick: (e) => { e.currentTarget.href = `/auth/google/redirect?remember=${remember.checked ? 1 : 0}`; } },
+        h('span', { class: 'auth-social-ico', html: GOOGLE }), 'Login with Google'),
+      h('div', { class: 'auth-or' }, h('span'), 'or', h('span')),
+    ] : null;
+
+    let switchRow = null;
+    if (initialized) {
+      if (mode === 'login') {
+        switchRow = h('p', { class: 'auth-foot muted small' },
+          'Don’t have an account? ',
+          h('button', { type: 'button', class: 'auth-link', onclick: () => { mode = 'register'; updateView(); } }, 'Create one'));
+      } else {
+        switchRow = h('p', { class: 'auth-foot muted small' },
+          'Already have an account? ',
+          h('button', { type: 'button', class: 'auth-link', onclick: () => { mode = 'login'; updateView(); } }, 'Sign in'));
       }
-    },
-  }, fields, error, submit);
+    }
 
-  const google = initialized && welcome?.google ? [
-    h('a', { class: 'auth-social', href: '/auth/google/redirect', onclick: (e) => { e.currentTarget.href = `/auth/google/redirect?remember=${remember.checked ? 1 : 0}`; } },
-      h('span', { class: 'auth-social-ico', html: GOOGLE }), 'Login with Google'),
-    h('div', { class: 'auth-or' }, h('span'), 'or', h('span')),
-  ] : null;
+    const guidedInstall = mode === 'setup' ? renderGuidedInstall() : null;
 
-  if (name) setLove({ name }); // so a note with {name} greets her by name
+    container.append(
+      tabs,
+      h('h1', {}, titleText),
+      h('p', { class: 'muted auth-sub' }, subText),
+      google,
+      form,
+      switchRow,
+      guidedInstall
+    );
+
+    const firstInput = form.querySelector('input');
+    if (firstInput) firstInput.focus();
+  }
+
+  updateView();
+
+  const name = welcome?.name || '';
+  if (name) setLove({ name });
   const note = welcome?.love !== false ? noteOfTheDay() : null;
 
-  clear(root).append(h('div', { class: 'auth-split' },
-    h('main', { class: 'auth-side' },
-      h('div', { class: 'auth-top' },
-        h('div', { class: 'auth-brand' }, brandMark(24)),
-        h('div', { class: 'auth-theme' }, themeSwitch())),
-      h('div', { class: 'auth-inner' },
-        h('h1', {}, initialized ? 'Sign in' : 'Set up your studio'),
-        h('p', { class: 'muted auth-sub' }, initialized
-          ? (name ? `Welcome back, ${name} Pick up right where you left off.` : 'Welcome back. Pick up right where you left off.')
-          : 'Ideas, scripts, every social network, agents and a weekly mentor in one place. This creates the only account for this studio.'),
-        google, form),
-      note ? h('p', { class: 'auth-note-mobile' }, icon('heart-fill', 14), ' ', note) : null,
-      h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this computer. Your data stays here.')),
-    h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
-      h('div', { class: 'auth-glow' }),
-      h('img', { class: 'auth-mockup', src: '/images/auth-mockup.png', alt: '', loading: 'eager', decoding: 'async' }),
-      note ? h('figure', { class: 'auth-note' },
-        h('span', { class: 'auth-note-heart' }, icon('mail', 22)),
-        h('blockquote', {}, note),
-        h('figcaption', {}, 'Note of the day')) : null)));
+  // Boxed layout structure with clean header
+  const authHeader = h('header', { class: 'auth-header' },
+    h('div', { class: 'auth-header-brand' }, brandMark(28)),
+    h('div', { class: 'auth-header-actions' }, themeSwitch()));
 
-  form.querySelector('input').focus();
+  const authArt = h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
+    h('div', { class: 'auth-mockup-wrap' },
+      h('img', { class: 'auth-mockup auth-mockup-light', src: '/images/auth-mockup-light.svg', alt: 'Studio Preview Light', loading: 'eager' }),
+      h('img', { class: 'auth-mockup auth-mockup-dark', src: '/images/auth-mockup-dark.svg', alt: 'Studio Preview Dark', loading: 'eager' })),
+    note ? h('figure', { class: 'auth-note' },
+      h('span', { class: 'auth-note-heart' }, icon('mail', 20)),
+      h('blockquote', {}, note),
+      h('figcaption', {}, 'Note of the day')) : null);
+
+  const authBody = h('div', { class: 'auth-body' },
+    h('main', { class: 'auth-side' },
+      container,
+      note ? h('p', { class: 'auth-note-mobile' }, icon('heart', 14), ' ', note) : null,
+      h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this server. Your data stays here.')),
+    authArt);
+
+  const authBox = h('div', { class: 'auth-box' },
+    authHeader,
+    authBody);
+
+  const authPage = h('div', { class: 'auth-page' }, authBox);
+
+  clear(root).append(authPage);
 }

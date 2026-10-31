@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\GrowthController;
+use App\Http\Controllers\Api\InstallController;
 use App\Http\Controllers\Api\ScriptWizardController;
 use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\LoveController;
@@ -43,8 +44,15 @@ Route::prefix('api')->group(function () {
     // Auth
     Route::get('auth/status', [ApiController::class, 'authStatus']);
     Route::post('auth/setup', [ApiController::class, 'setup']);
+    Route::post('auth/register', [ApiController::class, 'register']);
     Route::post('auth/login', [ApiController::class, 'login']);
     Route::post('auth/logout', [ApiController::class, 'logout']);
+
+    // Guided Server & Database Install (Optional)
+    Route::get('install/status', [InstallController::class, 'status']);
+    Route::post('install/test-db', [InstallController::class, 'testDatabase']);
+    Route::post('install/setup-db', [InstallController::class, 'setupDatabase']);
+    Route::post('install/run-migrations', [InstallController::class, 'runMigrations']);
 
     // Authenticated API endpoints
     Route::middleware('auth')->group(function () {
@@ -390,6 +398,17 @@ Route::get('auth/google/callback', [\App\Http\Controllers\GoogleLoginController:
 
 // OAuth return from each network (a browser redirect, so it uses the session, not the JSON API)
 Route::get('oauth/{platform}/callback', [SocialAccountsController::class, 'callback'])->where('platform', '[a-z]+');
+
+// Static public image assets (SVG / PNG / JPG)
+Route::get('images/{file}', function ($file) {
+    $path = public_path('images/'.$file);
+    if (! file_exists($path)) {
+        abort(404);
+    }
+    $mime = str_ends_with($file, '.svg') ? 'image/svg+xml' : (str_ends_with($file, '.png') ? 'image/png' : 'image/jpeg');
+
+    return response()->file($path, ['Content-Type' => $mime]);
+})->where('file', '.*');
 
 // Single Page Application (SPA) entry point - pure HTML + Vanilla JavaScript
 Route::fallback(function () {

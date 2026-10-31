@@ -45,12 +45,20 @@ class ApiController extends Controller
 
     public function authStatus(): JsonResponse
     {
-        $hasUsers = User::count() > 0;
-        $user = Auth::user();
+        $dbConnected = true;
+        $hasUsers = false;
+        try {
+            $hasUsers = User::count() > 0;
+        } catch (Throwable) {
+            $dbConnected = false;
+            $hasUsers = false;
+        }
+        $user = $dbConnected ? Auth::user() : null;
 
         return response()->json([
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
+            'db_connected' => $dbConnected,
             'tour_done' => $user ? Setting::has('tour_done') : null,
             // Login screen: her first name and whether love notes are on (nothing else before sign-in).
             'welcome' => $hasUsers && ! $user ? [
@@ -114,6 +122,35 @@ class ApiController extends Controller
             'message' => "Welcome, {$user->name}!",
             'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
         ]);
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|max:200|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $isFirst = User::count() === 0;
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        if ($isFirst || ! Setting::has('creator_name')) {
+            Setting::put('creator_name', $data['name']);
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'message' => "Welcome to Creator Studio, {$user->name}!",
+            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+        ], 201);
     }
 
     public function login(Request $request): JsonResponse

@@ -73,6 +73,17 @@ function setupCard(checks) {
       c.done ? h('span', {}, c.label) : link(SETUP_LINKS[c.key] || '/settings', {}, c.label)))));
 }
 
+/** The one thing to do next for this week's video (NextStep on the server). */
+function nextStepCard(step) {
+  if (!step) return null;
+  return h('div', { class: 'card next-step' },
+    h('div', { class: 'next-step-body' },
+      h('p', { class: 'next-step-eyebrow' }, 'Next step'),
+      h('h2', {}, step.title),
+      step.detail ? h('p', { class: 'muted' }, step.detail) : null),
+    link(step.link, { class: 'btn primary' }, step.action, icon('arrow', 15)));
+}
+
 function listCard(title, to, items, renderItem, empty) {
   return h('div', { class: 'card' },
     h('div', { class: 'card-header' }, h('h2', {}, title), link(to, { class: 'btn ghost sm' }, 'See all', icon('arrow', 14))),
@@ -85,6 +96,7 @@ export async function renderDashboard(view) {
 
   view.append(
     heroCard(d),
+    nextStepCard(d.next_step),
     loveCard(),
     setupCard(d.setup_checks),
     h('div', { class: 'grid grid-4', style: { marginTop: '18px' } },

@@ -13,6 +13,7 @@ import { setCopilotContext } from '../copilot.js';
 import { readAloudCard, thumbnailStudio, shortsPanel, brollPanel, cleanAudioButton } from '../media.js';
 import { openPrompter } from '../prompter.js';
 import { versionsDialog } from '../versions.js';
+import { feedPreview } from '../preview.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -173,10 +174,32 @@ export async function renderScript(view, id) {
     h('code', {}, f.match)))));
   }
 
+  // ---- structure: section timing and retention flags (deterministic, see ScriptStructure) ----
+  const structureBox = h('div');
+  const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  function drawStructure(st) {
+    clear(structureBox);
+    if (!st?.sections?.length) { structureBox.append(h('p', { class: 'muted small' }, 'Add ## headings for each part (Cold open, chapters, CTA) to see the timing.')); return; }
+    const total = Math.max(1, st.total_seconds);
+    structureBox.append(
+      h('div', { class: 'st-bar', 'aria-hidden': 'true' }, st.sections.map((s, i) => h('span', {
+        class: `st-seg st-c${i % 4}`, style: { flexGrow: String(Math.max(s.seconds, 1)) }, title: `${s.title} · ${clock(s.seconds)}`,
+      }))),
+      h('ol', { class: 'st-list' }, st.sections.map((s) => h('li', { onclick: () => jumpToLine(s.line), title: `Go to line ${s.line}` },
+        h('span', { class: 'st-time' }, clock(s.start)), h('span', { class: 'st-title' }, s.title), h('span', { class: 'muted' }, clock(s.seconds))))),
+      h('div', { class: 'muted small' }, `About ${clock(total)} spoken, at 150 words a minute.`),
+      st.flags.length
+        ? h('ul', { class: 'lint-list' }, st.flags.map((f) => h('li', { class: 'lint-item WARN', onclick: () => jumpToLine(f.line), title: `Go to line ${f.line}` },
+          h('div', { class: 'lint-rule' }, f.message))))
+        : h('div', { class: 'lint-clean' }, icon('check', 16), 'Pacing looks right.'),
+      st.chapters ? h('button', { class: 'btn ghost sm', onclick: () => copyText(st.chapters, 'Estimated chapters copied. Swap in real times after filming.') }, icon('copy', 15), 'Copy chapter timestamps') : null);
+  }
+
   const lintSoon = debounce(async () => {
     try {
       const r = await api('POST', 'scripts/lint', { text: textarea.value });
       drawLint(r.findings, r.has_hard);
+      drawStructure(r.structure);
     } catch { /* linting is best-effort while typing */ }
   }, 500);
 
@@ -190,6 +213,7 @@ export async function renderScript(view, id) {
 
   drawStats();
   drawLint(data.findings, data.has_hard);
+  drawStructure(data.structure);
 
   // ---- past work (Memory) ----
   const pastBox = h('div', {}, h('p', { class: 'muted small' }, 'Looking…'));
@@ -212,6 +236,10 @@ export async function renderScript(view, id) {
         h('h3', {}, 'AI-tell linter'),
         h('p', { class: 'muted small' }, 'HARD findings block the AI review. Click one to jump to it.'),
         lintBox),
+      h('div', { class: 'card' },
+        h('h3', {}, 'Structure'),
+        h('p', { class: 'muted small' }, 'Timing per section and where viewers tend to drop. Click to jump.'),
+        structureBox),
       h('div', { class: 'card' },
         h('h3', {}, 'Review panel'),
         h('p', { class: 'muted small' }, 'Voice, retention, facts and the top 3 hostile comments. Line edits, never a rewrite.'),
@@ -301,7 +329,11 @@ export async function renderScript(view, id) {
   const thumbStudio = thumbnailStudio(script); // built once so the form keeps its text between tab switches
   const shorts = shortsPanel(script);
   const broll = brollPanel(script);
+  let feedCard = null; // built on first visit, then kept so her title list survives tab switches
   function drawPackage() {
+    feedCard ??= feedPreview(script, {
+      onUseTitle: (t) => { titleInput.value = t; change('title', t); saveSoon.flush(); toast('Title updated.'); },
+    });
     const outBox = h('div');
     clear(packagePane).append(h('div', { class: 'card' },
       h('h2', {}, 'Package this video'),
@@ -327,6 +359,7 @@ export async function renderScript(view, id) {
         return b;
       })),
       outBox),
+    feedCard,
     thumbStudio,
     broll);
   }
@@ -506,6 +539,7 @@ export async function renderScript(view, id) {
         textarea.value = script.body;
         drawStats();
         drawLint(r.findings, r.has_hard);
+        lintSoon();
         saveState.textContent = 'Version restored';
         showTab('write');
       },
@@ -525,7 +559,11 @@ export async function renderScript(view, id) {
     h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn)),
     paneBox);
 
-  showTab('write');
+  // ?tab=review|package... (from the dashboard's next step) opens that tab.
+  const params = new URLSearchParams(location.search);
+  const startTab = params.get('tab');
+  showTab(tabs.some((t) => t.key === startTab) ? startTab : 'write');
+  if (startTab && !params.has('draft')) history.replaceState({}, '', `/scripts/${script.id}`);
 
   // Arrived from Ideas → "Draft script": write the draft straight into the editor.
   let draftAbort = null;
@@ -549,6 +587,7 @@ export async function renderScript(view, id) {
       textarea.value = script.body;
       drawStats();
       drawLint(r.findings, r.findings.some((f) => f.severity === 'HARD'));
+      lintSoon();
       saveState.textContent = 'Draft saved';
       if (loveOn()) celebrate('draft'); else toast('Draft ready. Read it out loud and make it yours.');
     }).catch((err) => {

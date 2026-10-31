@@ -25,7 +25,9 @@ use App\Services\BreakoutScanner;
 use App\Services\WeeklyCheckin;
 use App\Services\Dictation;
 use App\Services\Llm;
+use App\Services\NextStep;
 use App\Services\Prompts;
+use App\Services\ScriptStructure;
 use App\Services\YouTube;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -183,6 +185,7 @@ class ApiController extends Controller
                 'breakouts' => Outlier::count(),
             ],
             'setup_checks' => $setupChecks,
+            'next_step' => NextStep::current(),
             'picked_ideas' => $pickedIdeas,
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,
@@ -472,6 +475,7 @@ class ApiController extends Controller
             'has_hard' => AiTellsLinter::hasHard($findings),
             'word_count' => $script->wordCount(),
             'est_minutes' => $script->minutes(),
+            'structure' => ScriptStructure::analyse((string) $script->body),
         ]);
     }
 
@@ -570,6 +574,7 @@ class ApiController extends Controller
             'findings' => $findings,
             'has_hard' => AiTellsLinter::hasHard($findings),
             'word_count' => str_word_count(strip_tags($text)),
+            'structure' => ScriptStructure::analyse($text),
         ]);
     }
 

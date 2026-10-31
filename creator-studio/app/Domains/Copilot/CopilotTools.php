@@ -18,6 +18,7 @@ use App\Models\Script;
 use App\Models\Week;
 use App\Services\AiTellsLinter;
 use App\Services\Llm;
+use App\Services\NextStep;
 use RuntimeException;
 use Throwable;
 
@@ -146,6 +147,7 @@ class CopilotTools
         $w = Week::current();
 
         return [
+            'next_step' => NextStep::current(),
             'this_week' => $w ? ['number' => $w->number, 'due' => $w->due_date?->toDateString(), 'status' => $w->status, 'video_title' => $w->video_title] : null,
             'scoreboard' => Week::orderBy('number')->get(['number', 'status', 'video_title'])->map(fn ($x) => "W{$x->number}: {$x->status}".($x->video_title ? " ({$x->video_title})" : ''))->all(),
             'picked_ideas' => Idea::where('status', 'picked')->latest()->take(8)->get(['id', 'title', 'premise']),

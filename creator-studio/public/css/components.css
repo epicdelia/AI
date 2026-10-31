@@ -519,3 +519,54 @@ textarea[readonly].script-editor { background: var(--bg); }
 .insight-main { min-width: 0; display: grid; gap: 4px; }
 .insight-quote { margin: 2px 0; padding-left: 12px; border-left: 3px solid var(--accent); color: var(--muted); font-style: italic; }
 @media (max-width: 640px) { .insight-list li { flex-direction: column; } }
+
+/* ---- Script structure (timing and retention flags) ---- */
+.st-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px; margin-bottom: 10px; }
+.st-seg { min-width: 3px; }
+.st-c0 { background: var(--accent); }
+.st-c1 { background: var(--violet); }
+.st-c2 { background: var(--good); }
+.st-c3 { background: var(--warn); }
+.st-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 2px; font-size: 0.88rem; }
+.st-list li { display: flex; gap: 8px; align-items: baseline; padding: 3px 6px; border-radius: 7px; cursor: pointer; }
+.st-list li:hover { background: var(--accent-soft); }
+.st-time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 34px; }
+.st-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-side .lint-list + .btn, .editor-side .lint-clean + .btn { margin-top: 10px; }
+
+/* ---- Dashboard: next step ---- */
+.next-step { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-left: 4px solid var(--accent); }
+.next-step h2 { margin: 0 0 4px; }
+.next-step p { margin: 0; }
+.next-step-body { flex: 1; min-width: 220px; }
+.next-step-eyebrow { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent) !important; margin-bottom: 4px !important; }
+
+/* ---- Feed preview (packaging) ---- */
+.fp-label { font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; }
+.fp-candidates { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.fp-candidates li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 6px; border-radius: 8px; }
+.fp-candidates li.active { background: var(--accent-soft); }
+.fp-cand { flex: 1 1 240px; min-width: 0; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0; }
+.fp-thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.fp-pick { border: 2px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.fp-pick.img { padding: 0; width: 72px; aspect-ratio: 16 / 9; overflow: hidden; }
+.fp-pick.img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fp-pick.active { border-color: var(--accent); }
+.fp-feed { display: grid; gap: 22px 16px; margin-top: 16px; padding: 18px; border-radius: 12px; background: #0f0f0f; color: #f1f1f1; font-family: Roboto, Arial, sans-serif; }
+.fp-feed.desktop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fp-feed.phone { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; padding: 12px 0; gap: 18px; }
+.fp-card.mine { outline: 2px dashed #d8487e; outline-offset: 6px; border-radius: 10px; }
+.fp-thumb { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #272727; }
+.fp-feed.phone .fp-thumb { border-radius: 0; }
+.fp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fp-fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 10px; text-align: center; font-weight: 900; font-size: 1.4rem; text-transform: uppercase; color: #fff; background: linear-gradient(135deg, #d8487e, #7b5cd6); }
+.fp-dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0, 0, 0, 0.8); color: #fff; font-size: 0.72rem; font-weight: 600; padding: 1px 4px; border-radius: 4px; }
+.fp-dur:empty { display: none; }
+.fp-meta { display: flex; gap: 10px; margin-top: 10px; }
+.fp-feed.phone .fp-meta { padding: 0 12px; }
+.fp-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; background: #3a3a3a; display: grid; place-items: center; font-weight: 700; font-size: 0.9rem; }
+.fp-text { min-width: 0; }
+.fp-title { font-size: 1rem; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fp-feed.phone .fp-title { font-size: 0.95rem; }
+.fp-sub { font-size: 0.82rem; color: #aaa; line-height: 1.5; }
+@media (max-width: 760px) { .fp-feed.desktop { grid-template-columns: 1fr; } }

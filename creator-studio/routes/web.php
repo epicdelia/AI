@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
     // Authenticated API endpoints
@@ -197,6 +198,7 @@ Route::prefix('api')->group(function () {
         // Landing page content feed: what's on it, clicks, pin / hide, refresh now
         Route::get('landing/content', [\App\Http\Controllers\LandingPageController::class, 'content']);
         Route::put('landing/content', [\App\Http\Controllers\LandingPageController::class, 'curate']);
+        Route::put('landing/capacity', [\App\Http\Controllers\LandingPageController::class, 'saveCapacity']);
         Route::post('landing/content/refresh', [\App\Http\Controllers\LandingPageController::class, 'refresh']);
 
         // Link in bio (editor + stats; the page itself is public at /links)

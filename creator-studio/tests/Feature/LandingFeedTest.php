@@ -221,4 +221,29 @@ class LandingFeedTest extends TestCase
         $this->assertSame('payment', $sent[1]['mode']);
         $this->assertArrayNotHasKey('recurring', $sent[1]['line_items'][0]['price_data']);
     }
+
+    public function test_how_it_works_availability_follows_her_build_capacity(): void
+    {
+        $deal = fn (string $stage) => \App\Models\Deal::create(['brand_name' => "Co {$stage}", 'stage' => $stage, 'rate' => 1000, 'currency' => 'USD', 'payment_status' => 'pending']);
+        $deal('inquiry');
+        $deal('negotiating');
+        $deal('production');
+
+        // Default 2 slots, 1 build in progress.
+        $this->getJson('/api/landing/availability')->assertOk()->assertExactJson(['show' => true, 'status' => 'open', 'open' => 1, 'label' => '1 build slot open']);
+
+        $this->putJson('/api/landing/capacity', ['capacity' => 1])->assertUnauthorized();
+        $this->signIn();
+        $this->putJson('/api/landing/capacity', ['capacity' => 1])->assertOk()->assertJsonPath('status', 'waitlist');
+        $this->getJson('/api/landing/availability')->assertJsonPath('label', 'Fully booked: join the waitlist');
+
+        $journey = $this->getJson('/api/dashboard')->assertOk()->json('journey');
+        $this->assertSame([1, 1, 1, 0], array_column($journey['phases'], 'count'));
+        $this->assertSame(['diagnostic', 'blueprint', 'execution', 'deployment'], array_column($journey['phases'], 'key'));
+
+        // 0 hides it from the page entirely (and nothing about her deals is exposed).
+        $this->putJson('/api/landing/capacity', ['capacity' => 0])->assertOk();
+        $this->getJson('/api/landing/availability')->assertExactJson(['show' => false]);
+        $this->putJson('/api/landing/capacity', ['capacity' => 99])->assertUnprocessable();
+    }
 }

@@ -13481,26 +13481,62 @@ a:hover>.logo.brand-mark,
         .landing-feed-skeleton .sk { animation: none; }
       }
 
-      /* ---- How It Works & Delivery Process (Dashboard Parity) ---- */
+      /* ---- How It Works & Delivery Process (built like the service cards) ---- */
+      .landing-process-avail {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 10px;
+        margin: 16px auto 0;
+        padding: 6px 6px 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 0.84rem;
+        font-weight: 600;
+      }
+      .landing-process-avail[hidden] { display: none; }
+      .landing-process-avail-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn, #e6b04a); }
+      .landing-process-avail.is-open .landing-process-avail-dot { background: var(--good, #4fc78d); box-shadow: 0 0 0 4px var(--good-soft, rgba(79, 199, 141, 0.18)); animation: landing-avail-pulse 2.4s ease-in-out infinite; }
+      @keyframes landing-avail-pulse { 50% { box-shadow: 0 0 0 7px transparent; } }
+      .landing-process-avail-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: 999px;
+        border: 0;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        background: var(--accent);
+        color: var(--accent-ink, #fff);
+      }
+
       .landing-process-grid {
+        list-style: none;
+        padding: 0;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
+        align-items: start;
         position: relative;
-        margin-top: 36px;
+        margin: 36px 0 0;
+        counter-reset: none;
       }
 
       .landing-process-card {
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 18px;
-        padding: 24px 20px;
+        padding: 20px 18px 16px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        gap: 16px;
+        gap: 10px;
+        min-width: 0;
         position: relative;
-        overflow: hidden;
         transition: transform 0.25s cubic-bezier(.22, .61, .36, 1), box-shadow 0.25s, border-color 0.25s;
       }
 
@@ -13511,103 +13547,119 @@ a:hover>.logo.brand-mark,
         right: 0;
         top: 0;
         height: 3px;
-        background: var(--grad);
+        border-radius: 18px 18px 0 0;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
         opacity: 0;
         transition: opacity 0.25s;
       }
 
-      .landing-process-card:hover {
-        transform: translateY(-4px);
+      /* Connector between phases on wide screens */
+      .landing-process-card:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 34px;
+        right: -17px;
+        width: 18px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--line), var(--accent));
+        opacity: 0.7;
+      }
+
+      .landing-process-card:hover,
+      .landing-process-card:focus-within {
         border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-soft), 0 16px 36px rgba(0, 0, 0, 0.14);
+        box-shadow: 0 0 0 3px var(--accent-soft), 0 16px 36px rgba(0, 0, 0, 0.12);
       }
+      .landing-process-card:hover { transform: translateY(-3px); }
+      .landing-process-card:hover::before,
+      .landing-process-card:focus-within::before,
+      .landing-process-card.expanded::before { opacity: 1; }
 
-      .landing-process-card:hover::before {
-        opacity: 1;
-      }
-
-      .landing-process-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
+      .landing-process-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
       .landing-process-num-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         border-radius: 10px;
-        background: var(--grad);
-        color: #fff;
-        font-size: 0.84rem;
+        display: grid;
+        place-items: center;
         font-weight: 800;
-        letter-spacing: 0.04em;
-        box-shadow: 0 4px 14px rgba(240, 106, 155, 0.35);
+        font-size: 0.86rem;
+        color: var(--accent-ink, #fff);
+        background: var(--grad, linear-gradient(135deg, var(--accent), var(--violet)));
+        box-shadow: 0 4px 14px var(--accent-soft);
       }
 
       .landing-process-time-pill {
-        font-size: 0.7rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
         font-weight: 700;
         padding: 3px 8px;
         border-radius: 6px;
-        background: var(--panel-2);
+        background: var(--accent-soft);
         color: var(--accent);
-        border: 1px solid var(--line);
+        white-space: nowrap;
       }
 
       .landing-process-phase {
-        font-size: 0.72rem;
+        margin: 4px 0 0;
+        font-size: 0.7rem;
         font-weight: 700;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--accent);
-        margin: 0 0 4px;
+        color: var(--muted);
       }
 
-      .landing-process-title {
-        font-size: 1.08rem;
-        font-weight: 700;
-        color: var(--ink);
-        margin: 0 0 8px;
-        line-height: 1.35;
-      }
+      .landing-process-title { font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--ink); line-height: 1.3; }
+
+      .landing-process-body { display: grid; gap: 10px; }
 
       .landing-process-desc {
         font-size: 0.84rem;
         color: var(--muted);
-        line-height: 1.55;
-        margin: 0 0 14px;
-      }
-
-      .landing-process-deliverables {
-        list-style: none;
-        padding: 0;
+        line-height: 1.5;
         margin: 0;
-        display: grid;
-        gap: 7px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-process-card.expanded .landing-process-desc { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+
+      .landing-process-deliverables { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+      .landing-process-deliv-item { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: var(--ink); line-height: 1.4; }
+      .landing-process-deliv-item.is-extra { display: none; }
+      .landing-process-card.expanded .landing-process-deliv-item.is-extra { display: flex; min-height: 0; animation: landing-service-reveal 0.22s var(--ease, ease) both; }
+      .landing-process-deliv-check { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+
+      .landing-process-tags { display: flex; flex-wrap: nowrap; gap: 6px; overflow: hidden; }
+      .landing-process-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: var(--good-soft, rgba(79, 199, 141, 0.15));
+        color: var(--good, #279663);
+        white-space: nowrap;
       }
 
-      .landing-process-deliv-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        font-size: 0.79rem;
-        color: var(--ink);
-        line-height: 1.4;
-      }
+      .landing-process-footer .landing-service-more { white-space: nowrap; }
 
-      .landing-process-deliv-check {
-        color: var(--accent);
-        flex-shrink: 0;
-        margin-top: 2px;
+      /* Four across: reserve room so titles, text and buttons line up from card to card. */
+      @media (min-width: 1101px) {
+        .landing-process-title { min-height: 2.6em; }
+        .landing-process-desc { min-height: 4.5em; }
+        .landing-process-deliv-item:not(.is-extra) { min-height: 2.8em; }
       }
 
       .landing-process-footer {
-        padding-top: 14px;
+        padding-top: 12px;
         border-top: 1px solid var(--line);
         display: flex;
         align-items: center;
@@ -13615,46 +13667,60 @@ a:hover>.logo.brand-mark,
         gap: 8px;
       }
 
-      .landing-process-tag {
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--muted);
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-      }
-
       .landing-process-btn {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        padding: 5px 10px;
-        border-radius: 7px;
-        font-size: 0.75rem;
+        box-sizing: border-box;
+        min-height: 34px;
+        padding: 0 11px;
+        font-family: inherit;
+        line-height: 1;
+        border-radius: 9px;
+        font-size: 0.78rem;
         font-weight: 600;
         background: var(--panel-2);
         color: var(--ink);
         border: 1px solid var(--line);
         cursor: pointer;
-        transition: all 0.15s ease;
+        white-space: nowrap;
+        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
       }
-
-      .landing-process-btn:hover {
+      .landing-process-btn:hover,
+      .landing-process-card:hover .landing-process-btn,
+      .landing-process-btn.is-primary {
         background: var(--accent);
-        color: #fff;
+        color: var(--accent-ink, #fff);
         border-color: var(--accent);
       }
+      .landing-process-btn:focus-visible, .landing-process-avail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-      @media (max-width: 1024px) {
-        .landing-process-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
+      .landing-process-cta {
+        margin-top: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        text-align: center;
+      }
+      .landing-process-cta p { margin: 0; font-size: 0.88rem; }
+
+      @media (max-width: 1100px) {
+        .landing-process-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .landing-process-card:nth-child(2n)::after { display: none; }
       }
 
       @media (max-width: 640px) {
-        .landing-process-grid {
-          grid-template-columns: 1fr;
-        }
+        .landing-process-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+        .landing-process-card::after { display: none; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .landing-process-card { transition: none; }
+        .landing-process-card:hover { transform: none; }
+        .landing-process-avail.is-open .landing-process-avail-dot { animation: none; }
+        .landing-process-card.expanded .landing-process-deliv-item.is-extra { animation: none; }
       }
 
       /* ---- AG Pricing Table & Subscription Cards System ---- */
@@ -14017,3 +14083,18 @@ a:hover>.logo.brand-mark,
   .website-item { grid-template-columns: 1fr auto auto; }
   .website-item img, .website-item-ph { display: none; }
 }
+
+/* ---- Dashboard: client journey (the landing page's "How it works" phases) ---- */
+.journey-phases { list-style: none; margin: 4px 0 14px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.journey-phases a {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel-2); color: inherit; text-decoration: none; transition: border-color 0.15s;
+}
+.journey-phases a:hover { border-color: var(--accent); }
+.journey-phases strong { font-size: 1.6rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.journey-phases li.has strong { color: var(--accent); }
+.journey-num { font-size: 0.68rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
+.journey-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.journey-cap { display: inline-flex; align-items: center; gap: 6px; }
+.journey-cap-num { min-width: 1.5em; text-align: center; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .journey-phases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

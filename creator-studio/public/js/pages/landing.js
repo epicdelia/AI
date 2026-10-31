@@ -996,7 +996,7 @@ export function renderLanding(view, options = {}) {
       ],
       tag: 'Zero Commitment',
       actionLabel: 'Book Intro Call',
-      onAction: () => handleBookCall('consulting'),
+      onAction: () => handleBookCall('consulting', 'Scoping & Architecture Audit'),
     },
     {
       num: '02',
@@ -1048,52 +1048,83 @@ export function renderLanding(view, options = {}) {
     },
   ];
 
+  // How it works: availability comes from her dashboard (build capacity vs. builds in progress).
+  const availability = h('div', { class: 'landing-process-avail', hidden: true, 'aria-live': 'polite' });
+  api('GET', 'landing/availability').then((a) => {
+    if (!a?.show) return;
+    availability.hidden = false;
+    availability.classList.add(`is-${a.status}`);
+    availability.replaceChildren(
+      h('span', { class: 'landing-process-avail-dot', 'aria-hidden': 'true' }),
+      h('span', {}, a.label),
+      h('button', {
+        type: 'button',
+        class: 'landing-process-avail-btn',
+        onclick: () => handleBookCall('mvp_build', a.status === 'open' ? 'Build slot' : 'Build waitlist'),
+      }, a.status === 'open' ? 'Book your slot' : 'Join the waitlist', icon('arrow', 12)));
+  }).catch(() => {});
+
   const process = h('section', { class: 'landing-section tinted', id: 'process' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '03: How it works'),
         h('h2', {}, 'From first call to ', h('em', {}, 'shipped'), ' in weeks'),
         h('p', { class: 'muted', style: { maxWidth: '640px', margin: '8px auto 0' } },
-          'No bloatware, no endless agency meetings, and no junior handoffs. A battle-tested engineering sprint lifecycle refined across 60+ shipped projects.')),
-      h('div', { class: 'landing-process-grid' },
-        processSteps.map((step) => {
-          const actionBtn = step.href
-            ? h('a', {
-                href: step.href,
-                class: 'landing-process-btn no-underline',
-                onclick: (e) => {
-                  if (step.href.startsWith('#')) {
-                    const el = document.querySelector(step.href);
-                    if (el) {
-                      e.preventDefault();
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }
-                },
-              }, step.actionLabel, icon('arrow', 13))
-            : h('button', {
-                type: 'button',
-                class: 'landing-process-btn',
-                onclick: step.onAction,
-              }, step.actionLabel, icon('arrow', 13));
+          'No bloatware, no endless agency meetings, and no junior handoffs. A battle-tested engineering sprint lifecycle refined across 60+ shipped projects.'),
+        availability),
+      h('ol', { class: 'landing-process-grid', 'aria-label': 'Four phases, from first call to launch' }, processSteps.map(processCard)),
+      h('div', { class: 'landing-process-cta' },
+        h('p', { class: 'muted' }, 'Not sure which phase you are in? Start with the free 30-minute call.'),
+        h('button', { type: 'button', class: 'landing-service-btn', onclick: () => handleBookCall('consulting', 'How it works') },
+          icon('calendar', 13), 'Book a free call', icon('arrow', 12)))));
 
-          return h('div', { class: 'landing-process-card' },
-            h('div', {},
-              h('div', { class: 'landing-process-head' },
-                h('span', { class: 'landing-process-num-badge' }, step.num),
-                h('span', { class: 'landing-process-time-pill' }, step.time)),
-              h('div', { class: 'landing-process-phase' }, step.phase),
-              h('h3', { class: 'landing-process-title' }, step.title),
-              h('p', { class: 'landing-process-desc' }, step.desc),
-              h('ul', { class: 'landing-process-deliverables' },
-                step.deliverables.map((item) =>
-                  h('li', { class: 'landing-process-deliv-item' },
-                    h('span', { class: 'landing-process-deliv-check' }, icon('check', 14)),
-                    h('span', {}, item))))),
-            h('div', { class: 'landing-process-footer' },
-              h('span', { class: 'landing-process-tag' }, step.tag),
-              actionBtn));
-        }))));
+  // One phase, built like a service card: two deliverables until "Show more", the tag on its own
+  // row and the actions on the bottom edge so all four cards line up.
+  function processCard(step, i) {
+    const VISIBLE = 2;
+    const id = `process-more-${i}`;
+    const extra = step.deliverables.length - VISIBLE;
+    const card = h('li', { class: 'landing-process-card', 'aria-labelledby': `${id}-title` });
+    const moreLabel = (open) => (open ? 'Show less' : `+${extra} more`);
+    const toggle = extra > 0 ? h('button', {
+      type: 'button',
+      class: 'landing-service-more',
+      'aria-expanded': 'false',
+      'aria-controls': id,
+      'aria-label': `Show all ${step.deliverables.length} deliverables of ${step.title}`,
+      onclick: () => {
+        const open = card.classList.toggle('expanded');
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.replaceChildren(moreLabel(open), icon('chevron-down', 12));
+      },
+    }, moreLabel(false), icon('chevron-down', 12)) : h('span');
+    const action = step.href
+      ? h('a', {
+        href: step.href,
+        class: 'landing-process-btn no-underline',
+        onclick: (e) => {
+          const el = step.href.startsWith('#') && document.querySelector(step.href);
+          if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+        },
+      }, step.actionLabel, icon('arrow', 13))
+      : h('button', { type: 'button', class: 'landing-process-btn is-primary', onclick: step.onAction }, icon('calendar', 13), step.actionLabel, icon('arrow', 13));
+
+    card.append(
+      h('div', { class: 'landing-process-head' },
+        h('span', { class: 'landing-process-num-badge', 'aria-hidden': 'true' }, step.num),
+        h('span', { class: 'landing-process-time-pill' }, icon('clock', 12), step.time)),
+      h('p', { class: 'landing-process-phase' }, step.phase),
+      h('h3', { class: 'landing-process-title', id: `${id}-title` }, step.title),
+      h('div', { class: 'landing-process-body', id },
+        h('p', { class: 'landing-process-desc' }, step.desc),
+        h('ul', { class: 'landing-process-deliverables' },
+          step.deliverables.map((item, n) => h('li', { class: `landing-process-deliv-item${n >= VISIBLE ? ' is-extra' : ''}` },
+            h('span', { class: 'landing-process-deliv-check' }, icon('check', 13)),
+            h('span', {}, item))))),
+      h('div', { class: 'landing-process-tags' }, h('span', { class: 'landing-process-tag' }, icon('star', 12), step.tag)),
+      h('div', { class: 'landing-process-footer' }, toggle, action));
+    return card;
+  }
 
   // 9. Section 04: Packages & Pricing with exact ag-pt structure
   const pricing = h('section', { class: 'landing-section', id: 'pricing' },

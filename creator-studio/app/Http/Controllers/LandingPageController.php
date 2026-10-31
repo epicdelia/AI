@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
 use App\Domains\Media\MediaFile;
 use App\Domains\Social\Models\SocialPost;
@@ -38,6 +39,14 @@ class LandingPageController extends Controller
         $feed = LandingFeed::get();
 
         return response()->json(['channel' => $feed['channel'], 'source' => $feed['sources']['youtube'], 'videos' => $feed['platforms']['youtube']]);
+    }
+
+    /** "How it works": whether a build slot is open (counts only, set from her dashboard). */
+    public function availability(): JsonResponse
+    {
+        $a = ClientJourney::availability();
+
+        return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
     }
 
     /** A visitor opened an item (sent with sendBeacon, so the link itself is never delayed). */
@@ -93,6 +102,15 @@ class LandingPageController extends Controller
         LandingFeed::refresh();
 
         return $this->content();
+    }
+
+    /** How many builds she takes on at once (0 hides availability on the landing page). */
+    public function saveCapacity(Request $request): JsonResponse
+    {
+        $data = $request->validate(['capacity' => 'required|integer|min:0|max:10']);
+        Setting::put('build_capacity', (string) $data['capacity']);
+
+        return response()->json(ClientJourney::summary());
     }
 
     public function refresh(): JsonResponse

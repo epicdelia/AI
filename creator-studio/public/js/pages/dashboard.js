@@ -1,5 +1,5 @@
 // Dashboard: this week's commitment, scoreboard, setup checklist and the latest pipeline items.
-import { h, api, link, pill, fmtDay, daysUntil, compact, timeAgo, emptyState } from '../core.js';
+import { h, api, link, pill, toast, fmtDay, daysUntil, compact, timeAgo, emptyState } from '../core.js';
 import { icon } from '../icons.js';
 import { weekDots } from './goals.js';
 import { loveCard } from '../love.js';
@@ -114,6 +114,57 @@ function inboundCard(inb) {
       h('span', { class: 'score' }, usd(d.rate))))) : null);
 }
 
+/**
+ * The landing page's "How it works" phases as her pipeline: deals per phase, and the build
+ * capacity that decides the "build slot open / waitlist" pill visitors see.
+ */
+function journeyCard(j) {
+  if (!j) return null;
+  const capNum = h('strong', { class: 'journey-cap-num', 'aria-live': 'polite' }, j.capacity);
+  const availLine = h('p', { class: 'muted small', style: { margin: 0 } });
+  const drawAvail = (x) => {
+    availLine.textContent = x.capacity === 0
+      ? 'Availability is hidden on your website.'
+      : `Website shows: “${x.label}” (${x.active} in progress of ${x.capacity}).`;
+  };
+  drawAvail(j);
+  let busy = false;
+  const setCap = async (delta) => {
+    const next = Math.max(0, Math.min(10, Number(capNum.textContent) + delta));
+    if (busy || next === Number(capNum.textContent)) return;
+    busy = true;
+    try {
+      const x = await api('PUT', 'landing/capacity', { capacity: next });
+      capNum.textContent = x.capacity;
+      drawAvail(x);
+    } catch (err) {
+      toast(err.message || 'Could not save.', 'err');
+    } finally {
+      busy = false;
+    }
+  };
+  return h('div', { class: 'card journey-card' },
+    h('div', { class: 'card-header' },
+      h('div', {},
+        h('h2', {}, 'Client journey'),
+        h('p', { class: 'muted small', style: { margin: '2px 0 0' } }, 'The four phases from your website, filled from Deals')),
+      link('/deals', { class: 'btn ghost sm' }, 'Open deals', icon('arrow', 14))),
+    h('ol', { class: 'journey-phases' }, j.phases.map((p, i) => h('li', { class: p.count ? 'has' : '' },
+      link('/deals', { title: p.stages.join(', ') },
+        h('span', { class: 'journey-num' }, String(i + 1).padStart(2, '0')),
+        h('strong', {}, p.count),
+        h('span', { class: 'muted small' }, p.label))))),
+    h('div', { class: 'journey-foot' },
+      h('div', {},
+        h('p', { style: { margin: 0, fontWeight: 600 } }, `${j.shipped_90d} shipped in 90 days`),
+        availLine),
+      h('div', { class: 'journey-cap', role: 'group', 'aria-label': 'Builds you take on at once' },
+        h('span', { class: 'muted small' }, 'Build slots'),
+        h('button', { class: 'btn ghost sm', 'aria-label': 'One fewer', onclick: () => setCap(-1) }, '−'),
+        capNum,
+        h('button', { class: 'btn ghost sm', 'aria-label': 'One more', onclick: () => setCap(1) }, '+'))));
+}
+
 function listCard(title, to, items, renderItem, empty) {
   return h('div', { class: 'card' },
     h('div', { class: 'card-header' }, h('h2', {}, title), link(to, { class: 'btn ghost sm' }, 'See all', icon('arrow', 14))),
@@ -134,6 +185,7 @@ export async function renderDashboard(view) {
     { id: 'composer', label: 'Composer', node: homeComposer() },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
+    { id: 'journey', label: 'Client journey', node: journeyCard(d.journey) },
     { id: 'website', label: 'Your website feed', node: websiteCard(d.website, () => redraw()) },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
     { id: 'love', label: 'Today’s note', node: love },

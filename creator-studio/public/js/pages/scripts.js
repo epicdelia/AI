@@ -1,0 +1,404 @@
+// Scripts: the list, and the editor with live AI-tell linting, autosave, review,
+// packaging (titles, thumbnails, description...), transcript, Substack and edit brief.
+import {
+  h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData,
+  navigate, link, timeAgo, debounce, wordCount, mdBlock, copyText, download, slug, isoDay,
+} from '../core.js';
+import { icon } from '../icons.js';
+import { outputPanel } from '../components.js';
+
+const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
+
+// ------------------------------------------------------------------
+// List
+// ------------------------------------------------------------------
+
+export async function renderScripts(view) {
+  const res = await api('GET', 'scripts');
+  const scripts = res.scripts.data;
+
+  const newBtn = h('button', {
+    class: 'btn primary',
+    onclick: () => modal('New script', (close) => {
+      const form = h('form', {
+        onsubmit: async (e) => {
+          e.preventDefault();
+          await busy(form.querySelector('[type=submit]'), 'Creating…', async () => {
+            const r = await api('POST', 'scripts', { title: formData(form).title });
+            close(true);
+            navigate(`/scripts/${r.script.id}`);
+          });
+        },
+      },
+      field('Working title', h('input', { type: 'text', name: 'title', required: true, maxlength: 200 })),
+      h('p', { class: 'muted' }, 'Tip: to have the AI draft a full script, pick an idea on the Ideas page and choose “Draft script”.'),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+        h('button', { type: 'button', class: 'btn', onclick: () => close(false) }, 'Cancel'),
+        h('button', { type: 'submit', class: 'btn primary' }, 'Create blank script')));
+      return form;
+    }),
+  }, icon('plus'), 'New script');
+
+  view.append(pageHead('Scripts', 'Draft, lint, review and package every video. The linter catches the AI tells before anyone else does.',
+    newBtn, link('/ideas', { class: 'btn' }, icon('bulb'), 'From an idea')));
+
+  if (!scripts.length) {
+    view.append(h('div', { class: 'card' }, emptyState('📝', 'No scripts yet', 'Pick an idea and let the AI draft it, or start from a blank page.', newBtn.cloneNode(true))));
+    view.querySelector('.empty .btn')?.addEventListener('click', () => newBtn.click());
+    return;
+  }
+
+  const byStatus = Object.fromEntries(STATUSES.map((s) => [s, scripts.filter((x) => x.status === s).length]));
+  view.append(h('div', { class: 'pipeline' }, STATUSES.map((s) => h('div', { class: `pipeline-step ${s}` },
+    h('div', { class: 'num' }, byStatus[s]), h('div', { class: 'lbl' }, s)))));
+
+  view.append(h('div', { class: 'card' }, h('div', { class: 'table-wrap' }, h('table', {},
+    h('thead', {}, h('tr', {}, h('th', {}, 'Title'), h('th', {}, 'Status'), h('th', { class: 'num' }, 'Words'), h('th', { class: 'num hide-sm' }, 'Est. length'), h('th', { class: 'hide-sm' }, 'Updated'))),
+    h('tbody', {}, scripts.map((sc) => {
+      const words = wordCount(sc.body);
+      return h('tr', { class: 'clickable', onclick: () => navigate(`/scripts/${sc.id}`) },
+        h('td', {}, link(`/scripts/${sc.id}`, {}, h('strong', {}, sc.title)), sc.idea ? h('div', { class: 'muted' }, `from idea: ${sc.idea.title}`) : null),
+        h('td', {}, pill(sc.status)),
+        h('td', { class: 'num' }, words.toLocaleString()),
+        h('td', { class: 'num hide-sm' }, words ? `${(words / 150).toFixed(1)} min` : '–'),
+        h('td', { class: 'hide-sm muted' }, timeAgo(sc.updated_at)));
+    }))))));
+}
+
+// ------------------------------------------------------------------
+// Editor
+// ------------------------------------------------------------------
+
+const PACKAGE_TOOLS = [
+  { key: 'yt_titles', label: 'Titles', input: (s) => ({ topic: `${s.title}\n\n${s.body.slice(0, 4000)}` }) },
+  { key: 'yt_thumbnail', label: 'Thumbnails', input: (s) => ({ topic: s.body.slice(0, 4000), title: s.title }) },
+  { key: 'yt_hooks', label: 'Cold opens', input: (s) => ({ title: s.title, topic: s.body.slice(0, 4000) }) },
+  { key: 'yt_description', label: 'Description', input: (s) => ({ title: s.title, topic: s.body.slice(0, 6000), links: '' }) },
+  { key: 'yt_tags', label: 'Tags', input: (s) => ({ title: s.title, topic: s.body.slice(0, 3000) }) },
+  { key: 'yt_chapters', label: 'Chapters', input: (s) => ({ script: s.transcript || s.body }) },
+  { key: 'shorts_script', label: 'Shorts', input: (s) => ({ topic: s.title, source: (s.transcript || s.body).slice(0, 6000) }) },
+  { key: 'x_thread', label: 'Thread', input: (s) => ({ topic: `${s.title}\n\n${s.body.slice(0, 4000)}`, video_url: s.youtube_url || '' }) },
+  { key: 'newsletter', label: 'Newsletter', input: (s) => ({ title: s.title, topic: s.body.slice(0, 4000), video_url: s.youtube_url || '' }) },
+];
+
+export async function renderScript(view, id) {
+  const data = await api('GET', `scripts/${id}`);
+  const script = data.script;
+  script.body = script.body || '';
+
+  // ---- autosave ----
+  const pending = {};
+  const saveState = h('span', { class: 'save-state muted' }, 'Saved');
+  async function save() {
+    const fields = { ...pending };
+    if (!Object.keys(fields).length) return;
+    for (const k of Object.keys(fields)) delete pending[k];
+    saveState.textContent = 'Saving…';
+    try {
+      const res = await api('PATCH', `scripts/${script.id}`, fields);
+      Object.assign(script, res.script, { body: res.script.body || '' });
+      saveState.textContent = `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } catch (err) {
+      Object.assign(pending, fields);
+      saveState.textContent = 'Not saved';
+      toast(err.message, 'err');
+    }
+  }
+  const saveSoon = debounce(save, 1200);
+  function change(fieldName, value) {
+    script[fieldName] = value;
+    pending[fieldName] = value;
+    saveState.textContent = 'Unsaved changes…';
+    saveSoon();
+  }
+
+  // ---- header ----
+  const titleInput = h('input', { type: 'text', class: 'title-input', value: script.title, maxlength: 200, 'aria-label': 'Script title' });
+  titleInput.addEventListener('input', () => { if (titleInput.value.trim()) change('title', titleInput.value.trim()); });
+  const statusSelect = h('select', { class: 'status-select', 'aria-label': 'Status' },
+    STATUSES.map((s) => h('option', { value: s, selected: s === script.status }, s)));
+  statusSelect.addEventListener('change', () => { change('status', statusSelect.value); saveSoon.flush(); });
+
+  // ---- write tab: textarea + linter ----
+  const textarea = h('textarea', { class: 'script-editor', spellcheck: 'true', placeholder: '## Cold open\n[VISUAL: ...]\nStart with the payoff...' }, script.body);
+  const stats = h('div', { class: 'editor-stats' });
+  const lintBox = h('div', { class: 'lint-box' });
+  const reviewBtn = h('button', { class: 'btn primary block', onclick: () => runReview() }, icon('sparkle'), 'Run AI review');
+
+  function drawStats() {
+    const words = wordCount(textarea.value);
+    clear(stats).append(
+      h('span', {}, h('strong', {}, words.toLocaleString()), ' words'),
+      h('span', {}, h('strong', {}, (words / 150).toFixed(1)), ' min spoken'),
+      h('span', { class: words && (words < 1200 || words > 2250) ? 'warn-text' : '' }, words ? (words < 1200 ? 'under 8 min' : words > 2250 ? 'over 15 min' : '8–15 min ✓') : ''));
+  }
+
+  function jumpToLine(line) {
+    if (!line) return;
+    const lines = textarea.value.split('\n');
+    const start = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0);
+    textarea.focus();
+    textarea.setSelectionRange(start, start + (lines[line - 1] || '').length);
+    const lh = parseFloat(getComputedStyle(textarea).lineHeight) || 22;
+    textarea.scrollTop = Math.max(0, (line - 4) * lh);
+  }
+
+  function drawLint(findings, hasHard) {
+    clear(lintBox);
+    reviewBtn.disabled = hasHard;
+    reviewBtn.title = hasHard ? 'Fix the HARD findings first' : '';
+    if (!findings.length) {
+      lintBox.append(h('div', { class: 'lint-clean' }, icon('check', 16), 'No AI tells found.'));
+      return;
+    }
+    const hard = findings.filter((f) => f.severity === 'HARD').length;
+    lintBox.append(h('div', { class: 'lint-summary' },
+      hard ? pill('HARD', `${hard} must fix`) : null, pill('WARN', `${findings.length - hard} warnings`)));
+    lintBox.append(h('ul', { class: 'lint-list' }, findings.slice(0, 80).map((f) => h('li', {
+      class: `lint-item ${f.severity}`, onclick: () => jumpToLine(f.line), title: f.line ? `Go to line ${f.line}` : '',
+    },
+    h('div', { class: 'lint-rule' }, h('span', { class: `sev ${f.severity}` }, f.severity), f.rule, f.line ? h('span', { class: 'muted' }, ` · line ${f.line}`) : null),
+    h('code', {}, f.match)))));
+  }
+
+  const lintSoon = debounce(async () => {
+    try {
+      const r = await api('POST', 'scripts/lint', { text: textarea.value });
+      drawLint(r.findings, r.has_hard);
+    } catch { /* linting is best-effort while typing */ }
+  }, 500);
+
+  textarea.addEventListener('input', () => { change('body', textarea.value); drawStats(); lintSoon(); });
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      textarea.setRangeText('  ', textarea.selectionStart, textarea.selectionEnd, 'end');
+    }
+  });
+
+  drawStats();
+  drawLint(data.findings, data.has_hard);
+
+  const writePane = h('div', { class: 'editor-layout' },
+    h('div', { class: 'editor-main' }, textarea, stats),
+    h('aside', { class: 'editor-side' },
+      h('div', { class: 'card' },
+        h('h3', {}, 'AI-tell linter'),
+        h('p', { class: 'muted small' }, 'HARD findings block the AI review. Click one to jump to it.'),
+        lintBox),
+      h('div', { class: 'card' },
+        h('h3', {}, 'Review panel'),
+        h('p', { class: 'muted small' }, 'Voice, retention, facts and the top 3 hostile comments. Line edits, never a rewrite.'),
+        reviewBtn)));
+
+  // ---- other tabs ----
+  const reviewPane = h('div');
+  function drawReview() {
+    clear(reviewPane).append(h('div', { class: 'card' },
+      h('div', { class: 'card-header' }, h('h2', {}, 'AI review'),
+        h('div', { class: 'row' },
+          script.review ? h('button', { class: 'btn ghost sm', onclick: () => copyText(script.review) }, icon('copy', 15), 'Copy') : null,
+          h('button', { class: 'btn primary sm', disabled: reviewBtn.disabled, onclick: (e) => runReview(e.currentTarget) }, icon('refresh', 15), script.review ? 'Run again' : 'Run review'))),
+      mdBlock(script.review, 'No review yet. Clear the HARD linter findings, then run the review.')));
+  }
+
+  async function runReview(btn = reviewBtn) {
+    await saveSoon.flush();
+    await busy(btn, 'Reviewing… (up to a minute)', async () => {
+      try {
+        const r = await api('POST', `scripts/${script.id}/review`);
+        script.review = r.review;
+        script.status = r.script.status;
+        statusSelect.value = script.status;
+        toast(r.message);
+        drawReview();
+        showTab('review');
+      } catch (err) {
+        if (err.data?.findings) drawLint(err.data.findings, true);
+        throw err;
+      }
+    });
+  }
+
+  const previewPane = h('div', { class: 'card' });
+
+  const packagePane = h('div');
+  function drawPackage() {
+    const outBox = h('div');
+    clear(packagePane).append(h('div', { class: 'card' },
+      h('h2', {}, 'Package this video'),
+      h('p', { class: 'muted' }, 'Everything around the script, written from it. Outputs can be saved to your Library, linked to this script.'),
+      h('div', { class: 'tool-chips' }, PACKAGE_TOOLS.map((t) => {
+        const b = h('button', {
+          class: 'btn sm',
+          onclick: () => busy(b, `${t.label}…`, async () => {
+            await saveSoon.flush();
+            if (!script.body.trim() && t.key !== 'yt_chapters') throw new Error('Write some of the script first.');
+            const r = await api('POST', 'tools/run', { tool: t.key, inputs: t.input(script), results: 3 });
+            clear(outBox).append(h('h3', { style: { marginTop: '16px' } }, t.label),
+              outputPanel(r.output, { title: `${t.label}: ${script.title}`, tool: t.key, scriptId: script.id }));
+          }),
+        }, t.label);
+        return b;
+      })),
+      outBox));
+  }
+
+  function docTab(fieldName, { title, generate, empty, help }) {
+    const pane = h('div');
+    let editing = false;
+    function draw() {
+      const value = script[fieldName] || '';
+      const genBtn = generate ? h('button', {
+        class: 'btn primary sm',
+        onclick: () => busy(genBtn, 'Writing… (up to a minute)', async () => {
+          await saveSoon.flush();
+          const r = await api('POST', generate.path, generate.body?.() );
+          script[fieldName] = r[fieldName];
+          toast(r.message);
+          editing = false;
+          draw();
+        }),
+      }, icon('sparkle', 15), value ? 'Regenerate' : 'Generate') : null;
+
+      const body = editing
+        ? (() => {
+            const ta = h('textarea', { class: 'doc-editor', rows: 22 }, value);
+            ta.addEventListener('input', () => change(fieldName, ta.value));
+            setTimeout(() => ta.focus(), 0);
+            return ta;
+          })()
+        : mdBlock(value, empty);
+
+      clear(pane).append(h('div', { class: 'card' },
+        h('div', { class: 'card-header' },
+          h('h2', {}, title),
+          h('div', { class: 'row' },
+            value ? h('button', { class: 'btn ghost sm', onclick: () => copyText(script[fieldName] || '') }, icon('copy', 15), 'Copy') : null,
+            value ? h('button', { class: 'btn ghost sm', onclick: () => download(`${slug(script.title)}-${fieldName}.md`, script[fieldName] || '') }, icon('download', 15), '.md') : null,
+            h('button', { class: 'btn ghost sm', onclick: () => { editing = !editing; draw(); } }, icon('pen', 15), editing ? 'Done' : 'Edit'),
+            genBtn)),
+        help ? h('p', { class: 'muted small' }, help) : null,
+        body));
+    }
+    draw();
+    return pane;
+  }
+
+  const transcriptPane = h('div');
+  function drawTranscript() {
+    const ta = h('textarea', { class: 'doc-editor', rows: 18, placeholder: 'Paste what you actually said on camera. The Substack post prefers this over the script.' }, script.transcript || '');
+    ta.addEventListener('input', () => change('transcript', ta.value));
+    const urlIn = h('input', { type: 'url', value: script.youtube_url || '', placeholder: 'https://youtube.com/watch?v=… (your published video)' });
+    const fetchBtn = h('button', {
+      class: 'btn sm',
+      onclick: () => busy(fetchBtn, 'Fetching captions…', async () => {
+        if (!urlIn.value) throw new Error('Add the video link first.');
+        const r = await api('POST', 'youtube/transcript', { url: urlIn.value });
+        ta.value = r.transcript;
+        change('transcript', r.transcript);
+        if (!script.youtube_url) change('youtube_url', urlIn.value);
+        toast(`Transcript loaded: ${r.words.toLocaleString()} words.`);
+      }),
+    }, icon('download', 15), 'Fetch from YouTube');
+    clear(transcriptPane).append(h('div', { class: 'card' },
+      h('h2', {}, 'Recording transcript'),
+      h('div', { class: 'row', style: { marginBottom: '12px' } }, h('div', { style: { flex: '1', minWidth: '240px' } }, urlIn), fetchBtn),
+      h('p', { class: 'muted small' }, 'Captions are fetched from the public video. If YouTube blocks it, copy the transcript from YouTube (⋯ → Show transcript) and paste it here.'),
+      ta));
+  }
+
+  const publishPane = h('div');
+  function drawPublish() {
+    const form = h('form', {
+      onsubmit: async (e) => {
+        e.preventDefault();
+        const v = formData(form);
+        await busy(form.querySelector('[type=submit]'), 'Saving…', async () => {
+          await saveSoon.flush();
+          const r = await api('PATCH', `scripts/${script.id}`, {
+            youtube_url: v.youtube_url || null, published_on: v.published_on || null,
+            status: v.youtube_url && script.status !== 'published' ? 'published' : script.status,
+          });
+          Object.assign(script, r.script);
+          statusSelect.value = script.status;
+          toast('Publishing details saved.');
+        });
+      },
+    },
+    h('div', { class: 'grid grid-2 tight' },
+      field('YouTube link', h('input', { type: 'url', name: 'youtube_url', value: script.youtube_url || '' })),
+      field('Published on', h('input', { type: 'date', name: 'published_on', value: isoDay(script.published_on) }))),
+    h('p', { class: 'muted small' }, 'Adding the link marks the script published. Link it to a week on the Goals page so it counts on the scoreboard (check-in also finds it automatically).'),
+    h('div', { class: 'row' }, h('button', { type: 'submit', class: 'btn primary' }, 'Save')));
+
+    clear(publishPane).append(
+      h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form),
+      h('div', { class: 'card danger-zone' },
+        h('h3', {}, 'Delete script'),
+        h('p', { class: 'muted' }, 'This removes the script, its review, Substack post and edit brief.'),
+        h('button', {
+          class: 'btn danger',
+          onclick: async () => {
+            if (!(await confirmDialog(`Delete “${script.title}” permanently?`))) return;
+            saveSoon.cancel();
+            try { await api('DELETE', `scripts/${script.id}`); toast('Script deleted.'); navigate('/scripts'); } catch (err) { toast(err.message, 'err'); }
+          },
+        }, icon('trash', 15), 'Delete')));
+  }
+
+  // ---- tabs ----
+  const tabs = [
+    { key: 'write', label: 'Write', pane: writePane },
+    { key: 'preview', label: 'Preview', pane: previewPane, onShow: () => clear(previewPane).append(mdBlock(script.body, 'Nothing written yet.')) },
+    { key: 'review', label: 'Review', pane: reviewPane, onShow: drawReview },
+    { key: 'package', label: 'Package', pane: packagePane, onShow: drawPackage },
+    { key: 'transcript', label: 'Transcript', pane: transcriptPane, onShow: drawTranscript },
+    { key: 'substack', label: 'Substack', pane: docTab('substack', { title: 'Substack post', generate: { path: `scripts/${script.id}/substack` }, empty: 'Generate a Substack post from the transcript (or the script, if there is no transcript yet).', help: 'Best after filming: paste the transcript first so the post reflects what you actually said.' }) },
+    { key: 'brief', label: 'Edit brief', pane: docTab('edit_brief', { title: 'Editor brief', generate: { path: `scripts/${script.id}/edit-brief` }, empty: 'Generate a brief for your editor from the script’s [VISUAL] and [B-ROLL] notes.' }) },
+    { key: 'publish', label: 'Publish', pane: publishPane, onShow: drawPublish },
+  ];
+  const tabBar = h('div', { class: 'tabs', role: 'tablist' });
+  const paneBox = h('div', { class: 'tab-panes' });
+
+  function showTab(key) {
+    for (const t of tabs) {
+      const active = t.key === key;
+      t.button.classList.toggle('active', active);
+      t.button.setAttribute('aria-selected', String(active));
+      t.pane.hidden = !active;
+      if (active) t.onShow?.();
+    }
+    if (key === 'write') textarea.focus();
+  }
+  for (const t of tabs) {
+    t.button = h('button', { class: 'tab', role: 'tab', onclick: () => showTab(t.key) }, t.label);
+    tabBar.append(t.button);
+    paneBox.append(t.pane);
+  }
+
+  view.append(
+    h('div', { class: 'editor-head' },
+      link('/scripts', { class: 'btn ghost sm' }, icon('back', 15), 'Scripts'),
+      h('div', { class: 'editor-title' }, titleInput, h('h1', { class: 'sr-only' }, script.title)),
+      h('div', { class: 'row' }, saveState, statusSelect,
+        h('button', { class: 'btn ghost sm', title: 'Download script', onclick: () => download(`${slug(script.title)}.md`, `# ${script.title}\n\n${script.body}`) }, icon('download', 16)))),
+    script.idea ? h('p', { class: 'muted small', style: { margin: '-8px 0 14px' } }, 'From idea: ', h('strong', {}, script.idea.title), script.idea.premise ? ` · ${script.idea.premise}` : '') : null,
+    tabBar, paneBox);
+
+  showTab('write');
+
+  const onKey = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveSoon.flush(); }
+  };
+  const onUnload = (e) => { if (Object.keys(pending).length) { saveSoon.flush(); e.preventDefault(); } };
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('beforeunload', onUnload);
+
+  return () => {
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('beforeunload', onUnload);
+    lintSoon.cancel();
+    saveSoon.flush();
+  };
+}

@@ -420,11 +420,14 @@ export function renderAuth(root, initialized, welcome, onDone) {
       themeSwitch()
     ));
 
-  // Right side: Dashboard Preview with Sidebar (Light & Dark) + anchored note of the day with NO shadow
+  // Right side: Full-height vertical Unsplash studio photography + anchored note of the day
   const authArt = h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
-    h('div', { class: 'auth-mockup-wrap' },
-      h('img', { class: 'auth-mockup auth-mockup-light', src: '/images/auth-mockup-light.svg', alt: 'Creator Studio Dashboard with Sidebar (Light)' }),
-      h('img', { class: 'auth-mockup auth-mockup-dark', src: '/images/auth-mockup-dark.svg', alt: 'Creator Studio Dashboard with Sidebar (Dark)' })),
+    h('img', {
+      class: 'auth-hero-img',
+      src: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1000&h=1400&q=80',
+      alt: 'Creator Studio Workspace',
+      loading: 'eager',
+    }),
     note ? h('figure', { class: 'auth-note' },
       h('span', { class: 'auth-note-heart' }, icon('mail', 18)),
       h('blockquote', {}, note),

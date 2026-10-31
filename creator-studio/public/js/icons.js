@@ -59,6 +59,7 @@ const PATHS = {
   'chevron-right': '<path d="M9 6l6 6-6 6"/>',
   'chevron-left': '<path d="M15 6l-6 6 6 6"/>',
   'chevron-down': '<path d="M6 9l6 6 6-6"/>',
+  'chevron-up': '<path d="m18 15-6-6-6 6"/>',
   'heart-fill': '<path fill="currentColor" stroke="none" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 5.3 3.1 1.7-1.9 3.2-3.1 5.3-3.1 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',

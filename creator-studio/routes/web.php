@@ -63,6 +63,7 @@ Route::prefix('api')->group(function () {
     Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession']);
     Route::post('stripe/webhook', [StripePaymentController::class, 'webhook']);
     Route::post('booking', [BookingController::class, 'store']);
+    Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
 
     // Authenticated API endpoints
     Route::middleware('auth')->group(function () {

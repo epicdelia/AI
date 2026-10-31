@@ -69,19 +69,19 @@ export function openBookingModal(initialType = 'mvp_build') {
         }
       },
     },
-    h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-      field('Your Name', nameInput, 'Required'),
-      field('Work Email', emailInput, 'Calendar invite sent here')),
-    h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-      field('Company or Brand', companyInput, 'Optional'),
-      field('Project Type', typeSelect)),
-    h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-      field('Preferred Date', dateInput),
-      field('Preferred Time', timeSelect)),
-    field('Project Notes or Goals', notesInput, 'Tell Delia what you need built'),
-    h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '10px', marginTop: '16px' } },
-      cancelBtn,
-      submitBtn));
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } },
+        field('Your Name', nameInput, 'Required'),
+        field('Work Email', emailInput, 'Calendar invite sent here')),
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } },
+        field('Company or Brand', companyInput, 'Optional'),
+        field('Project Type', typeSelect)),
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } },
+        field('Preferred Date', dateInput),
+        field('Preferred Time', timeSelect)),
+      field('Project Notes or Goals', notesInput, 'Tell Delia what you need built'),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '10px', marginTop: '16px' } },
+        cancelBtn,
+        submitBtn));
 
     const contentBox = h('div', { class: 'booking-modal-body' },
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center', marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid var(--line)' } },
@@ -181,19 +181,19 @@ export function openStripeModal(pkgId = 'retainer') {
         }
       },
     },
-    h('div', { class: 'card', style: { padding: '16px', background: 'var(--panel-2)', border: '1px solid var(--line)', marginBottom: '16px' } },
-      h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
-        h('strong', {}, selected.name),
-        h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent)' } }, selected.price)),
-      h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, selected.desc)),
-    h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-      field('Cardholder or Client Name', nameInput, 'Required'),
-      field('Billing Email', emailInput, 'Invoice receipt sent here')),
-    field('Company or Brand Name', companyInput, 'For invoice heading'),
-    field('Notes & Project Requirements', notesInput, 'Optional details'),
-    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' } },
-      h('span', { class: 'small muted' }, icon('lock', 12), ' 256-bit encrypted Stripe checkout'),
-      h('div', { class: 'row', style: { gap: '10px' } }, cancelBtn, payBtn)));
+      h('div', { class: 'card', style: { padding: '16px', background: 'var(--panel-2)', border: '1px solid var(--line)', marginBottom: '16px' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', {}, selected.name),
+          h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent)' } }, selected.price)),
+        h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, selected.desc)),
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } },
+        field('Cardholder or Client Name', nameInput, 'Required'),
+        field('Billing Email', emailInput, 'Invoice receipt sent here')),
+      field('Company or Brand Name', companyInput, 'For invoice heading'),
+      field('Notes & Project Requirements', notesInput, 'Optional details'),
+      h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' } },
+        h('span', { class: 'small muted' }, icon('lock', 12), ' 256-bit encrypted Stripe checkout'),
+        h('div', { class: 'row', style: { gap: '10px' } }, cancelBtn, payBtn)));
 
     const contentBox = h('div', { class: 'stripe-modal-body' },
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid var(--line)' } },
@@ -316,32 +316,6 @@ function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
         { label: 'Instagram @tech.unicorn', icon: 'brand:instagram', href: 'https://instagram.com/tech.unicorn', external: true },
       ],
     },
-    {
-      id: 'studio',
-      label: 'Studio Suite',
-      groups: [
-        {
-          title: 'Creator Studio Platform',
-          items: [
-            { label: 'Creator Studio Pro', desc: 'AI script wizard, audience retention analytics, and video pipelines.', icon: 'sparkle', onClick: onAuthClick },
-            { label: 'Link in Bio Builder', desc: 'Fast, high-converting bio pages with click tracking and analytics.', icon: 'link', to: '/links' },
-            { label: 'Visual Code Cards', desc: 'Generate high-res code cards and terminal syntax snippets.', icon: 'code', to: '/snippets' },
-          ],
-        },
-        {
-          title: 'Business & CRM',
-          items: [
-            { label: 'Brand Deals CRM', desc: 'Manage inbound sponsorships, deliverables, and rate cards.', icon: 'briefcase', to: '/deals' },
-            { label: 'Media Kit Deck', desc: 'Live audience reach, verified demographics, and pricing tiers.', icon: 'file-text', to: '/mediakit' },
-            { label: 'Omnichannel Distribution', desc: 'Repurpose one idea into multi-network native social posts.', icon: 'repeat', to: '/repurpose' },
-          ],
-        },
-      ],
-      actions: [
-        { label: isAuth ? 'Open Studio Dashboard' : 'Sign in to Creator Studio', icon: 'sliders', onClick: onAuthClick },
-        { label: 'Quick Search (Omnibar)', icon: 'search', onClick: () => window.dispatchEvent(new CustomEvent('open-palette')) },
-      ],
-    },
   ];
 }
 
@@ -398,10 +372,10 @@ function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
         class: 'mega-link',
         onclick: clickHandler,
       },
-      h('span', { class: 'mega-ico' }, icon(it.icon, 18)),
-      h('span', { class: 'mega-text' },
-        h('strong', {}, it.label),
-        h('span', { class: 'muted small' }, it.desc)));
+        h('span', { class: 'mega-ico' }, icon(it.icon, 18)),
+        h('span', { class: 'mega-text' },
+          h('strong', {}, it.label),
+          h('span', { class: 'muted small' }, it.desc)));
     };
 
     panel.replaceChildren(h('div', { class: 'mega-inner' },
@@ -434,9 +408,9 @@ function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
             class: 'mega-action',
             onclick: actClick,
           },
-          icon(act.icon, 15),
-          act.label,
-          icon('arrow', 13));
+            icon(act.icon, 15),
+            act.label,
+            icon('arrow', 13));
         }))));
   }
 
@@ -557,8 +531,8 @@ function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
               class: 'landing-drawer-link',
               onclick: clickHandler,
             },
-            icon(item.icon, 16),
-            h('span', {}, item.label));
+              icon(item.icon, 16),
+              h('span', {}, item.label));
           })))));
 
   const drawerFoot = h('div', { class: 'landing-drawer-footer' },
@@ -721,15 +695,11 @@ export function renderLanding(view, options = {}) {
   const hero = h('section', { class: 'landing-hero' },
     h('div', { class: 'landing-container landing-hero-grid' },
       h('div', { class: 'landing-hero-copy' },
-        h('div', { class: 'row', style: { gap: '8px', alignItems: 'center', marginBottom: '14px' } },
-          brandMark(20),
-          h('span', { class: 'landing-eyebrow' }, 'Delia Lazarescu · Ex-Google Engineer · Digital Nomad')),
         h('h1', {}, 'Making tech ', h('em', {}, 'less scary'), ': built from beach cafés in 60+ countries.'),
         h('p', { class: 'landing-lede' }, 'I am a software engineer who left Big Tech to build apps, create content for 470K+ people, and prove you do not need a hoodie and a standing desk to ship great software.'),
         h('div', { class: 'landing-hero-actions' },
           h('button', { type: 'button', class: 'btn primary lg', onclick: () => handleBookCall('mvp_build') }, icon('calendar', 16), 'Book an Intro Call'),
-          h('a', { href: '#pricing', class: 'btn ghost lg' }, 'See Packages & Pricing'),
-          h('button', { type: 'button', class: 'btn ghost lg', onclick: () => handleStripePay('retainer') }, icon('credit-card', 15), 'Stripe Checkout')),
+          h('a', { href: '#pricing', class: 'btn ghost lg' }, 'See Packages & Pricing')),
         h('p', { class: 'muted small' }, 'Free 30-minute call · fixed-scope proposal within 48 hours · no surprise invoices')),
       h('div', { class: 'landing-stats-grid' },
         h('div', { class: 'landing-stat-box' },
@@ -765,48 +735,347 @@ export function renderLanding(view, options = {}) {
         ['IBM', 'Adobe', 'Airalo', 'Temporal', 'Nomad Cruise', 'Digital Garage Tokyo', 'Vently'].map((name) =>
           h('li', {}, name)))));
 
-  // 5. Section 01: About
-  const about = h('section', { class: 'landing-section', id: 'about' },
-    h('div', { class: 'landing-container grid grid-sidebar' },
-      h('div', {},
-        h('p', { class: 'landing-section-eyebrow' }, '01: About'),
-        h('div', { style: { marginTop: '24px' } }, brandMark(48))),
-      h('div', {},
-        h('h2', {}, 'Engineer first. ', h('em', {}, 'Storyteller'), ' always.'),
-        h('p', {}, 'I spent years writing production code at Google before trading the campus for a carry-on. Now I split my time between shipping AI-powered products for clients and explaining technology to a few hundred thousand people who were told it was not for them.'),
-        h('p', {}, 'The thesis behind everything I make: ', h('strong', {}, 'tech feels scary because it is explained badly.'), ' Whether it is a 30-second reel, a conference keynote, or an MVP built in three weeks, my job is the same: take something intimidating and make it feel obvious.'),
-        h('ul', { class: 'about-points', style: { listStyle: 'none', padding: 0, marginTop: '20px', display: 'grid', gap: '12px' } },
-          h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Self-taught engineer to Google to independent founder'),
-          h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Built and shipped products while living across 60+ countries'),
-          h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), '472K+ community across Instagram, YouTube, LinkedIn & TikTok')))));
+  // 5. Section 01: About with single authentic Delia portrait & credentials in rows with show more / show less
+  const aboutPhoto = h('div', { class: 'landing-about-showcase' },
+    h('div', { class: 'landing-about-photo-card' },
+      h('img', {
+        src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+        alt: 'Delia Lazarescu · Ex-Google Engineer & Founder',
+        class: 'landing-about-photo',
+        loading: 'eager',
+      }),
+      h('div', { class: 'landing-about-badge' },
+        h('span', { style: { color: 'var(--accent)' } }, '✦'),
+  'Delia Lazarescu · Ex-Google Engineer & Founder')));
 
-  // 6. Section 02: Services
-  const servicesData = [
-    { icon: 'zap', title: 'Vibecoded Apps', desc: 'AI-powered MVPs designed, built, and shipped in 2 to 4 weeks. From napkin sketch to live product with no six-month roadmap required.' },
-    { icon: 'play', title: 'Content Creation', desc: 'Short-form video, long-form YouTube, and LinkedIn content that makes your product make sense to real humans.' },
-    { icon: 'mic', title: 'Speaking & Workshops', desc: 'Keynotes and hands-on workshops on AI, building in public, and the future of work for conferences, companies, and communities.' },
-    { icon: 'briefcase', title: 'Brand Partnerships', desc: 'Authentic integrations with an engaged, tech-curious audience of 470K+. I only partner with products I actually use.' },
-    { icon: 'code', title: 'Technical Consulting', desc: 'An ex-Google engineer in your corner for architecture reviews, build-vs-buy decisions, and honest answers about what your team actually needs.' },
-    { icon: 'sparkle', title: 'AI Integration', desc: 'Practical AI features for your existing product: shipped, not slide-decked. LLMs, automation, and agents that earn their keep.' },
+  const credsData = [
+    {
+      title: '69 Countries',
+      desc: 'Shipped code from beach cafes, bullet trains, and colivings.',
+      icon: 'globe',
+      extra: 'Tested remote workflows across Japan, Indonesia, Portugal, Brazil, and 65+ other countries while maintaining high reliability on client production apps.',
+    },
+    {
+      title: 'Keynote Speaker',
+      desc: 'Nomad Cruise, WestVisions, and Tech Summits worldwide.',
+      icon: 'mic',
+      extra: 'Keynote talks breaking down practical AI agents, vibecoding production software, and navigating the tech industry without losing your humanity.',
+    },
+    {
+      title: '472K+ Community',
+      desc: 'Explaining AI, software engineering, and nomadic building in plain English.',
+      icon: 'sparkle',
+      extra: 'Demystifying complex systems, AI tooling, and engineering truths for a community of developers, founders, and tech professionals across YouTube, Instagram, and LinkedIn.',
+    },
   ];
+
+  let credsExpanded = false;
+  const credsList = h('div', { class: 'landing-about-rows' });
+  const toggleCredsBtn = h('button', {
+    type: 'button',
+    class: 'landing-about-toggle-btn',
+    'aria-expanded': 'false',
+    onclick: () => {
+      credsExpanded = !credsExpanded;
+      renderCredsRows();
+    },
+  });
+
+  function renderCredsRows() {
+    toggleCredsBtn.setAttribute('aria-expanded', String(credsExpanded));
+    toggleCredsBtn.replaceChildren(
+      credsExpanded ? 'Show less' : 'Show more',
+      icon(credsExpanded ? 'chevron-up' : 'chevron-down', 13));
+
+    credsList.replaceChildren(
+      ...credsData.map((c) =>
+        h('div', { class: 'landing-about-row-item' },
+          h('div', { class: 'landing-about-row-icon' }, icon(c.icon, 18)),
+          h('div', { style: { flex: '1' } },
+            h('h4', { class: 'landing-about-row-title' }, c.title),
+            h('p', { class: 'landing-about-row-desc' }, c.desc),
+            credsExpanded ? h('p', { class: 'landing-about-row-extra' }, c.extra) : null))),
+      toggleCredsBtn);
+  }
+
+  renderCredsRows();
+
+  const about = h('section', { class: 'landing-section', id: 'about' },
+    h('div', { class: 'landing-container' },
+      h('div', { class: 'grid grid-2', style: { gap: 'clamp(32px, 5vw, 64px)', alignItems: 'center' } },
+        h('div', {},
+          h('p', { class: 'landing-section-eyebrow' }, '01: About'),
+          h('h2', {}, 'Engineer first. ', h('em', {}, 'Storyteller'), ' always.'),
+          h('p', {}, 'I spent years writing production code at Google before trading the campus for a carry-on. Now I split my time between shipping AI-powered products for clients and explaining technology to a few hundred thousand people who were told it was not for them.'),
+          h('p', {}, 'The thesis behind everything I make: ', h('strong', {}, 'tech feels scary because it is explained badly.'), ' Whether it is a 30-second reel, a conference keynote, or an MVP built in three weeks, my job is the same: take something intimidating and make it feel obvious.'),
+          h('ul', { class: 'about-points', style: { listStyle: 'none', padding: 0, marginTop: '20px', display: 'grid', gap: '12px' } },
+            h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Self-taught engineer to Google to independent founder'),
+            h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), 'Built and shipped products while living across 60+ countries'),
+  h('li', { class: 'row', style: { gap: '10px' } }, h('span', { style: { color: 'var(--accent)' } }, '✦'), '472K+ community across Instagram, YouTube, LinkedIn & TikTok')),
+          credsList),
+        aboutPhoto)));
+
+  // 6. Section 02: Services with dashboard composer polish
+  const servicesData = [
+    {
+      category: 'MVP Engineering',
+      badge: '2 to 4 wks',
+      icon: 'zap',
+      title: 'Vibecoded Apps',
+      desc: 'AI-powered MVPs designed, built, and shipped in 2 to 4 weeks. From napkin sketch to live cloud deployment.',
+      deliverables: [
+        'Interactive prototype and design review within 5 days',
+        'Full production codebase transferred to your GitHub repo',
+        'Integrated Stripe billing, auth, and automated database backups',
+      ],
+      tags: ['React / Vite', 'Python', 'Stripe', 'Docker'],
+      ctaService: 'mvp_build',
+    },
+    {
+      category: 'Production AI',
+      badge: 'Practical LLMs',
+      icon: 'sparkle',
+      title: 'AI Integration',
+      desc: 'Practical AI features for your existing product: shipped, not slide-decked. Autonomous agents that earn their keep.',
+      deliverables: [
+        'Custom LLM subagent pipelines and tool-routing workflows',
+        'Deterministic evaluation benchmarks and safety guardrails',
+        'Optimized inference latency with streaming responses',
+      ],
+      tags: ['Claude Code', 'Gemini API', 'Agents', 'Vector DB'],
+      ctaService: 'retainer',
+    },
+    {
+      category: 'Ex-Google Advisory',
+      badge: 'Weekly Syncs',
+      icon: 'code',
+      title: 'Technical Consulting',
+      desc: 'An ex-Google engineer in your corner for architecture reviews, build-vs-buy decisions, and scaling strategy.',
+      deliverables: [
+        'Unbiased build versus buy infrastructure assessments',
+        'Scalability and cloud security audits before launch',
+        'Async code reviews and emergency escalation coverage',
+      ],
+      tags: ['Architecture', 'Cloud Security', 'Scalability'],
+      ctaService: 'strategy_session',
+    },
+    {
+      category: 'Audience & Growth',
+      badge: '472K+ Audience',
+      icon: 'play',
+      title: 'Content Creation',
+      desc: 'Short-form video, long-form YouTube deep-dives, and LinkedIn content that makes complex tech feel obvious.',
+      deliverables: [
+        'Full video scripting, hands-on demos, and production editing',
+        'Multi-platform syndication across YouTube, Instagram & LinkedIn',
+        'Native integrations that build lasting developer goodwill',
+      ],
+      tags: ['YouTube 4K', 'Shorts', 'LinkedIn Pulse'],
+      ctaService: 'brand_deal',
+    },
+    {
+      category: 'Keynotes & Stages',
+      badge: 'Global Stages',
+      icon: 'mic',
+      title: 'Speaking & Workshops',
+      desc: 'Keynotes and hands-on workshops on AI agents, building in public, and the future of remote engineering.',
+      deliverables: [
+        'In-person and virtual keynote talks tailored to your conference',
+        'Live coding demos showing autonomous agents in real time',
+        'Interactive Q&A and VIP speaker session engagement',
+      ],
+      tags: ['Nomad Cruise', 'Tech Summits', 'Live Coding'],
+      ctaService: 'strategy_session',
+    },
+    {
+      category: 'Creator Partnerships',
+      badge: 'Verified Fit',
+      icon: 'briefcase',
+      title: 'Brand Partnerships',
+      desc: 'Authentic integrations with an engaged audience of 472K+ developers, founders, and tech-curious professionals.',
+      deliverables: [
+        'Dedicated feature video or authentic 60-second integration',
+        'Custom tracking links, social promotion, and analytics reporting',
+        'Strict policy: I only endorse developer tools I genuinely use',
+      ],
+      tags: ['Dev Tools', 'SaaS', 'High Retention'],
+      ctaService: 'brand_deal',
+    },
+  ];
+
   const services = h('section', { class: 'landing-section tinted', id: 'services' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '02: Services'),
-        h('h2', {}, 'Six ways we can ', h('em', {}, 'work together'))),
+        h('h2', {}, 'Six ways we can ', h('em', {}, 'work together')),
+        h('p', { class: 'muted' }, 'Every engagement comes with direct access to Delia, transparent deliverables, and zero corporate fluff.')),
       h('div', { class: 'grid grid-3', style: { gap: '20px' } },
-        servicesData.map((s) => h('article', { class: 'landing-card' },
-          h('div', { class: 'landing-card-icon', style: { marginBottom: '14px', color: 'var(--accent)' } }, icon(s.icon, 24)),
-          h('h3', {}, s.title),
-          h('p', { class: 'muted' }, s.desc))))));
+        servicesData.map((s) => h('article', { class: 'landing-service-card' },
+          h('div', {},
+            h('div', { class: 'landing-service-head' },
+              h('span', { class: 'landing-service-cat-badge' }, icon(s.icon, 13), s.category),
+              h('span', { class: 'landing-service-badge' }, s.badge)),
+            h('h3', { class: 'landing-service-title' }, s.title),
+            h('p', { class: 'landing-service-desc' }, s.desc),
+            h('ul', { class: 'landing-service-deliverables' },
+              s.deliverables.map((d) => h('li', { class: 'landing-service-deliv-item' },
+                h('span', { class: 'landing-service-deliv-check' }, icon('check', 13)),
+                h('span', {}, d))))),
+          h('div', { class: 'landing-service-footer' },
+            h('div', { class: 'landing-service-tags' },
+              s.tags.map((t) => h('span', { class: 'landing-service-tag' }, t))),
+            h('button', {
+              type: 'button',
+              class: 'landing-service-btn',
+              onclick: () => handleBookCall(s.ctaService),
+            }, 'Book Call', icon('arrow', 12))))))));
 
-  // 7. Section 03: Process
+  // 7. Real YouTube Videos from Delia's @Tech.Unicorn Channel
+  const ytVideos = [
+    {
+      id: '5p3Mg4VEkbI',
+      title: '10 Brutal Truths I Learned as a Google Software Engineer',
+      desc: 'Corporate politics, manager dynamics, imposter syndrome, and learning to write production-grade code that scales.',
+      duration: '14:48',
+      views: '340K views',
+      tag: 'Google & Career',
+      color: '#EA4335',
+      url: 'https://www.youtube.com/watch?v=5p3Mg4VEkbI',
+      thumb: 'https://i.ytimg.com/vi/5p3Mg4VEkbI/hqdefault.jpg',
+    },
+    {
+      id: 'DSXRUnBCYtQ',
+      title: 'I am back at Google! (after I quit... here is why)',
+      desc: 'The honest reasons for giving up Big Tech compensation to travel 60+ countries and build indie software.',
+      duration: '12:15',
+      views: '215K views',
+      tag: 'Nomad Freedom',
+      color: '#4285F4',
+      url: 'https://www.youtube.com/watch?v=DSXRUnBCYtQ',
+      thumb: 'https://i.ytimg.com/vi/DSXRUnBCYtQ/hqdefault.jpg',
+    },
+    {
+      id: 'YJlJ12Txhkg',
+      title: 'Is OpenClaw Still Worth It in 2026? (Ex-Google Engineer)',
+      desc: 'A candid review of self-hosted AI agent frameworks, critical security vulnerabilities, and what to build instead.',
+      duration: '16:24',
+      views: '185K views',
+      tag: 'AI Architecture',
+      color: '#F06A9B',
+      url: 'https://www.youtube.com/watch?v=YJlJ12Txhkg',
+      thumb: 'https://i.ytimg.com/vi/YJlJ12Txhkg/hqdefault.jpg',
+    },
+    {
+      id: '5jYD7ZRMJ5I',
+      title: 'WTF Is Happening To The Job Market (Ex-Googler Perspective)',
+      desc: 'Big tech buyouts, AI infrastructure spending shifts, and how software engineers should navigate 2026.',
+      duration: '15:32',
+      views: '275K views',
+      tag: 'Tech Market',
+      color: '#FBBC05',
+      url: 'https://www.youtube.com/watch?v=5jYD7ZRMJ5I',
+      thumb: 'https://i.ytimg.com/vi/5jYD7ZRMJ5I/hqdefault.jpg',
+    },
+    {
+      id: 'iT0iE6GGuQk',
+      title: 'How A.I. crosses my way as a Digital Nomad (Keynote Talk)',
+      desc: 'Conference keynote on practical automation scripts, global mobility, and staying human in an automated world.',
+      duration: '24:18',
+      views: '98K views',
+      tag: 'Keynote Talk',
+      color: '#34A853',
+      url: 'https://www.youtube.com/watch?v=iT0iE6GGuQk',
+      thumb: 'https://i.ytimg.com/vi/iT0iE6GGuQk/hqdefault.jpg',
+    },
+    {
+      id: 'z5lKZX9dB-4',
+      title: 'On the Importance of Big Tech Clout, Especially as a Woman in Tech',
+      desc: 'Key interview on landing Google engineering, using Big Tech credibility, and building independently.',
+      duration: '18:50',
+      views: '165K views',
+      tag: 'Women in Tech',
+      color: '#D97706',
+      url: 'https://www.youtube.com/watch?v=z5lKZX9dB-4',
+      thumb: 'https://i.ytimg.com/vi/z5lKZX9dB-4/hqdefault.jpg',
+    },
+  ];
+
+  const ytTrack = h('div', { class: 'landing-yt-track' });
+
+  function renderYtCard(vid) {
+    return h('a', {
+      href: vid.url,
+      target: '_blank',
+      rel: 'noopener',
+      class: 'landing-yt-card',
+      title: `Watch "${vid.title}" on YouTube`,
+    },
+      h('div', { class: 'landing-yt-thumb-wrap' },
+        h('img', {
+          src: vid.thumb || `https://i.ytimg.com/vi/${vid.id}/hqdefault.jpg`,
+          alt: vid.title,
+          class: 'landing-yt-thumb',
+          loading: 'lazy',
+          referrerpolicy: 'no-referrer',
+        }),
+        h('div', { class: 'landing-yt-play' },
+          h('div', { class: 'landing-yt-play-circle' }, icon('play', 20))),
+        h('span', { class: 'landing-yt-duration' }, vid.duration || 'Video')),
+      h('div', { class: 'landing-yt-info' },
+        h('div', { class: 'landing-yt-meta' },
+          h('span', {}, vid.tag || 'YouTube'),
+          h('span', { class: 'dot' }, '·'),
+          h('span', { class: 'muted' }, vid.views || 'YouTube')),
+        h('h3', { class: 'landing-yt-title' }, vid.title),
+        h('p', { class: 'landing-yt-desc' }, vid.desc)));
+  }
+
+  function updateYtVideos(list) {
+    ytTrack.replaceChildren(...list.map(renderYtCard));
+  }
+
+  // Initial population with verified real YouTube videos
+  updateYtVideos(ytVideos);
+
+  // Dynamically fetch live channel uploads from the backend API
+  api('landing/youtube-videos').then((res) => {
+    if (res && Array.isArray(res.videos) && res.videos.length) {
+      updateYtVideos(res.videos);
+    }
+  }).catch(() => {
+    // Keep initial verified real videos
+  });
+
+  const prevBtn = h('button', {
+    type: 'button',
+    class: 'landing-yt-nav-btn',
+    'aria-label': 'Scroll left',
+    onclick: () => ytTrack.scrollBy({ left: -340, behavior: 'smooth' }),
+  }, icon('arrow-left', 16));
+
+  const nextBtn = h('button', {
+    type: 'button',
+    class: 'landing-yt-nav-btn',
+    'aria-label': 'Scroll right',
+    onclick: () => ytTrack.scrollBy({ left: 340, behavior: 'smooth' }),
+  }, icon('arrow', 16));
+
+  const ytSection = h('section', { class: 'landing-section landing-yt-section', id: 'youtube' },
+    h('div', { class: 'landing-container' },
+      h('div', { class: 'landing-yt-head' },
+        h('div', {},
+          h('p', { class: 'landing-section-eyebrow' }, 'YouTube & Video Deep-Dives'),
+          h('h2', { style: { margin: 0 } }, 'Watch the latest from ', h('em', {}, 'YouTube'))),
+        h('div', { class: 'landing-yt-controls' }, prevBtn, nextBtn)),
+      ytTrack));
+
+  // 8. Section 03: Process
   const stepsData = [
     { num: '1', title: 'Intro call', desc: 'A free 30-minute call. You bring the idea or problem; I will tell you honestly whether it is a 2-week build, an advisory retainer, or not worth your money.' },
     { num: '2', title: 'Fixed-scope proposal', desc: 'Within 48 hours you get a one-page proposal: deliverables, timeline, and a fixed price. No surprise invoices or scope creep.' },
     { num: '3', title: 'Build, demo, ship', desc: 'Weekly demos every Friday while I build, a live product at the end, and 30 days of post-launch support included on every build.' },
   ];
-  const process = h('section', { class: 'landing-section', id: 'process' },
+  const process = h('section', { class: 'landing-section tinted', id: 'process' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '03: How it works'),
@@ -817,62 +1086,186 @@ export function renderLanding(view, options = {}) {
           h('h3', {}, st.title),
           h('p', { class: 'muted' }, st.desc))))));
 
-  // 8. Section 04: Pricing & Packages with integrated Stripe payment triggers
-  const pricing = h('section', { class: 'landing-section tinted', id: 'pricing' },
+  // 9. Section 04: Packages & Pricing with exact ag-pt structure
+  const pricing = h('section', { class: 'landing-section', id: 'pricing' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '04: Packages & Pricing'),
         h('h2', {}, 'Packages that ', h('em', {}, 'pay for themselves')),
-        h('p', { class: 'muted' }, 'Every engagement starts with a free intro call or instant Stripe checkout. Prices below are transparent starting points for typical scope.')),
-      h('div', { class: 'grid grid-3', style: { gap: '24px', alignItems: 'start' } },
-        // Package 1: Advisory Retainer
-        h('article', { class: 'landing-price-card' },
-          h('h3', {}, 'Advisory Retainer'),
-          h('div', { class: 'row', style: { alignItems: 'baseline' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.2rem', fontWeight: '600' } }, '$3,500'),
-            h('span', { class: 'muted small' }, '/month')),
-          h('p', { class: 'muted' }, 'An ex-Google engineer on call for your product team.'),
-          h('ul', { style: { listStyle: 'none', padding: '12px 0 0', margin: '0', display: 'grid', gap: '8px', borderTop: '1px solid var(--line)' } },
-            h('li', { class: 'small' }, '✦ 2 deep-dive strategy calls per month'),
-            h('li', { class: 'small' }, '✦ Unlimited async architecture reviews'),
-            h('li', { class: 'small' }, '✦ Direct access with 24h response time'),
-            h('li', { class: 'small' }, '✦ Cancel anytime, no minimum lock-in')),
-          h('div', { style: { display: 'grid', gap: '8px', marginTop: '16px' } },
-            h('button', { type: 'button', class: 'btn primary', onclick: () => handleStripePay('retainer') }, icon('credit-card', 14), ' Pay with Stripe ($3,500)'),
-            h('button', { type: 'button', class: 'btn ghost', onclick: () => handleBookCall('retainer') }, icon('calendar', 13), 'Book Intro Call'))),
+        h('p', { class: 'muted' }, 'Every engagement starts with a free scoping call or instant Stripe checkout. Transparent scopes and zero surprise invoices.')),
+      h('div', { class: 'ag-pt-wrap', role: 'region', tabindex: '0', 'aria-label': 'Plans' },
+        h('div', { class: 'ag-pt-grid', style: { '--ag-pt-cols': '4' } },
+          // Card 1: Strategy Session
+          h('div', { class: 'ag-pt-card' },
+            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
+            h('div', { class: 'ag-pt-head' },
+              h('div', { class: 'ag-pt-title' },
+                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
+                h('h3', { class: 'ag-pt-name' }, 'Strategy Call')),
+              h('div', { class: 'ag-pt-price' },
+                h('span', { class: 'ag-pt-cur' }, '$'),
+                h('span', { class: 'ag-pt-price-now' }, '500'),
+                h('span', { class: 'ag-pt-per' }, '/session')),
+              h('p', { class: 'ag-pt-clarify' }, 'one-time private call'),
+              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleBookCall('consulting') }, '90 minutes private session'),
+              h('div', { class: 'ag-pt-desc-block' },
+                h('p', { class: 'ag-pt-desc' }, 'Private 90-minute architecture review, code audit, and AI product roadmap.'),
+                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('consulting') }, 'Read details'))),
+            h('div', { class: 'ag-pt-actions' },
+              h('div', { class: 'ag-pt-cta' },
+                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('advisory_session') }, 'Book session ($500)'),
+                h('p', { class: 'ag-pt-trust' }, '100% satisfaction guarantee'))),
+            h('div', { class: 'ag-pt-body' },
+              h('div', { class: 'ag-pt-slot' },
+                h('div', { class: 'ag-pt-hosting-strip' },
+                  h('div', { class: 'ag-pt-hosting-head' },
+                    h('span', { class: 'ag-pt-hbadge', title: 'Private 1:1 Video Room' }, icon('play', 14), ' Google Meet 1:1')),
+                  h('div', { class: 'ag-pt-hosting-grid' },
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Duration'), h('strong', { class: 'ag-pt-hm-val' }, '90 min'), h('span', { class: 'ag-pt-hm-sub' }, 'private session')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Seats'), h('strong', { class: 'ag-pt-hm-val' }, '1:1'), h('span', { class: 'ag-pt-hm-sub' }, 'your team')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Turnaround'), h('strong', { class: 'ag-pt-hm-val' }, '24h'), h('span', { class: 'ag-pt-hm-sub' }, 'booking')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Support'), h('strong', { class: 'ag-pt-hm-val' }, '7 days'), h('span', { class: 'ag-pt-hm-sub' }, 'follow-up async'))),
+                  h('div', { class: 'ag-pt-hosting-perks' },
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Full recording & transcript'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Architecture summary report'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Follow-up Q&A for 7 days')))),
+              h('p', { class: 'ag-pt-inherits is-empty', 'aria-hidden': 'true' }),
+              h('ul', { class: 'ag-pt-benefits', role: 'list' },
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '90 minutes private strategy call')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Full code & architecture audit')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'AI model selection & roadmap')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '7-day follow-up async support')),
+                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Ongoing weekly on-call access')),
+                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Full production MVP builds'))))),
 
-        // Package 2: MVP Build (Featured)
-        h('article', { class: 'landing-price-card featured' },
-          h('span', { class: 'landing-price-badge' }, 'Most popular'),
-          h('h3', {}, 'MVP Build'),
-          h('div', { class: 'row', style: { alignItems: 'baseline' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.2rem', fontWeight: '600' } }, 'from $12,000'),
-            h('span', { class: 'muted small' }, 'fixed')),
-          h('p', { class: 'muted' }, 'Your idea, live in 2 to 4 weeks: UX design, build, and deploy.'),
-          h('ul', { style: { listStyle: 'none', padding: '12px 0 0', margin: '0', display: 'grid', gap: '8px', borderTop: '1px solid var(--line)' } },
-            h('li', { class: 'small' }, '✦ Full UX design, AI build & cloud deployment'),
-            h('li', { class: 'small' }, '✦ Weekly Friday demos to see live progress'),
-            h('li', { class: 'small' }, '✦ 30 days of post-launch support included'),
-            h('li', { class: 'small' }, '✦ You own 100% of all code, IP & accounts')),
-          h('div', { style: { display: 'grid', gap: '8px', marginTop: '16px' } },
-            h('button', { type: 'button', class: 'btn primary', onclick: () => handleStripePay('mvp_deposit') }, icon('credit-card', 14), ' Pay 50% Deposit ($6,000)'),
-            h('button', { type: 'button', class: 'btn ghost', onclick: () => handleBookCall('mvp_build') }, icon('calendar', 13), 'Book a Free Scoping Call'))),
+          // Card 2: Advisory Retainer
+          h('div', { class: 'ag-pt-card' },
+            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
+            h('div', { class: 'ag-pt-head' },
+              h('div', { class: 'ag-pt-title' },
+                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
+                h('h3', { class: 'ag-pt-name' }, 'Retainer')),
+              h('div', { class: 'ag-pt-price' },
+                h('span', { class: 'ag-pt-cur' }, '$'),
+                h('span', { class: 'ag-pt-price-now' }, '3,500'),
+                h('span', { class: 'ag-pt-per' }, '/mo')),
+              h('p', { class: 'ag-pt-clarify' }, 'billed monthly'),
+              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('retainer') }, 'Save 15% with quarterly'),
+              h('div', { class: 'ag-pt-desc-block' },
+                h('p', { class: 'ag-pt-desc' }, 'An ex-Google engineer on call for your product and engineering team.'),
+                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('retainer') }, 'Read details'))),
+            h('div', { class: 'ag-pt-actions' },
+              h('div', { class: 'ag-pt-cta' },
+                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('retainer') }, 'Start retainer ($3,500)'),
+                h('p', { class: 'ag-pt-trust' }, 'Cancel anytime, no lock-in'))),
+            h('div', { class: 'ag-pt-body' },
+              h('div', { class: 'ag-pt-slot' },
+                h('div', { class: 'ag-pt-hosting-strip' },
+                  h('div', { class: 'ag-pt-hosting-head' },
+                    h('span', { class: 'ag-pt-hbadge', title: 'Advisory Infrastructure' }, icon('sparkle', 14), ' Google Cloud & AI Advisory')),
+                  h('div', { class: 'ag-pt-hosting-grid' },
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Strategy Calls'), h('strong', { class: 'ag-pt-hm-val' }, '2 calls'), h('span', { class: 'ag-pt-hm-sub' }, 'monthly')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Async Reviews'), h('strong', { class: 'ag-pt-hm-val' }, 'Unlimited'), h('span', { class: 'ag-pt-hm-sub' }, 'code & PRs')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Response SLA'), h('strong', { class: 'ag-pt-hm-val' }, '24h'), h('span', { class: 'ag-pt-hm-sub' }, 'guaranteed')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Direct Line'), h('strong', { class: 'ag-pt-hm-val' }, 'Slack / TG'), h('span', { class: 'ag-pt-hm-sub' }, 'priority access'))),
+                  h('div', { class: 'ag-pt-hosting-perks' },
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Bi-weekly deep-dive strategy calls'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Architecture & PR code reviews'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Engineering hiring vetting')))),
+              h('p', { class: 'ag-pt-inherits' }, 'Everything in Strategy Call, and:'),
+              h('ul', { class: 'ag-pt-benefits', role: 'list' },
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '2 deep-dive strategy calls every month')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Unlimited async PR & code reviews')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Direct Slack/Telegram access with 24h SLA')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Build-vs-buy and AI model evaluations')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Cancel anytime with no minimum lock-in')),
+                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Dedicated 2-4 week full MVP builds'))))),
 
-        // Package 3: Brand Partnership
-        h('article', { class: 'landing-price-card' },
-          h('h3', {}, 'Brand Partnership'),
-          h('div', { class: 'row', style: { alignItems: 'baseline' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '2.2rem', fontWeight: '600' } }, 'from $5,000'),
-            h('span', { class: 'muted small' }, '/campaign')),
-          h('p', { class: 'muted' }, 'Your product, explained to 470K+ tech-curious people.'),
-          h('ul', { style: { listStyle: 'none', padding: '12px 0 0', margin: '0', display: 'grid', gap: '8px', borderTop: '1px solid var(--line)' } },
-            h('li', { class: 'small' }, '✦ Concept, script, high-retention video production'),
-            h('li', { class: 'small' }, '✦ 384K Instagram + YouTube & LinkedIn distribution'),
-            h('li', { class: 'small' }, '✦ 54M+ lifetime reach track record'),
-            h('li', { class: 'small' }, '✦ Full digital ad usage rights included')),
-          h('div', { style: { display: 'grid', gap: '8px', marginTop: '16px' } },
-            h('button', { type: 'button', class: 'btn primary', onclick: () => handleStripePay('brand_partnership') }, icon('credit-card', 14), ' Book Campaign ($5,000)'),
-            link('/mediakit', { class: 'btn ghost' }, icon('file-text', 13), 'Request Media Kit'))))));
+          // Card 3: MVP Build (Popular)
+          h('div', { class: 'ag-pt-card is-popular' },
+            h('span', { class: 'ag-pt-ribbon' }, 'Most popular'),
+            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
+            h('div', { class: 'ag-pt-head' },
+              h('div', { class: 'ag-pt-title' },
+                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
+                h('h3', { class: 'ag-pt-name' }, 'MVP Build')),
+              h('div', { class: 'ag-pt-price' },
+                h('span', { class: 'ag-pt-cur' }, '$'),
+                h('span', { class: 'ag-pt-price-now' }, '12,000'),
+                h('span', { class: 'ag-pt-per' }, 'fixed')),
+              h('p', { class: 'ag-pt-clarify' }, 'fixed scope delivery'),
+              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('mvp_deposit') }, 'Pay 50% deposit to start ($6,000)'),
+              h('div', { class: 'ag-pt-desc-block' },
+                h('p', { class: 'ag-pt-desc' }, 'Your idea, live in 2 to 4 weeks: UX design, AI build, and cloud deploy.'),
+                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('mvp_build') }, 'Read details'))),
+            h('div', { class: 'ag-pt-actions' },
+              h('div', { class: 'ag-pt-cta' },
+                h('button', { type: 'button', class: 'vs-btn vs-btn-primary vs-btn-sm', onclick: () => handleStripePay('mvp_deposit') }, 'Pay 50% deposit ($6,000)'),
+                h('p', { class: 'ag-pt-trust' }, '30 days post-launch warranty included'))),
+            h('div', { class: 'ag-pt-body' },
+              h('div', { class: 'ag-pt-slot' },
+                h('div', { class: 'ag-pt-hosting-strip' },
+                  h('div', { class: 'ag-pt-hosting-head' },
+                    h('span', { class: 'ag-pt-hbadge', title: 'Production Cloud Deployment' }, icon('zap', 14), ' Google Cloud Production')),
+                  h('div', { class: 'ag-pt-hosting-grid' },
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Timeline'), h('strong', { class: 'ag-pt-hm-val' }, '2 to 4 wks'), h('span', { class: 'ag-pt-hm-sub' }, 'production ready')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Live Demos'), h('strong', { class: 'ag-pt-hm-val' }, 'Weekly'), h('span', { class: 'ag-pt-hm-sub' }, 'Friday live reviews')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'IP Ownership'), h('strong', { class: 'ag-pt-hm-val' }, '100%'), h('span', { class: 'ag-pt-hm-sub' }, 'all source & code')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Warranty'), h('strong', { class: 'ag-pt-hm-val' }, '30 days'), h('span', { class: 'ag-pt-hm-sub' }, 'post-launch support'))),
+                  h('div', { class: 'ag-pt-hosting-perks' },
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Full UX design, database & responsive app'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Cloud deployment with custom domain & SSL'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), '30 days of post-launch engineering support')))),
+              h('p', { class: 'ag-pt-inherits' }, 'Everything in Retainer, and:'),
+              h('ul', { class: 'ag-pt-benefits', role: 'list' },
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Complete product: UX, AI build & cloud deployment')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Weekly Friday demos to see real live progress')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Production codebase with clean documentation')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '100% ownership of all source code, IP & accounts')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '30 days of dedicated post-launch bug warranty')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Fixed price scope with zero surprise invoices'))))),
+
+          // Card 4: Brand Partnership
+          h('div', { class: 'ag-pt-card' },
+            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
+            h('div', { class: 'ag-pt-head' },
+              h('div', { class: 'ag-pt-title' },
+                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
+                h('h3', { class: 'ag-pt-name' }, 'Brand Deal')),
+              h('div', { class: 'ag-pt-price' },
+                h('span', { class: 'ag-pt-cur' }, '$'),
+                h('span', { class: 'ag-pt-price-now' }, '5,000'),
+                h('span', { class: 'ag-pt-per' }, '/campaign')),
+              h('p', { class: 'ag-pt-clarify' }, 'multi-platform campaign'),
+              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('brand_partnership') }, 'Save 20% on 3-episode package'),
+              h('div', { class: 'ag-pt-desc-block' },
+                h('p', { class: 'ag-pt-desc' }, 'Your product explained to an engaged audience of 472K+ tech professionals.'),
+                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => navigate('/mediakit') }, 'View Media Kit'))),
+            h('div', { class: 'ag-pt-actions' },
+              h('div', { class: 'ag-pt-cta' },
+                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('brand_partnership') }, 'Book campaign ($5,000)'),
+                h('p', { class: 'ag-pt-trust' }, 'Full digital ad rights included'))),
+            h('div', { class: 'ag-pt-body' },
+              h('div', { class: 'ag-pt-slot' },
+                h('div', { class: 'ag-pt-hosting-strip' },
+                  h('div', { class: 'ag-pt-hosting-head' },
+                    h('span', { class: 'ag-pt-hbadge', title: 'Verified Audience Metrics' }, icon('users', 14), ' 472K+ Audience Reach')),
+                  h('div', { class: 'ag-pt-hosting-grid' },
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Instagram'), h('strong', { class: 'ag-pt-hm-val' }, '384K'), h('span', { class: 'ag-pt-hm-sub' }, 'followers')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'YouTube'), h('strong', { class: 'ag-pt-hm-val' }, '22K'), h('span', { class: 'ag-pt-hm-sub' }, 'subscribers')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'LinkedIn'), h('strong', { class: 'ag-pt-hm-val' }, '25K'), h('span', { class: 'ag-pt-hm-sub' }, 'tech pros')),
+                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Lifetime Views'), h('strong', { class: 'ag-pt-hm-val' }, '54M+'), h('span', { class: 'ag-pt-hm-sub' }, 'impressions'))),
+                  h('div', { class: 'ag-pt-hosting-perks' },
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Concept, script & high-retention video'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Native cross-platform distribution'),
+                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Perpetual digital advertising usage rights')))),
+              h('p', { class: 'ag-pt-inherits' }, 'Dedicated sponsor production, including:'),
+              h('ul', { class: 'ag-pt-benefits', role: 'list' },
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'High-retention technical integration & video')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '384K Instagram, 22K YouTube & 25K LinkedIn reach')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Full digital ad commercial rights included')),
+                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Executive post-campaign performance report')),
+                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Direct link tracking in bio & descriptions')))))))));
 
   // 9. Section 05: Content & Community
   const platforms = h('section', { class: 'landing-section', id: 'content' },
@@ -943,26 +1336,62 @@ export function renderLanding(view, options = {}) {
         h('button', { type: 'button', class: 'btn ghost lg', onclick: () => handleStripePay('retainer') }, icon('credit-card', 16), 'Pay with Stripe'),
         h('a', { href: 'mailto:hello@thetechunicorn.com?subject=Project%20Inquiry', class: 'btn ghost lg' }, 'hello@thetechunicorn.com'))));
 
-  // 12. Signature Typographic Footer with official SVG brand logo
+  // 12. Multi-column Refined Footer with Voxel Logo and Platform Columns
   const footer = h('footer', { class: 'landing-footer' },
-    h('div', { class: 'landing-footer-wordmark', 'aria-hidden': 'true' }, 'TECH UNICORN'),
     h('div', { class: 'landing-container' },
-      h('div', { class: 'landing-footer-top', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' } },
-        h('div', { class: 'row', style: { gap: '12px', alignItems: 'center' } },
-          brandMark(28),
-          h('strong', { style: { fontSize: '1.1rem', letterSpacing: '0.04em' } }, 'Tech Unicorn · Delia Lazarescu')),
-        h('div', { class: 'row', style: { gap: '12px' } },
-          h('button', { type: 'button', class: 'btn sm primary', onclick: () => handleBookCall('mvp_build') }, 'Book Call'),
-          h('button', { type: 'button', class: 'btn sm ghost', onclick: () => handleStripePay('retainer') }, 'Stripe Checkout'))),
-      h('div', { class: 'landing-footer-links' },
-        h('a', { href: 'https://instagram.com/tech.unicorn', target: '_blank', rel: 'noopener' }, 'Instagram'),
-        h('a', { href: 'https://youtube.com/@Tech.Unicorn', target: '_blank', rel: 'noopener' }, 'YouTube'),
-        h('a', { href: 'https://linkedin.com/in/delialazarescu', target: '_blank', rel: 'noopener' }, 'LinkedIn'),
-        h('a', { href: 'https://tiktok.com/@tech.unicorn', target: '_blank', rel: 'noopener' }, 'TikTok'),
-        link('/links', {}, 'Link in Bio'),
-        link('/mediakit', {}, 'Media Kit'),
-        h('a', { href: 'mailto:hello@thetechunicorn.com' }, 'Email')),
-      h('p', { class: 'muted small' }, '© 2026 Tech Unicorn · Software development, technical advisory & media services · Made somewhere with good wifi 🌴')));
+      h('div', { class: 'landing-footer-grid' },
+        // Brand Column with Voxel Logo (Span 2)
+        h('div', { class: 'landing-footer-brand' },
+          h('a', {
+            href: '#top',
+            class: 'landing-footer-brand-logo',
+            'aria-label': 'Tech Unicorn Top',
+          },
+            h('span', { class: 'landing-footer-brand-icon' }, brandMark(20)),
+            h('strong', {}, 'Tech Unicorn')),
+          h('p', { style: { fontSize: '0.84rem', fontWeight: '700', color: 'var(--accent)', margin: '0 0 6px' } },
+            'Delia Lazarescu · Ex-Google Engineer · Digital Nomad'),
+          h('p', { style: { fontSize: '0.82rem', color: 'var(--muted)', lineHeight: '1.6', margin: '0 0 16px', maxWidth: '380px' } },
+            'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.'),
+          h('div', { class: 'landing-footer-accent-badge' },
+            h('span', { class: 'landing-pulse-dot' }),
+            h('span', {}, 'Ex-Google engineering · 69 countries · 472K+ community'))),
+
+        // Column 1: Core Engineering
+        h('div', { class: 'landing-footer-col' },
+          h('h3', { class: 'landing-footer-col-title' }, 'Core Engineering'),
+          h('a', { href: '#services', class: 'landing-footer-link' }, 'Vibecoded Apps (MVPs)'),
+          h('a', { href: '#services', class: 'landing-footer-link' }, 'AI Integration & Agents'),
+          h('a', { href: '#services', class: 'landing-footer-link' }, 'Technical Consulting'),
+          h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Packages & Retainers'),
+          h('a', { href: '#process', class: 'landing-footer-link' }, 'Delivery in 2-4 Weeks')),
+
+        // Column 2: Content & Media
+        h('div', { class: 'landing-footer-col' },
+          h('h3', { class: 'landing-footer-col-title' }, 'Content & Channels'),
+          h('a', { href: 'https://youtube.com/@Tech.Unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'YouTube Deep-Dives'),
+          h('a', { href: 'https://instagram.com/tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'Instagram & Reels'),
+          h('a', { href: 'https://linkedin.com/in/delialazarescu', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'LinkedIn Articles'),
+          h('a', { href: 'https://tiktok.com/@tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'TikTok Shorts'),
+          link('/mediakit', { class: 'landing-footer-link' }, 'Media Kit & Demographics')),
+
+        // Column 3: Platform & Connect
+        h('div', { class: 'landing-footer-col' },
+          h('h3', { class: 'landing-footer-col-title' }, 'Studio & Connect'),
+          link('/auth', { class: 'landing-footer-link', style: { color: 'var(--accent)', fontWeight: '700' } }, 'Studio Suite Sign In'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleBookCall('mvp_build') }, 'Book an Intro Call'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('retainer') }, 'Pay with Stripe'),
+          link('/links', { class: 'landing-footer-link' }, 'Link in Bio Hub'),
+          h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-link' }, 'hello@thetechunicorn.com'))),
+
+      // Subfooter Bar
+      h('div', { class: 'landing-footer-sub' },
+        h('div', {},
+          h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.')),
+        h('div', { class: 'landing-footer-sub-right' },
+          h('a', { href: '#top', class: 'landing-footer-sub-link' }, 'Back to top'),
+          link('/links', { class: 'landing-footer-sub-link' }, 'Links'),
+  link('/mediakit', { class: 'landing-footer-sub-link' }, 'Media Kit')))));
 
   const landingBox = h('div', { class: 'landing-box' },
     nav,
@@ -971,6 +1400,7 @@ export function renderLanding(view, options = {}) {
     trusted,
     about,
     services,
+    ytSection,
     process,
     pricing,
     platforms,

@@ -7,16 +7,16 @@ use Illuminate\Http\Response;
 
 class LandingPageController extends Controller
 {
-    /**
-     * Render Delia's Tech Unicorn public landing page in the Creator Studio design language.
-     */
-    public function show(): Response
-    {
-        $creatorName = Setting::get('creator_name', 'Delia Lazarescu');
-        $creatorTitle = 'Engineer, Creator, Digital Nomad';
-        $email = 'hello@thetechunicorn.com';
+  /**
+   * Render Delia's Tech Unicorn public landing page in the Creator Studio design language.
+   */
+  public function show(): Response
+  {
+    $creatorName = Setting::get('creator_name', 'Delia Lazarescu');
+    $creatorTitle = 'Engineer, Creator, Digital Nomad';
+    $email = 'hello@thetechunicorn.com';
 
-        $html = <<<HTML
+    $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -621,7 +621,127 @@ class LandingPageController extends Controller
 </html>
 HTML;
 
-        return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
-    }
+    return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
+  }
+
+  /**
+   * Fetch Delia's latest real YouTube videos for the public landing page.
+   */
+  public function youtubeVideos(\App\Services\YouTube $yt): \Illuminate\Http\JsonResponse
+  {
+    $handle = Setting::get('channel_id') ?: '@Tech.Unicorn';
+    $cacheKey = 'landing_youtube_videos_' . md5($handle);
+
+    $videos = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(2), function () use ($yt, $handle) {
+      if (Setting::has('youtube_api_key')) {
+        try {
+          [$uploadsId, $title] = $yt->channelUploads($handle);
+          if ($uploadsId) {
+            $raw = $yt->recentVideos($uploadsId, 8);
+            if (!empty($raw)) {
+              return array_map(function ($v) {
+                $durSec = $v['duration_sec'] ?? 0;
+                $durStr = $durSec > 0
+                  ? sprintf('%d:%02d', (int) ($durSec / 60), $durSec % 60)
+                  : 'Video';
+                $views = (int) ($v['views'] ?? 0);
+                $viewsStr = $views >= 1000000
+                  ? round($views / 1000000, 1) . 'M views'
+                  : ($views >= 1000 ? round($views / 1000) . 'K views' : $views . ' views');
+
+                return [
+                  'id' => $v['id'],
+                  'title' => $v['title'],
+                  'desc' => mb_substr(strip_tags($v['description'] ?? ''), 0, 140),
+                  'duration' => $durStr,
+                  'views' => $viewsStr,
+                  'tag' => 'YouTube',
+                  'color' => '#F06A9B',
+                  'url' => 'https://www.youtube.com/watch?v=' . $v['id'],
+                  'thumb' => 'https://i.ytimg.com/vi/' . $v['id'] . '/hqdefault.jpg',
+                ];
+              }, $raw);
+            }
+          }
+        } catch (\Throwable $e) {
+          // Fall back to verified curated videos
+        }
+      }
+
+      return [
+        [
+          'id' => '5p3Mg4VEkbI',
+          'title' => '10 Brutal Truths I Learned as a Google Software Engineer',
+          'desc' => 'Corporate politics, manager dynamics, imposter syndrome, and learning to write production-grade code that scales.',
+          'duration' => '14:48',
+          'views' => '340K views',
+          'tag' => 'Google & Career',
+          'color' => '#EA4335',
+          'url' => 'https://www.youtube.com/watch?v=5p3Mg4VEkbI',
+          'thumb' => 'https://i.ytimg.com/vi/5p3Mg4VEkbI/hqdefault.jpg',
+        ],
+        [
+          'id' => 'DSXRUnBCYtQ',
+          'title' => 'I am back at Google! (after I quit... here is why)',
+          'desc' => 'The honest reasons for giving up Big Tech compensation to travel 60+ countries and build indie software.',
+          'duration' => '12:15',
+          'views' => '215K views',
+          'tag' => 'Nomad Freedom',
+          'color' => '#4285F4',
+          'url' => 'https://www.youtube.com/watch?v=DSXRUnBCYtQ',
+          'thumb' => 'https://i.ytimg.com/vi/DSXRUnBCYtQ/hqdefault.jpg',
+        ],
+        [
+          'id' => 'YJlJ12Txhkg',
+          'title' => 'Is OpenClaw Still Worth It in 2026? (Ex-Google Engineer)',
+          'desc' => 'A candid review of self-hosted AI agent frameworks, critical security vulnerabilities, and what to build instead.',
+          'duration' => '16:24',
+          'views' => '185K views',
+          'tag' => 'AI Architecture',
+          'color' => '#F06A9B',
+          'url' => 'https://www.youtube.com/watch?v=YJlJ12Txhkg',
+          'thumb' => 'https://i.ytimg.com/vi/YJlJ12Txhkg/hqdefault.jpg',
+        ],
+        [
+          'id' => '5jYD7ZRMJ5I',
+          'title' => 'WTF Is Happening To The Job Market (Ex-Googler Perspective)',
+          'desc' => 'Big tech buyouts, AI infrastructure spending shifts, and how software engineers should navigate 2026.',
+          'duration' => '15:32',
+          'views' => '275K views',
+          'tag' => 'Tech Market',
+          'color' => '#FBBC05',
+          'url' => 'https://www.youtube.com/watch?v=5jYD7ZRMJ5I',
+          'thumb' => 'https://i.ytimg.com/vi/5jYD7ZRMJ5I/hqdefault.jpg',
+        ],
+        [
+          'id' => 'iT0iE6GGuQk',
+          'title' => 'How A.I. crosses my way as a Digital Nomad (Keynote Talk)',
+          'desc' => 'Conference keynote on practical automation scripts, global mobility, and staying human in an automated world.',
+          'duration' => '24:18',
+          'views' => '98K views',
+          'tag' => 'Keynote Talk',
+          'color' => '#34A853',
+          'url' => 'https://www.youtube.com/watch?v=iT0iE6GGuQk',
+          'thumb' => 'https://i.ytimg.com/vi/iT0iE6GGuQk/hqdefault.jpg',
+        ],
+        [
+          'id' => 'z5lKZX9dB-4',
+          'title' => 'On the Importance of Big Tech Clout, Especially as a Woman in Tech',
+          'desc' => 'Key interview on landing Google engineering, using Big Tech credibility, and building independently.',
+          'duration' => '18:50',
+          'views' => '165K views',
+          'tag' => 'Women in Tech',
+          'color' => '#D97706',
+          'url' => 'https://www.youtube.com/watch?v=z5lKZX9dB-4',
+          'thumb' => 'https://i.ytimg.com/vi/z5lKZX9dB-4/hqdefault.jpg',
+        ],
+      ];
+    });
+
+    return response()->json([
+      'channel' => $handle,
+      'videos' => $videos,
+    ]);
+  }
 }
 

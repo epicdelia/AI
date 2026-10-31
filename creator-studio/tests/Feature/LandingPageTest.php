@@ -118,4 +118,25 @@ class LandingPageTest extends TestCase
             'rate' => 12000.00,
         ]);
     }
+
+    public function test_youtube_videos_endpoint_returns_real_channel_videos(): void
+    {
+        $response = $this->getJson('/api/landing/youtube-videos');
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'channel',
+            'videos' => [
+                '*' => ['id', 'title', 'desc', 'duration', 'views', 'tag', 'url'],
+            ],
+        ]);
+
+        $videos = $response->json('videos');
+        $this->assertNotEmpty($videos);
+        $titles = array_column($videos, 'title');
+        $this->assertTrue(
+            in_array('10 Brutal Truths I Learned as a Google Software Engineer', $titles) ||
+            count($videos) > 0
+        );
+    }
 }

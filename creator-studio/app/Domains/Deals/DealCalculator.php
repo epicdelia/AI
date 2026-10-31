@@ -2,7 +2,7 @@
 
 namespace App\Domains\Deals;
 
-use App\Domains\Social\SocialDashboard;
+use App\Domains\Landing\Audience;
 use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 
@@ -18,12 +18,11 @@ class DealCalculator
         $ytAvg = (int) DB::table('video_stats')->where('age_days', '>=', 7)->avg('views');
         $viewsBenchmark = max(5000, $ytAvg ?: 12500);
 
-        $fData = SocialDashboard::followers();
-        $ytSubs = $fData['youtube']['count'] ?? 45000;
-        $liFollowers = $fData['linkedin']['count'] ?? 35000;
-        $igFollowers = $fData['instagram']['count'] ?? 28000;
-        $ttFollowers = $fData['tiktok']['count'] ?? 52000;
-        $xFollowers = $fData['x']['count'] ?? 18000;
+        $ytSubs = Audience::count('youtube');
+        $liFollowers = Audience::count('linkedin');
+        $igFollowers = Audience::count('instagram');
+        $ttFollowers = Audience::count('tiktok');
+        $xFollowers = Audience::count('x');
 
         // Pricing formula calibrated for Tech / Dev / AI niche (high B2B / SaaS purchasing power)
         $ytIntegration = (int) round(($viewsBenchmark / 1000) * 45, -1); // $45 CPM

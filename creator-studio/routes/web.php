@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
     // Authenticated API endpoints
     Route::middleware('auth')->group(function () {
@@ -192,6 +193,11 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // Landing page content feed: what's on it, clicks, pin / hide, refresh now
+        Route::get('landing/content', [\App\Http\Controllers\LandingPageController::class, 'content']);
+        Route::put('landing/content', [\App\Http\Controllers\LandingPageController::class, 'curate']);
+        Route::post('landing/content/refresh', [\App\Http\Controllers\LandingPageController::class, 'refresh']);
 
         // Link in bio (editor + stats; the page itself is public at /links)
         Route::get('bio', [BioLinksController::class, 'index']);
@@ -402,9 +408,10 @@ Route::prefix('api')->group(function () {
     });
 });
 
-// Tech Unicorn public landing pages (portfolio, services, speaking, packages)
+// The public Tech Unicorn landing page is "/" (signed out); old addresses redirect there.
 Route::get('techunicorn', [\App\Http\Controllers\LandingPageController::class, 'show']);
 Route::get('landing-page', [\App\Http\Controllers\LandingPageController::class, 'show']);
+Route::get('landing/thumb/{post}', [\App\Http\Controllers\LandingPageController::class, 'thumb'])->whereNumber('post');
 
 // Link in bio: public page and counted redirects
 Route::get('links', [BioLinksController::class, 'page']);

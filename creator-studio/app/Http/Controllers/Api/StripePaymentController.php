@@ -16,7 +16,7 @@ class StripePaymentController extends Controller
     public const PACKAGES = [
         'retainer' => [
             'id' => 'retainer',
-            'name' => 'Advisory Retainer (1 Month)',
+            'name' => 'Advisory Retainer (Monthly)',
             'description' => 'Ex-Google engineer on call: 2 strategy calls, unlimited async reviews, 24h response.',
             'amount' => 350000, // in cents ($3,500.00)
             'currency' => 'usd',
@@ -130,10 +130,11 @@ class StripePaymentController extends Controller
                                     'description' => $pkg['description'],
                                 ],
                                 'unit_amount' => $pkg['amount'],
-                            ],
+                            ] + ($pkg['interval'] ? ['recurring' => ['interval' => $pkg['interval']]] : []),
                             'quantity' => 1,
                         ]],
-                        'mode' => 'payment',
+                        // The retainer bills monthly until cancelled; everything else is one payment.
+                        'mode' => $pkg['interval'] ? 'subscription' : 'payment',
                         'customer_email' => $customerEmail,
                         'success_url' => url('/?payment=success&deal=' . $deal->id),
                         'cancel_url' => url('/?payment=cancelled&deal=' . $deal->id),

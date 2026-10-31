@@ -2,7 +2,7 @@
 
 namespace App\Domains\Deals;
 
-use App\Domains\Social\SocialDashboard;
+use App\Domains\Landing\Audience;
 use App\Models\Setting;
 
 class MediaKit
@@ -16,18 +16,10 @@ class MediaKit
     {
         $creatorName = Setting::get('creator_name', 'Delia Lazarescu');
         $tagline = Setting::get('creator_tagline', 'Software Engineer & Tech Creator demystifying AI, developer tools, and modern tech careers.');
-        $email = Setting::get('business_email', 'delia@techunicorn.com');
+        $email = Setting::get('business_email', 'hello@thetechunicorn.com');
 
-        $fData = SocialDashboard::followers();
-        $followers = [
-            'youtube' => $fData['youtube']['count'] ?? 45000,
-            'linkedin' => $fData['linkedin']['count'] ?? 35000,
-            'instagram' => $fData['instagram']['count'] ?? 28000,
-            'tiktok' => $fData['tiktok']['count'] ?? 52000,
-            'x' => $fData['x']['count'] ?? 18000,
-            'threads' => $fData['threads']['count'] ?? 12000,
-        ];
-        $totalAudience = array_sum(array_filter($followers));
+        $followers = array_map(fn ($c) => $c['count'], Audience::counts());
+        $totalAudience = array_sum($followers);
 
         $rates = DealCalculator::calculateRates();
 

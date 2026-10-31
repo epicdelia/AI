@@ -9,6 +9,7 @@ import { dueStrip } from '../queue.js';
 import { briefCard } from '../growth.js';
 import { arrangeDashboard, customiseDashboard, prefs } from '../prefs.js';
 import { loveExtras } from './love.js';
+import { websiteCard } from '../website-feed.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -133,6 +134,7 @@ export async function renderDashboard(view) {
     { id: 'composer', label: 'Composer', node: homeComposer() },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
+    { id: 'website', label: 'Your website feed', node: websiteCard(d.website, () => redraw()) },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
     { id: 'love', label: 'Today’s note', node: love },
     { id: 'setup', label: 'Setup checklist', node: setupCard(d.setup_checks) },

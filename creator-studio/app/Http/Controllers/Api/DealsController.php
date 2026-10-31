@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Deals\DealCalculator;
 use App\Domains\Deals\MediaKit;
 use App\Domains\Deals\PostCampaignReport;
+use App\Domains\Landing\Audience;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Setting;
@@ -189,10 +190,11 @@ class DealsController extends Controller
         $inquiry = !empty($data['inquiry_text']) ? $data['inquiry_text'] : 'Brand reached out wanting to partner on upcoming content.';
         $deliverables = !empty($data['desired_deliverables']) ? $data['desired_deliverables'] : 'YouTube 60s Integration + LinkedIn Post';
         $creator = Setting::get('creator_name', 'Delia Lazarescu');
+        $audience = Audience::headline();
 
         $system = <<<PROMPT
 You are an executive talent manager and creator agent for {$creator} (@Tech.Unicorn).
-She is a top tech creator with 150k+ combined audience across YouTube, LinkedIn, TikTok, Instagram, and X.
+She is a top tech creator with {$audience} combined audience across Instagram, YouTube, LinkedIn, TikTok, X and Threads.
 Her audience consists of software engineers, tech leads, AI practitioners, and engineering leaders.
 
 Task: Write a concise, confident, high-converting partnership reply / pitch email to the sponsor ({$brand}).

@@ -19,6 +19,7 @@ class ScheduleController extends Controller
         'clips' => ['command' => 'studio:clips', 'label' => 'Collect finished Shorts (Vizard)', 'when' => 'Every 10 min while any are processing'],
         'broll' => ['command' => 'studio:broll', 'label' => 'Collect finished b-roll (fal.ai)', 'when' => 'Every 2 min while any are rendering'],
         'stats' => ['command' => 'studio:stats', 'label' => 'Record your videos’ daily numbers', 'when' => 'Daily at 06:30'],
+        'landing' => ['command' => 'studio:landing', 'label' => 'Refresh your landing page content feed', 'when' => 'Hourly'],
         'social' => ['command' => 'studio:social-sync', 'label' => 'Sync connected social accounts', 'when' => 'Hourly (and when you open the studio)'],
         'agents' => ['command' => 'studio:agents', 'label' => 'Agents plan the coming week', 'when' => 'Hourly, for agents that are due (once a day each)'],
         'publish' => ['command' => 'studio:publish', 'label' => 'Publish approved agent posts', 'when' => 'Every 5 min while any are scheduled'],

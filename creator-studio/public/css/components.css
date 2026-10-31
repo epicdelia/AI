@@ -13150,263 +13150,6 @@ a:hover>.logo.brand-mark,
         color: var(--accent);
       }
 
-      /* Instagram Reels 9:16 Card */
-      .landing-reel-card {
-        flex: 0 0 clamp(200px, 22vw, 240px);
-        aspect-ratio: 9/16;
-        scroll-snap-align: start;
-        border-radius: 18px;
-        overflow: hidden;
-        position: relative;
-        text-decoration: none;
-        color: #fff;
-        background: #120e17;
-        border: 1px solid var(--line);
-        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 16px;
-      }
-      .landing-reel-card:hover {
-        transform: translateY(-4px);
-        border-color: #E1306C;
-        box-shadow: 0 14px 34px rgba(225, 48, 108, 0.25);
-        text-decoration: none;
-      }
-      .landing-reel-bg {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: 0;
-        filter: brightness(0.68) contrast(1.05);
-        transition: transform 0.35s ease, filter 0.35s ease;
-      }
-      .landing-reel-card:hover .landing-reel-bg {
-        transform: scale(1.05);
-        filter: brightness(0.58) contrast(1.1);
-      }
-      .landing-reel-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.92) 100%);
-        z-index: 1;
-        pointer-events: none;
-      }
-      .landing-reel-top {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-      }
-      .landing-reel-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 3px 8px;
-        border-radius: 100px;
-        background: rgba(0, 0, 0, 0.55);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        color: #fff;
-      }
-      .landing-reel-center-play {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 2;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: rgba(225, 48, 108, 0.9);
-        display: grid;
-        place-items: center;
-        color: #fff;
-        opacity: 0.88;
-        box-shadow: 0 4px 16px rgba(225, 48, 108, 0.5);
-        transition: transform 0.2s, opacity 0.2s;
-      }
-      .landing-reel-card:hover .landing-reel-center-play {
-        transform: translate(-50%, -50%) scale(1.1);
-        opacity: 1;
-      }
-      .landing-reel-bottom {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .landing-reel-title {
-        font-size: 0.86rem;
-        font-weight: 700;
-        line-height: 1.35;
-        color: #fff;
-        margin: 0;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .landing-reel-caption {
-        font-size: 0.74rem;
-        line-height: 1.4;
-        color: rgba(255, 255, 255, 0.78);
-        margin: 0;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .landing-reel-stats {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 6px;
-        margin-top: 4px;
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.9);
-      }
-
-      /* TikTok 9:16 Card */
-      .landing-tiktok-card {
-        flex: 0 0 clamp(200px, 22vw, 240px);
-        aspect-ratio: 9/16;
-        scroll-snap-align: start;
-        border-radius: 18px;
-        overflow: hidden;
-        position: relative;
-        text-decoration: none;
-        color: #fff;
-        background: #0d0b10;
-        border: 1px solid var(--line);
-        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 16px;
-      }
-      .landing-tiktok-card:hover {
-        transform: translateY(-4px);
-        border-color: #25F4EE;
-        box-shadow: 0 14px 34px rgba(37, 244, 238, 0.22);
-        text-decoration: none;
-      }
-
-      /* Twitter / X Post Card */
-      .landing-tweet-card {
-        flex: 0 0 clamp(290px, 34vw, 360px);
-        scroll-snap-align: start;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 14px;
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-      }
-      .landing-tweet-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--accent);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-        text-decoration: none;
-      }
-      .landing-tweet-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .landing-tweet-user {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .landing-tweet-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 1px solid var(--line);
-      }
-      .landing-tweet-meta {
-        display: flex;
-        flex-direction: column;
-      }
-      .landing-tweet-name {
-        font-size: 0.88rem;
-        font-weight: 700;
-        color: var(--ink);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .landing-tweet-handle {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
-      .landing-tweet-body {
-        font-size: 0.88rem;
-        line-height: 1.55;
-        color: var(--ink);
-        margin: 0;
-        display: -webkit-box;
-        -webkit-line-clamp: 5;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .landing-tweet-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 10px;
-        border-top: 1px solid var(--line);
-        font-size: 0.76rem;
-        color: var(--muted);
-        font-weight: 600;
-      }
-      .landing-tweet-metric {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      /* Threads Post Card */
-      .landing-thread-card {
-        flex: 0 0 clamp(290px, 34vw, 360px);
-        scroll-snap-align: start;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 14px;
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-      }
-      .landing-thread-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--accent);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-        text-decoration: none;
-      }
-
       /* ---- YouTube Video Slider ---- */
       .landing-yt-section {
         padding-block: 56px;
@@ -13540,44 +13283,6 @@ a:hover>.logo.brand-mark,
         z-index: 3;
       }
 
-      .landing-yt-poster {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 12px 14px;
-        position: relative;
-        background: linear-gradient(135deg, #1b1622 0%, #100d14 100%);
-        color: #fff;
-      }
-
-      .landing-yt-poster-channel {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.9);
-        background: rgba(0, 0, 0, 0.45);
-        padding: 4px 10px;
-        border-radius: 100px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        z-index: 2;
-      }
-
-      .landing-yt-tag-pill {
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 3px 8px;
-        border-radius: 6px;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: #fff;
-        z-index: 2;
-      }
-
       .landing-yt-info {
         padding: 16px;
         display: flex;
@@ -13608,6 +13313,172 @@ a:hover>.logo.brand-mark,
         color: var(--muted);
         line-height: 1.5;
         margin: 0;
+      }
+
+      /* ---- Content feed polish: real posts, follow cards, loading, arrows ---- */
+      .landing-anchor { position: relative; top: -40px; display: block; visibility: hidden; }
+      .landing-yt-sub { margin: 6px 0 0; font-size: 0.86rem; max-width: 60ch; }
+      .landing-yt-track { scroll-padding-inline: 2px; outline: none; }
+      .landing-yt-track:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 18px; }
+      .landing-yt-card, .landing-post-card, .landing-follow-card { scroll-snap-align: start; }
+      .landing-yt-card:focus-visible, .landing-post-card:focus-visible, .landing-follow-card:focus-visible,
+      .landing-media-tab:focus-visible, .landing-yt-nav-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .landing-yt-nav-btn:disabled { opacity: 0.4; cursor: default; transform: none; border-color: var(--line); background: var(--panel); }
+      .landing-yt-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-yt-meta .dot { color: var(--muted); }
+      .landing-yt-meta span:not(:first-child):not(.dot) { color: var(--muted); font-weight: 500; }
+      .landing-yt-desc {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-feed-pin {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 3;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--accent-ink, #fff);
+      }
+      .landing-feed-pin.inline { position: static; align-self: flex-start; }
+
+      /* A published post (Instagram, TikTok, X, Threads) with her logged or synced numbers */
+      .landing-post-card {
+        flex: 0 0 clamp(270px, 28vw, 330px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      }
+      .landing-post-card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); text-decoration: none; }
+      .landing-post-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .landing-post-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #fff;
+        background: var(--grad, linear-gradient(135deg, var(--accent), var(--violet)));
+      }
+      .landing-post-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+      .landing-post-who strong { font-size: 0.86rem; }
+      .landing-post-who .muted { font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .landing-post-net { margin-left: auto; color: var(--muted); display: inline-flex; }
+      .landing-post-media { border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 5; background: var(--panel-2); max-height: 260px; }
+      .landing-post-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
+      .landing-post-card:hover .landing-post-media img { transform: scale(1.03); }
+      .landing-post-text {
+        margin: 0;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        color: var(--ink);
+        white-space: pre-line;
+        display: -webkit-box;
+        -webkit-line-clamp: 6;
+        line-clamp: 6;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-post-card.has-media .landing-post-text { -webkit-line-clamp: 3; line-clamp: 3; }
+      .landing-post-foot {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .landing-post-metrics { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+      .landing-post-metrics > span { display: inline-flex; align-items: center; gap: 4px; }
+      .landing-post-open { display: inline-flex; align-items: center; gap: 4px; font-size: 0.76rem; font-weight: 600; color: var(--muted); transition: color 0.15s; }
+      .landing-post-card:hover .landing-post-open { color: var(--accent); }
+
+      /* Follow card: last in every row, or alone when a network has nothing published yet */
+      .landing-follow-card {
+        flex: 0 0 clamp(240px, 24vw, 280px);
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        padding: 22px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 8px;
+        color: inherit;
+        text-decoration: none;
+        background: linear-gradient(160deg, var(--accent-soft), transparent 70%), var(--panel);
+        transition: border-color 0.2s, transform 0.25s;
+      }
+      .landing-follow-card:hover { border-color: var(--accent); border-style: solid; transform: translateY(-4px); text-decoration: none; }
+      .landing-follow-card.is-empty { flex-basis: min(100%, 420px); }
+      .landing-follow-card strong { font-size: 1.02rem; }
+      .landing-follow-card p { margin: 0; font-size: 0.84rem; }
+      .landing-follow-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--line); }
+      .landing-follow-count { font-size: 0.82rem; color: var(--muted); }
+      .landing-follow-count b { color: var(--ink); font-size: 1.1rem; }
+      .landing-follow-btn {
+        margin-top: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 9px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--accent);
+        color: var(--accent-ink, #fff);
+      }
+      .landing-feed-status { margin: 10px 0 0; font-size: 0.76rem; min-height: 1.2em; }
+
+      /* Loading placeholders, one synced shimmer */
+      .landing-feed-skeleton { pointer-events: none; }
+      .landing-feed-skeleton .sk, .landing-feed-skeleton.sk {
+        background: linear-gradient(90deg, var(--panel-2) 25%, var(--line) 50%, var(--panel-2) 75%);
+        background-size: 200% 100%;
+        animation: landing-sk 1.4s ease-in-out infinite;
+      }
+      .landing-feed-skeleton .sk-line { height: 12px; border-radius: 6px; }
+      .landing-feed-skeleton .sk-line.short { width: 60%; }
+      @keyframes landing-sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+      @media (max-width: 720px) {
+        .landing-yt-head { flex-direction: column; align-items: flex-start; }
+        .landing-yt-controls { width: 100%; }
+        .landing-yt-controls .landing-process-btn { margin-right: auto; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .landing-post-card, .landing-follow-card, .landing-post-media img { transition: none; }
+        .landing-post-card:hover, .landing-follow-card:hover { transform: none; }
+        .landing-feed-skeleton .sk { animation: none; }
       }
 
       /* ---- How It Works & Delivery Process (Dashboard Parity) ---- */
@@ -14111,3 +13982,38 @@ a:hover>.logo.brand-mark,
           grid-template-columns: 1fr;
         }
       }
+
+/* ---- Dashboard: your website feed (landing page content) ---- */
+.website-nets { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.website-net {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600; border: 1px solid var(--line); background: var(--panel-2);
+}
+.website-net b { font-variant-numeric: tabular-nums; }
+.website-net.is-live { border-color: var(--good, #279663); }
+.website-net.is-live b { color: var(--good, #279663); }
+.website-net.is-sample b { color: var(--warn, #c98a12); }
+.website-net.is-none { color: var(--muted); border-style: dashed; }
+.website-stats { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; }
+.website-stat { display: flex; flex-direction: column; }
+.website-stat strong { font-size: 1.8rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.website-top { margin: 0; padding-left: 18px; display: grid; gap: 6px; min-width: 0; }
+.website-top li { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+.website-top a { min-width: 0; font-weight: 600; }
+.website-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.website-tab {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+  font: inherit; font-size: 0.82rem; font-weight: 600; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+}
+.website-tab.on { border-color: var(--accent); color: var(--accent); }
+.website-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 52vh; overflow: auto; }
+.website-item { display: grid; grid-template-columns: 56px 1fr auto auto; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }
+.website-item img, .website-item-ph { width: 56px; height: 36px; border-radius: 6px; object-fit: cover; background: var(--panel-2); display: grid; place-items: center; }
+.website-item-main { display: flex; flex-direction: column; min-width: 0; }
+.website-item-main a { font-weight: 600; min-width: 0; }
+.website-item.is-hidden { opacity: 0.55; }
+@media (max-width: 640px) {
+  .website-stats { grid-template-columns: 1fr; }
+  .website-item { grid-template-columns: 1fr auto auto; }
+  .website-item img, .website-item-ph { display: none; }
+}

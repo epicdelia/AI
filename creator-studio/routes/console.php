@@ -136,6 +136,16 @@ Artisan::command('studio:stats', function (VideoStats $stats) use ($track) {
     return $track($this, 'stats', fn () => 'Recorded today’s numbers for '.$stats->snapshot().' of your videos.');
 })->purpose('Record today’s views, likes and comments for her recent videos');
 
+Artisan::command('studio:landing', function () use ($track) {
+    return $track($this, 'landing', function () {
+        $feed = \App\Domains\Landing\LandingFeed::refresh();
+        $live = array_keys(array_filter($feed['sources'], fn ($s) => $s === 'live'));
+
+        return 'Landing page feed rebuilt: '.array_sum(array_map('count', $feed['platforms'])).' items'
+            .($live ? ' (live: '.implode(', ', $live).')' : ' (no live content yet)').'.';
+    });
+})->purpose('Rebuild the public landing page content feed from her latest videos, posts and follower counts');
+
 Artisan::command('studio:social-sync', function () use ($track) {
     return $track($this, 'social', function () {
         $results = Connections::syncAll();
@@ -270,6 +280,7 @@ Schedule::command('studio:clips')->everyTenMinutes()->when(fn () => rescue(fn ()
 Schedule::command('studio:broll')->everyTwoMinutes()->when(fn () => rescue(fn () => VideoJob::whereIn('status', ['queued', 'running'])->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:backup')->dailyAt('03:00')->timezone($tz)->withoutOverlapping();
 Schedule::command('studio:stats')->dailyAt('06:30')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:landing')->hourlyAt(20)->when($enabled)->withoutOverlapping(); // after social-sync, so new posts and followers show up
 Schedule::command('studio:social-sync')->hourlyAt(15)->when(fn () => $enabled() && rescue(fn () => SocialAccount::exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:agents')->hourlyAt(5)->when(fn () => $enabled() && rescue(fn () => SocialAgent::where('active', true)->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => rescue(fn () => \App\Domains\Social\Models\SocialPost::where('approval', 'approved')->where('status', 'scheduled')->exists(), false, false))->withoutOverlapping();

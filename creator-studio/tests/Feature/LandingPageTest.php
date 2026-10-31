@@ -20,24 +20,21 @@ class LandingPageTest extends TestCase
         Setting::put('creator_name', 'Delia Lazarescu');
     }
 
-    public function test_techunicorn_public_landing_page_renders_successfully(): void
+    public function test_old_landing_addresses_redirect_to_the_one_landing_page(): void
     {
-        $response = $this->get('/techunicorn');
+        $this->get('/techunicorn')->assertStatus(301)->assertRedirect('/');
+        $this->get('/landing-page')->assertStatus(301)->assertRedirect('/');
+        // Booking and payment links from old pages and bios keep working.
+        $this->get('/techunicorn?book=mvp_build')->assertRedirect('/?book=mvp_build');
+        $this->get('/techunicorn?pay=retainer')->assertRedirect('/?pay=retainer');
+    }
 
-        $response->assertOk();
-        $response->assertHeader('Content-Type', 'text/html; charset=utf-8');
-        $content = $response->getContent();
-
-        $this->assertStringContainsString('Tech Unicorn', $content);
-        $this->assertStringContainsString('Delia Lazarescu', $content);
-        $this->assertStringContainsString('Making tech', $content);
-        $this->assertStringContainsString('Vibecoded Apps', $content);
-        $this->assertStringContainsString('MVP Build', $content);
-        $this->assertStringContainsString('Advisory Retainer', $content);
-        $this->assertStringContainsString('Nomad Cruise', $content);
-        $this->assertStringContainsString('472K+', $content);
-        $this->assertStringNotContainsString('—', $content, 'Landing page should contain zero em-dashes (—)');
-        $this->assertStringContainsString('<svg', $content, 'Landing page should use our SVG logo');
+    public function test_landing_page_has_search_and_share_metadata(): void
+    {
+        $html = file_get_contents(public_path('index.html'));
+        $this->assertStringContainsString('<title>Tech Unicorn', $html);
+        $this->assertStringContainsString('name="description"', $html);
+        $this->assertStringContainsString('property="og:title"', $html);
     }
 
     public function test_links_bio_landing_page_renders_in_dashboard_design_language(): void
@@ -49,7 +46,8 @@ class LandingPageTest extends TestCase
 
         $this->assertStringContainsString('Delia Lazarescu', $content);
         $this->assertStringContainsString('@Tech.Unicorn', $content);
-        $this->assertStringContainsString('/techunicorn', $content);
+        $this->assertStringContainsString('href="/"', $content);
+        $this->assertStringNotContainsString('/techunicorn', $content);
     }
 
     public function test_stripe_packages_endpoint_returns_json_packages(): void
@@ -237,64 +235,5 @@ class LandingPageTest extends TestCase
             ['service' => 'Speaking & Workshops', 'count' => 1],
         ], $this->getJson('/api/dashboard')->json('inbound.by_service'));
         $this->assertStringContainsString('Technical Consulting', $this->getJson('/api/agents/notifications')->json('events.0.message'));
-    }
-
-    public function test_techunicorn_calls_to_action_open_the_booking_and_payment_forms(): void
-    {
-        $content = $this->get('/techunicorn')->assertOk()->getContent();
-
-        $this->assertStringContainsString('href="/?book=mvp_build"', $content);
-        $this->assertStringContainsString('href="/?book=brand_deal"', $content);
-        $this->assertStringContainsString('href="/?pay=retainer"', $content);
-        $this->assertStringNotContainsString('subject=Intro%20Call%20Booking', $content);
-    }
-
-    public function test_youtube_videos_endpoint_returns_real_channel_videos(): void
-    {
-        $response = $this->getJson('/api/landing/youtube-videos');
-
-        $response->assertOk();
-        $response->assertJsonStructure([
-            'channel',
-            'videos' => [
-                '*' => ['id', 'title', 'desc', 'duration', 'views', 'tag', 'url'],
-            ],
-        ]);
-
-        $videos = $response->json('videos');
-        $this->assertNotEmpty($videos);
-        $titles = array_column($videos, 'title');
-        $this->assertTrue(
-            in_array('10 Brutal Truths I Learned as a Google Software Engineer', $titles) ||
-            count($videos) > 0
-        );
-    }
-
-    public function test_social_feed_endpoint_returns_all_platforms_with_youtube_default(): void
-    {
-        $response = $this->getJson('/api/landing/social-feed');
-
-        $response->assertOk();
-        $response->assertJsonStructure([
-            'active',
-            'channel',
-            'stats' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
-            'handles' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
-            'urls' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
-            'platforms' => [
-                'youtube',
-                'instagram',
-                'tiktok',
-                'twitter',
-                'threads',
-            ],
-        ]);
-
-        $this->assertSame('youtube', $response->json('active'));
-        $this->assertNotEmpty($response->json('platforms.youtube'));
-        $this->assertNotEmpty($response->json('platforms.instagram'));
-        $this->assertNotEmpty($response->json('platforms.tiktok'));
-        $this->assertNotEmpty($response->json('platforms.twitter'));
-        $this->assertNotEmpty($response->json('platforms.threads'));
     }
 }

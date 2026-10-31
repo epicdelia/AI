@@ -78,7 +78,7 @@ class BioLinksController extends Controller
         $c2 = preg_match('/^#[0-9a-f]{6}$/i', (string) Setting::get('brand_color_2')) ? Setting::get('brand_color_2') : '#a68cf2';
         $items = $links->map(fn ($l) => '<a class="l" href="/links/go/'.$l->id.'" rel="noopener"><span>'.e($l->title).'</span><span class="arr">↗</span></a>')->implode('');
         if (empty($items)) {
-            $items = '<a class="l" href="/techunicorn" rel="noopener"><span>Explore Portfolio & Services</span><span class="arr">↗</span></a>'
+            $items = '<a class="l" href="/" rel="noopener"><span>Explore Portfolio & Services</span><span class="arr">↗</span></a>'
                 .'<a class="l" href="https://instagram.com/tech.unicorn" target="_blank" rel="noopener"><span>Instagram (@tech.unicorn)</span><span class="arr">↗</span></a>'
                 .'<a class="l" href="https://youtube.com/@Tech.Unicorn" target="_blank" rel="noopener"><span>YouTube Channel</span><span class="arr">↗</span></a>'
                 .'<a class="l" href="https://linkedin.com/in/delialazarescu" target="_blank" rel="noopener"><span>LinkedIn Profile</span><span class="arr">↗</span></a>'
@@ -168,7 +168,7 @@ class BioLinksController extends Controller
     </div>
     <div class="featured-site">
       Looking for software development or keynotes? <br>
-      <a href="/techunicorn">View Full Tech Unicorn Portfolio ↗</a>
+      <a href="/">View Full Tech Unicorn Portfolio ↗</a>
     </div>
     <footer>© 2026 Tech Unicorn · Crafted with Creator Studio</footer>
   </main>

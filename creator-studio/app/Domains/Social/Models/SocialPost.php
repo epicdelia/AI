@@ -37,6 +37,19 @@ class SocialPost extends Model
             }
         });
 
+        // The landing page shows published posts: rebuild it when one appears, changes or goes away.
+        $touchesLanding = fn (self $post) => $post->status === 'posted' || $post->getOriginal('status') === 'posted';
+        static::saved(function (self $post) use ($touchesLanding) {
+            if ($touchesLanding($post) && $post->wasChanged(['status', 'url', 'title', 'body', 'metrics', 'media', 'posted_at'])) {
+                \App\Domains\Landing\LandingFeed::forget();
+            }
+        });
+        static::deleted(function (self $post) use ($touchesLanding) {
+            if ($touchesLanding($post)) {
+                \App\Domains\Landing\LandingFeed::forget();
+            }
+        });
+
         // "Post published" workflows, whichever way it became posted (published here, marked, synced).
         static::saved(function (self $post) {
             if ($post->status === 'posted' && $post->wasChanged('status') && $post->source !== 'demo') {

@@ -343,6 +343,7 @@ class ApiController extends Controller
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,
             'recent_notes' => $recentNotes,
+            'website' => rescue(fn () => \App\Http\Controllers\LandingPageController::summary(), null),
             'inbound' => [
                 'new_inquiries' => Deal::where('stage', 'inquiry')->count(),
                 'awaiting_payment' => Deal::whereNotIn('stage', ['inquiry', 'paid'])->where('payment_status', '!=', 'paid')->sum('rate'),

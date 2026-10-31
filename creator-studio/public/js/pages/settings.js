@@ -111,6 +111,26 @@ export async function renderSettings(view) {
         [['auto', 'Automatic (AssemblyAI if set, else OpenAI Whisper)'], ['assemblyai', 'AssemblyAI (full video files)'], ['openai', 'OpenAI Whisper (25 MB max)']]
           .map(([v, l]) => h('option', { value: v, selected: v === (s.transcription_engine || 'auto') }, l))))))),
 
+  section('Web search', 'Live web results for script fact-checks and the producer chat’s “Web” toggle.',
+    h('div', { class: 'grid grid-2 tight' },
+      field('Search with', (inputs.search_provider = h('select', { name: 'search_provider' },
+        [['auto', 'Automatic (Serper, else Perplexity)'], ['serper', 'Serper (Google results)'], ['perplexity', 'Perplexity (sonar)'], ['off', 'Off']]
+          .map(([v, l]) => h('option', { value: v, selected: v === (s.search_provider || 'auto') }, l))))),
+      h('div'),
+      secretField('serper_api_key', 'Serper key', '2,500 free searches to start', 'https://serper.dev/api-key'),
+      secretField('perplexity_api_key', 'Perplexity key', 'optional; reuses your AI key if Perplexity is your engine', 'https://www.perplexity.ai/settings/api'))),
+
+  section('Memory', 'Search across your own scripts, transcripts, Library and notes. Works with keywords out of the box; an embeddings key makes it understand meaning.',
+    h('div', { class: 'grid grid-2 tight' },
+      secretField('embedding_api_key', 'OpenAI key for Memory (optional)', 'only needed if your AI engine has no embeddings (Claude, DeepSeek, xAI…)', 'https://platform.openai.com/api-keys'),
+      field('Embedding model', text('embedding_model', { placeholder: 'default for your provider' }), 'leave empty unless you know you need another'))),
+
+  section('Automation', 'Daily breakout scan, feed refresh every 3 hours and a Monday check-in, in your timezone.',
+    h('div', { class: 'grid grid-2 tight' },
+      field('Scheduled jobs', (inputs.schedule_enabled = h('select', { name: 'schedule_enabled' },
+        [['1', 'On'], ['0', 'Paused']].map(([v, l]) => h('option', { value: v, selected: v === (s.schedule_enabled ?? '1') }, l)))),
+      'runs while `php artisan schedule:work` is running'))),
+
   section('Breakout research', 'What counts as a breakout when scanning competitor channels.',
     h('div', { class: 'grid grid-3 tight' },
       field('Lookback (days)', num('lookback_days', { min: 1, max: 30 })),
@@ -144,7 +164,66 @@ export async function renderSettings(view) {
       form,
       h('div', {},
         h('div', { class: 'card' }, h('h3', {}, 'Diagnostics'), h('p', { class: 'muted small' }, 'Save first, then test. Uses a tiny amount of quota.'), testBtn, testOut),
+        await scheduleCard(),
+        await memoryCard(),
         await usageCard())));
+}
+
+async function scheduleCard() {
+  let st;
+  try { st = await api('GET', 'schedule'); } catch { return h('div'); }
+  const box = h('div');
+  const draw = () => {
+    const seen = st.scheduler_seen ? (Date.now() - new Date(st.scheduler_seen).getTime()) / 60000 : null;
+    clear(box).append(
+      h('p', { class: 'muted small' },
+        !st.enabled ? 'Paused in settings.'
+          : seen !== null && seen < 10 ? `Scheduler running (seen ${timeAgo(st.scheduler_seen)}).`
+            : h('span', {}, 'Scheduler not running. Start it with ', h('code', {}, 'php artisan schedule:work'), ' (or a cron calling ', h('code', {}, 'schedule:run'), ').')),
+      h('ul', { class: 'task-list' }, st.tasks.map((t) => {
+        const run = h('button', {
+          class: 'btn ghost sm', title: `Run ${t.command} now`,
+          onclick: () => busy(run, '…', async () => {
+            try {
+              st = await api('POST', `schedule/${t.key}/run`);
+              toast(st.message.split('\n')[0]);
+            } catch (e) {
+              if (e.data?.tasks) st = e.data;
+              throw e;
+            } finally { draw(); }
+          }),
+        }, icon('play', 13), 'Run');
+        return h('li', {},
+          h('div', { class: 'item-main' }, h('strong', {}, t.label), h('div', { class: 'muted small' }, `${t.when} · last ${timeAgo(t.last_run)}`),
+            t.last_error ? h('div', { class: 'error-text' }, t.last_error) : null),
+          run);
+      })));
+  };
+  draw();
+  return h('div', { class: 'card' }, h('h3', {}, 'Automation'), box);
+}
+
+async function memoryCard() {
+  let m;
+  try { m = await api('GET', 'memory'); } catch { return h('div'); }
+  const box = h('div');
+  const draw = () => {
+    const sources = Object.entries(m.sources || {}).map(([k, v]) => `${v} ${k}${v === 1 ? '' : 's'}`).join(', ');
+    clear(box).append(
+      h('p', { class: 'muted small' }, m.semantic ? `Meaning search on (${m.model}). ${m.semantic_chunks} of ${m.chunks} passages have embeddings.` : 'Keyword search (add an embeddings key above for meaning search).'),
+      h('p', { class: 'small' }, m.chunks ? `Indexed: ${sources}.` : 'Nothing indexed yet. It fills up as you write.'),
+      reindex);
+  };
+  const reindex = h('button', {
+    class: 'btn sm',
+    onclick: () => busy(reindex, 'Indexing…', async () => {
+      m = await api('POST', 'memory/reindex', { fresh: true });
+      toast(m.message);
+      draw();
+    }),
+  }, icon('refresh', 14), 'Rebuild index');
+  draw();
+  return h('div', { class: 'card' }, h('h3', {}, 'Memory'), box);
 }
 
 function section(title, desc, body) {

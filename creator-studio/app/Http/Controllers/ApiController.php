@@ -16,6 +16,8 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Week;
 use App\Services\AiTellsLinter;
+use App\Services\BreakoutScanner;
+use App\Services\WeeklyCheckin;
 use App\Services\Dictation;
 use App\Services\Llm;
 use App\Services\Prompts;
@@ -213,51 +215,14 @@ class ApiController extends Controller
         return response()->json(['message' => "Channel {$channel->handle} deleted."]);
     }
 
-    public function scanBreakouts(YouTube $yt): JsonResponse
+    public function scanBreakouts(BreakoutScanner $scanner): JsonResponse
     {
-        $channels = Channel::where('active', true)->get();
-        if ($channels->isEmpty()) {
-            return response()->json(['error' => 'Please add active competitor channels first.'], 400);
-        }
-
-        @set_time_limit(300);
-
         try {
-            $out = $yt->findOutliers($channels->pluck('handle')->all(), [
-                'lookback_days' => Setting::get('lookback_days', '4'),
-                'min_outlier_score' => Setting::get('min_outlier_score', '3'),
-                'min_views' => Setting::get('min_views', '20000'),
-            ], null, Outlier::pluck('video_id')->all());
+            $created = $scanner->scan();
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => $e->getMessage()], $e instanceof \RuntimeException && str_starts_with($e->getMessage(), 'Please add') ? 400 : 500);
         }
-
-        $byHandle = $channels->keyBy('handle');
-        foreach ($out['channels'] as $handle => $info) {
-            $ch = $byHandle->get($handle);
-            $ch?->update([
-                'title' => $info['title'] ?? $ch->title,
-                'last_error' => $info['error'],
-                'last_scanned_at' => now(),
-            ]);
-        }
-
-        $created = 0;
-        foreach ($out['results'] as $v) {
-            Outlier::create([
-                'video_id' => $v['id'],
-                'channel_id' => $byHandle->get($v['handle'])?->id,
-                'channel_title' => $v['channel'],
-                'title' => $v['title'],
-                'url' => $v['url'],
-                'views' => $v['views'],
-                'channel_median' => (int) $v['channel_median'],
-                'outlier_score' => $v['outlier_score'],
-                'age_days' => round($v['age_days'], 1),
-                'published_at' => CarbonImmutable::parse($v['published_at']),
-            ]);
-            $created++;
-        }
+        Setting::put('last_run_scan', now()->toIso8601String());
 
         return response()->json([
             'message' => "Scan complete. Found {$created} new breakout video(s).",
@@ -628,82 +593,20 @@ class ApiController extends Controller
         return response()->json(['week' => $week, 'message' => "Week {$week->number} updated."]);
     }
 
-    public function checkinGoals(YouTube $yt, Llm $llm): JsonResponse
+    public function checkinGoals(WeeklyCheckin $checkin): JsonResponse
     {
-        $weeks = Week::orderBy('number')->get();
-        if ($weeks->isEmpty()) {
-            return response()->json(['error' => 'Set up your weekly plan first.'], 400);
-        }
-
-        $channel = Setting::get('channel_id');
-        if (! $channel) {
-            return response()->json(['error' => 'Add your channel handle or ID in Settings.'], 400);
-        }
-
-        $tz = Setting::get('timezone', 'Europe/London');
-        $today = CarbonImmutable::now($tz)->toDateString();
-
         try {
-            $uploads = collect($yt->uploadsSince($channel, CarbonImmutable::parse($weeks->first()->start_date)->subDays(7)))
-                ->where('long_form', true)->values();
-        } catch (Throwable $e) {
-            return response()->json(['error' => "Couldn't fetch YouTube uploads: {$e->getMessage()}"], 500);
+            $result = $checkin->run();
+        } catch (\RuntimeException $e) {
+            $status = str_starts_with($e->getMessage(), "Couldn't fetch") ? 500 : 400;
+
+            return response()->json(['error' => $e->getMessage()], $status);
         }
-
-        $claimed = $weeks->pluck('youtube_url')->filter()->all();
-        foreach ($weeks as $week) {
-            $start = $week->start_date->toDateString();
-            $due = $week->due_date->toDateString();
-
-            $video = $uploads->first(function ($v) use ($start, $due, $tz, $claimed, $week) {
-                $day = $v['published_at']->setTimezone($tz)->toDateString();
-
-                return $day >= $start && $day <= $due && (! in_array($v['url'], $claimed, true) || $v['url'] === $week->youtube_url);
-            });
-
-            if ($video && in_array($week->status, ['pending', 'missed'], true)) {
-                $week->fill([
-                    'status' => 'shipped',
-                    'video_title' => $week->video_title ?: $video['title'],
-                    'youtube_url' => $video['url'],
-                    'published_on' => $video['published'],
-                ]);
-                $claimed[] = $video['url'];
-            } elseif (! $video && $week->status === 'pending' && $due < $today) {
-                $week->status = 'missed';
-            }
-
-            if ($week->youtube_url && $week->views_7d === null) {
-                $match = $uploads->firstWhere('url', $week->youtube_url);
-                if ($match && $match['age_days'] >= 7) {
-                    $week->views_7d = $match['views'];
-                }
-            }
-            $week->save();
-        }
-
-        $verdict = null;
-        $scoredWeek = $weeks->filter(fn ($w) => $w->status !== 'pending')->sortByDesc('number')->first();
-        if ($scoredWeek && Llm::configured()) {
-            $next = $weeks->firstWhere('number', $scoredWeek->number + 1);
-            $board = $weeks->map(fn ($w) => "Week {$w->number} ({$w->start_date->format('M j')} to {$w->due_date->format('M j')}): {$w->status}"
-                . ($w->video_title ? ", \"{$w->video_title}\"" : '')
-                . ($w->views_7d !== null ? ", {$w->views_7d} views at 7 days" : '')
-                . ($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
-            $nextLine = $next ? ($next->video_title ? "Next week's video: \"{$next->video_title}\"" : "Next week's video: NOT PICKED YET") : 'This was the final scheduled week.';
-            $recent = $uploads->map(fn ($v) => "{$v['published']}: \"{$v['title']}\", {$v['views']} views after {$v['age_days']} days")->implode("\n");
-
-            try {
-                $verdict = $llm->as('mentor')->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nRecent long-form uploads:\n" . ($recent ?: 'none'));
-                $scoredWeek->update(['verdict' => $verdict]);
-            } catch (Throwable $e) {
-                // Ignore mentor LLM error if scoreboard updated
-            }
-        }
+        Setting::put('last_run_checkin', now()->toIso8601String());
 
         return response()->json([
             'message' => 'Check-in complete. Scoreboard updated.',
-            'verdict' => $verdict,
+            'verdict' => $result['verdict'],
             'weeks' => Week::with('script')->orderBy('number')->get(),
         ]);
     }

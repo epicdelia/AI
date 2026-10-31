@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\MemoryController;
+use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
@@ -107,6 +109,16 @@ Route::prefix('api')->group(function () {
         Route::post('stream/scripts/{script}/review', [ScriptStreamController::class, 'review']);
         Route::post('stream/scripts/{script}/substack', [ScriptStreamController::class, 'substack']);
         Route::post('stream/scripts/{script}/edit-brief', [ScriptStreamController::class, 'editBrief']);
+        Route::post('stream/scripts/{script}/fact-check', [ScriptStreamController::class, 'factCheck']);
+
+        // Memory: search her own past work
+        Route::get('memory', [MemoryController::class, 'status']);
+        Route::get('memory/search', [MemoryController::class, 'search']);
+        Route::post('memory/reindex', [MemoryController::class, 'reindex']);
+
+        // Scheduled jobs
+        Route::get('schedule', [ScheduleController::class, 'index']);
+        Route::post('schedule/{task}/run', [ScheduleController::class, 'run']);
 
         // Transcribe uploaded recordings
         Route::get('transcribe', [TranscriptionController::class, 'info']);

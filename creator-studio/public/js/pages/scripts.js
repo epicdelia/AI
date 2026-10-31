@@ -6,7 +6,7 @@ import {
   apiStream, liveMarkdown,
 } from '../core.js';
 import { icon } from '../icons.js';
-import { outputPanel, transcribeButton } from '../components.js';
+import { outputPanel, transcribeButton, memoryList } from '../components.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -180,6 +180,20 @@ export async function renderScript(view, id) {
   drawStats();
   drawLint(data.findings, data.has_hard);
 
+  // ---- past work (Memory) ----
+  const pastBox = h('div', {}, h('p', { class: 'muted small' }, 'Looking…'));
+  const pastWorkCard = h('div', { class: 'card' },
+    h('h3', {}, 'From your past work'),
+    h('p', { class: 'muted small' }, 'Related scripts, transcripts and notes, so you don’t repeat yourself.'),
+    pastBox);
+  memoryList(`${script.title} ${script.idea?.premise || ''}`, { limit: 4, types: 'script,transcript,note,document' })
+    .then((el) => {
+      // Hide the script finding itself.
+      el.querySelectorAll('li').forEach((li) => { if (li.querySelector(`a[href="/scripts/${script.id}"]`)) li.remove(); });
+      pastBox.replaceChildren(el.tagName === 'P' || el.querySelector('li') ? el : h('p', { class: 'muted small' }, 'Nothing similar yet.'));
+    })
+    .catch(() => pastBox.replaceChildren(h('p', { class: 'muted small' }, 'Memory search unavailable.')));
+
   const writePane = h('div', { class: 'editor-layout' },
     h('div', { class: 'editor-main' }, textarea, stats),
     h('aside', { class: 'editor-side' },
@@ -190,7 +204,8 @@ export async function renderScript(view, id) {
       h('div', { class: 'card' },
         h('h3', {}, 'Review panel'),
         h('p', { class: 'muted small' }, 'Voice, retention, facts and the top 3 hostile comments. Line edits, never a rewrite.'),
-        reviewBtn)));
+        reviewBtn),
+      pastWorkCard));
 
   // ---- other tabs ----
   const reviewPane = h('div');
@@ -234,6 +249,41 @@ export async function renderScript(view, id) {
   }
 
   const previewPane = h('div', { class: 'card' });
+
+  // ---- facts (live web fact-check) ----
+  const factsPane = h('div');
+  function drawFacts() {
+    const runBtn = h('button', { class: 'btn primary sm', onclick: (e) => runFactCheck(e.currentTarget) }, icon('search', 15), script.fact_check ? 'Check again' : 'Fact-check with the web');
+    clear(factsPane).append(h('div', { class: 'card' },
+      h('div', { class: 'card-header' },
+        h('h2', {}, 'Fact-check'),
+        h('div', { class: 'row' },
+          script.fact_checked_at ? h('span', { class: 'muted small' }, `checked ${timeAgo(script.fact_checked_at)}`) : null,
+          script.fact_check ? h('button', { class: 'btn ghost sm', onclick: () => copyText(script.fact_check) }, icon('copy', 15), 'Copy') : null,
+          runBtn)),
+      h('p', { class: 'muted small' }, 'Finds the factual claims in your script, searches the web for each one, and marks it VERIFIED, WRONG, UNSOURCED or UNCLEAR with links. Fix anything flagged before you film.'),
+      h('div', { class: 'facts-body' }, mdBlock(script.fact_check, 'Not checked yet.'))));
+  }
+  async function runFactCheck(btn) {
+    await saveSoon.flush();
+    await busy(btn, 'Checking…', async () => {
+      const live = liveMarkdown('Finding the claims in your script…');
+      clear(factsPane.querySelector('.facts-body')).append(live.el);
+      try {
+        const r = await apiStream(`scripts/${script.id}/fact-check`, {}, {
+          onDelta: live.append,
+          onStatus: (st) => {
+            if (st.step === 'searching') live.status(`Searching claim ${st.done + 1} of ${st.total}: “${st.claim.slice(0, 90)}”`);
+            else if (st.step === 'judging') live.status(`Weighing the evidence for ${st.total} claim(s)…`);
+          },
+        });
+        Object.assign(script, { fact_check: r.fact_check, fact_checked_at: r.script.fact_checked_at });
+        toast(`Checked ${r.claims} claim(s) against ${r.sources} source(s).`);
+      } finally {
+        drawFacts();
+      }
+    });
+  }
 
   const packagePane = h('div');
   function drawPackage() {
@@ -384,6 +434,7 @@ export async function renderScript(view, id) {
     { key: 'write', label: 'Write', pane: writePane },
     { key: 'preview', label: 'Preview', pane: previewPane, onShow: () => clear(previewPane).append(mdBlock(script.body, 'Nothing written yet.')) },
     { key: 'review', label: 'Review', pane: reviewPane, onShow: drawReview },
+    { key: 'facts', label: 'Facts', pane: factsPane, onShow: drawFacts },
     { key: 'package', label: 'Package', pane: packagePane, onShow: drawPackage },
     { key: 'transcript', label: 'Transcript', pane: transcriptPane, onShow: drawTranscript },
     { key: 'substack', label: 'Substack', pane: docTab('substack', { title: 'Substack post', generate: { path: `scripts/${script.id}/substack` }, empty: 'Generate a Substack post from the transcript (or the script, if there is no transcript yet).', help: 'Best after filming: paste the transcript first so the post reflects what you actually said.' }) },

@@ -21,6 +21,8 @@ export async function renderChat(view, id) {
   const thread = h('div', { class: 'chat-thread', 'aria-live': 'polite' });
   const input = h('textarea', { rows: 2, placeholder: 'Ask your producer… (Enter to send, Shift+Enter for a new line)' });
   const sendBtn = h('button', { class: 'btn primary', onclick: () => send() }, icon('arrow', 16), 'Send');
+  const webToggle = h('input', { type: 'checkbox' });
+  const webLabel = h('label', { class: 'inline-check web-toggle', title: 'Search the web for this message (needs a Serper or Perplexity key in Settings)' }, webToggle, icon('search', 14), 'Web');
 
   function drawSidebar() {
     clear(sidebar).append(
@@ -80,7 +82,8 @@ export async function renderChat(view, id) {
       thread.querySelector('.msg.assistant:last-child .typing')?.closest('.msg')?.remove();
       thread.append(liveBubble);
       thread.scrollTop = thread.scrollHeight;
-      const r = await apiStream(`chats/${current.id}/messages`, { content }, {
+      const r = await apiStream(`chats/${current.id}/messages`, { content, web: webToggle.checked }, {
+        onStatus: (st) => { if (st.step === 'searching') live.status('Searching the web…'); },
         onDelta: (t) => {
           const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
           live.append(t);
@@ -156,7 +159,7 @@ export async function renderChat(view, id) {
     h('section', { class: 'chat-main card' },
       header,
       thread,
-      h('div', { class: 'chat-compose' }, input, sendBtn))));
+      h('div', { class: 'chat-compose' }, input, h('div', { class: 'compose-actions' }, webLabel, sendBtn)))));
   drawSidebar();
   drawHeader();
   drawThread();

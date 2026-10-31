@@ -89,7 +89,7 @@ export async function api(method, path, body) {
  * onDelta(text) gets each chunk; resolves with the "done" payload; throws ApiError on
  * an "error" event or a normal JSON error response (validation runs before streaming).
  */
-export async function apiStream(path, body, { onDelta = () => {}, onMessage = () => {}, signal } = {}) {
+export async function apiStream(path, body, { onDelta = () => {}, onMessage = () => {}, onStatus = () => {}, signal } = {}) {
   let res;
   try {
     res = await fetch(`/api/stream/${path}`, {
@@ -120,6 +120,7 @@ export async function apiStream(path, body, { onDelta = () => {}, onMessage = ()
   const handle = (event, data) => {
     if (event === 'data') onDelta(JSON.parse(data));
     else if (event === 'message') onMessage(data);
+    else if (event === 'status') onStatus(JSON.parse(data));
     else if (event === 'done') result = JSON.parse(data);
     else if (event === 'error') failure = new ApiError(JSON.parse(data), 502, { streamed: true }); // request was accepted, then the AI failed
   };
@@ -178,6 +179,10 @@ export function liveMarkdown(placeholder = 'Writing…') {
   };
   return {
     el,
+    /** Replace the placeholder line before any text has arrived (e.g. "Searching claim 2 of 5…"). */
+    status(message) {
+      if (!text) el.replaceChildren(h('p', { class: 'muted' }, h('span', { class: 'spinner' }), ' ', message));
+    },
     append(chunk) {
       text += chunk;
       if (!queued) { queued = true; requestAnimationFrame(render); }
@@ -237,10 +242,13 @@ export function modal(title, build, { wide = false } = {}) {
     const overlay = h('div', { class: 'modal-overlay' });
     const close = (value) => {
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', onNav);
       overlay.remove();
       resolve(value);
     };
     const onKey = (e) => { if (e.key === 'Escape') close(undefined); };
+    const onNav = () => close(undefined); // a link inside the dialog moved to another page
+    window.addEventListener('popstate', onNav);
     const dialog = h('div', { class: `modal${wide ? ' wide' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-head' },
         h('h2', {}, title),

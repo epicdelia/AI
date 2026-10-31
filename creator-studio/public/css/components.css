@@ -318,3 +318,20 @@ details.options { margin: 4px 0 16px; }
 @keyframes caret { 50% { opacity: 0; } }
 .transcribe-btn { gap: 8px; }
 textarea[readonly].script-editor { background: var(--bg); }
+
+/* Memory, fact-check, automation */
+.memory-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.memory-list li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.memory-list p { margin: 6px 0 0; }
+.memory-title { font-weight: 700; }
+.editor-side .memory-list li { padding: 8px 10px; }
+.tag.src-transcript { color: var(--violet); }
+.tag.src-script { color: var(--accent); }
+.tag.src-document { color: var(--good); }
+.task-list { list-style: none; padding: 0; margin: 8px 0 0; }
+.task-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.task-list li:last-child { border-bottom: 0; }
+.compose-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.web-toggle { justify-content: center; color: var(--muted); }
+.web-toggle:has(input:checked) { color: var(--accent); font-weight: 700; }
+.facts-body h3 { margin-top: 1.1em; }

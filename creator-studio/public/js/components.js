@@ -1,5 +1,5 @@
 // Reusable UI pieces built on core.js: AI output panels and the YouTube analysis dialog.
-import { h, api, apiStream, apiUpload, liveMarkdown, busy, toast, mdBlock, copyText, download, slug, modal, field, clear } from './core.js';
+import { h, api, apiStream, apiUpload, liveMarkdown, busy, toast, mdBlock, copyText, download, slug, modal, field, clear, link } from './core.js';
 
 let transcribeInfo = null;
 
@@ -97,6 +97,28 @@ export function outputPanel(content, opts = {}) {
       editBtn,
       opts.noSave ? null : saveBtn),
     body);
+}
+
+const SOURCE_LABELS = { script: 'Script', transcript: 'What you said', document: 'Library', note: 'Note', idea: 'Idea' };
+
+/** Results list for a Memory search ("have I made this before?"). */
+export async function memoryList(query, { limit = 6, types = '' } = {}) {
+  const res = await api('GET', `memory/search?${new URLSearchParams({ q: query, limit, types })}`);
+  if (!res.results.length) return h('p', { class: 'muted' }, 'Nothing similar in your past work.');
+  return h('ul', { class: 'memory-list' }, res.results.map((r) => h('li', {},
+    h('div', { class: 'row-between' },
+      h('div', { class: 'row' }, h('span', { class: `tag src-${r.source_type}` }, SOURCE_LABELS[r.source_type] || r.source_type),
+        r.link ? link(r.link, { class: 'memory-title' }, r.title) : h('strong', {}, r.title)),
+      h('span', { class: 'muted small', title: r.semantic ? 'meaning match' : 'keyword match' }, r.semantic ? `${Math.round(r.score * 100)}% similar` : 'keyword match')),
+    h('p', { class: 'muted small' }, r.excerpt))));
+}
+
+export function memoryDialog(query, title = 'Your past work') {
+  return modal(title, () => {
+    const box = h('div', {}, h('p', { class: 'muted' }, h('span', { class: 'spinner' }), ' Searching your scripts, transcripts, Library and notes…'));
+    memoryList(query, { limit: 8 }).then((el) => box.replaceChildren(el)).catch((e) => box.replaceChildren(h('p', { class: 'error-text' }, e.message)));
+    return box;
+  }, { wide: true });
 }
 
 export function firstLine(text) {

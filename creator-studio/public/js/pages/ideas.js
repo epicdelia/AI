@@ -1,6 +1,7 @@
 // Ideas: AI-generated briefs from breakout signals, plus her own. Pick, drop, edit, or turn into a script.
 import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo, loading } from '../core.js';
 import { icon } from '../icons.js';
+import { memoryDialog } from '../components.js';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -141,6 +142,10 @@ export async function renderIdeas(view) {
       h('div', { class: 'idea-actions' },
         h('div', { class: 'row' }, actions),
         h('div', { class: 'row' },
+          h('button', {
+            class: 'btn ghost sm', title: 'Have I made something like this before?',
+            onclick: () => memoryDialog(`${idea.title} ${idea.premise || ''}`, `Similar to “${idea.title}”`),
+          }, icon('search', 15), 'Made before?'),
           h('button', {
             class: 'btn ghost sm', title: 'Edit',
             onclick: () => modal('Edit idea', (close) => ideaForm(idea, close, (v) => update(idea, v, 'Idea saved.')), { wide: true }),

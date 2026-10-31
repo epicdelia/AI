@@ -13,7 +13,7 @@ class Setting extends Model
     protected $fillable = ['key', 'value'];
 
     /** Settings whose values are stored encrypted. */
-    public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key'];
+    public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key'];
 
     public const DEFAULTS = [
         'creator_name' => '',
@@ -29,6 +29,9 @@ class Setting extends Model
         'llm_base_url' => '', // empty = the engine's own default
         'llm_model' => '',    // empty = the engine's default model
         'transcription_engine' => 'auto', // auto | assemblyai | openai
+        'search_provider' => 'auto',      // auto | serper | perplexity | off (web search for fact-checks and chat)
+        'embedding_model' => '',          // empty = provider default; used for Memory search
+        'schedule_enabled' => '1',        // daily scan, feed refresh, Monday check-in (needs schedule:work)
         'lookback_days' => '4',
         'min_outlier_score' => '3',
         'min_views' => '20000',

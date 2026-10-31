@@ -83,6 +83,7 @@ const PACKAGE_TOOLS = [
   { key: 'yt_titles', label: 'Titles', input: (s) => ({ topic: `${s.title}\n\n${s.body.slice(0, 4000)}` }) },
   { key: 'yt_thumbnail', label: 'Thumbnails', input: (s) => ({ topic: s.body.slice(0, 4000), title: s.title }) },
   { key: 'yt_hooks', label: 'Cold opens', input: (s) => ({ title: s.title, topic: s.body.slice(0, 4000) }) },
+  { key: 'sponsor_read', label: 'Sponsor segment', input: (s) => ({ video: s.title, brand: 'Sponsor partner', points: s.body.slice(0, 3000) }) },
   { key: 'yt_description', label: 'Description', input: (s) => ({ title: s.title, topic: s.body.slice(0, 6000), links: '' }) },
   { key: 'yt_tags', label: 'Tags', input: (s) => ({ title: s.title, topic: s.body.slice(0, 3000) }) },
   { key: 'yt_chapters', label: 'Chapters', input: (s) => ({ script: s.transcript || s.body }) },

@@ -83,7 +83,8 @@ export async function renderDeals(view) {
       h('div', { class: 'row', style: { marginTop: '12px', justifyContent: 'space-between' } },
         h('div', { class: 'row' },
           h('button', { class: 'btn sm ghost', onclick: () => editDealDialog(deal) }, icon('pen', 13), 'Edit'),
-          h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script')),
+          h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),
+          h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice slip')),
         h('div', { class: 'row' },
           deal.stage !== 'paid' ? h('button', {
             class: 'btn sm primary',
@@ -204,6 +205,39 @@ export async function renderDeals(view) {
         clear(box).append(h('p', { class: 'error-text' }, e.message));
       }
       return box;
+    });
+  }
+
+  function invoiceDialog(deal) {
+    return modal(`Invoice / Statement: ${deal.brand_name}`, () => {
+      const invNum = `INV-${new Date().getFullYear()}-${String(deal.id).padStart(4, '0')}`;
+      const deliverables = Array.isArray(deal.deliverables) ? deal.deliverables : [];
+      const text = `INVOICE: ${invNum}
+Date: ${new Date().toLocaleDateString()}
+Creator: Delia (@Tech.Unicorn)
+Bill To: ${deal.brand_name} ${deal.contact_name ? `(Attn: ${deal.contact_name})` : ''}
+
+Deliverables:
+${deliverables.map((d) => `- ${typeof d === 'string' ? d : `${d.platform || ''} ${d.format || ''}`}`).join('\n') || '- Sponsored Deliverables per agreement'}
+
+Total Agreed Fee: ${deal.currency || 'USD'} $${Number(deal.rate || 0).toLocaleString()}
+Status: ${STAGE_LABELS[deal.stage] || deal.stage}
+Payment Terms: Net 30 days from publication
+
+Notes: Thank you for partnering with @Tech.Unicorn!`;
+
+      return h('div', {},
+        h('pre', { style: { background: 'var(--panel-2)', padding: '16px', borderRadius: '10px', fontSize: '0.88rem', whiteSpace: 'pre-wrap', lineHeight: '1.6' } }, text),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '14px' } },
+          h('button', {
+            type: 'button',
+            class: 'btn',
+            onclick: () => {
+              navigator.clipboard.writeText(text);
+              toast('Invoice text copied to clipboard.');
+            },
+          }, icon('copy', 14), 'Copy invoice text'),
+          h('button', { type: 'button', class: 'btn primary', onclick: () => window.print() }, icon('arrow', 14), 'Print invoice')));
     });
   }
 

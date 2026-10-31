@@ -175,7 +175,6 @@ export async function renderSnippets(view) {
 
   async function createPostFromSnippet() {
     drawCard();
-    const dataUrl = previewCanvas.toDataURL('image/png');
     // Create draft social post with text
     const r = await api('POST', 'social/posts', {
       platform: 'linkedin',
@@ -184,6 +183,26 @@ export async function renderSnippets(view) {
       body: `Here is a quick breakdown of ${titleInput.value}:\n\n${codeArea.value.slice(0, 300)}...\n\nWhat do you think of this approach? Let me know in the comments below! 👇\n\n#SoftwareEngineering #TechUnicorn #Coding`,
     });
     toast('Draft post created.');
+    navigate(`/posts/${r.post.id}`);
+  }
+
+  async function createCarouselFromSnippet() {
+    drawCard();
+    const r = await api('POST', 'social/posts', {
+      platform: 'linkedin',
+      format: 'carousel',
+      title: `Carousel: ${titleInput.value || 'Code Guide'}`,
+      body: `Deep dive into ${titleInput.value || 'this implementation'}.\n\nSwipe through the slides for the step-by-step breakdown! 👉\n\n#SoftwareEngineering #Coding #TechUnicorn`,
+      carousel: {
+        slides: [
+          { title: titleInput.value || 'Code Guide', body: `Step-by-step implementation guide: ${titleInput.value}` },
+          { title: 'The Code', body: codeArea.value.slice(0, 400) },
+          { title: 'Core Advantages', body: '1. Clean modular structure\n2. Type-safe and resilient\n3. Production ready' },
+          { title: 'Save & Share', body: 'Found this helpful? Repost and follow @Tech.Unicorn for more daily developer insights! 🦄' },
+        ],
+      },
+    });
+    toast('Carousel draft created with 4 slides.');
     navigate(`/posts/${r.post.id}`);
   }
 
@@ -215,13 +234,15 @@ export async function renderSnippets(view) {
       h('div', { class: 'row' },
         h('button', { class: 'btn sm', onclick: copyImageToClipboard }, icon('copy', 14), 'Copy PNG'),
         h('button', { class: 'btn sm primary', onclick: downloadImage }, icon('image', 14), 'Download PNG'),
-        h('button', { class: 'btn sm', onclick: createPostFromSnippet }, icon('arrow', 14), 'Create post'))),
+        h('button', { class: 'btn sm', onclick: createPostFromSnippet }, icon('arrow', 14), 'Create post'),
+        h('button', { class: 'btn sm', onclick: createCarouselFromSnippet }, icon('repeat', 14), 'Create carousel'))),
     previewCanvas);
 
   view.append(
     pageHead('Code & Tech Snippet Studio', 'Turn code snippets, terminal commands, and tech tips into beautiful visual cards for LinkedIn, Instagram and X.',
       h('button', { class: 'btn', onclick: copyImageToClipboard }, icon('copy', 14), 'Copy image'),
-      h('button', { class: 'btn primary', onclick: downloadImage }, icon('image', 15), 'Download PNG')),
+      h('button', { class: 'btn primary', onclick: downloadImage }, icon('image', 15), 'Download PNG'),
+      h('button', { class: 'btn', onclick: createCarouselFromSnippet }, icon('repeat', 15), 'Send to carousel')),
     h('div', { class: 'grid grid-2' }, controlsCard, previewCard),
   );
 

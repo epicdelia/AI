@@ -28,10 +28,10 @@ class OpenAiCompatibleDriver extends BaseDriver
 
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
-            throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
+            throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
         $content = $resp->json('choices.0.message.content');
-        if (! is_string($content) || trim($content) === '') {
+        if (!is_string($content) || trim($content) === '') {
             throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model in Settings.');
         }
 
@@ -54,7 +54,7 @@ class OpenAiCompatibleDriver extends BaseDriver
         $resp = $this->send($body, $options, true);
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
-            throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
+            throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
 
         $text = '';
@@ -65,11 +65,11 @@ class OpenAiCompatibleDriver extends BaseDriver
                 return false;
             }
             $json = json_decode($data, true);
-            if (! is_array($json)) {
+            if (!is_array($json)) {
                 return null;
             }
             if (isset($json['error'])) {
-                throw new RuntimeException('AI stream error: '.self::clip($json['error']['message'] ?? $json['error']));
+                throw new RuntimeException('AI stream error: ' . self::clip($json['error']['message'] ?? $json['error']));
             }
             $delta = $json['choices'][0]['delta']['content'] ?? null;
             if (is_string($delta) && $delta !== '') {
@@ -99,9 +99,14 @@ class OpenAiCompatibleDriver extends BaseDriver
         $body = $this->body($system, [], $options);
         $body['messages'] = array_merge([['role' => 'system', 'content' => $system]], self::toolMessages($messages));
         if ($tools) {
-            $body['tools'] = array_map(fn ($t) => ['type' => 'function', 'function' => [
-                'name' => $t['name'], 'description' => $t['description'], 'parameters' => $t['parameters'],
-            ]], $tools);
+            $body['tools'] = array_map(fn($t) => [
+                'type' => 'function',
+                'function' => [
+                    'name' => $t['name'],
+                    'description' => $t['description'],
+                    'parameters' => $t['parameters'],
+                ]
+            ], $tools);
             $body['tool_choice'] = 'auto';
         }
 
@@ -121,7 +126,7 @@ class OpenAiCompatibleDriver extends BaseDriver
         }
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
-            throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
+            throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
         if ($onDelta) {
             return $this->readToolStream($resp, $body['model'], $onDelta);
@@ -130,10 +135,20 @@ class OpenAiCompatibleDriver extends BaseDriver
         $calls = [];
         foreach ($resp->json('choices.0.message.tool_calls') ?? [] as $i => $c) {
             $args = json_decode((string) ($c['function']['arguments'] ?? '{}'), true);
-            $calls[] = ['id' => (string) ($c['id'] ?? 'call_'.$i), 'name' => (string) ($c['function']['name'] ?? ''), 'args' => is_array($args) ? $args : []];
+            $call = ['id' => (string) ($c['id'] ?? 'call_' . $i), 'name' => (string) ($c['function']['name'] ?? ''), 'args' => is_array($args) ? $args : []];
+            if (isset($c['extra_content'])) {
+                $call['extra_content'] = $c['extra_content'];
+            }
+            if (isset($c['thought_signature'])) {
+                $call['thought_signature'] = $c['thought_signature'];
+            }
+            if (isset($c['thoughtSignature'])) {
+                $call['thoughtSignature'] = $c['thoughtSignature'];
+            }
+            $calls[] = $call;
         }
         $text = trim((string) ($resp->json('choices.0.message.content') ?? ''));
-        if ($text === '' && ! $calls) {
+        if ($text === '' && !$calls) {
             throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
         }
 
@@ -154,11 +169,11 @@ class OpenAiCompatibleDriver extends BaseDriver
                 return false;
             }
             $json = json_decode($data, true);
-            if (! is_array($json)) {
+            if (!is_array($json)) {
                 return null;
             }
             if (isset($json['error'])) {
-                throw new RuntimeException('AI stream error: '.self::clip($json['error']['message'] ?? $json['error']));
+                throw new RuntimeException('AI stream error: ' . self::clip($json['error']['message'] ?? $json['error']));
             }
             $delta = $json['choices'][0]['delta'] ?? [];
             if (is_string($delta['content'] ?? null) && $delta['content'] !== '') {
@@ -167,10 +182,19 @@ class OpenAiCompatibleDriver extends BaseDriver
             }
             foreach ($delta['tool_calls'] ?? [] as $n => $tc) {
                 $i = $tc['index'] ?? $n;
-                $parts[$i] ??= ['id' => '', 'name' => '', 'args' => ''];
+                $parts[$i] ??= ['id' => '', 'name' => '', 'args' => '', 'extra_content' => null, 'thought_signature' => null];
                 $parts[$i]['id'] = ($tc['id'] ?? '') ?: $parts[$i]['id'];
                 $parts[$i]['name'] = $parts[$i]['name'] ?: (string) ($tc['function']['name'] ?? '');
                 $parts[$i]['args'] .= (string) ($tc['function']['arguments'] ?? '');
+                if (isset($tc['extra_content'])) {
+                    $parts[$i]['extra_content'] = $tc['extra_content'];
+                }
+                if (isset($tc['thought_signature'])) {
+                    $parts[$i]['thought_signature'] = $tc['thought_signature'];
+                }
+                if (isset($tc['thoughtSignature'])) {
+                    $parts[$i]['thoughtSignature'] = $tc['thoughtSignature'];
+                }
             }
             $model = $json['model'] ?? $model;
             $in = $json['usage']['prompt_tokens'] ?? $in;
@@ -183,9 +207,19 @@ class OpenAiCompatibleDriver extends BaseDriver
         $calls = [];
         foreach (array_values($parts) as $i => $p) {
             $args = json_decode($p['args'] !== '' ? $p['args'] : '{}', true);
-            $calls[] = ['id' => $p['id'] ?: 'call_'.$i, 'name' => $p['name'], 'args' => is_array($args) ? $args : []];
+            $call = ['id' => $p['id'] ?: 'call_' . $i, 'name' => $p['name'], 'args' => is_array($args) ? $args : []];
+            if (!empty($p['extra_content'])) {
+                $call['extra_content'] = $p['extra_content'];
+            }
+            if (!empty($p['thought_signature'])) {
+                $call['thought_signature'] = $p['thought_signature'];
+            }
+            if (!empty($p['thoughtSignature'])) {
+                $call['thoughtSignature'] = $p['thoughtSignature'];
+            }
+            $calls[] = $call;
         }
-        if (trim($text) === '' && ! $calls) {
+        if (trim($text) === '' && !$calls) {
             throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
         }
 
@@ -199,10 +233,29 @@ class OpenAiCompatibleDriver extends BaseDriver
         foreach ($messages as $m) {
             if ($m['role'] === 'tool') {
                 $out[] = ['role' => 'tool', 'tool_call_id' => $m['tool_call_id'], 'content' => (string) $m['content']];
-            } elseif ($m['role'] === 'assistant' && ! empty($m['tool_calls'])) {
-                $out[] = ['role' => 'assistant', 'content' => ($m['content'] ?? '') !== '' ? $m['content'] : null, 'tool_calls' => array_map(fn ($c) => [
-                    'id' => $c['id'], 'type' => 'function', 'function' => ['name' => $c['name'], 'arguments' => json_encode((object) $c['args'])],
-                ], $m['tool_calls'])];
+            } elseif ($m['role'] === 'assistant' && !empty($m['tool_calls'])) {
+                $out[] = [
+                    'role' => 'assistant',
+                    'content' => ($m['content'] ?? '') !== '' ? $m['content'] : null,
+                    'tool_calls' => array_map(function ($c) {
+                        $call = [
+                            'id' => $c['id'],
+                            'type' => 'function',
+                            'function' => ['name' => $c['name'], 'arguments' => json_encode((object) $c['args'])],
+                        ];
+                        if (!empty($c['extra_content'])) {
+                            $call['extra_content'] = $c['extra_content'];
+                        }
+                        if (!empty($c['thought_signature'])) {
+                            $call['thought_signature'] = $c['thought_signature'];
+                        }
+                        if (!empty($c['thoughtSignature'])) {
+                            $call['thoughtSignature'] = $c['thoughtSignature'];
+                        }
+
+                        return $call;
+                    }, $m['tool_calls'])
+                ];
             } else {
                 $out[] = self::message(['role' => $m['role'], 'content' => (string) $m['content'], 'images' => $m['images'] ?? []]);
             }
@@ -224,7 +277,7 @@ class OpenAiCompatibleDriver extends BaseDriver
         ];
 
         $reasoning = ModelCatalog::isReasoning($this->engine, $model);
-        if (isset($options['temperature']) && ! $reasoning) {
+        if (isset($options['temperature']) && !$reasoning) {
             $body['temperature'] = $options['temperature'];
         }
         if (isset($options['max_tokens'])) {
@@ -268,7 +321,7 @@ class OpenAiCompatibleDriver extends BaseDriver
                 $http = $http->withOptions(['stream' => true]);
             }
 
-            return $http->post($this->baseUrl().'/chat/completions', $body);
+            return $http->post($this->baseUrl() . '/chat/completions', $body);
         }, $options);
     }
 }

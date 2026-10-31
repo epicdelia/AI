@@ -196,3 +196,4 @@ class DealsTest extends TestCase
         $this->assertStringContainsString('Datadog', $dealGroup['items'][0]['label']);
     }
 }
+

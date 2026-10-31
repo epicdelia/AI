@@ -227,3 +227,4 @@ export async function renderSnippets(view) {
 
   setTimeout(drawCard, 50);
 }
+

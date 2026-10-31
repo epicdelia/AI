@@ -1,5 +1,5 @@
 // Settings: profile & brand voice, AI engine, API keys, research thresholds, diagnostics, usage.
-import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link } from '../core.js';
+import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link, copyText } from '../core.js';
 import { icon } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { personaliseCard } from '../prefs.js';
@@ -300,6 +300,11 @@ async function scheduleCard() {
         !st.enabled ? 'Paused in settings.'
           : seen !== null && seen < 10 ? `Scheduler running (seen ${timeAgo(st.scheduler_seen)}).`
             : h('span', {}, 'Scheduler not running. Start it with ', h('code', {}, 'php artisan schedule:work'), ' (or a cron calling ', h('code', {}, 'schedule:run'), ').')),
+      st.autostart ? h('details', { class: 'autostart' },
+        h('summary', { class: 'small' }, 'Keep it running in the background (starts with Windows)'),
+        h('p', { class: 'muted small' }, 'Agents, publishing, reminders, workflows and uploads run while the scheduler runs, even with the browser closed. Paste this once in a terminal (Windows: a normal PowerShell or Command Prompt) and it starts every time you sign in to the computer:'),
+        h('div', { class: 'cx-copy' }, h('code', {}, st.autostart), h('button', { class: 'btn sm', type: 'button', onclick: () => copyText(st.autostart, 'Command copied.') }, icon('copy', 14), 'Copy')),
+        h('p', { class: 'muted small' }, 'To undo: ', h('code', {}, 'schtasks /Delete /TN "Creator Studio" /F'))) : null,
       h('ul', { class: 'task-list' }, st.tasks.map((t) => {
         const run = h('button', {
           class: 'btn ghost sm', title: `Run ${t.command} now`,

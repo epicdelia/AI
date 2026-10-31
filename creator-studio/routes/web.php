@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\AgentsController;
 use App\Http\Controllers\Api\AudienceController;
+use App\Http\Controllers\Api\BioLinksController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\YouTubeStudioController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CopilotController;
@@ -128,6 +131,34 @@ Route::prefix('api')->group(function () {
         Route::put('love/letters/{letter}', [LoveController::class, 'update']);
         Route::delete('love/letters/{letter}', [LoveController::class, 'destroy']);
         Route::post('love/letters/{letter}/open', [LoveController::class, 'open']);
+
+        // Memory jar
+        Route::get('love/jar', [LoveController::class, 'jar']);
+        Route::put('love/jar/{id}', [LoveController::class, 'answerJar'])->whereNumber('id');
+
+        // YouTube studio: upload from the studio, title test & compare
+        Route::get('youtube/studio', [YouTubeStudioController::class, 'index']);
+        Route::get('youtube/studio/videos', [YouTubeStudioController::class, 'videos']);
+        Route::post('youtube/uploads', [YouTubeStudioController::class, 'startUpload']);
+        Route::post('youtube/uploads/drain', [YouTubeStudioController::class, 'drain']);
+        Route::post('youtube/uploads/{upload}/chunk', [YouTubeStudioController::class, 'chunk']);
+        Route::delete('youtube/uploads/{upload}', [YouTubeStudioController::class, 'cancelUpload']);
+        Route::post('youtube/tests', [YouTubeStudioController::class, 'startTest']);
+        Route::post('youtube/tests/{test}/stop', [YouTubeStudioController::class, 'stopTest']);
+
+        // Brand kit
+        Route::get('brand', [BrandController::class, 'show']);
+        Route::put('brand', [BrandController::class, 'update']);
+        Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
+        Route::get('brand/logo', [BrandController::class, 'logo']);
+        Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // Link in bio (editor + stats; the page itself is public at /links)
+        Route::get('bio', [BioLinksController::class, 'index']);
+        Route::put('bio', [BioLinksController::class, 'save']);
+
+        // Ask your numbers
+        Route::post('social/ask', [GrowthController::class, 'ask']);
 
         // Post score & hook lab, daily brief, follower goals
         Route::post('social/score', [GrowthController::class, 'score']);
@@ -330,6 +361,10 @@ Route::prefix('api')->group(function () {
         Route::delete('feed-items/{item}', [FeedController::class, 'destroyItem']);
     });
 });
+
+// Link in bio: public page and counted redirects
+Route::get('links', [BioLinksController::class, 'page']);
+Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('link');
 
 // "Login with Google" (uses the Google app from Connections → YouTube; only her own email)
 Route::get('auth/google/redirect', [\App\Http\Controllers\GoogleLoginController::class, 'redirect']);

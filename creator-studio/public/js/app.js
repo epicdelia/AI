@@ -31,6 +31,10 @@ import { notificationsButton, stopNotifications } from './notifications.js';
 import { registerServiceWorker, installButton, installShortcutsHelp } from './pwa.js';
 import { applyPrefs, prefs } from './prefs.js';
 import { renderLove, checkLove } from './pages/love.js';
+import { renderYouTubeStudio } from './pages/ytstudio.js';
+import { renderMediaLibrary } from './pages/mediapage.js';
+import { renderBrand } from './pages/brand.js';
+import { renderBio } from './pages/bio.js';
 import { loveOn } from './love.js';
 import { NAV_ITEMS, MEGA } from './nav.js';
 
@@ -56,6 +60,10 @@ const ROUTES = [
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
   { path: /^\/inbox$/, render: renderInbox, nav: '/inbox' },
   { path: /^\/love$/, render: renderLove, nav: '/love' },
+  { path: /^\/youtube$/, render: renderYouTubeStudio, nav: '/youtube' },
+  { path: /^\/media$/, render: renderMediaLibrary, nav: '/media' },
+  { path: /^\/brand$/, render: renderBrand, nav: '/brand' },
+  { path: /^\/bio$/, render: renderBio, nav: '/bio' },
   { path: /^\/workflows$/, render: renderWorkflows, nav: '/workflows' },
   { path: /^\/workflows\/(\d+)$/, render: renderWorkflow, nav: '/workflows' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
@@ -84,8 +92,15 @@ function toggleNavCollapsed() {
   state.shell?.syncToggle();
 }
 function openDrawer(open) {
+  const was = document.body.classList.contains('nav-open');
   document.body.classList.toggle('nav-open', open);
   state.shell?.drawerToggle.setAttribute('aria-expanded', String(open));
+  // Drawer mode (phones and tablets): the page behind can't be tabbed into while it's open,
+  // focus goes into the drawer, and back to the menu button when it closes.
+  const main = document.querySelector('.main-col');
+  if (main) main.inert = open && window.matchMedia('(max-width: 1199px)').matches;
+  if (open && !was) setTimeout(() => document.querySelector('.sidebar .nav-item.active, .sidebar .nav-item')?.focus(), 60);
+  if (!open && was && window.matchMedia('(max-width: 1199px)').matches) state.shell?.drawerToggle.focus();
 }
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('nav-open')) openDrawer(false);

@@ -256,6 +256,11 @@ class PostScorer
         if ($p === 'linkedin' && $f['link']) {
             $out[] = ['status' => 'warn', 'text' => 'A link in a LinkedIn post is widely reported to cut its reach; put it in the first comment.', 'source' => 'rule of thumb'];
         }
+        $text = mb_strtolower(self::text($d));
+        $used = array_values(array_filter(\App\Http\Controllers\Api\BrandController::bannedWords(), fn ($w) => preg_match('/(^|[^\p{L}])'.preg_quote(mb_strtolower($w), '/').'($|[^\p{L}])/u', $text)));
+        if ($used) {
+            $out[] = ['status' => 'warn', 'text' => 'Uses words you avoid: '.implode(', ', $used).'.', 'source' => 'your brand kit'];
+        }
         if ($f['number_hook']) {
             $out[] = ['status' => 'good', 'text' => 'A number in the hook makes it concrete.', 'source' => 'rule of thumb'];
         }

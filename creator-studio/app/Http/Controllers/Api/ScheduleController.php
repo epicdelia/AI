@@ -25,6 +25,7 @@ class ScheduleController extends Controller
         'learn' => ['command' => 'studio:agents-learn', 'label' => 'Agents learn from results & your edits', 'when' => 'Sundays at 20:00'],
         'engage' => ['command' => 'studio:engage', 'label' => 'Check comments & DMs, run automations', 'when' => 'Every 10 min while Instagram, Threads or YouTube is connected'],
         'workflows' => ['command' => 'studio:workflows', 'label' => 'Run workflows (schedules, waits)', 'when' => 'Every minute while any workflow is on'],
+        'youtube' => ['command' => 'studio:youtube', 'label' => 'YouTube uploads & title tests', 'when' => 'Every minute while any are running'],
         'backup' => ['command' => 'studio:backup', 'label' => 'Back up the studio', 'when' => 'Daily at 03:00 (always, even when paused)'],
         'prune' => ['command' => 'studio:prune', 'label' => 'Clean up old logs & uploads', 'when' => 'Daily at 04:00'],
     ];
@@ -49,6 +50,10 @@ class ScheduleController extends Controller
             'tasks' => $tasks,
             // The scheduler writes a heartbeat every minute it runs (see routes/console.php).
             'scheduler_seen' => Setting::get('scheduler_heartbeat'),
+            // One command that starts the scheduler at every Windows sign-in (she runs it once).
+            'autostart' => PHP_OS_FAMILY === 'Windows'
+                ? 'schtasks /Create /TN "Creator Studio" /SC ONLOGON /RL LIMITED /F /TR "\\"'.PHP_BINARY.'\\" \\"'.base_path('artisan').'\\" schedule:work"'
+                : '@reboot cd '.base_path().' && '.PHP_BINARY.' artisan schedule:work >/dev/null 2>&1',
         ]);
     }
 

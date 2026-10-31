@@ -39,7 +39,19 @@ class Prompts
 - Never use: delve, game-changer, unprecedented, seamlessly, tapestry, testament to, unleash, buckle up, let's dive in, in conclusion, harness the power, ever-evolving, revolutionize.
 - Use contractions the way people talk (it's, don't, I'm).
 - Invent nothing: no stats, quotes, releases or personal stories. Where a personal story is needed write [YOUR STORY: what kind].
-TXT;
+TXT.self::brandRules();
+    }
+
+    /** Her brand kit's own rules: words she never uses and her usual call to action. */
+    private static function brandRules(): string
+    {
+        $words = \App\Http\Controllers\Api\BrandController::bannedWords();
+        $cta = trim((string) \App\Models\Setting::get('brand_cta', ''));
+
+        return ($words ? "
+- She never uses these words: ".implode(', ', $words).'.' : '')
+            .($cta !== '' ? "
+- Her usual call to action, when one fits: {$cta}" : '');
     }
 
     public static function toolSystem(): string

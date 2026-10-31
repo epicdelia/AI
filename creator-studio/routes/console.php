@@ -235,6 +235,15 @@ Artisan::command('studio:password {email? : the account email (defaults to the o
     return 0;
 })->purpose('Reset the studio login password (the “Forgot password?” way, from this computer)');
 
+Artisan::command('studio:youtube', function () use ($track) {
+    return $track($this, 'youtube', function () {
+        $up = \App\Domains\YouTube\YouTubeStudio::drainUploads(50);
+        $t = \App\Domains\YouTube\YouTubeStudio::tickTests();
+
+        return "{$up} upload(s) finished, {$t} title test step(s).";
+    });
+})->purpose('Send queued uploads to YouTube and rotate title tests');
+
 // ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
 
 try {
@@ -267,4 +276,5 @@ Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => rescue(fn
 Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->when(fn () => $enabled() && rescue(fn () => SocialAgent::exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:workflows')->everyMinute()->when(fn () => rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:youtube')->everyMinute()->when(fn () => rescue(fn () => \App\Domains\YouTube\VideoUpload::whereIn('status', ['queued', 'uploading'])->exists() || \App\Domains\YouTube\TitleTest::where('status', 'running')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

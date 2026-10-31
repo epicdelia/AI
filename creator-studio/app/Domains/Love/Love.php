@@ -21,6 +21,33 @@ class Love
     /** Follower counts worth celebrating. */
     public const MILESTONES = [100, 250, 500, 1000, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000, 50000, 75000, 100000, 150000, 200000, 250000, 500000, 1000000];
 
+    /** The memory jar: one question a day for both of them (same question all day). */
+    public const QUESTIONS = [
+        'What made you smile today?', 'What’s a small thing I do that you love?', 'Where should our next trip be?', 'What’s one thing you’re proud of this week?',
+        'What song reminds you of us?', 'What was your favourite moment together this month?', 'What’s something new you want us to try?',
+        'What do you want to remember about this week?', 'What’s your dream video to make one day?', 'What’s the best meal we’ve had together?',
+        'If we had a free Saturday tomorrow, what would we do?', 'What’s something you learned recently?', 'What’s a goal you want me to cheer for?',
+        'What’s a memory of us that always makes you laugh?', 'What does a perfect lazy Sunday look like?', 'What are you grateful for today?',
+        'What’s something you wish people knew about your work?', 'Which comment from a viewer made your day?', 'What would you tell yourself one year ago?',
+        'What’s our song right now?', 'Coffee date or dinner date this week?', 'What’s one thing that would make tomorrow easier?',
+        'What’s a little tradition we should start?', 'What’s your favourite photo of us, and why?', 'What are you looking forward to this month?',
+        'What’s one thing I could do to support your channel more?', 'What’s a compliment you got recently that stuck?', 'Which place felt most like home to you?',
+        'What’s something brave you did lately?', 'If today had a title, what would it be?',
+    ];
+
+    public static function jarToday(): array
+    {
+        $today = CarbonImmutable::now(SocialAnalytics::tz())->toDateString();
+        $row = DB::table('memory_jar')->where('asked_on', $today)->first();
+        if (! $row) {
+            $q = self::QUESTIONS[CarbonImmutable::parse($today)->dayOfYear % count(self::QUESTIONS)];
+            DB::table('memory_jar')->insert(['asked_on' => $today, 'question' => $q, 'created_at' => now(), 'updated_at' => now()]);
+            $row = DB::table('memory_jar')->where('asked_on', $today)->first();
+        }
+
+        return (array) $row;
+    }
+
     public static function enabled(): bool
     {
         return Setting::get('love_notes', '1') === '1';

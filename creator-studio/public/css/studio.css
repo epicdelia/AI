@@ -453,7 +453,7 @@ body.nav-collapsed { --nav-w: 72px; }
 .nav-collapse:hover { color: var(--ink); background: var(--bg); }
 .nav-item:focus-visible, .nav-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-@media (min-width: 901px) {
+@media (min-width: 1200px) {
   body.nav-collapsed .sidebar { padding: 20px 10px; }
   body.nav-collapsed .nav-label, body.nav-collapsed .brand .love-heart-btn { display: none; }
   body.nav-collapsed .brand { justify-content: center; padding: 4px 0 14px; }
@@ -465,7 +465,7 @@ body.nav-collapsed { --nav-w: 72px; }
   body.nav-collapsed .nav-collapse { justify-content: center; padding: 6px; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1199px) {
   .app-shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar {
     position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); height: 100%;
@@ -485,6 +485,6 @@ body.nav-collapsed { --nav-w: 72px; }
   .mobile-brand:hover { text-decoration: none; }
   .mobile-brand .logo { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), var(--violet)); font-size: 15px; }
 }
-@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+@media (max-width: 1199px) and (prefers-reduced-motion: reduce) {
   .sidebar, .nav-backdrop { transition: none; }
 }

@@ -29,7 +29,7 @@ function wrap(ctx, text, maxWidth) {
 }
 
 /** One slide on a canvas. The text shrinks until it fits. */
-export function drawSlide(text, i, total, { color = '#d8487e', handle = '' } = {}) {
+export function drawSlide(text, i, total, { color = '#d8487e', color2 = null, font = 'system', logo = null, handle = '' } = {}) {
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -38,6 +38,14 @@ export function drawSlide(text, i, total, { color = '#d8487e', handle = '' } = {
 
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, W, H);
+  if (color2) {
+    // Brand kit: her two colours as a soft diagonal blend.
+    const blend = ctx.createLinearGradient(0, 0, W, H);
+    blend.addColorStop(0, color);
+    blend.addColorStop(1, color2);
+    ctx.fillStyle = blend;
+    ctx.fillRect(0, 0, W, H);
+  }
   const glow = ctx.createLinearGradient(0, 0, W, H);
   glow.addColorStop(0, 'rgba(255,255,255,0.10)');
   glow.addColorStop(1, 'rgba(0,0,0,0.12)');
@@ -45,7 +53,7 @@ export function drawSlide(text, i, total, { color = '#d8487e', handle = '' } = {
   ctx.fillRect(0, 0, W, H);
 
   const first = i === 0;
-  const family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const family = `${font && font !== 'system' ? `"${font}", ` : ''}system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
   let size = first ? 104 : 64;
   let lines;
   for (;;) {
@@ -63,6 +71,13 @@ export function drawSlide(text, i, total, { color = '#d8487e', handle = '' } = {
   ctx.font = `600 34px ${family}`;
   ctx.globalAlpha = 0.8;
   ctx.fillText(`${i + 1} / ${total}`, W - PAD - ctx.measureText(`${i + 1} / ${total}`).width, PAD * 0.75);
+  if (logo?.complete && logo.naturalWidth) {
+    const lh = 64;
+    const lw = Math.min(220, (logo.naturalWidth / logo.naturalHeight) * lh);
+    ctx.globalAlpha = 0.95;
+    ctx.drawImage(logo, PAD, PAD * 0.55, lw, lh);
+    ctx.globalAlpha = 0.8;
+  }
   if (handle) ctx.fillText(`@${handle}`, PAD, H - PAD * 0.75 - 34);
   if (i < total - 1) {
     const arrow = 'Swipe →';
@@ -97,14 +112,26 @@ function printPdf(canvases, title) {
 }
 
 /** The card under a carousel post: thumbnails plus PNG and PDF export. */
-export function carouselCard(slides, { name = 'carousel', color, handle = '', pdf = false } = {}) {
+export function carouselCard(slides, { name = 'carousel', color, handle = '', pdf = false, brand = null } = {}) {
   const grid = h('div', { class: 'slide-grid' });
   let canvases = [];
+  const font = brand?.font || 'system';
+  let logo = null;
   function render() {
-    canvases = slides.filter((s) => s.trim()).map((s, i, all) => drawSlide(s, i, all.length, { color, handle }));
+    canvases = slides.filter((s) => s.trim()).map((s, i, all) => drawSlide(s, i, all.length, { color: brand?.color || color, color2: brand?.color_2, font, logo, handle }));
     clear(grid).append(canvases.map((c) => { c.className = 'slide-thumb'; return c; }));
   }
   render();
+  // Brand kit extras arrive async: the font (Google Fonts) and the logo; redraw once they're in.
+  if (font !== 'system') {
+    if (!document.querySelector(`link[data-font="${font}"]`)) document.head.append(h('link', { rel: 'stylesheet', 'data-font': font, href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@600;650;800&display=swap` }));
+    document.fonts?.load(`800 40px "${font}"`).then(render).catch(() => {});
+  }
+  if (brand?.logo) {
+    logo = new Image();
+    logo.onload = render;
+    logo.src = '/api/brand/logo';
+  }
   const file = slug(name) || 'carousel';
   return h('div', { class: 'card' },
     h('div', { class: 'card-header' },
@@ -120,6 +147,6 @@ export function carouselCard(slides, { name = 'carousel', color, handle = '', pd
           },
         }, icon('download', 15), 'PNGs'),
         pdf ? h('button', { class: 'btn sm primary', onclick: () => { render(); printPdf(canvases, file); } }, icon('download', 15), 'PDF') : null)),
-    h('p', { class: 'muted small' }, `1080 × 1350, your brand colour (Settings → Social).${pdf ? ' LinkedIn carousels are PDF documents: choose “Save as PDF” in the print dialog.' : ''}`),
+    h('p', { class: 'muted small' }, `1080 × 1350, in your brand kit’s colours, font and logo (Studio → Brand kit).${pdf ? ' LinkedIn carousels are PDF documents: choose “Save as PDF” in the print dialog.' : ''}`),
     grid);
 }

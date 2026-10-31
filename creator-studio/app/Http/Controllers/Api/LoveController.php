@@ -58,6 +58,27 @@ class LoveController extends Controller
         return response()->json(['letter' => ['id' => $letter->id, 'title' => $letter->title, 'body' => $letter->body, 'opened_at' => $letter->opened_at]]);
     }
 
+    /** Today's jar question and the answered ones. */
+    public function jar(): JsonResponse
+    {
+        return response()->json([
+            'today' => Love::jarToday(),
+            'past' => \Illuminate\Support\Facades\DB::table('memory_jar')->where('asked_on', '<', Love::jarToday()['asked_on'])
+                ->where(fn ($q) => $q->whereNotNull('her_answer')->orWhereNotNull('his_answer'))->orderByDesc('asked_on')->limit(60)->get(),
+            'her' => Setting::get('nickname') ?: explode(' ', (string) (Setting::get('creator_name') ?: 'Her'))[0],
+            'him' => Setting::get('love_from') ?: 'Him',
+        ]);
+    }
+
+    public function answerJar(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['who' => ['required', Rule::in(['her', 'his'])], 'answer' => ['nullable', 'string', 'max:2000']]);
+        $n = \Illuminate\Support\Facades\DB::table('memory_jar')->where('id', $id)->update([$data['who'].'_answer' => trim((string) ($data['answer'] ?? '')) ?: null, 'updated_at' => now()]);
+        abort_unless($n, 404);
+
+        return $this->jar();
+    }
+
     // ---- the writer's desk (for him) ----
 
     public function show(LoveLetter $letter): JsonResponse

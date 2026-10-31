@@ -247,6 +247,17 @@ export async function renderAnalytics(view) {
     },
   }, `${n} days`));
 
+  const askOut = h('div', { class: 'ask-out', 'aria-live': 'polite' });
+  const askIn = h('input', { type: 'text', maxlength: 500, placeholder: 'Ask your numbers: “What worked best on LinkedIn this month?”', 'aria-label': 'Ask about your numbers' });
+  const askBtn = h('button', { class: 'btn primary', type: 'submit' }, icon('sparkle', 15), 'Ask');
+  const askCard = h('form', { class: 'card ask-card', onsubmit: (e) => { e.preventDefault(); if (!askIn.value.trim()) return; busy(askBtn, 'Thinking…', async () => {
+    const r = await api('POST', 'social/ask', { question: askIn.value.trim() });
+    clear(askOut).append(mdBlock(r.answer));
+  }); } },
+  h('div', { class: 'ask-row' }, askIn, askBtn),
+  h('div', { class: 'ask-chips' }, ['Which network is growing fastest?', 'What should I post more of?', 'When do my posts do best?', 'Am I on track for my goals?'].map((q) => h('button', { type: 'button', class: 'wz-chip', onclick: () => { askIn.value = q; askCard.requestSubmit(); } }, q))),
+  askOut);
+
   const page = h('div', {},
     pageHead('Analytics', 'Reports across every network, from the numbers you log or import. Your own posts only, no outside benchmarks.',
       h('div', { class: 'row' }, dayBtns),
@@ -254,6 +265,7 @@ export async function renderAnalytics(view) {
       h('button', { class: 'btn', onclick: () => printReport(dash, data, meta) }, icon('doc', 16), 'Download report'),
       meta.demo ? null : demoControl(0)),
     meta.demo ? demoControl(meta.demo) : null,
+    askCard,
     dashBox,
     goalsCard(),
     h('div', { class: 'section-head' }, h('h2', { class: 'section-title' }, 'By network'), h('div', { class: 'row' }, periodBtns)),

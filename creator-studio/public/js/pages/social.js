@@ -349,7 +349,7 @@ export async function renderPost(view, id) {
     clear(slidesBox);
     if (fmtInfo().parts === 'Slides' && post.parts.length) {
       slidesBox.append(carouselCard(post.parts, {
-        name: post.title || 'carousel', color: m.brand_color, handle: handleOf(m, post.platform), pdf: post.platform === 'linkedin',
+        name: post.title || 'carousel', color: m.brand_color, brand: m.brand, handle: handleOf(m, post.platform), pdf: post.platform === 'linkedin',
       }));
     }
   }

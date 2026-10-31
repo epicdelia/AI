@@ -27,6 +27,7 @@ class SocialController extends Controller
         return response()->json([
             'platforms' => Platforms::catalog(), 'statuses' => Platforms::STATUSES, 'progress' => self::progress(),
             'brand_color' => Setting::get('brand_color', '#d8487e'),
+            'brand' => BrandController::kit(),
             'demo' => DemoContent::count(),
             'pillars' => Repurposer::pillars(),
         ]);

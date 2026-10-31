@@ -496,6 +496,7 @@ export async function renderScript(view, id) {
       h('div', { class: 'card-header' }, h('h2', {}, 'Publish kit'),
         h('div', { class: 'row' },
           h('button', { class: 'btn ghost sm', onclick: () => copyText(script.publish_kit || '', 'Kit copied.') }, icon('copy', 15), 'Copy'),
+          link(`/youtube?script=${script.id}`, { class: 'btn ghost sm', title: 'Upload the finished video with this kit' }, icon('external', 15), 'Upload to YouTube'),
           genBtn)),
       h('div', { class: 'grid grid-sidebar tight' },
         h('div', {}, kitBox),

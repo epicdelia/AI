@@ -69,6 +69,7 @@ export async function renderLove(view) {
   let d = await api('GET', 'love');
 
   const head = h('div');
+  const jarBox = h('div');
   const lettersBox = h('div');
   const desk = h('div');
 
@@ -209,6 +210,32 @@ export async function renderLove(view) {
     drawHead(); drawLetters(); drawDesk();
   }
 
-  view.append(pageHead('For you 💌', 'Letters, dates and little moments. Some letters open any time; others wait for a date or a milestone.'), head, lettersBox, desk);
-  drawHead(); drawLetters(); drawDesk();
+  async function drawJar() {
+    const j = await api('GET', 'love/jar').catch(() => null);
+    if (!j) return;
+    const t = j.today;
+    const box = (who, name) => {
+      const ta = h('textarea', { rows: 2, placeholder: `${name}’s answer…`, 'aria-label': `${name}’s answer` });
+      ta.value = t[`${who}_answer`] || '';
+      const save = h('button', { class: 'btn sm', type: 'button', onclick: () => busy(save, 'Saving…', async () => {
+        await api('PUT', `love/jar/${t.id}`, { who, answer: ta.value });
+        hearts(8);
+        toast('Into the jar 🫙💕');
+      }) }, 'Save');
+      return h('div', { class: 'jar-answer' }, h('strong', { class: 'small' }, name), ta, save);
+    };
+    clear(jarBox).append(h('div', { class: 'card jar' },
+      h('div', { class: 'card-header' }, h('h2', {}, '🫙 Memory jar'), h('span', { class: 'muted small' }, 'A question a day, for both of you')),
+      h('p', { class: 'jar-question' }, t.question),
+      h('div', { class: 'jar-answers' }, box('her', j.her), box('his', j.him)),
+      j.past.length ? h('details', { class: 'jar-past' }, h('summary', { class: 'small' }, `${j.past.length} memor${j.past.length === 1 ? 'y' : 'ies'} in the jar`),
+        h('ul', {}, j.past.map((p) => h('li', {},
+          h('span', { class: 'muted small' }, new Date(`${p.asked_on}T12:00:00`).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })),
+          h('strong', {}, p.question),
+          p.her_answer ? h('p', {}, h('em', {}, `${j.her}: `), p.her_answer) : null,
+          p.his_answer ? h('p', {}, h('em', {}, `${j.him}: `), p.his_answer) : null)))) : null));
+  }
+
+  view.append(pageHead('For you 💌', 'Letters, dates and little moments. Some letters open any time; others wait for a date or a milestone.'), head, jarBox, lettersBox, desk);
+  drawHead(); drawLetters(); drawDesk(); drawJar();
 }

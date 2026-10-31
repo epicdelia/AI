@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { to: '/scripts', label: 'Scripts', icon: 'doc', desc: 'Write, review and fact-check' },
   { to: '/goals', label: 'Weekly goals', icon: 'target', desc: 'Your plan, streak and mentor check-ins' },
   { to: '/channel', label: 'My channel', icon: 'users', desc: 'Your videos vs your own median' },
+  { to: '/youtube', label: 'Upload & test', icon: 'play', desc: 'Upload from here; let titles compete' },
   { header: 'Social' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar', desc: 'Every post on every network' },
   { to: '/analytics', label: 'Analytics', icon: 'chart', desc: 'Reports, best times and goals' },
@@ -19,6 +20,7 @@ export const NAV_ITEMS = [
   { to: '/workflows', label: 'Workflows', icon: 'flow', desc: 'When this happens, do that' },
   { to: '/inbox', label: 'Inbox', icon: 'inbox', desc: 'Comments and DMs in one place' },
   { to: '/repurpose', label: 'Repurpose', icon: 'repeat', desc: 'One piece, native posts everywhere' },
+  { to: '/bio', label: 'Link in bio', icon: 'link', desc: 'One page for your bios, clicks counted' },
   { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin', desc: 'Posts and carousels' },
   { to: '/instagram', label: 'Instagram', icon: 'brand:instagram', desc: 'Carousels, Reels and Stories' },
   { to: '/x', label: 'X', icon: 'brand:x', desc: 'Posts and threads' },
@@ -28,8 +30,10 @@ export const NAV_ITEMS = [
   { to: '/tools', label: 'Toolkit', icon: 'sparkle', desc: 'Writing templates for every job' },
   { to: '/chat', label: 'Producer chat', icon: 'chat', desc: 'Think out loud with your producer' },
   { to: '/library', label: 'Library', icon: 'book', desc: 'Everything you saved' },
+  { to: '/media', label: 'Media', icon: 'image', desc: 'Every image, video and audio file' },
   { header: 'Studio' },
   { to: '/connections', label: 'Connections', icon: 'plug', desc: 'Sign in to your networks' },
+  { to: '/brand', label: 'Brand kit', icon: 'sliders', desc: 'Colours, font, logo and voice rules' },
   { to: '/settings', label: 'Settings', icon: 'gear', desc: 'AI, keys, voice and make it yours' },
 ];
 
@@ -42,15 +46,15 @@ export const MEGA = [
     actions: [{ label: 'Dictate an idea', to: '/flow', icon: 'mic' }, { label: 'Open today’s note', to: '/love', icon: 'heart', love: true }] },
   { id: 'youtube', label: 'YouTube', groups: [
     { title: 'Research', items: ['/breakouts', '/channel'] },
-    { title: 'Make', items: ['/ideas', '/scripts', '/goals'] }],
+    { title: 'Make', items: ['/ideas', '/scripts', '/goals', '/youtube'] }],
     actions: [{ label: 'Get fresh ideas', to: '/ideas', icon: 'sparkle' }, { label: 'New script', to: '/scripts', icon: 'doc' }] },
   { id: 'social', label: 'Social', groups: [
     { title: 'Plan & publish', items: ['/calendar', '/agents', '/workflows', '/repurpose'] },
-    { title: 'Grow & engage', items: ['/analytics', '/inbox'], badges: { '/agents': 'pending', '/inbox': 'inbox' } },
+    { title: 'Grow & engage', items: ['/analytics', '/inbox', '/bio'], badges: { '/agents': 'pending', '/inbox': 'inbox' } },
     { title: 'Networks', items: ['/linkedin', '/instagram', '/x', '/tiktok', '/threads'], compact: true }],
     actions: [{ label: 'Plan the week', to: '/agents', icon: 'bot' }, { label: 'Open the calendar', to: '/calendar', icon: 'calendar' }, { label: 'New workflow', to: '/workflows', icon: 'flow' }] },
-  { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/tools', '/chat', '/library'] }],
+  { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/tools', '/chat', '/library', '/media'] }],
     actions: [{ label: 'Repurpose something', to: '/repurpose', icon: 'repeat' }] },
-  { id: 'studio', label: 'Studio', groups: [{ title: 'Studio', items: ['/connections', '/settings'] }],
+  { id: 'studio', label: 'Studio', groups: [{ title: 'Studio', items: ['/connections', '/brand', '/settings'] }],
     actions: [{ label: 'Make it yours', to: '/settings', icon: 'sliders' }] },
 ];

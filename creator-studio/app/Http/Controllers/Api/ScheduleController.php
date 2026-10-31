@@ -19,6 +19,11 @@ class ScheduleController extends Controller
         'clips' => ['command' => 'studio:clips', 'label' => 'Collect finished Shorts (Vizard)', 'when' => 'Every 10 min while any are processing'],
         'broll' => ['command' => 'studio:broll', 'label' => 'Collect finished b-roll (fal.ai)', 'when' => 'Every 2 min while any are rendering'],
         'stats' => ['command' => 'studio:stats', 'label' => 'Record your videos’ daily numbers', 'when' => 'Daily at 06:30'],
+        'social' => ['command' => 'studio:social-sync', 'label' => 'Sync connected social accounts', 'when' => 'Hourly (and when you open the studio)'],
+        'agents' => ['command' => 'studio:agents', 'label' => 'Agents plan the coming week', 'when' => 'Hourly, for agents that are due (once a day each)'],
+        'publish' => ['command' => 'studio:publish', 'label' => 'Publish approved agent posts', 'when' => 'Every 5 min while any are scheduled'],
+        'learn' => ['command' => 'studio:agents-learn', 'label' => 'Agents learn from results & your edits', 'when' => 'Sundays at 20:00'],
+        'engage' => ['command' => 'studio:engage', 'label' => 'Check comments & DMs, run automations', 'when' => 'Every 10 min while Instagram, Threads or YouTube is connected'],
         'backup' => ['command' => 'studio:backup', 'label' => 'Back up the studio', 'when' => 'Daily at 03:00 (always, even when paused)'],
         'prune' => ['command' => 'studio:prune', 'label' => 'Clean up old logs & uploads', 'when' => 'Daily at 04:00'],
     ];

@@ -13,7 +13,8 @@ class SocialPost extends Model
 
     protected $fillable = [
         'platform', 'format', 'title', 'body', 'parts', 'status', 'scheduled_for', 'posted_at', 'url',
-        'script_id', 'source', 'metrics', 'notes', 'source_post_id', 'media', 'pillar',
+        'script_id', 'source', 'metrics', 'notes', 'source_post_id', 'media', 'pillar', 'external_id',
+        'social_agent_id', 'approval', 'agent_original', 'publish_error',
     ];
 
     protected $appends = ['engagement'];

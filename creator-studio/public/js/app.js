@@ -23,6 +23,10 @@ import { renderChat } from './pages/chat.js';
 import { renderRepurpose, renderPlatform, renderPost } from './pages/social.js';
 import { renderCalendar } from './pages/calendar.js';
 import { renderAnalytics } from './pages/analytics.js';
+import { renderConnections } from './pages/connections.js';
+import { renderAgents, renderAgent } from './pages/agents.js';
+import { renderInbox } from './pages/inbox.js';
+import { notificationsButton, stopNotifications } from './notifications.js';
 
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
@@ -41,6 +45,10 @@ const ROUTES = [
   { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
   { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
   { path: /^\/analytics$/, render: renderAnalytics, nav: '/analytics' },
+  { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
+  { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
+  { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
+  { path: /^\/inbox$/, render: renderInbox, nav: '/inbox' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
   { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: renderPlatform, nav: null }, // nav = the platform
   { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
@@ -59,6 +67,8 @@ const NAV = [
   { header: 'Social' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
   { to: '/analytics', label: 'Analytics', icon: 'chart' },
+  { to: '/agents', label: 'Agents', icon: 'bot' },
+  { to: '/inbox', label: 'Inbox', icon: 'inbox' },
   { to: '/repurpose', label: 'Repurpose', icon: 'repeat' },
   { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin' },
   { to: '/instagram', label: 'Instagram', icon: 'brand:instagram' },
@@ -70,6 +80,7 @@ const NAV = [
   { to: '/chat', label: 'Producer chat', icon: 'chat' },
   { to: '/library', label: 'Library', icon: 'book' },
   { header: 'Studio' },
+  { to: '/connections', label: 'Connections', icon: 'plug' },
   { to: '/settings', label: 'Settings', icon: 'gear' },
 ];
 
@@ -123,6 +134,7 @@ function buildShell() {
         h('div', { class: 'logo' }, '🎬'), label('Creator Studio'), heartButton(),
         h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x'))),
       h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)', 'aria-label': 'Search' }, icon('search', 16), label('Search'), h('kbd', { class: 'nav-label' }, 'Ctrl K')),
+      notificationsButton({ withLabel: true }),
       h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
       h('div', { class: 'sidebar-footer' },
         h('div', { class: 'nav-label' }, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
@@ -135,6 +147,7 @@ function buildShell() {
       h('header', { class: 'mobile-bar' },
         drawerToggle,
         link('/', { class: 'mobile-brand' }, h('span', { class: 'logo' }, '🎬'), 'Creator Studio'),
+        notificationsButton(),
         h('button', { class: 'btn ghost sm', 'aria-label': 'Search', onclick: openPalette }, icon('search'))),
       content));
 
@@ -154,6 +167,7 @@ function setActiveNav(to) {
 async function logout() {
   try { await api('POST', 'auth/logout'); } catch { /* already logged out */ }
   stopReminders();
+  stopNotifications();
   unmountCopilot();
   state.user = null;
   state.shell = null;

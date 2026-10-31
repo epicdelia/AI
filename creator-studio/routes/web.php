@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AgentsController;
 use App\Http\Controllers\Api\AudienceController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CopilotController;
+use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
+use App\Http\Controllers\Api\SocialAccountsController;
 use App\Http\Controllers\Api\SocialController;
 use App\Http\Controllers\Api\SocialPlanController;
 use App\Http\Controllers\Api\SocialInsightsController;
@@ -109,6 +112,42 @@ Route::prefix('api')->group(function () {
         Route::post('social/bios/options', [SocialInsightsController::class, 'bioOptions']);
         Route::put('social/bios', [SocialInsightsController::class, 'saveBio']);
         Route::post('stream/social/review', [SocialInsightsController::class, 'review']);
+
+        // Connected accounts (OAuth): sign in to each network and pull its numbers
+        Route::get('social/accounts', [SocialAccountsController::class, 'index']);
+        Route::post('social/accounts/sync', [SocialAccountsController::class, 'syncAll']);
+        Route::put('social/accounts/{platform}/app', [SocialAccountsController::class, 'saveApp']);
+        Route::post('social/accounts/{platform}/connect', [SocialAccountsController::class, 'connect']);
+        Route::post('social/accounts/{platform}/sync', [SocialAccountsController::class, 'sync']);
+        Route::delete('social/accounts/{platform}', [SocialAccountsController::class, 'disconnect']);
+
+        // Social media agents (plan, write, publish, learn) and their notifications
+        Route::get('agents', [AgentsController::class, 'index']);
+        Route::post('agents', [AgentsController::class, 'store']);
+        Route::post('agents/scrape', [AgentsController::class, 'scrape']);
+        Route::post('agents/audiences', [AgentsController::class, 'audiences']);
+        Route::get('agents/notifications', [AgentsController::class, 'notifications']);
+        Route::post('agents/notifications/read', [AgentsController::class, 'readNotifications']);
+        Route::delete('agents/notifications', [AgentsController::class, 'clearNotifications']);
+        Route::post('agents/posts/{post}/approve', [AgentsController::class, 'approve']);
+        Route::post('agents/posts/{post}/reject', [AgentsController::class, 'reject']);
+        Route::post('agents/posts/{post}/publish', [AgentsController::class, 'publishNow']);
+        Route::get('agents/{agent}', [AgentsController::class, 'show'])->whereNumber('agent');
+        Route::patch('agents/{agent}', [AgentsController::class, 'update'])->whereNumber('agent');
+        Route::delete('agents/{agent}', [AgentsController::class, 'destroy'])->whereNumber('agent');
+        Route::post('agents/{agent}/run', [AgentsController::class, 'run'])->whereNumber('agent');
+        Route::post('agents/{agent}/learn', [AgentsController::class, 'learn'])->whereNumber('agent');
+
+        // Inbox: comments & DMs, replies, automations
+        Route::get('engage', [EngagementController::class, 'index']);
+        Route::post('engage/poll', [EngagementController::class, 'poll']);
+        Route::post('engage/draft-all', [EngagementController::class, 'draftAll']);
+        Route::post('engage/items/{item}/draft', [EngagementController::class, 'draft']);
+        Route::post('engage/items/{item}/reply', [EngagementController::class, 'reply']);
+        Route::post('engage/items/{item}/ignore', [EngagementController::class, 'ignore']);
+        Route::post('engage/rules', [EngagementController::class, 'storeRule']);
+        Route::patch('engage/rules/{rule}', [EngagementController::class, 'updateRule']);
+        Route::delete('engage/rules/{rule}', [EngagementController::class, 'destroyRule']);
 
         // My channel: her videos vs her own median, and what viewers ask for in comments
         Route::get('audience', [AudienceController::class, 'index']);
@@ -258,6 +297,9 @@ Route::prefix('api')->group(function () {
         Route::delete('feed-items/{item}', [FeedController::class, 'destroyItem']);
     });
 });
+
+// OAuth return from each network (a browser redirect, so it uses the session, not the JSON API)
+Route::get('oauth/{platform}/callback', [SocialAccountsController::class, 'callback'])->where('platform', '[a-z]+');
 
 // Single Page Application (SPA) entry point - pure HTML + Vanilla JavaScript
 Route::fallback(function () {

@@ -1,5 +1,5 @@
 // Settings: profile & brand voice, AI engine, API keys, research thresholds, diagnostics, usage.
-import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo } from '../core.js';
+import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link } from '../core.js';
 import { icon } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 
@@ -100,6 +100,11 @@ export async function renderSettings(view) {
       });
     },
   },
+  h('div', { class: 'card callout-card' },
+    h('div', { class: 'row-between wrap' },
+      h('div', {}, h('h2', {}, 'Connected accounts'),
+        h('p', { class: 'muted small' }, 'Sign in to YouTube, Instagram, TikTok, Threads, LinkedIn and X so your numbers update themselves, agents can publish, and comments and DMs land in your Inbox.')),
+      link('/connections', { class: 'btn primary' }, icon('plug', 15), 'Connections'))),
   section('Your channel', 'Used in every AI prompt so the output sounds like you, about your channel.',
     h('div', { class: 'grid grid-2 tight' },
       field('Your name', text('creator_name')),

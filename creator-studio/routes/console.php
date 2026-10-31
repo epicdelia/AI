@@ -11,6 +11,14 @@ use App\Domains\Media\VideoJob;
 use App\Domains\Media\ShortsClipper;
 use App\Domains\Memory\Memory;
 use App\Domains\Memory\MemoryChunk;
+use App\Domains\Agents\AgentLearner;
+use App\Domains\Agents\AgentPlanner;
+use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Publisher;
+use App\Domains\Engagement\Engagement;
+use App\Domains\Social\Connect\Connections;
+use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Usage\AiUsage;
 use App\Models\Setting;
 use App\Services\BreakoutScanner;
@@ -125,6 +133,78 @@ Artisan::command('studio:stats', function (VideoStats $stats) use ($track) {
     return $track($this, 'stats', fn () => 'Recorded today’s numbers for '.$stats->snapshot().' of your videos.');
 })->purpose('Record today’s views, likes and comments for her recent videos');
 
+Artisan::command('studio:social-sync', function () use ($track) {
+    return $track($this, 'social', function () {
+        $results = Connections::syncAll();
+        if (! $results) {
+            return 'No connected accounts to sync.';
+        }
+        $failed = array_filter($results, fn ($r) => ! $r['ok']);
+        $lines = implode("
+", array_map(fn ($r) => $r['message'], $results));
+        if (count($failed) === count($results)) {
+            throw new RuntimeException($lines);
+        }
+
+        return $lines;
+    });
+})->purpose('Pull follower counts and post numbers from her connected accounts');
+
+Artisan::command('studio:agents', function (AgentPlanner $planner) use ($track) {
+    return $track($this, 'agents', function () use ($planner) {
+        AgentPlanner::assertReady();
+        $lines = [];
+        foreach (SocialAgent::where('active', true)->where(fn ($q) => $q->whereNull('next_run_at')->orWhere('next_run_at', '<=', now()))->get() as $agent) {
+            try {
+                $lines[] = "{$agent->name}: ".count($planner->run($agent)).' post(s) planned.';
+            } catch (Throwable $e) {
+                AgentEvent::log('failed', "Couldn’t plan posts: {$e->getMessage()}", $agent->id);
+                $lines[] = "{$agent->name}: {$e->getMessage()}";
+            }
+        }
+
+        return $lines ? implode("\n", $lines) : 'No agent was due.';
+    });
+})->purpose('Let each active agent top up its next 7 days of posts');
+
+Artisan::command('studio:publish', function () use ($track) {
+    return $track($this, 'publish', function () {
+        $r = Publisher::due();
+
+        return "Published {$r['published']} agent post(s); {$r['failed']} failed.";
+    });
+})->purpose('Publish approved agent posts whose time has come (LinkedIn, Threads, X)');
+
+Artisan::command('studio:agents-learn', function (AgentLearner $learner) use ($track) {
+    return $track($this, 'learn', function () use ($learner) {
+        $lines = [];
+        foreach (SocialAgent::where('active', true)->get() as $agent) {
+            [$m, $e, $r] = AgentLearner::signals($agent);
+            if ($m->count() + $e->count() + $r->count() < AgentLearner::MIN_SIGNALS) {
+                continue;
+            }
+            try {
+                $lines[] = "{$agent->name}: ".count($learner->learn($agent)).' lesson(s).';
+            } catch (Throwable $ex) {
+                $lines[] = "{$agent->name}: {$ex->getMessage()}";
+            }
+        }
+
+        return $lines ? implode("\n", $lines) : 'No agent has enough new results to learn from yet.';
+    });
+})->purpose('Agents review their results and her edits, and update their lessons');
+
+Artisan::command('studio:engage', function (Engagement $engagement) use ($track) {
+    return $track($this, 'engage', function () use ($engagement) {
+        $r = $engagement->poll();
+        if ($r['errors'] && ! $r['new']) {
+            throw new RuntimeException(implode(' ', $r['errors']));
+        }
+
+        return "{$r['new']} new comment(s)/DM(s), {$r['sent']} answered automatically, {$r['drafted']} drafted.";
+    });
+})->purpose('Pull new comments and DMs and run her automations');
+
 // ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
 
 try {
@@ -151,4 +231,9 @@ Schedule::command('studio:clips')->everyTenMinutes()->when(fn () => rescue(fn ()
 Schedule::command('studio:broll')->everyTwoMinutes()->when(fn () => rescue(fn () => VideoJob::whereIn('status', ['queued', 'running'])->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:backup')->dailyAt('03:00')->timezone($tz)->withoutOverlapping();
 Schedule::command('studio:stats')->dailyAt('06:30')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:social-sync')->hourlyAt(15)->when(fn () => $enabled() && rescue(fn () => SocialAccount::exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:agents')->hourlyAt(5)->when(fn () => $enabled() && rescue(fn () => SocialAgent::where('active', true)->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => rescue(fn () => \App\Domains\Social\Models\SocialPost::where('approval', 'approved')->where('status', 'scheduled')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->when(fn () => $enabled() && rescue(fn () => SocialAgent::exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

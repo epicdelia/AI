@@ -14,7 +14,9 @@ class Setting extends Model
 
     /** Settings whose values are stored encrypted. */
     public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key',
-        'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key', 'extra_llm_keys'];
+        'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key', 'extra_llm_keys',
+        // app secrets for Connections (OAuth)
+        'youtube_client_secret', 'instagram_client_secret', 'tiktok_client_secret', 'threads_client_secret', 'linkedin_client_secret', 'x_client_secret'];
 
     public const DEFAULTS = [
         'creator_name' => '',

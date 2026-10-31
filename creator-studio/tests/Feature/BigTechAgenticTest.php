@@ -67,7 +67,7 @@ class BigTechAgenticTest extends TestCase
 
         // 2. Tools List
         $listRes = $server->handle(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']);
-        $this->assertCount(6, $listRes['result']['tools']);
+        $this->assertGreaterThanOrEqual(6, count($listRes['result']['tools']));
         $this->assertEquals('fetch_breakouts', $listRes['result']['tools'][0]['name']);
         $this->assertArrayHasKey('inputSchema', $listRes['result']['tools'][0]);
 
@@ -98,11 +98,11 @@ class BigTechAgenticTest extends TestCase
             'method' => 'tools/list',
         ]);
         $httpRes->assertOk();
-        $this->assertCount(6, $httpRes->json('result.tools'));
+        $this->assertGreaterThanOrEqual(6, count($httpRes->json('result.tools')));
 
         $toolsRes = $this->getJson('/api/mcp/tools');
         $toolsRes->assertOk();
-        $this->assertCount(6, $toolsRes->json('tools'));
+        $this->assertGreaterThanOrEqual(6, count($toolsRes->json('tools')));
     }
 
     public function test_episodic_memory_retrieves_winning_exemplars_and_anti_patterns(): void

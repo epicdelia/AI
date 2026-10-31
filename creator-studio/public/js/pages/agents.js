@@ -668,6 +668,498 @@ async function debateModal(agent, onDone) {
   }, { wide: true });
 }
 
+async function dealDeskModal(agent, onDone) {
+  return modal('Autonomous Deal Desk & Inbound Sponsor Negotiator', (close) => {
+    const pitchInput = h('textarea', {
+      rows: 4,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Paste inbound sponsor email or DM (e.g. "Hi Delia, we love your videos at VectorDB Corp! We want to sponsor your next YouTube video about LLMs and do a LinkedIn post...")',
+    });
+
+    const brandInput = h('input', {
+      type: 'text',
+      placeholder: 'Brand Name (optional, auto-extracted if blank)',
+      style: { flex: 1 },
+    });
+
+    const productInput = h('input', {
+      type: 'text',
+      placeholder: 'Product Name (optional)',
+      style: { flex: 1 },
+    });
+
+    const budgetInput = h('input', {
+      type: 'number',
+      placeholder: 'Budget Mentioned ($)',
+      style: { width: '160px' },
+    });
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const analyzeBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const text = pitchInput.value.trim();
+        if (!text) return toast('Please paste an inbound sponsor pitch.', 'err');
+        await busy(analyzeBtn, 'Analyzing pitch & formulating packages…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Deal Desk Agent running: Conflict check → CPM rate calculation → 3-Tier package synthesis → Executive negotiation email…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/sponsor-negotiate`, {
+              inbound_text: text,
+              brand_name: brandInput.value.trim() || undefined,
+              target_product: productInput.value.trim() || undefined,
+              initial_budget: budgetInput.value ? Number(budgetInput.value) : undefined,
+            });
+
+            const res = r.result;
+            const a = res.analysis;
+            const tiers = res.tiered_packages;
+            const email = res.negotiation_email;
+            const stip = res.contract_stipulations || {};
+
+            let selectedTier = 'tier_2_synergy';
+
+            const tierCards = Object.entries(tiers).map(([key, t]) => {
+              const isRec = key === 'tier_2_synergy';
+              return h('div', {
+                class: 'card',
+                style: {
+                  flex: '1 1 240px',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  border: isRec ? '2px solid var(--accent, #6366f1)' : '1px solid var(--border)',
+                  background: isRec ? 'rgba(99,102,241,0.06)' : 'var(--card-subtle, rgba(255,255,255,0.02))',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                },
+              },
+              h('div', {},
+                isRec ? h('span', { class: 'pill ok small', style: { position: 'absolute', top: '10px', right: '10px' } }, 'RECOMMENDED') : null,
+                h('h3', { style: { fontSize: '15px', margin: '0 0 6px' } }, t.name),
+                h('div', { class: 'row', style: { gap: '8px', alignItems: 'baseline', marginBottom: '8px' } },
+                  h('strong', { style: { fontSize: '20px', color: 'var(--text)' } }, `$${t.rate.toLocaleString()}`),
+                  h('span', { class: 'muted small' }, `~$${t.cpm} CPM`)),
+                h('p', { class: 'small', style: { margin: '0 0 6px', fontWeight: '500' } }, t.deliverables),
+                h('p', { class: 'muted small', style: { margin: '0' } }, t.rationale)),
+              h('button', {
+                class: `btn sm ${isRec ? 'primary' : 'ghost'}`,
+                style: { marginTop: '12px' },
+                onclick: async () => {
+                  try {
+                    await api('POST', `agents/${agent.id}/sponsor-save-deal`, {
+                      brand_name: a.brand_name,
+                      tier_key: key,
+                      rate: t.rate,
+                      deliverables: t.deliverables,
+                      notes: `Selected ${t.name} from Deal Desk Agent.`,
+                    });
+                    toast(`Saved deal with ${a.brand_name} ($${t.rate.toLocaleString()}) to Pipeline!`);
+                    close();
+                    if (onDone) onDone();
+                  } catch (err) {
+                    toast(err.message, 'err');
+                  }
+                },
+              }, icon('check', 13), `Create Deal ($${t.rate.toLocaleString()})`));
+            });
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '16px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // Header Analysis
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' } },
+                  h('div', {},
+                    h('h3', { style: { margin: '0 0 4px' } }, `${a.brand_name} · ${a.product_name}`),
+                    h('p', { class: 'muted small', style: { margin: 0 } }, a.developer_audience_relevance)),
+                  h('div', { class: 'row', style: { gap: '6px' } },
+                    h('span', { class: `pill ${a.brand_fit_score >= 80 ? 'ok' : 'WARN'} small` }, `Brand Fit: ${a.brand_fit_score}/100`),
+                    (a.conflicts_detected || []).length ? h('span', { class: 'pill WARN small' }, 'Exclusivity Conflict Detected') : null)),
+
+                // 3 Tier Cards
+                h('h4', { style: { margin: '14px 0 8px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Market-Calibrated Counter-Offer Packages'),
+                h('div', { class: 'row', style: { gap: '12px', flexWrap: 'wrap', marginBottom: '16px' } }, tierCards),
+
+                // Negotiation Email
+                h('div', { class: 'card', style: { padding: '14px', background: 'var(--bg)', marginBottom: '14px' } },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' } },
+                    h('strong', { class: 'small' }, `Executive Negotiation Reply: ${email.subject}`),
+                    h('button', {
+                      class: 'btn sm ghost',
+                      onclick: () => {
+                        navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`);
+                        toast('Negotiation email copied to clipboard.');
+                      },
+                    }, icon('copy', 13), 'Copy email')),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', fontFamily: 'inherit', margin: 0 } }, email.body)),
+
+                // Contract Stipulations
+                h('div', { style: { fontSize: '11px', color: 'var(--muted)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' } },
+                  h('div', {}, h('strong', {}, 'Usage Rights: '), stip.usage_rights || '30 days organic'),
+                  h('div', {}, h('strong', {}, 'Payment: '), stip.payment_terms || 'Net 30'),
+                  h('div', {}, h('strong', {}, 'Revisions: '), stip.revision_limits || '2 rounds max'),
+                  h('div', {}, h('strong', {}, 'FTC Compliance: '), stip.ftc_compliance || 'Mandatory #ad disclosure'))));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Analysis failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('briefcase', 14), 'Analyze & Formulate Counter-Offers');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Direct monetization agent: pastes an inbound sponsor inquiry, checks channel CPM rate benchmarks, screens active deals for category conflicts, drafts a high-converting executive negotiation reply, and builds a 3-tier counter package ready to save into your Deals pipeline.'),
+      h('label', { class: 'small muted' }, 'Inbound Pitch / Email Message:'),
+      pitchInput,
+      h('div', { class: 'row', style: { gap: '8px', marginBottom: '12px' } },
+        brandInput, productInput, budgetInput),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        analyzeBtn),
+      resultBox);
+  }, { wide: true });
+}
+
+async function cascadeModal(agent, onDone) {
+  return modal('Omnichannel Transmedia Cascade Engine', (close) => {
+    const topicInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Enter a video concept, technical topic, or script title (e.g. "Distributed Systems: Append-Only Logs vs Traditional Locks")',
+    });
+
+    const notesInput = h('input', {
+      type: 'text',
+      placeholder: 'Key takeaways or specific talking points (optional)',
+      style: { width: '100%', marginBottom: '12px' },
+    });
+
+    const cascadeBox = h('div', { style: { marginTop: '16px' } });
+
+    const generateBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim();
+        if (!topic) return toast('Please enter a topic or concept.', 'err');
+        await busy(generateBtn, 'Generating 5-platform cascade…', async () => {
+          clear(cascadeBox).append(h('p', { class: 'muted small' }, 'Synthesizing synchronized cross-platform campaign: LinkedIn Thought Leadership → X Viral Thread → Short-Form Script → Newsletter Deep-Dive → Carousel Slide Deck…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/transmedia-cascade`, {
+              topic,
+              notes: notesInput.value.trim() || undefined,
+            });
+
+            const c = r.cascade;
+
+            let activeTab = 'linkedin';
+            const tabButtons = h('div', { class: 'row', style: { gap: '6px', marginBottom: '12px', flexWrap: 'wrap' } });
+            const tabContent = h('div');
+
+            const renderTab = () => {
+              clear(tabButtons).append(
+                [
+                  ['linkedin', 'LinkedIn Post', c.linkedin?.score],
+                  ['x_thread', 'X Thread', c.x_thread?.score],
+                  ['short_form', 'Short-Form Video', null],
+                  ['newsletter', 'Newsletter Section', null],
+                  ['carousel', 'Carousel Deck (7 Slides)', null],
+                ].map(([key, label, score]) => h('button', {
+                  class: `btn sm ${activeTab === key ? 'primary' : 'ghost'}`,
+                  onclick: () => { activeTab = key; renderTab(); },
+                }, label, score != null ? h('span', { class: 'pill ok small', style: { marginLeft: '6px' } }, `${score}/100`) : null)));
+
+              clear(tabContent);
+              if (activeTab === 'linkedin') {
+                tabContent.append(
+                  h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                    h('strong', { class: 'small' }, c.linkedin.title),
+                    h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '13px', marginTop: '8px', fontFamily: 'inherit' } }, c.linkedin.body)));
+              } else if (activeTab === 'x_thread') {
+                tabContent.append(
+                  h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                    h('strong', { class: 'small' }, c.x_thread.title),
+                    h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' } },
+                      h('div', { style: { padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', borderLeft: '3px solid var(--accent, #6366f1)' } },
+                        h('span', { class: 'pill small' }, 'HOOK TWEET'),
+                        h('p', { class: 'small', style: { margin: '4px 0 0' } }, c.x_thread.hook_tweet)),
+                      (c.x_thread.thread_tweets || []).map((tw, i) => h('div', { style: { padding: '8px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' } },
+                        h('span', { class: 'muted small' }, `Tweet ${i + 2}`),
+                        h('p', { class: 'small', style: { margin: '4px 0 0' } }, tw))))));
+              } else if (activeTab === 'short_form') {
+                tabContent.append(
+                  h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                    h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
+                      h('strong', { class: 'small' }, c.short_form.title),
+                      h('span', { class: 'pill ok small' }, `~${c.short_form.duration_seconds || 50}s duration`)),
+                    h('div', { style: { padding: '8px 10px', background: 'rgba(239,68,68,0.06)', borderRadius: '6px', borderLeft: '3px solid #ef4444', marginBottom: '10px' } },
+                      h('span', { class: 'pill WARN small' }, '0-3s VISUAL HOOK'),
+                      h('p', { class: 'small', style: { margin: '4px 0 0' } }, c.short_form.hook_3s)),
+                    h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '13px', fontFamily: 'inherit' } }, c.short_form.script_body)));
+              } else if (activeTab === 'newsletter') {
+                tabContent.append(
+                  h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                    h('strong', { class: 'small' }, c.newsletter.title),
+                    h('p', { class: 'small muted', style: { margin: '6px 0 10px', fontStyle: 'italic' } }, c.newsletter.executive_summary),
+                    h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', fontFamily: 'inherit' } }, c.newsletter.deep_dive),
+                    h('div', { style: { marginTop: '10px', padding: '8px 10px', background: 'rgba(34,197,94,0.06)', borderRadius: '6px' } },
+                      h('strong', { class: 'small' }, 'Action Item for Engineers: '),
+                      h('span', { class: 'small' }, c.newsletter.action_item))));
+              } else if (activeTab === 'carousel') {
+                tabContent.append(
+                  h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' } },
+                    (c.carousel.slides || []).map((s) => h('div', { class: 'card', style: { padding: '10px', background: 'var(--bg)' } },
+                      h('span', { class: 'pill small' }, `Slide ${s.slide_number}`),
+                      h('h4', { style: { fontSize: '13px', margin: '6px 0 4px' } }, s.headline),
+                      h('p', { class: 'small muted', style: { margin: '0 0 6px' } }, s.body),
+                      h('span', { style: { fontSize: '10px', color: 'var(--accent, #6366f1)' } }, `Visual: ${s.visual_cue}`)))));
+              }
+            };
+
+            renderTab();
+
+            const scheduleAllBtn = h('button', {
+              class: 'btn primary sm',
+              onclick: async () => {
+                await busy(scheduleAllBtn, 'Scheduling to calendar…', async () => {
+                  try {
+                    const schedRes = await api('POST', `agents/${agent.id}/cascade-schedule`, {
+                      cascade: c,
+                      platforms_to_schedule: ['linkedin', 'x'],
+                    });
+                    toast(schedRes.message);
+                    close();
+                    if (onDone) onDone();
+                  } catch (err) {
+                    toast(err.message, 'err');
+                  }
+                });
+              },
+            }, icon('calendar', 13), 'Schedule Social Posts to Calendar');
+
+            clear(cascadeBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' } },
+                  h('strong', {}, '5-Platform Transmedia Cascade Assets'),
+                  scheduleAllBtn),
+                tabButtons,
+                tabContent));
+          } catch (err) {
+            clear(cascadeBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Cascade generation failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('flow', 14), 'Generate Transmedia Cascade');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Multiplies a single core subject into a synchronized, multi-format distribution battery: LinkedIn Thought Leadership, X Viral Thread, TikTok/Shorts vertical script, Newsletter deep-dive, and 7-Slide Carousel outline.'),
+      h('label', { class: 'small muted' }, 'Topic / Architecture Subject:'),
+      topicInput,
+      notesInput,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        generateBtn),
+      cascadeBox);
+  }, { wide: true });
+}
+
+async function hookMatrixModal(agent, onDone) {
+  return modal('Viral Hook Matrix & Predictive A/B Optimizer', (close) => {
+    const topicInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Enter a topic, proposition, or argument (e.g. "Distributed Locks vs Eventual Consistency in Microservices")',
+    });
+
+    const netSelect = h('select', { style: { marginBottom: '12px' } },
+      agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
+
+    const matrixBox = h('div', { style: { marginTop: '16px' } });
+
+    const runBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim();
+        if (!topic) return toast('Please enter a topic.', 'err');
+        await busy(runBtn, 'Evaluating hook psychology & predicting virality…', async () => {
+          clear(matrixBox).append(h('p', { class: 'muted small' }, 'Matrix running: Brainstorming 6 psychological archetypes → Evaluating channel breakout resonance → Calculating Predictive Virality Scores (PVS)…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/hook-matrix`, {
+              topic,
+              platform: netSelect.value,
+            });
+
+            const m = r.matrix || {};
+            const win = r.winning_hook || {};
+
+            const archetypeCards = Object.entries(m).map(([key, item]) => {
+              const isWinner = win.archetype === key;
+              return h('div', {
+                class: 'card',
+                style: {
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: isWinner ? '2px solid var(--ok, #22c55e)' : '1px solid var(--border)',
+                  background: isWinner ? 'rgba(34,197,94,0.05)' : 'var(--bg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                },
+              },
+              h('div', {},
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } },
+                  h('span', { class: 'pill small' }, item.name),
+                  h('span', { class: `pill ${item.predictive_virality_score >= 90 ? 'ok' : 'WARN'} small` }, `PVS: ${item.predictive_virality_score}/100`)),
+                h('p', { style: { fontWeight: '600', fontSize: '13px', margin: '4px 0 6px' } }, item.hook_text),
+                h('p', { class: 'muted small', style: { margin: '0 0 6px' } }, item.lead_in),
+                h('div', { class: 'row', style: { gap: '6px', fontSize: '11px', color: 'var(--muted)', margin: '6px 0' } },
+                  h('span', {}, `Tension: ${item.curiosity_tension}`),
+                  h('span', {}, `· Risk: ${item.retention_risk}`),
+                  h('span', { style: { color: 'var(--ok)' } }, `· CTR: ${item.estimated_ctr_multiplier}`)),
+                h('p', { class: 'muted small', style: { fontSize: '11px', margin: '0' } }, item.rationale)),
+              h('button', {
+                class: `btn sm ${isWinner ? 'primary' : 'ghost'}`,
+                style: { marginTop: '10px' },
+                onclick: async () => {
+                  await api('POST', 'social', {
+                    platform: netSelect.value,
+                    body: `${item.hook_text}\n\n${item.lead_in}\n\n[Continue draft here...]`,
+                    parts: [],
+                    social_agent_id: agent.id,
+                  });
+                  toast(`Saved "${item.name}" hook to drafts queue.`);
+                  close();
+                  if (onDone) onDone();
+                },
+              }, icon('plus', 12), 'Use This Hook'));
+            });
+
+            clear(matrixBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // Winning banner
+                win.hook_text ? h('div', { class: 'card', style: { padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid var(--ok)', marginBottom: '14px' } },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                    h('strong', { style: { color: 'var(--ok)' } }, 'Algorithmic Top Pick (Highest Predicted CTR)'),
+                    h('span', { class: 'pill ok small' }, `PVS: ${win.score}/100`)),
+                  h('p', { style: { fontSize: '14px', fontWeight: 'bold', margin: '6px 0 4px' } }, `“${win.hook_text}”`),
+                  h('p', { class: 'small muted', style: { margin: 0 } }, win.why_it_wins)) : null,
+
+                h('h4', { style: { margin: '0 0 10px', fontSize: '13px' } }, '6 Psychological Hook Archetypes'),
+                h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' } }, archetypeCards)));
+          } catch (err) {
+            clear(matrixBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Hook optimization failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('sparkle', 14), 'Generate Hook Matrix');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Explores 6 distinct psychological hook archetypes (Contrarian, Disaster Post-Mortem, Curiosity Gap, Counter-Intuitive Benchmark, Pain Relief, Vulnerable Confession), scores predictive virality (PVS), and identifies the highest CTR angle.'),
+      h('label', { class: 'small muted' }, 'Topic / Thesis to Hook:'),
+      topicInput,
+      h('label', { class: 'small muted' }, 'Target Network:'),
+      netSelect,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        runBtn),
+      matrixBox);
+  }, { wide: true });
+}
+
+async function factCheckModal(agent, onDone) {
+  return modal('Technical Grounding & Hallucination Shield', (close) => {
+    const draftInput = h('textarea', {
+      rows: 5,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Paste post draft, script paragraph, or technical assertions to audit for factual grounding, benchmark integrity, and hallucination risks…',
+    });
+
+    const netSelect = h('select', { style: { marginBottom: '12px' } },
+      agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
+
+    const auditBox = h('div', { style: { marginTop: '16px' } });
+
+    const auditBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const text = draftInput.value.trim();
+        if (!text) return toast('Please enter text to audit.', 'err');
+        await busy(auditBtn, 'Auditing technical claims…', async () => {
+          clear(auditBox).append(h('p', { class: 'muted small' }, 'Fact-Check Shield running: Extracting claims → Auditing benchmark metrics & API syntax → Evaluating grounding confidence → Generating armored text…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/fact-check`, {
+              text,
+              platform: netSelect.value,
+            });
+
+            const claims = r.claims_evaluated || [];
+            const score = r.credibility_score;
+            const scoreCls = score >= 85 ? 'ok' : score >= 70 ? 'picked' : 'WARN';
+
+            clear(auditBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' } },
+                  h('strong', {}, 'Technical Verification Report'),
+                  h('span', { class: `pill ${scoreCls} small` }, `Grounding Credibility: ${score}/100`)),
+
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' } },
+                  claims.map((c) => {
+                    const isWarn = c.status === 'questionable' || c.status === 'deprecated';
+                    return h('div', {
+                      style: {
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        border: isWarn ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border)',
+                        background: isWarn ? 'rgba(239,68,68,0.04)' : 'rgba(0,0,0,0.1)',
+                      },
+                    },
+                    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                      h('div', { class: 'row', style: { gap: '6px', alignItems: 'center' } },
+                        h('span', { class: `pill small ${c.status === 'verified' ? 'ok' : 'WARN'}` }, c.status.toUpperCase()),
+                        h('span', { class: 'pill small' }, c.category)),
+                      h('span', { class: 'muted small' }, `Confidence: ${c.confidence}%`)),
+                    h('p', { style: { fontWeight: '600', fontSize: '13px', margin: '6px 0 4px' } }, `“${c.claim}”`),
+                    h('p', { class: 'small muted', style: { margin: '0 0 4px' } }, c.analysis),
+                    c.suggested_correction ? h('p', { class: 'small', style: { color: 'var(--ok)', margin: '4px 0 0' } },
+                      h('strong', {}, 'Recommended Correction: '), c.suggested_correction) : null);
+                  })),
+
+                h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                  h('strong', { class: 'small' }, 'Armored & Factually-Grounded Draft:'),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '13px', marginTop: '6px', fontFamily: 'inherit' } }, r.armored_text),
+                  h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', marginTop: '10px' } },
+                    h('button', {
+                      class: 'btn sm primary',
+                      onclick: async () => {
+                        await api('POST', 'social', {
+                          platform: netSelect.value,
+                          body: r.armored_text,
+                          parts: [],
+                          social_agent_id: agent.id,
+                        });
+                        toast('Armored draft saved to drafts queue.');
+                        close();
+                        if (onDone) onDone();
+                      },
+                    }, icon('check', 13), 'Save Armored Draft to Queue')))));
+          } catch (err) {
+            clear(auditBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Fact-check audit failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('check', 14), 'Audit Technical Grounding');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Audits posts and scripts for factual accuracy, benchmark integrity, and hallucination risks before publishing to high-authority developer audiences.'),
+      h('label', { class: 'small muted' }, 'Content / Draft to Audit:'),
+      draftInput,
+      h('label', { class: 'small muted' }, 'Target Network:'),
+      netSelect,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        auditBtn),
+      auditBox);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -722,6 +1214,10 @@ export async function renderAgent(view, id) {
           h('button', { class: 'btn sm ghost', onclick: () => swarmModal(a, reload) }, icon('flow', 14), 'Swarm mission'),
           h('button', { class: 'btn sm ghost', onclick: () => treeSearchModal(a, reload) }, icon('chart', 14), 'Tree search (ToT)'),
           h('button', { class: 'btn sm ghost', onclick: () => debateModal(a, reload) }, icon('alert', 14), 'Red-team debate'),
+          h('button', { class: 'btn sm ghost', onclick: () => dealDeskModal(a, reload) }, icon('briefcase', 14), 'Deal desk agent'),
+          h('button', { class: 'btn sm ghost', onclick: () => cascadeModal(a, reload) }, icon('flow', 14), 'Transmedia cascade'),
+          h('button', { class: 'btn sm ghost', onclick: () => hookMatrixModal(a, reload) }, icon('sparkle', 14), 'Viral hook matrix'),
+          h('button', { class: 'btn sm ghost', onclick: () => factCheckModal(a, reload) }, icon('check', 14), 'Fact-check shield'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {

@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Agents\AgentLearner;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\BrandResearch;
+use App\Domains\Agents\Cascade\TransmediaCascade;
+use App\Domains\Agents\Deals\SponsorNegotiator;
 use App\Domains\Agents\Debate\AdversarialDebate;
 use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
 use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Harness\AgentHarness;
 use App\Domains\Agents\Harness\BenchmarkHarness;
+use App\Domains\Agents\Hooks\HookMatrixOptimizer;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Memory\AgentEpisodicMemory;
 use App\Domains\Agents\Models\AgentEvent;
@@ -20,6 +23,7 @@ use App\Domains\Agents\Optimization\PromptOptimizer;
 use App\Domains\Agents\Publisher;
 use App\Domains\Agents\Swarm\AgentSwarm;
 use App\Domains\Agents\TreeSearch\AgentTreeSearch;
+use App\Domains\Agents\Verification\FactCheckShield;
 use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
@@ -383,6 +387,143 @@ class AgentsController extends Controller
             'transcript' => $result['debate_transcript'],
             'vulnerabilities_neutralized' => $result['vulnerabilities_neutralized'],
             'confidence_score' => $result['confidence_score'],
+        ]);
+    }
+
+    public function sponsorNegotiate(Request $request, SocialAgent $agent, SponsorNegotiator $negotiator): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'inbound_text' => ['required', 'string', 'max:10000'],
+            'brand_name' => ['nullable', 'string', 'max:150'],
+            'target_product' => ['nullable', 'string', 'max:150'],
+            'initial_budget' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        try {
+            $result = $negotiator->negotiate($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Inbound sponsor inquiry analyzed with tiered counter-packages.',
+            'result' => $result,
+        ]);
+    }
+
+    public function sponsorSaveDeal(Request $request, SocialAgent $agent, SponsorNegotiator $negotiator): JsonResponse
+    {
+        $data = $request->validate([
+            'brand_name' => ['required', 'string', 'max:150'],
+            'tier_key' => ['nullable', 'string', 'max:50'],
+            'rate' => ['required', 'numeric', 'min:0'],
+            'deliverables' => ['required', 'string', 'max:1000'],
+            'contact_email' => ['nullable', 'email', 'max:150'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $deal = $negotiator->createDealFromNegotiation($agent, $data);
+
+        return response()->json([
+            'message' => "Deal with {$deal->brand_name} saved to pipeline.",
+            'deal' => $deal,
+        ], 201);
+    }
+
+    public function transmediaCascade(Request $request, SocialAgent $agent, TransmediaCascade $cascade): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['nullable', 'string', 'max:500'],
+            'script_id' => ['nullable', 'exists:scripts,id'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        try {
+            $result = $cascade->generate($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => '5-platform transmedia cascade generated.',
+            'cascade' => $result['cascade'],
+            'source_summary' => $result['source_summary'],
+            'total_assets' => $result['total_assets'],
+        ]);
+    }
+
+    public function cascadeSchedule(Request $request, SocialAgent $agent, TransmediaCascade $cascade): JsonResponse
+    {
+        $data = $request->validate([
+            'cascade' => ['required', 'array'],
+            'platforms_to_schedule' => ['nullable', 'array'],
+            'platforms_to_schedule.*' => [Rule::in(array_keys(Platforms::PLATFORMS))],
+        ]);
+
+        $posts = $cascade->scheduleCascade($agent, $data);
+
+        return response()->json([
+            'message' => count($posts).' cascade post(s) scheduled to calendar.',
+            'posts' => $posts,
+        ]);
+    }
+
+    public function hookMatrix(Request $request, SocialAgent $agent, HookMatrixOptimizer $optimizer): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:500'],
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'context' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        try {
+            $result = $optimizer->generateMatrix($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => '6-archetype viral hook matrix generated.',
+            'topic' => $result['topic'],
+            'platform' => $result['platform'],
+            'matrix' => $result['matrix'],
+            'winning_hook' => $result['winning_hook'],
+            'benchmark_insights' => $result['benchmark_insights'],
+        ]);
+    }
+
+    public function factCheck(Request $request, SocialAgent $agent, FactCheckShield $shield): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'text' => ['required', 'string', 'max:20000'],
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+        ]);
+
+        try {
+            $result = $shield->verify($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Fact check & grounding verification complete.',
+            'credibility_score' => $result['credibility_score'],
+            'status' => $result['status'],
+            'claims_evaluated' => $result['claims_evaluated'],
+            'armored_text' => $result['armored_text'],
+            'disclaimers_recommended' => $result['disclaimers_recommended'],
         ]);
     }
 

@@ -2,6 +2,11 @@
 
 namespace App\Domains\Agents\Harness;
 
+use App\Domains\Agents\Cascade\TransmediaCascade;
+use App\Domains\Agents\Deals\SponsorNegotiator;
+use App\Domains\Agents\Hooks\HookMatrixOptimizer;
+use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Verification\FactCheckShield;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Social\SocialScheduler;
@@ -54,6 +59,52 @@ class ToolRegistry
                     'properties' => ['platform' => ['type' => 'string', 'enum' => ['linkedin', 'x', 'threads', 'instagram', 'tiktok', 'youtube']]],
                 ],
             ],
+            [
+                'name' => 'analyze_sponsor_inquiry',
+                'description' => 'Autonomous Deal Desk: analyze inbound sponsor inquiry, check brand conflicts, and calculate tiered rates.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['inbound_text'],
+                    'properties' => [
+                        'inbound_text' => ['type' => 'string', 'description' => 'Raw email text or DM pitch from the sponsor.'],
+                        'brand_name' => ['type' => 'string', 'description' => 'Optional brand name.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'generate_transmedia_cascade',
+                'description' => 'Generate a 5-platform transmedia distribution cascade (LinkedIn, X thread, TikTok/Shorts, Newsletter, Carousel).',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['topic'],
+                    'properties' => [
+                        'topic' => ['type' => 'string', 'description' => 'Core technical topic or video title.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'generate_hook_matrix',
+                'description' => 'Viral Hook Matrix: brainstorm 6 psychological hook archetypes and predict virality scores.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['topic'],
+                    'properties' => [
+                        'topic' => ['type' => 'string', 'description' => 'Subject or proposition to hook.'],
+                        'platform' => ['type' => 'string', 'default' => 'linkedin'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'verify_technical_facts',
+                'description' => 'Grounding & Hallucination Shield: audit draft text for factual benchmark claims and deprecated APIs.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['text'],
+                    'properties' => [
+                        'text' => ['type' => 'string', 'description' => 'Draft post text or script segment to verify.'],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -71,6 +122,10 @@ class ToolRegistry
             'fetch_audience_asks' => $this->fetchAudienceAsks((int) ($args['limit'] ?? 3)),
             'fetch_active_sponsors' => $this->fetchActiveSponsors(),
             'find_optimal_slot', 'get_open_schedule_slots' => $this->findOptimalSlot($args['platform'] ?? 'linkedin'),
+            'analyze_sponsor_inquiry' => $this->analyzeSponsorInquiry($args),
+            'generate_transmedia_cascade' => $this->generateTransmediaCascade($args),
+            'generate_hook_matrix' => $this->generateHookMatrix($args),
+            'verify_technical_facts' => $this->verifyTechnicalFacts($args),
             default => throw new \InvalidArgumentException("Unknown tool: {$name}"),
         };
     }
@@ -115,5 +170,39 @@ class ToolRegistry
     public function findOptimalSlot(string $platform): array
     {
         return SocialScheduler::nextSlot($platform);
+    }
+
+    public function analyzeSponsorInquiry(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(SponsorNegotiator::class)->negotiate($agent, [
+            'inbound_text' => $args['inbound_text'] ?? '',
+            'brand_name' => $args['brand_name'] ?? '',
+        ]);
+    }
+
+    public function generateTransmediaCascade(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(TransmediaCascade::class)->generate($agent, [
+            'topic' => $args['topic'] ?? '',
+        ]);
+    }
+
+    public function generateHookMatrix(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(HookMatrixOptimizer::class)->generateMatrix($agent, [
+            'topic' => $args['topic'] ?? '',
+            'platform' => $args['platform'] ?? 'linkedin',
+        ]);
+    }
+
+    public function verifyTechnicalFacts(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(FactCheckShield::class)->verify($agent, [
+            'text' => $args['text'] ?? '',
+        ]);
     }
 }

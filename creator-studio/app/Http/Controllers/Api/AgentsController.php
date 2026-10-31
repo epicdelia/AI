@@ -12,8 +12,12 @@ use App\Domains\Agents\Harness\BenchmarkHarness;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Memory\AgentEpisodicMemory;
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Agents\Models\AgentPromptVersion;
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Models\SwarmMission;
+use App\Domains\Agents\Optimization\PromptOptimizer;
 use App\Domains\Agents\Publisher;
+use App\Domains\Agents\Swarm\AgentSwarm;
 use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
@@ -249,6 +253,84 @@ class AgentsController extends Controller
     public function guardrails(AgentGuardrails $guardrails): JsonResponse
     {
         return response()->json($guardrails->summary());
+    }
+
+    public function planSwarm(Request $request, SocialAgent $agent, AgentSwarm $swarm): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'goal' => ['required', 'string', 'max:500'],
+            'platforms' => ['nullable', 'array'],
+            'platforms.*' => [Rule::in(array_keys(Platforms::PLATFORMS))],
+        ]);
+
+        $mission = $swarm->planMission(
+            $agent,
+            $data['goal'],
+            $data['platforms'] ?? $agent->platforms
+        );
+
+        return response()->json([
+            'message' => 'Swarm mission planned with '.count($mission->steps).' agent worker steps.',
+            'mission' => $mission,
+        ]);
+    }
+
+    public function stepSwarm(SwarmMission $mission, AgentSwarm $swarm): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $updated = $swarm->stepMission($mission);
+
+        return response()->json([
+            'message' => 'Mission step executed.',
+            'mission' => $updated,
+        ]);
+    }
+
+    public function runSwarm(SwarmMission $mission, AgentSwarm $swarm): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $completed = $swarm->runToCompletion($mission);
+
+        return response()->json([
+            'message' => 'Swarm mission completed execution.',
+            'mission' => $completed,
+        ]);
+    }
+
+    public function missions(SocialAgent $agent): JsonResponse
+    {
+        return response()->json([
+            'missions' => $agent->swarmMissions()->latest()->take(10)->get(),
+        ]);
+    }
+
+    public function optimizePrompt(SocialAgent $agent, PromptOptimizer $optimizer): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $result = $optimizer->optimize($agent);
+
+        return response()->json([
+            'message' => $result['improved']
+                ? "Prompt successfully optimized! Score improved from {$result['baseline_score']} to {$result['optimized_score']}."
+                : "Prompt evaluation complete. Current prompt retained.",
+            'result' => $result,
+        ]);
+    }
+
+    public function promptVersions(SocialAgent $agent): JsonResponse
+    {
+        return response()->json([
+            'versions' => $agent->promptVersions()->orderByDesc('version')->take(10)->get(),
+        ]);
     }
 
     /** Approve (optionally with her edits): it's scheduled at its slot. */

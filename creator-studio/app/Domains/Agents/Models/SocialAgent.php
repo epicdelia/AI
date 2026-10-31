@@ -47,6 +47,16 @@ class SocialAgent extends Model
         return $this->hasMany(AgentEvalReport::class);
     }
 
+    public function swarmMissions(): HasMany
+    {
+        return $this->hasMany(SwarmMission::class);
+    }
+
+    public function promptVersions(): HasMany
+    {
+        return $this->hasMany(AgentPromptVersion::class);
+    }
+
     public function option(string $key, mixed $default = null): mixed
     {
         return $this->options[$key] ?? $default;

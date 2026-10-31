@@ -386,6 +386,105 @@ async function deliberateModal(agent, onDone) {
   }, { wide: true });
 }
 
+async function swarmModal(agent, onDone) {
+  return modal(`Multi-Agent Swarm Orchestrator (A2A Handoff DAG)`, (close) => {
+    const goalInput = h('textarea', {
+      rows: 3,
+      style: { width: '100%', marginBottom: '12px' },
+      placeholder: 'Enter a high-level creator campaign goal (e.g. "Launch an end-to-end multi-platform content campaign on why SQLite handles 100k req/s without Redis")',
+    });
+
+    const stepsContainer = h('div', { style: { marginTop: '16px' } });
+    let currentMission = null;
+
+    const renderMission = (mission) => {
+      currentMission = mission;
+      clear(stepsContainer).append(
+        h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+          h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' } },
+            h('div', {},
+              h('h4', { style: { margin: 0 } }, mission.title),
+              h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, `Status: ${mission.status} · Step ${mission.current_step}/${mission.steps.length}`)),
+            h('div', { class: 'row', style: { gap: '8px' } },
+              mission.status !== 'completed' ? h('button', {
+                class: 'btn sm',
+                onclick: async (e) => {
+                  await busy(e.target, 'Stepping…', async () => {
+                    const r = await api('POST', `agents/missions/${mission.id}/step`);
+                    renderMission(r.mission);
+                  });
+                },
+              }, icon('play', 13), 'Step next agent') : null,
+              mission.status !== 'completed' ? h('button', {
+                class: 'btn sm primary',
+                onclick: async (e) => {
+                  await busy(e.target, 'Running swarm…', async () => {
+                    const r = await api('POST', `agents/missions/${mission.id}/run`);
+                    renderMission(r.mission);
+                    toast('Swarm mission completed.');
+                    if (onDone) onDone();
+                  });
+                },
+              }, icon('sparkle', 13), 'Run all steps') : null)),
+
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' } },
+            mission.steps.map((st, i) => {
+              const isCurrent = i === mission.current_step && mission.status === 'running';
+              const isDone = st.status === 'completed';
+              return h('div', {
+                style: {
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  border: isCurrent ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: isDone ? 'rgba(34, 197, 94, 0.05)' : isCurrent ? 'rgba(59, 130, 246, 0.08)' : 'rgba(0,0,0,0.1)',
+                },
+              },
+              h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                  icon(isDone ? 'check' : isCurrent ? 'spinner' : 'bot', 14),
+                  h('strong', { class: 'small' }, st.agent.replace('_', ' ').toUpperCase()),
+                  st.handoff_to ? h('span', { class: 'pill small' }, `Handoff → ${st.handoff_to}`) : null),
+                h('span', { class: `pill ${isDone ? 'ok' : isCurrent ? 'new' : ''} small` }, st.status)),
+              h('p', { class: 'small', style: { margin: '6px 0 0' } }, st.task),
+              st.output ? h('details', { style: { marginTop: '6px' } },
+                h('summary', { class: 'small muted', style: { cursor: 'pointer' } }, 'Inspect step output'),
+                h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '11px', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '4px', marginTop: '4px' } },
+                  JSON.stringify(st.output, null, 2))) : null);
+            })),
+
+          mission.result ? h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+            h('strong', { class: 'small' }, 'Mission Result Artifacts:'),
+            h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', marginTop: '6px' } }, JSON.stringify(mission.result, null, 2))) : null));
+    };
+
+    const planBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const goal = goalInput.value.trim();
+        if (!goal) return toast('Please enter a campaign goal.', 'err');
+        await busy(planBtn, 'Decomposing into worker agents…', async () => {
+          try {
+            const r = await api('POST', `agents/${agent.id}/swarm/plan`, { goal });
+            toast(r.message);
+            renderMission(r.mission);
+          } catch (err) {
+            toast(err.message || 'Failed to plan swarm mission.', 'err');
+          }
+        });
+      },
+    }, icon('sparkle', 14), 'Plan Swarm DAG');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'The Swarm Orchestrator dynamically decomposes high-level goals into specialized worker agents (Signal Scout, Angle Strategist, Platform Copywriter, Grounding Auditor) with durable state checkpoints and A2A handoffs.'),
+      h('label', { class: 'small muted' }, 'Campaign Goal:'),
+      goalInput,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Close'),
+        planBtn),
+      stepsContainer);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -437,6 +536,7 @@ export async function renderAgent(view, id) {
           h('button', { class: 'btn sm ghost', onclick: () => repurposeModal(a, reload) }, icon('repeat', 14), 'Repurpose video'),
           h('button', { class: 'btn sm ghost', onclick: () => breakoutSpikeModal(a, reload) }, icon('trend', 14), 'Breakout spike'),
           h('button', { class: 'btn sm ghost', onclick: () => deliberateModal(a, reload) }, icon('sparkle', 14), 'Deliberate committee'),
+          h('button', { class: 'btn sm ghost', onclick: () => swarmModal(a, reload) }, icon('flow', 14), 'Swarm mission'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {
@@ -755,7 +855,76 @@ export async function renderAgent(view, id) {
                         },
                       }, r.generated_output))
                     : null);
-                }))));
+                }))),
+
+          h('div', { class: 'grid grid-2', style: { gap: '16px', marginTop: '16px' } },
+            h('div', { class: 'card' },
+              h('div', { class: 'card-header' },
+                h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Automated Prompt Optimizer (DSPy / APO)'),
+                h('span', { class: 'pill ok small' }, 'Self-Tuning Engine')),
+              h('p', { class: 'muted small' },
+                'Meta-prompts candidate system prompt variations against the benchmark harness to autonomously maximize hook strength, voice authenticity, and cliché elimination.'),
+              h('div', { class: 'row', style: { gap: '8px', marginTop: '12px' } },
+                h('button', {
+                  class: 'btn sm primary',
+                  onclick: async (e) => {
+                    await busy(e.target, 'Optimizing prompt against benchmark…', async () => {
+                      try {
+                        const r = await api('POST', `agents/${a.id}/prompt/optimize`);
+                        toast(r.message);
+                        loadHarness();
+                      } catch (err) {
+                        toast(err.message || 'Prompt optimization failed.', 'err');
+                      }
+                    });
+                  },
+                }, icon('sparkle', 13), 'Auto-optimize prompt (APO)'),
+                h('button', {
+                  class: 'btn sm ghost',
+                  onclick: async () => {
+                    const vers = await api('GET', `agents/${a.id}/prompt/versions`);
+                    modal('Prompt Version History', (close) => {
+                      return h('div', {},
+                        h('p', { class: 'muted small' }, 'Tracked DSPy prompt evolution checkpoints and benchmark scores.'),
+                        !vers.versions.length ? h('p', { class: 'muted small' }, 'No versions recorded yet. Run prompt optimization to generate version checkpoints.') :
+                          h('ul', { class: 'item-list' }, vers.versions.map((v) => h('li', {},
+                            h('div', {},
+                              h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                                h('strong', {}, `v${v.version}`),
+                                h('span', { class: `pill ${v.is_active ? 'ok' : ''} small` }, v.is_active ? 'Active' : 'Archived'),
+                                h('span', { class: 'pill small' }, `Score: ${v.score}/100`)),
+                              h('p', { class: 'small muted', style: { margin: '4px 0 0' } }, v.changes_summary || 'Prompt revision'))))),
+                        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+                          h('button', { class: 'btn', onclick: () => close() }, 'Close')));
+                    }, { wide: true });
+                  },
+                }, icon('history', 13), 'Version history'))),
+
+            h('div', { class: 'card' },
+              h('div', { class: 'card-header' },
+                h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Swarm Missions & Durable Checkpoints'),
+                h('button', { class: 'btn sm ghost', onclick: () => swarmModal(a, loadHarness) }, icon('plus', 13), 'New mission')),
+              h('p', { class: 'muted small' },
+                'Multi-agent campaigns executed by worker agents (Signal Scout → Angle Strategist → Platform Copywriter → Grounding Auditor).'),
+              h('div', { style: { marginTop: '10px' } },
+                h('button', {
+                  class: 'btn sm ghost',
+                  onclick: async () => {
+                    const m = await api('GET', `agents/${a.id}/missions`);
+                    modal('Swarm Mission History', (close) => {
+                      return h('div', {},
+                        !m.missions.length ? h('p', { class: 'muted small' }, 'No swarm missions planned yet. Launch a mission from the header.') :
+                          h('ul', { class: 'item-list' }, m.missions.map((ms) => h('li', {},
+                            h('div', {},
+                              h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                                h('strong', {}, ms.title),
+                                h('span', { class: `pill ${ms.status === 'completed' ? 'ok' : 'new'} small` }, ms.status)),
+                              h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, ms.goal))))),
+                        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+                          h('button', { class: 'btn', onclick: () => close() }, 'Close')));
+                    }, { wide: true });
+                  },
+                }, icon('eye', 13), 'Inspect missions')))));
       } catch (err) {
         clear(wrap).append(h('p', { class: 'muted small', style: { color: 'var(--warn)' } }, `Error loading harness: ${err.message}`));
       }

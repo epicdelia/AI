@@ -287,6 +287,12 @@ Route::prefix('api')->group(function () {
         Route::get('agents/{agent}/memory', [AgentsController::class, 'memory'])->whereNumber('agent');
         Route::post('agents/{agent}/deliberate', [AgentsController::class, 'deliberate'])->whereNumber('agent');
         Route::get('agents/guardrails', [AgentsController::class, 'guardrails']);
+        Route::post('agents/{agent}/swarm/plan', [AgentsController::class, 'planSwarm'])->whereNumber('agent');
+        Route::post('agents/missions/{mission}/step', [AgentsController::class, 'stepSwarm'])->whereNumber('mission');
+        Route::post('agents/missions/{mission}/run', [AgentsController::class, 'runSwarm'])->whereNumber('mission');
+        Route::get('agents/{agent}/missions', [AgentsController::class, 'missions'])->whereNumber('agent');
+        Route::post('agents/{agent}/prompt/optimize', [AgentsController::class, 'optimizePrompt'])->whereNumber('agent');
+        Route::get('agents/{agent}/prompt/versions', [AgentsController::class, 'promptVersions'])->whereNumber('agent');
         Route::post('mcp', [AgentsController::class, 'mcp']);
         Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 

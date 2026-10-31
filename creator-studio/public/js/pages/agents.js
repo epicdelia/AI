@@ -232,6 +232,80 @@ function wizard(meta, existing = null) {
 
 // ---------------------------------------------------------------- one agent
 
+async function repurposeModal(agent, onDone) {
+  const d = await api('GET', 'scripts').catch(() => ({ scripts: { data: [] } }));
+  const scripts = d.scripts?.data || [];
+  return modal(`Repurpose Video with ${agent.name}`, (close) => {
+    if (!scripts.length) {
+      return h('div', {},
+        h('p', { class: 'muted' }, 'No scripts available yet. Write or draft a script first.'),
+        h('button', { class: 'btn', onclick: () => close() }, 'Close'));
+    }
+    const list = h('ul', { class: 'item-list', style: { marginTop: '12px', maxHeight: '350px', overflowY: 'auto' } },
+      scripts.map((sc) => h('li', {},
+        h('div', { class: 'item-main' },
+          h('strong', {}, sc.title),
+          h('div', { class: 'muted small' }, `${sc.status} · edited ${timeAgo(sc.updated_at)}`)),
+        h('button', {
+          class: 'btn sm primary',
+          onclick: async (e) => {
+            const btn = e.target;
+            await busy(btn, 'Repurposing…', async () => {
+              try {
+                const r = await api('POST', `agents/${agent.id}/repurpose-script`, { script_id: sc.id });
+                toast(r.message || 'Posts generated and scheduled.');
+                close();
+                if (onDone) onDone();
+              } catch (err) {
+                toast(err.message || 'Failed to repurpose script.', 'err');
+              }
+            });
+          }
+        }, icon('sparkle', 13), 'Repurpose'))));
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Select a video script. The agent will autonomously adapt it into native posts across all active networks, scheduling each in the best available slot.'),
+      list);
+  }, { wide: true });
+}
+
+async function breakoutSpikeModal(agent, onDone) {
+  const sigs = await api('GET', 'agents/signals').catch(() => ({ breakouts: [] }));
+  const breakouts = sigs.breakouts || [];
+  return modal(`Spike Post from Breakout Video`, (close) => {
+    if (!breakouts.length) {
+      return h('div', {},
+        h('p', { class: 'muted' }, 'No recent breakout videos found. Add competitor channels and run a scan in Breakouts.'),
+        h('button', { class: 'btn', onclick: () => close() }, 'Close'));
+    }
+    const list = h('ul', { class: 'item-list', style: { marginTop: '12px', maxHeight: '350px', overflowY: 'auto' } },
+      breakouts.map((o) => h('li', {},
+        h('div', { class: 'item-main' },
+          h('strong', { class: 'clamp-1' }, o.title),
+          h('div', { class: 'muted small' }, `${o.channel_title || 'Competitor'} · ${Number(o.outlier_score).toFixed(1)}x median`)),
+        h('button', {
+          class: 'btn sm primary',
+          onclick: async (e) => {
+            const btn = e.target;
+            await busy(btn, 'Drafting…', async () => {
+              try {
+                const r = await api('POST', `agents/${agent.id}/spike-breakout`, { outlier_id: o.id });
+                toast(r.message || 'Reaction post drafted.');
+                close();
+                if (onDone) onDone();
+              } catch (err) {
+                toast(err.message || 'Failed to draft breakout post.', 'err');
+              }
+            });
+          }
+        }, icon('trend', 13), 'Write spike post'))));
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Pick a breakout video. The agent will autonomously write a hot-take commentary from Delia’s perspective on the trend and schedule it.'),
+      list);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -277,9 +351,11 @@ export async function renderAgent(view, id) {
           h('div', {}, h('h1', {}, a.name),
             h('div', { class: 'row ag-nets' }, a.platforms.map((p) => netChip(p, labelOf(p))),
               h('span', { class: `pill ${a.approval === 'auto' ? 'ok' : 'new'}` }, a.approval === 'auto' ? 'Autonomous' : 'Reviews with you')))),
-        h('div', { class: 'row' },
+        h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '8px' } },
           h('label', { class: 'row ag-active', title: 'Running / paused' }, h('span', { class: 'switch' }, activeInput, h('span', { class: 'slider' })), h('span', { class: 'small' }, a.active ? 'Running' : 'Paused')),
           run,
+          h('button', { class: 'btn sm ghost', onclick: () => repurposeModal(a, reload) }, icon('repeat', 14), 'Repurpose video'),
+          h('button', { class: 'btn sm ghost', onclick: () => breakoutSpikeModal(a, reload) }, icon('trend', 14), 'Breakout spike'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {
@@ -293,7 +369,13 @@ export async function renderAgent(view, id) {
         kpi(a.counts.scheduled, 'scheduled'),
         kpi(a.counts.published, 'published'),
         kpi(a.lessons.length, 'lessons learned'),
-        kpi(a.next_run_at && a.active ? timeAgoFuture(a.next_run_at) : '—', 'next planning')));
+        kpi(a.next_run_at && a.active ? timeAgoFuture(a.next_run_at) : '—', 'next planning')),
+      h('div', { class: 'card ag-intelligence-banner', style: { padding: '10px 14px', margin: '10px 0 14px', background: 'var(--card-subtle, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: '8px' } },
+        h('div', { class: 'row', style: { gap: '10px', alignItems: 'center' } },
+          icon('sparkle', 16),
+          h('span', { class: 'small' },
+            h('strong', {}, 'Agent Signal Intelligence: '),
+            'Ingests live breakout competitor trends, fresh RSS feeds, viewer questions, and your recent scripts to draft high-performing, authentic posts.'))));
     const TABS = [['approvals', 'Approvals', d.pending.length], ['upcoming', 'Upcoming', d.upcoming.length], ['published', 'Published', d.published.length], ['learning', 'Learning', a.lessons.length], ['activity', 'Activity', null]];
     clear(tabs).append(TABS.map(([k, label, n]) => h('button', {
       class: `tab${tab === k ? ' active' : ''}`, role: 'tab', 'aria-selected': String(tab === k), onclick: () => { tab = k; draw(); },

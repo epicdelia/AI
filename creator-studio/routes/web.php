@@ -275,8 +275,11 @@ Route::prefix('api')->group(function () {
         Route::get('agents/{agent}', [AgentsController::class, 'show'])->whereNumber('agent');
         Route::patch('agents/{agent}', [AgentsController::class, 'update'])->whereNumber('agent');
         Route::delete('agents/{agent}', [AgentsController::class, 'destroy'])->whereNumber('agent');
+        Route::get('agents/signals', [AgentsController::class, 'signals']);
         Route::post('agents/{agent}/run', [AgentsController::class, 'run'])->whereNumber('agent');
         Route::post('agents/{agent}/learn', [AgentsController::class, 'learn'])->whereNumber('agent');
+        Route::post('agents/{agent}/repurpose-script', [AgentsController::class, 'repurposeScript'])->whereNumber('agent');
+        Route::post('agents/{agent}/spike-breakout', [AgentsController::class, 'spikeBreakout'])->whereNumber('agent');
 
         // Workflows: trigger + steps automations, built on the node canvas
         Route::get('workflows', [WorkflowsController::class, 'index']);

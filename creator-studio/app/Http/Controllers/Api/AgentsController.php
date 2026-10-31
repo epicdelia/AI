@@ -94,6 +94,54 @@ class AgentsController extends Controller
         }
     }
 
+    public function signals(): JsonResponse
+    {
+        return response()->json(AgentPlanner::gatherSignals());
+    }
+
+    public function repurposeScript(Request $request, SocialAgent $agent, AgentPlanner $planner): JsonResponse
+    {
+        @set_time_limit(180);
+        $data = $request->validate([
+            'script_id' => 'required|exists:scripts,id',
+        ]);
+
+        $script = \App\Models\Script::findOrFail($data['script_id']);
+
+        try {
+            $posts = $planner->repurposeScript($agent, $script);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => count($posts).' post(s) autonomously repurposed from “'.$script->title.'”.',
+            'posts' => $posts,
+        ]);
+    }
+
+    public function spikeBreakout(Request $request, SocialAgent $agent, AgentPlanner $planner): JsonResponse
+    {
+        @set_time_limit(180);
+        $data = $request->validate([
+            'outlier_id' => 'required|exists:outliers,id',
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+        ]);
+
+        $outlier = \App\Models\Outlier::with('channel')->findOrFail($data['outlier_id']);
+
+        try {
+            $post = $planner->fromBreakout($agent, $outlier, $data['platform'] ?? null);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Trending reaction post drafted on '.Platforms::PLATFORMS[$post->platform]['label'].'.',
+            'post' => $post,
+        ]);
+    }
+
     /** Approve (optionally with her edits): it's scheduled at its slot. */
     public function approve(Request $request, SocialPost $post): JsonResponse
     {

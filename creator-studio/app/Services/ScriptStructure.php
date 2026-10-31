@@ -144,6 +144,112 @@ class ScriptStructure
             'total_seconds' => $total,
             'chapters' => self::chapters($sections),
             'placeholders' => ['story' => $story, 'verify' => $verify],
+            'retention' => self::simulateRetention($sections, $flags, $total),
+        ];
+    }
+
+    /**
+     * Simulate second-by-second audience retention curve based on pacing, hook speed, and visual cues.
+     *
+     * @return array{points: array, predicted_apv: float, grade: string, verdict: string}
+     */
+    public static function simulateRetention(array $sections, array $flags, int $total): array
+    {
+        if ($total <= 10) {
+            return [
+                'points' => [],
+                'predicted_apv' => 0.0,
+                'grade' => '–',
+                'verdict' => 'Write more than a few sentences to see retention projections.',
+            ];
+        }
+
+        $step = max(5, min(15, (int) round($total / 30)));
+        $points = [];
+        $currentPct = 100.0;
+
+        $hasSlowOpen = collect($flags)->contains(fn ($f) => ($f['kind'] ?? '') === 'open');
+        $hasVisualGaps = collect($flags)->contains(fn ($f) => ($f['kind'] ?? '') === 'visual');
+        $hasLongChapters = collect($flags)->contains(fn ($f) => ($f['kind'] ?? '') === 'long');
+
+        for ($sec = 0; $sec <= $total; $sec += $step) {
+            // Find which section this time falls into
+            $secData = null;
+            foreach ($sections as $s) {
+                if ($sec >= $s['start'] && $sec <= ($s['start'] + $s['seconds'])) {
+                    $secData = $s;
+                    break;
+                }
+            }
+
+            if ($sec === 0) {
+                $currentPct = 100.0;
+            } elseif ($sec <= 30) {
+                // Hook phase: initial drop-off
+                $hookDecay = $hasSlowOpen ? 1.1 : 0.55;
+                $currentPct -= ($hookDecay * ($step / 5));
+            } else {
+                // Middle phase
+                $baseDecay = 0.25 * ($step / 10);
+                if ($hasVisualGaps) {
+                    $baseDecay += 0.20;
+                }
+                if ($hasLongChapters) {
+                    $baseDecay += 0.15;
+                }
+
+                // Check if near section start (re-hook boost)
+                $nearStart = $secData && ($sec - $secData['start']) <= $step;
+                if ($nearStart && $secData['title'] !== 'Intro') {
+                    $currentPct += 1.8; // Mini spike / stabilization
+                } else {
+                    $currentPct -= $baseDecay;
+                }
+
+                // Outro cliff in the last 20 seconds
+                if ($sec >= ($total - 20)) {
+                    $currentPct -= 1.8 * ($step / 5);
+                }
+            }
+
+            $currentPct = max(24.0, min(100.0, $currentPct));
+
+            $annotation = null;
+            $isDip = false;
+            if ($sec === 30) {
+                $annotation = 'Hook (30s)';
+            } elseif ($hasSlowOpen && $sec === 30) {
+                $annotation = 'Slow hook dip';
+                $isDip = true;
+            } elseif ($hasVisualGaps && $sec === (int) round($total * 0.45)) {
+                $annotation = 'Visual gap drop';
+                $isDip = true;
+            } elseif ($sec >= ($total - 20) && !isset($points[count($points) - 1]['annotation'])) {
+                $annotation = 'CTA outro drop';
+            }
+
+            $points[] = [
+                'sec' => $sec,
+                'pct' => round($currentPct, 1),
+                'time' => self::clock($sec),
+                'section' => $secData['title'] ?? 'Section',
+                'line' => $secData['line'] ?? 1,
+                'annotation' => $annotation,
+                'dip' => $isDip,
+            ];
+        }
+
+        $apv = round(collect($points)->avg('pct') ?? 0, 1);
+        $grade = $apv >= 65 ? 'A+' : ($apv >= 55 ? 'A' : ($apv >= 45 ? 'B' : 'C'));
+        $verdict = $apv >= 55
+            ? 'Top-tier pacing! APV is projected to beat the 50% threshold for YouTube recommendations.'
+            : 'Pacing drops in mid-sections. Add more [VISUAL] cues or split longer chapters to keep viewers engaged.';
+
+        return [
+            'points' => $points,
+            'predicted_apv' => $apv,
+            'grade' => $grade,
+            'verdict' => $verdict,
         ];
     }
 

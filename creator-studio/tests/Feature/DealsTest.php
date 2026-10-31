@@ -195,5 +195,35 @@ class DealsTest extends TestCase
         $dealGroup = collect($res['groups'])->firstWhere('title', 'Brand Deals');
         $this->assertStringContainsString('Datadog', $dealGroup['items'][0]['label']);
     }
+
+    public function test_deal_campaign_report(): void
+    {
+        $deal = Deal::create([
+            'brand_name' => 'Supabase',
+            'contact_name' => 'Ant Wilson',
+            'contact_email' => 'ant@supabase.com',
+            'stage' => 'paid',
+            'rate' => 3500,
+            'currency' => 'USD',
+            'coupon_code' => 'UNICORN35',
+            'tracking_url' => 'https://supabase.com/?ref=techunicorn',
+            'deliverables' => [
+                ['platform' => 'youtube', 'format' => 'integration_60s'],
+            ],
+            'published_at' => now()->subDays(3),
+        ]);
+
+        $res = $this->getJson("/api/deals/{$deal->id}/report")->assertOk()->json();
+
+        $this->assertArrayHasKey('report', $res);
+        $report = $res['report'];
+        $this->assertEquals('Supabase', $report['brand_name']);
+        $this->assertGreaterThan(0, $report['kpis']['views']);
+        $this->assertGreaterThan(0, $report['kpis']['clicks']);
+        $this->assertNotEmpty($report['deliverables']);
+        $this->assertNotEmpty($report['audience_demographics']['seniority']);
+        $this->assertNotEmpty($report['viewer_feedback']);
+        $this->assertNotEmpty($report['executive_summary']);
+    }
 }
 

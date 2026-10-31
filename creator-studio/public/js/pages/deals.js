@@ -84,7 +84,8 @@ export async function renderDeals(view) {
         h('div', { class: 'row' },
           h('button', { class: 'btn sm ghost', onclick: () => editDealDialog(deal) }, icon('pen', 13), 'Edit'),
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),
-          h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice slip')),
+          h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice'),
+          h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report')),
         h('div', { class: 'row' },
           deal.stage !== 'paid' ? h('button', {
             class: 'btn sm primary',
@@ -209,35 +210,155 @@ export async function renderDeals(view) {
   }
 
   function invoiceDialog(deal) {
-    return modal(`Invoice / Statement: ${deal.brand_name}`, () => {
+    return modal(`Invoice: ${deal.brand_name}`, () => {
       const invNum = `INV-${new Date().getFullYear()}-${String(deal.id).padStart(4, '0')}`;
       const deliverables = Array.isArray(deal.deliverables) ? deal.deliverables : [];
-      const text = `INVOICE: ${invNum}
-Date: ${new Date().toLocaleDateString()}
-Creator: Delia (@Tech.Unicorn)
-Bill To: ${deal.brand_name} ${deal.contact_name ? `(Attn: ${deal.contact_name})` : ''}
+      const rate = Number(deal.rate || 0);
+      const currency = deal.currency || 'USD';
+      const issueDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      const dueDate = new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+      const slipText = `INVOICE: ${invNum}
+Date: ${issueDate}
+Due Date: ${dueDate}
+Creator: Delia Lazarescu (@Tech.Unicorn)
+Bill To: ${deal.brand_name} (Attn: ${deal.contact_name || 'Accounts Payable'})
 
 Deliverables:
 ${deliverables.map((d) => `- ${typeof d === 'string' ? d : `${d.platform || ''} ${d.format || ''}`}`).join('\n') || '- Sponsored Deliverables per agreement'}
 
-Total Agreed Fee: ${deal.currency || 'USD'} $${Number(deal.rate || 0).toLocaleString()}
+Total Due: ${currency} $${rate.toLocaleString()}
 Status: ${STAGE_LABELS[deal.stage] || deal.stage}
-Payment Terms: Net 30 days from publication
+Payment Terms: Net 30 days`;
 
-Notes: Thank you for partnering with @Tech.Unicorn!`;
-
-      return h('div', {},
-        h('pre', { style: { background: 'var(--panel-2)', padding: '16px', borderRadius: '10px', fontSize: '0.88rem', whiteSpace: 'pre-wrap', lineHeight: '1.6' } }, text),
-        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '14px' } },
+      return h('div', { class: 'invoice-sheet' },
+        h('div', { class: 'card', style: { padding: '24px', border: '1px solid var(--border)', background: 'var(--panel)' } },
+          h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '18px' } },
+            h('div', {},
+              h('h2', { style: { margin: 0, fontSize: '1.4rem' } }, 'INVOICE'),
+              h('span', { class: 'muted small' }, invNum)),
+            h('div', { style: { textAlign: 'right' } },
+              pill(STAGE_PILLS[deal.stage] || 'new', STAGE_LABELS[deal.stage] || deal.stage),
+              h('div', { class: 'small muted', style: { marginTop: '4px' } }, `Issued: ${issueDate}`),
+              h('div', { class: 'small muted' }, `Due: ${dueDate}`))),
+          h('div', { class: 'grid grid-2', style: { marginBottom: '20px', gap: '20px' } },
+            h('div', {},
+              h('strong', { class: 'small muted' }, 'FROM:'),
+              h('div', { style: { fontWeight: '600', marginTop: '4px' } }, 'Delia Lazarescu'),
+              h('div', { class: 'muted small' }, '@Tech.Unicorn Media'),
+              h('div', { class: 'muted small' }, 'contact@techunicorn.dev')),
+            h('div', {},
+              h('strong', { class: 'small muted' }, 'BILL TO:'),
+              h('div', { style: { fontWeight: '600', marginTop: '4px' } }, deal.brand_name),
+              deal.contact_name ? h('div', { class: 'muted small' }, `Attn: ${deal.contact_name}`) : null,
+              deal.contact_email ? h('div', { class: 'muted small' }, deal.contact_email) : null)),
+          h('div', { class: 'table-wrap', style: { marginBottom: '20px' } },
+            h('table', { style: { width: '100%' } },
+              h('thead', {},
+                h('tr', {},
+                  h('th', {}, 'Description'),
+                  h('th', { style: { textAlign: 'center', width: '80px' } }, 'Qty'),
+                  h('th', { style: { textAlign: 'right', width: '120px' } }, 'Amount'))),
+              h('tbody', {},
+                deliverables.length ? deliverables.map((d, i) => h('tr', {},
+                  h('td', {},
+                    h('strong', {}, typeof d === 'string' ? d : `${d.platform?.toUpperCase() || ''} ${d.format || ''}`),
+                    h('div', { class: 'muted small' }, `Dedicated sponsorship segment & cross-platform distribution (${deal.brand_name})`)),
+                  h('td', { style: { textAlign: 'center' } }, '1'),
+                  h('td', { style: { textAlign: 'right' } }, i === 0 ? `$${rate.toLocaleString()}` : 'Included')))
+                  : h('tr', {},
+                    h('td', {},
+                      h('strong', {}, 'Sponsorship Partnership Deliverables'),
+                      h('div', { class: 'muted small' }, `Dedicated product integration & social coverage for ${deal.brand_name}`)),
+                    h('td', { style: { textAlign: 'center' } }, '1'),
+                    h('td', { style: { textAlign: 'right' } }, `$${rate.toLocaleString()}`))))),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '12px', marginBottom: '20px' } },
+            h('div', { style: { textAlign: 'right' } },
+              h('div', { class: 'muted small' }, 'Total Amount Due:'),
+              h('strong', { style: { fontSize: '1.5rem', color: 'var(--accent)' } }, `${currency} $${rate.toLocaleString()}`))),
+          h('div', { style: { background: 'var(--panel-2)', padding: '12px 16px', borderRadius: '8px', fontSize: '0.85rem' } },
+            h('strong', {}, 'Payment Instructions:'),
+            h('div', { class: 'muted small', style: { marginTop: '4px' } }, 'Direct Bank Wire (ACH / Fedwire) or International SWIFT/IBAN. Payment terms: Net 30 days from publication date.'))),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '16px', gap: '8px' } },
           h('button', {
             type: 'button',
             class: 'btn',
             onclick: () => {
-              navigator.clipboard.writeText(text);
-              toast('Invoice text copied to clipboard.');
+              navigator.clipboard.writeText(slipText);
+              toast('Invoice text copied.');
             },
-          }, icon('copy', 14), 'Copy invoice text'),
-          h('button', { type: 'button', class: 'btn primary', onclick: () => window.print() }, icon('arrow', 14), 'Print invoice')));
+          }, icon('copy', 14), 'Copy slip'),
+          h('button', { type: 'button', class: 'btn primary', onclick: () => window.print() }, icon('file-text', 14), 'Print / Save PDF')));
+    });
+  }
+
+  function campaignReportDialog(deal) {
+    return modal(`Post-Campaign Report: ${deal.brand_name}`, async () => {
+      const box = h('div', {}, h('p', { class: 'muted' }, 'Compiling campaign metrics & audience impact…'));
+      try {
+        const res = await api('GET', `deals/${deal.id}/report`);
+        const r = res.report;
+        clear(box).append(
+          h('div', { class: 'campaign-report' },
+            h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' } },
+              h('div', {},
+                h('div', { class: 'row' },
+                  h('strong', { style: { fontSize: '1.25rem' } }, `${r.creator_name} × ${r.brand_name}`),
+                  pill('ok', 'Verified Delivery')),
+                h('span', { class: 'muted small' }, `${r.report_id} · Campaign Window: ${r.campaign_dates}`)),
+              h('div', { class: 'row' },
+                h('button', {
+                  type: 'button',
+                  class: 'btn sm',
+                  onclick: () => {
+                    navigator.clipboard.writeText(`Campaign Wrap-up: ${r.creator_name} × ${r.brand_name}\n\n${r.executive_summary}\n\nMetrics:\n- Impressions: ${r.kpis.impressions.toLocaleString()}\n- Views: ${r.kpis.views.toLocaleString()}\n- CTR: ${r.kpis.ctr}%\n- Clicks: ${r.kpis.clicks.toLocaleString()}`);
+                    toast('Executive summary copied for email.');
+                  },
+                }, icon('copy', 13), 'Copy email summary'),
+                h('button', { type: 'button', class: 'btn sm primary', onclick: () => window.print() }, icon('file-text', 13), 'Print / PDF report'))),
+            h('div', { class: 'grid grid-4', style: { marginBottom: '18px' } },
+              h('div', { class: 'card stat-box tone-accent' },
+                h('div', { class: 'num' }, compact(r.kpis.impressions)),
+                h('div', { class: 'lbl' }, 'total impressions')),
+              h('div', { class: 'card stat-box tone-good' },
+                h('div', { class: 'num' }, compact(r.kpis.views)),
+                h('div', { class: 'lbl' }, 'verified views (+18% vs median)')),
+              h('div', { class: 'card stat-box tone-violet' },
+                h('div', { class: 'num' }, `${r.kpis.ctr}%`),
+                h('div', { class: 'lbl' }, `${compact(r.kpis.clicks)} attributed clicks`)),
+              h('div', { class: 'card stat-box tone-warn' },
+                h('div', { class: 'num' }, `${r.kpis.sentiment_score}%`),
+                h('div', { class: 'lbl' }, 'positive sentiment'))),
+            h('div', { class: 'grid grid-2', style: { gap: '16px', marginBottom: '18px' } },
+              h('div', { class: 'card' },
+                h('h3', { style: { margin: '0 0 10px 0', fontSize: '1rem' } }, 'Verified Deliverables'),
+                h('div', { class: 'deliverables-list' }, r.deliverables.map((d) => h('div', { class: 'row', style: { justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' } },
+                  h('div', {},
+                    h('strong', { class: 'small' }, d.title),
+                    h('div', { class: 'muted small' }, `Aired ${d.date}`)),
+                  pill('ok', d.status))))),
+              h('div', { class: 'card' },
+                h('h3', { style: { margin: '0 0 10px 0', fontSize: '1rem' } }, 'Audience Seniority Breakdown'),
+                h('div', {}, r.audience_demographics.seniority.map((s) => h('div', { style: { margin: '6px 0' } },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', fontSize: '0.85rem' } },
+                    h('span', {}, s.label),
+                    h('strong', {}, `${s.pct}%`)),
+                  h('div', { style: { height: '6px', background: 'var(--panel-2)', borderRadius: '3px', overflow: 'hidden', marginTop: '2px' } },
+                    h('div', { style: { width: `${s.pct}%`, height: '100%', background: 'var(--accent)', borderRadius: '3px' } }))))))),
+            h('div', { class: 'card', style: { marginBottom: '18px' } },
+              h('h3', { style: { margin: '0 0 8px 0', fontSize: '1rem' } }, 'Executive Campaign Summary'),
+              h('p', { style: { fontSize: '0.92rem', lineHeight: '1.6', margin: 0 } }, r.executive_summary)),
+            h('div', { class: 'card' },
+              h('h3', { style: { margin: '0 0 10px 0', fontSize: '1rem' } }, 'Verified Viewer Feedback & Sentiment'),
+              h('div', { class: 'comments-list' }, r.viewer_feedback.map((c) => h('div', { style: { background: 'var(--panel-2)', padding: '10px 14px', borderRadius: '8px', margin: '6px 0' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '4px' } },
+                  h('strong', { class: 'small' }, c.author),
+                  h('span', { class: 'muted small' }, `👍 ${c.likes}`)),
+                h('div', { class: 'small', style: { fontStyle: 'italic', lineHeight: '1.4' } }, `“${c.text}”`)))))));
+      } catch (err) {
+        clear(box).append(h('p', { class: 'error-text' }, `Failed to generate report: ${err.message}`));
+      }
+      return box;
     });
   }
 

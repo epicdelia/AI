@@ -183,7 +183,48 @@ export async function renderScript(view, id) {
     clear(structureBox);
     if (!st?.sections?.length) { structureBox.append(h('p', { class: 'muted small' }, 'Add ## headings for each part (Cold open, chapters, CTA) to see the timing.')); return; }
     const total = Math.max(1, st.total_seconds);
+
+    // Retention Curve Simulator Graph (YouTube Studio style)
+    let retentionSection = null;
+    if (st.retention?.points?.length > 1) {
+      const pts = st.retention.points;
+      const w = 280;
+      const hGraph = 60;
+      const scaleX = (sec) => (sec / total) * (w - 20) + 10;
+      const scaleY = (pct) => hGraph - 6 - ((pct / 100) * (hGraph - 14));
+
+      const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${scaleX(p.sec).toFixed(1)} ${scaleY(p.pct).toFixed(1)}`).join(' ');
+      const areaD = `${pathD} L ${scaleX(pts[pts.length - 1].sec).toFixed(1)} ${hGraph} L ${scaleX(pts[0].sec).toFixed(1)} ${hGraph} Z`;
+
+      const circles = pts.filter((p) => p.dip || p.sec === 30).map((p) =>
+        `<circle cx="${scaleX(p.sec).toFixed(1)}" cy="${scaleY(p.pct).toFixed(1)}" r="4" fill="${p.dip ? 'var(--warn, #f59e0b)' : 'var(--accent)'}" stroke="var(--panel, #1e1e2e)" stroke-width="1.5">
+          <title>${p.time} (${p.pct}%): ${p.annotation || p.section}</title>
+        </circle>`).join('');
+
+      const svgHtml = `<svg viewBox="0 0 ${w} ${hGraph}" class="retention-svg" style="width: 100%; height: 70px; overflow: visible; display: block;">
+        <defs>
+          <linearGradient id="retGrad-${script.id}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <line x1="10" y1="${scaleY(50).toFixed(1)}" x2="${w - 10}" y2="${scaleY(50).toFixed(1)}" stroke="var(--border)" stroke-dasharray="3,3" stroke-width="1"/>
+        <text x="${w - 12}" y="${(scaleY(50) - 3).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--muted)">50% YouTube threshold</text>
+        <path d="${areaD}" fill="url(#retGrad-${script.id})"/>
+        <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        ${circles}
+      </svg>`;
+
+      retentionSection = h('div', { class: 'retention-card', style: { marginBottom: '14px', background: 'var(--panel-2)', padding: '10px 12px', borderRadius: '8px' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '6px' } },
+          h('strong', { class: 'small' }, 'Audience Retention Curve'),
+          pill(st.retention.grade === 'A+' || st.retention.grade === 'A' ? 'ok' : 'WARN', `${st.retention.predicted_apv}% APV (${st.retention.grade})`)),
+        h('div', { html: svgHtml }),
+        h('p', { class: 'muted small', style: { margin: '6px 0 0 0', fontSize: '0.82rem', lineHeight: '1.35' } }, st.retention.verdict));
+    }
+
     structureBox.append(
+      retentionSection,
       h('div', { class: 'st-bar', 'aria-hidden': 'true' }, st.sections.map((s, i) => h('span', {
         class: `st-seg st-c${i % 4}`, style: { flexGrow: String(Math.max(s.seconds, 1)) }, title: `${s.title} · ${clock(s.seconds)}`,
       }))),
@@ -337,9 +378,15 @@ export async function renderScript(view, id) {
       onUseTitle: (t) => { titleInput.value = t; change('title', t); saveSoon.flush(); toast('Title updated.'); },
     });
     const outBox = h('div');
-    clear(packagePane).append(h('div', { class: 'card' },
-      h('h2', {}, 'Package this video'),
-      h('p', { class: 'muted' }, 'Everything around the script, written from it. Outputs can be saved to your Library, linked to this script.'),
+    clear(packagePane).append(
+      h('div', { class: 'card tone-accent', style: { marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--panel-2)' } },
+        h('div', {},
+          h('strong', {}, '1-Click Omnichannel Master Distribution'),
+          h('div', { class: 'muted small' }, 'Turn this script into native LinkedIn carousels, X threads, TikTok vertical scripts, and code cards in one pipeline.')),
+        h('button', { class: 'btn primary sm', onclick: () => omnichannelDialog(script) }, icon('sparkle', 14), 'Distribute everywhere')),
+      h('div', { class: 'card' },
+        h('h2', {}, 'Package this video'),
+        h('p', { class: 'muted' }, 'Everything around the script, written from it. Outputs can be saved to your Library, linked to this script.'),
       h('div', { class: 'tool-chips' }, PACKAGE_TOOLS.map((t) => {
         const b = h('button', {
           class: 'btn sm',
@@ -608,6 +655,75 @@ export async function renderScript(view, id) {
     }).catch((err) => toast(err.message, 'err')),
   }, icon('history', 15), 'History');
 
+  function omnichannelDialog(sc) {
+    return modal(`Omnichannel Distribution: ${sc.title}`, (close) => {
+      const box = h('div', { class: 'omni-dialog' });
+      const targets = [
+        { platform: 'linkedin', format: 'carousel', label: 'LinkedIn PDF Carousel', checked: true },
+        { platform: 'linkedin', format: 'post', label: 'LinkedIn Text Post', checked: true },
+        { platform: 'x', format: 'thread', label: 'X (Twitter) Technical Thread', checked: true },
+        { platform: 'tiktok', format: 'video', label: 'TikTok Vertical Video Script', checked: true },
+        { platform: 'instagram', format: 'reel', label: 'Instagram Reel (Beats & Visuals)', checked: true },
+        { platform: 'threads', format: 'post', label: 'Threads Conversation Starter', checked: false },
+      ];
+
+      const checkList = h('div', { class: 'grid grid-2', style: { gap: '10px', marginBottom: '16px' } },
+        targets.map((t) => {
+          const cb = h('input', { type: 'checkbox', checked: t.checked });
+          cb.addEventListener('change', () => { t.checked = cb.checked; });
+          return h('label', { class: 'row', style: { background: 'var(--panel-2)', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' } },
+            cb, h('span', { class: 'small' }, t.label));
+        }));
+
+      const resultsBox = h('div', { style: { marginTop: '16px' } });
+      const genBtn = h('button', {
+        class: 'btn primary',
+        type: 'button',
+        onclick: () => busy(genBtn, 'Generating master suite…', async () => {
+          const selected = targets.filter((t) => t.checked).map((t) => ({ platform: t.platform, format: t.format }));
+          if (!selected.length) { toast('Select at least one platform format.', 'warn'); return; }
+          const res = await api('POST', 'social/repurpose', {
+            title: sc.title,
+            source: sc.body || sc.title,
+            script_id: sc.id,
+            targets: selected,
+          });
+          const posts = res.posts || [];
+          toast(`Created ${posts.length} native drafts.`);
+          clear(resultsBox).append(
+            h('div', { class: 'card', style: { background: 'var(--panel-2)', marginTop: '12px' } },
+              h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } },
+                h('strong', {}, `Generated ${posts.length} Multi-Platform Drafts`),
+                link('/calendar', { class: 'btn sm ghost', onclick: () => close() }, icon('calendar', 13), 'View in Calendar')),
+              h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+                posts.map((p) => h('div', { class: 'row', style: { justifyContent: 'space-between', padding: '8px 12px', background: 'var(--panel)', borderRadius: '6px' } },
+                  h('div', {},
+                    h('span', { class: 'pf-chip', style: { marginRight: '8px' } }, p.platform.toUpperCase()),
+                    h('strong', { class: 'small' }, p.title || p.format)),
+                  h('div', { class: 'row' },
+                    h('button', { class: 'btn sm ghost', onclick: () => { copyText(p.body || p.parts?.join('\n\n') || ''); toast('Copied'); } }, icon('copy', 12), 'Copy'),
+                    link(`/posts/${p.id}`, { class: 'btn sm primary', onclick: () => close() }, icon('pen', 12), 'Open draft'))))),
+              h('div', { class: 'row', style: { marginTop: '14px', paddingTop: '10px', borderTop: '1px solid var(--border)', justifyContent: 'space-between' } },
+                h('span', { class: 'muted small' }, 'Have code snippets in this script?'),
+                link('/snippets', { class: 'btn sm ghost', onclick: () => close() }, icon('code', 13), 'Render Code Cards ↗'))));
+        }),
+      }, icon('sparkle', 14), 'Generate All Native Drafts');
+
+      box.append(
+        h('p', { class: 'muted small', style: { margin: '0 0 14px 0' } }, 'Generate a synchronized multi-platform distribution suite rewritten natively for each platform algorithm from this script.'),
+        checkList,
+        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, genBtn),
+        resultsBox);
+
+      return box;
+    });
+  }
+
+  const omniBtn = h('button', {
+    class: 'btn ghost sm', title: '1-click master omnichannel distribution suite (LinkedIn, X, TikTok, IG, Newsletter)',
+    onclick: () => omnichannelDialog(script),
+  }, icon('sparkle', 15), 'Distribute');
+
   view.append(
     h('div', { class: 'editor-head' },
       link('/scripts', { class: 'btn ghost sm' }, icon('back', 15), 'Scripts'),
@@ -618,7 +734,7 @@ export async function renderScript(view, id) {
     script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
       h('summary', {}, `Plan: ${script.outline.chapters.length} chapters · ~${script.outline.minutes || 10} min`),
       h('ol', {}, script.outline.chapters.map((c) => h('li', {}, h('strong', {}, c.title), c.beat ? h('span', { class: 'muted' }, ` · ${c.beat}`) : null)))) : null,
-    h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn,
+    h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn, omniBtn,
       link(`/repurpose?script=${script.id}`, { class: 'btn ghost sm', title: 'Turn this into LinkedIn, Instagram, X and Shorts posts' }, icon('repeat', 15), 'Repurpose'))),
     paneBox);
 

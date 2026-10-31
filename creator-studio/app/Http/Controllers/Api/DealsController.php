@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Deals\DealCalculator;
 use App\Domains\Deals\MediaKit;
+use App\Domains\Deals\PostCampaignReport;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Setting;
@@ -276,5 +277,15 @@ PROMPT;
                 ],
             ]);
         }
+    }
+
+    /**
+     * Verified Post-Campaign Wrap-Up Report for brand sponsors.
+     */
+    public function campaignReport(Deal $deal): JsonResponse
+    {
+        return response()->json([
+            'report' => PostCampaignReport::generate($deal),
+        ]);
     }
 }

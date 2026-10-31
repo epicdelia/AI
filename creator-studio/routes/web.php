@@ -141,6 +141,7 @@ Route::prefix('api')->group(function () {
         Route::patch('deals/{deal}', [DealsController::class, 'update']);
         Route::delete('deals/{deal}', [DealsController::class, 'destroy']);
         Route::post('deals/{deal}/sponsor-script', [DealsController::class, 'generateSponsorScript']);
+        Route::get('deals/{deal}/report', [DealsController::class, 'campaignReport']);
 
         // For you: love letters, special dates, milestones, her photo
         Route::get('love/status', [LoveController::class, 'status']);

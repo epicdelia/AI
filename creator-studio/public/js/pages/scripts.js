@@ -8,6 +8,8 @@ import {
 import { icon } from '../icons.js';
 import { outputPanel, transcribeButton, memoryList, exportMenu } from '../components.js';
 import { scriptWizard } from '../wizard.js';
+import { celebrate, loveOn } from '../love.js';
+import { setCopilotContext } from '../copilot.js';
 import { readAloudCard, thumbnailStudio, shortsPanel, brollPanel, cleanAudioButton } from '../media.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
@@ -121,7 +123,11 @@ export async function renderScript(view, id) {
   titleInput.addEventListener('input', () => { if (titleInput.value.trim()) change('title', titleInput.value.trim()); });
   const statusSelect = h('select', { class: 'status-select', 'aria-label': 'Status' },
     STATUSES.map((s) => h('option', { value: s, selected: s === script.status }, s)));
-  statusSelect.addEventListener('change', () => { change('status', statusSelect.value); saveSoon.flush(); });
+  statusSelect.addEventListener('change', () => {
+    change('status', statusSelect.value);
+    saveSoon.flush();
+    if (statusSelect.value === 'published') celebrate('published');
+  });
 
   // ---- write tab: textarea + linter ----
   const textarea = h('textarea', { class: 'script-editor', spellcheck: 'true', placeholder: '## Cold open\n[VISUAL: ...]\nStart with the payoff...' }, script.body);
@@ -417,6 +423,7 @@ export async function renderScript(view, id) {
           Object.assign(script, r.script);
           statusSelect.value = script.status;
           toast('Publishing details saved.');
+          if (script.status === 'published' && v.youtube_url) celebrate('published');
         });
       },
     },
@@ -517,7 +524,7 @@ export async function renderScript(view, id) {
       drawStats();
       drawLint(r.findings, r.findings.some((f) => f.severity === 'HARD'));
       saveState.textContent = 'Draft saved';
-      toast('Draft ready. Read it out loud and make it yours.');
+      if (loveOn()) celebrate('draft'); else toast('Draft ready. Read it out loud and make it yours.');
     }).catch((err) => {
       if (err.name === 'AbortError') return;
       saveState.textContent = 'Draft failed';
@@ -531,12 +538,48 @@ export async function renderScript(view, id) {
   const onKey = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveSoon.flush(); }
   };
+
+  // ---- Copilot: what she's looking at, and live updates when she applies its edits ----
+  setCopilotContext({
+    title: script.title,
+    script_id: script.id,
+    getSelection: () => (document.activeElement === textarea || textarea.selectionEnd > textarea.selectionStart
+      ? textarea.value.slice(textarea.selectionStart, textarea.selectionEnd) : ''),
+  });
+  const onBeforeApply = () => saveSoon.flush();
+  const onApplied = (e) => {
+    const s = e.detail?.script;
+    if (!s || s.id !== script.id) return;
+    script.body = s.body || '';
+    script.title = s.title;
+    textarea.value = script.body;
+    titleInput.value = script.title;
+    drawStats();
+    lintSoon();
+    saveState.textContent = e.detail.undone ? 'Change undone' : 'Updated by Copilot';
+  };
+  const onInsert = (e) => {
+    const text = e.detail?.text;
+    if (!text) return;
+    showTab('write');
+    textarea.focus();
+    textarea.setRangeText(text, textarea.selectionStart, textarea.selectionEnd, 'end');
+    change('body', textarea.value);
+    drawStats();
+    lintSoon();
+  };
+  window.addEventListener('copilot:before-apply', onBeforeApply);
+  window.addEventListener('copilot:applied', onApplied);
+  window.addEventListener('copilot:insert', onInsert);
   const onUnload = (e) => { if (Object.keys(pending).length) { saveSoon.flush(); e.preventDefault(); } };
   document.addEventListener('keydown', onKey);
   window.addEventListener('beforeunload', onUnload);
 
   return () => {
     draftAbort?.abort();
+    window.removeEventListener('copilot:before-apply', onBeforeApply);
+    window.removeEventListener('copilot:applied', onApplied);
+    window.removeEventListener('copilot:insert', onInsert);
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('beforeunload', onUnload);
     lintSoon.cancel();

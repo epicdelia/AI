@@ -14,7 +14,7 @@ class Setting extends Model
 
     /** Settings whose values are stored encrypted. */
     public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key',
-        'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key'];
+        'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key', 'extra_llm_keys'];
 
     public const DEFAULTS = [
         'creator_name' => '',
@@ -39,6 +39,9 @@ class Setting extends Model
         'monthly_tts_char_limit' => '',
         'monthly_video_limit' => '',
         'tour_done' => '',                // first-run tour finished (timestamp)
+        'love_notes' => '1',              // little love notes around the studio 💕
+        'love_from' => '',                // how the notes are signed, e.g. "D"
+        'love_custom' => '',              // his own notes, one per line ({name} = her name)
         'price_input_per_million' => '',  // her own prices, only for the spend estimate
         'price_output_per_million' => '',
         'tts_provider' => 'auto',         // auto | openai | elevenlabs (read-aloud)

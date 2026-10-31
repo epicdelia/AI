@@ -3,6 +3,7 @@
 // the server, so the API key never reaches the page.
 import { h, api, busy, toast, pageHead, clear, mdBlock, copyText, timeAgo, confirmDialog, navigate } from '../core.js';
 import { icon } from '../icons.js';
+import { celebrate } from '../love.js';
 
 const SAMPLE_RATE = 16000;
 
@@ -148,6 +149,7 @@ export async function renderFlow(view) {
       if (asIdea) {
         const ir = await api('POST', `notes/${r.note.id}/to-idea`);
         toast(ir.message);
+        celebrate('idea');
       } else {
         toast('Note saved.');
       }

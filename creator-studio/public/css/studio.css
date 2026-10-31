@@ -17,7 +17,63 @@
   --bad-soft: #fde6e6;
   --radius: 14px;
   --shadow: 0 2px 8px rgba(43, 34, 48, 0.04), 0 8px 24px rgba(43, 34, 48, 0.05);
+  --shadow-lg: 0 18px 50px rgba(43, 34, 48, 0.22);
+  --field: #ffffff;          /* inputs, popovers, cards inside cards */
+  --code-bg: #f3ebf0;
+  --pre-bg: #f6edf2;
+  --hover-line: #d1c1cb;
+  --overlay: rgba(43, 34, 48, 0.42);
+  --tint-love-a: var(--tint-love-a);    /* love-note / soft gradient ends */
+  --tint-love-b: var(--tint-love-b);
+  --tint-love-line: var(--tint-love-line);
+  --tint-violet: var(--tint-violet);    /* proposed-change card */
+  --tint-violet-line: var(--tint-violet-line);
+  --tint-good: var(--tint-good);
+  --tint-good-line: var(--tint-good-line);
+  --diff-old: var(--diff-old);
+  --diff-new: var(--diff-new);
+  --tool-hover: #e2cfd9;
+  color-scheme: light;
 }
+
+/* Dark mode: chosen in the sidebar (Light / Dark / System); see the theme script in index.html. */
+:root[data-theme="dark"] {
+  --bg: #17131a;
+  --panel: #211b25;
+  --field: #1b161f;
+  --ink: #f2eaf1;
+  --muted: #a99cae;
+  --line: #372d3c;
+  --accent: #f06a9b;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(240, 106, 155, 0.16);
+  --violet: #a68cf2;
+  --violet-soft: rgba(166, 140, 242, 0.17);
+  --good: #4fc78d;
+  --good-soft: rgba(79, 199, 141, 0.15);
+  --warn: #e6b04a;
+  --warn-soft: rgba(230, 176, 74, 0.15);
+  --bad: #f37878;
+  --bad-soft: rgba(243, 120, 120, 0.15);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --code-bg: #2c2431;
+  --pre-bg: #2a2230;
+  --hover-line: #54465a;
+  --overlay: rgba(6, 4, 8, 0.62);
+  --tint-love-a: #2a1d27;
+  --tint-love-b: #231d33;
+  --tint-love-line: #4a2f40;
+  --tint-violet: #241f33;
+  --tint-violet-line: #3e3458;
+  --tint-good: #1c2a24;
+  --tint-good-line: #2f4a3d;
+  --diff-old: #3a2226;
+  --diff-new: #1f3329;
+  --tool-hover: #4a3d50;
+  color-scheme: dark;
+}
+html, body { transition: background-color 0.2s ease, color 0.2s ease; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100vh; }
@@ -38,7 +94,7 @@ h2 { font-size: 1.2rem; }
 h3 { font-size: 1.05rem; }
 p { margin: 0 0 0.8em; }
 small, .muted { color: var(--muted); font-size: 0.85rem; }
-code { background: #f3ebf0; padding: 2px 6px; border-radius: 6px; font-size: 0.88em; font-family: ui-monospace, Menlo, Consolas, monospace; }
+code { background: var(--code-bg); padding: 2px 6px; border-radius: 6px; font-size: 0.88em; font-family: ui-monospace, Menlo, Consolas, monospace; }
 
 /* Main App Layout */
 .app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
@@ -175,7 +231,7 @@ code { background: #f3ebf0; padding: 2px 6px; border-radius: 6px; font-size: 0.8
   padding: 9px 18px;
   border-radius: 10px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--field);
   color: var(--ink);
   font: inherit;
   font-weight: 600;
@@ -184,7 +240,7 @@ code { background: #f3ebf0; padding: 2px 6px; border-radius: 6px; font-size: 0.8
   white-space: nowrap;
   transition: all 0.15s ease;
 }
-.btn:hover { border-color: #d1c1cb; text-decoration: none; }
+.btn:hover { border-color: var(--hover-line); text-decoration: none; }
 .btn:active { transform: translateY(1px); }
 .btn.primary {
   background: var(--accent);
@@ -214,7 +270,7 @@ input[type=text], input[type=email], input[type=password], input[type=url], inpu
   padding: 10px 13px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--field);
   font: inherit;
   color: inherit;
   transition: border-color 0.15s;
@@ -281,7 +337,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   gap: 18px;
 }
 .speech-pane {
-  background: #fff;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 18px;
@@ -337,7 +393,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   pointer-events: auto;
   padding: 12px 20px;
   border-radius: 10px;
-  background: var(--ink);
+  background: #2b2230;
   color: #fff;
   font-weight: 600;
   font-size: 0.9rem;
@@ -364,7 +420,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .auth-card {
   width: 100%;
   max-width: 440px;
-  background: #fff;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 34px;
@@ -376,7 +432,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin-top: 1.2em; margin-bottom: 0.4em; }
 .markdown-body ul, .markdown-body ol { padding-left: 20px; }
 .markdown-body blockquote { border-left: 3px solid var(--accent); margin: 0; padding-left: 14px; color: var(--muted); }
-.markdown-body pre { background: #f6edf2; padding: 12px; border-radius: 8px; overflow-x: auto; }
+.markdown-body pre { background: var(--pre-bg); padding: 12px; border-radius: 8px; overflow-x: auto; }
 
 /* Responsive */
 @media (max-width: 900px) {

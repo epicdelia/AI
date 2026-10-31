@@ -2,6 +2,7 @@
 import { h, api, link, pill, fmtDay, daysUntil, compact, timeAgo, emptyState } from '../core.js';
 import { icon } from '../icons.js';
 import { weekDots } from './goals.js';
+import { loveCard } from '../love.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -84,6 +85,7 @@ export async function renderDashboard(view) {
 
   view.append(
     heroCard(d),
+    loveCard(),
     setupCard(d.setup_checks),
     h('div', { class: 'grid grid-4', style: { marginTop: '18px' } },
       statBox(s.shipped, s.missed ? `shipped · ${s.missed} missed` : 'videos shipped', 'tone-good'),

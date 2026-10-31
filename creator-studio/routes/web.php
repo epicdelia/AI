@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
@@ -150,6 +151,19 @@ Route::prefix('api')->group(function () {
         Route::get('export/scripts/{script}', [ExportController::class, 'script']);
         Route::get('export/chats/{conversation}', [ExportController::class, 'chat']);
         Route::get('export/documents/{document}', [ExportController::class, 'document']);
+
+        // Copilot (agentic assistant panel)
+        Route::get('copilot/meta', [CopilotController::class, 'meta']);
+        Route::get('copilot/threads', [CopilotController::class, 'index']);
+        Route::post('copilot/threads', [CopilotController::class, 'store']);
+        Route::get('copilot/threads/{thread}', [CopilotController::class, 'show']);
+        Route::patch('copilot/threads/{thread}', [CopilotController::class, 'update']);
+        Route::delete('copilot/threads/{thread}', [CopilotController::class, 'destroy']);
+        Route::post('stream/copilot/threads/{thread}/messages', [CopilotController::class, 'send']);
+        Route::post('copilot/actions/{action}/apply', [CopilotController::class, 'apply']);
+        Route::post('copilot/actions/{action}/dismiss', [CopilotController::class, 'dismiss']);
+        Route::post('copilot/actions/{action}/undo', [CopilotController::class, 'undo']);
+        Route::post('copilot/feedback', [CopilotController::class, 'feedback']);
 
         // First-run tour
         Route::post('tour/done', function () {

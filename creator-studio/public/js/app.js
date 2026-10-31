@@ -3,6 +3,9 @@ import { h, api, clear, link, navigate, setUnauthorizedHandler, toast, loading }
 import { icon } from './icons.js';
 import { installPalette, openPalette } from './palette.js';
 import { startTour } from './tour.js';
+import { themeSwitch } from './theme.js';
+import { setLove, dailyHello, heartButton } from './love.js';
+import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered } from './copilot.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderBreakouts } from './pages/breakouts.js';
@@ -65,11 +68,12 @@ function buildShell() {
 
   const shell = h('div', { class: 'app-shell' },
     h('aside', { class: 'sidebar' },
-      h('div', { class: 'brand' }, h('div', { class: 'logo' }, '🎬'), h('span', {}, 'Creator Studio'), menuBtn),
+      h('div', { class: 'brand' }, h('div', { class: 'logo' }, '🎬'), h('span', {}, 'Creator Studio'), heartButton(), menuBtn),
       h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)' }, icon('search', 16), h('span', {}, 'Search'), h('kbd', {}, 'Ctrl K')),
       h('nav', { class: 'nav', onclick: () => document.body.classList.remove('nav-open') }, navLinks),
       h('div', { class: 'sidebar-footer' },
         h('div', {}, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
+        themeSwitch(),
         h('button', { class: 'btn ghost sm', onclick: () => startTour() }, icon('play', 14), 'Take the tour'),
         h('button', { class: 'btn sm', onclick: logout }, icon('logout'), 'Log out'))),
     content);
@@ -79,6 +83,7 @@ function buildShell() {
 
 async function logout() {
   try { await api('POST', 'auth/logout'); } catch { /* already logged out */ }
+  unmountCopilot();
   state.user = null;
   state.shell = null;
   navigate('/', { replace: true });
@@ -109,6 +114,7 @@ async function route() {
   }
 
   const content = state.shell.content;
+  resetCopilotContext();
   clear(content).append(loading());
   window.scrollTo(0, 0);
 
@@ -129,7 +135,9 @@ async function route() {
     }
     state.cleanup = cleanup;
     clear(content).append(view);
-    document.title = `${view.querySelector('h1')?.textContent || 'Creator Studio'} · Creator Studio`;
+    const heading = view.querySelector('h1')?.textContent || '';
+    document.title = `${heading || 'Creator Studio'} · Creator Studio`;
+    pageRendered(heading);
   } catch (err) {
     console.error(err);
     if (err.status === 401) return;
@@ -141,7 +149,7 @@ async function route() {
 }
 
 async function boot() {
-  clear(root).append(h('div', { class: 'auth-wrapper' }, loading('Opening your studio…')));
+  clear(root).append(h('div', { class: 'auth-wrapper' }, loading('Opening your studio… 💕')));
   let status;
   try {
     status = await api('GET', 'auth/status');
@@ -157,20 +165,31 @@ async function boot() {
     state.shell = null;
     renderAuth(root, status.initialized, async (user) => {
       state.user = user;
+      // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
+      const st = await api('GET', 'auth/status').catch(() => ({}));
+      setLove(st.love);
+      window.__studioName = st.love?.name || user?.name || '';
+      state.shell = null;
+      mountCopilot();
       await route();
       // A brand-new studio gets the tour; a returning login only if it was never finished.
-      const st = await api('GET', 'auth/status').catch(() => ({}));
-      if (st.tour_done === false) startTour();
+      if (st.tour_done === false) startTour({ onDone: dailyHello });
+      else dailyHello();
     });
     return;
   }
   state.user = status.user;
+  setLove(status.love);
+  window.__studioName = status.love?.name || status.user?.name || '';
+  mountCopilot();
   await route();
-  if (status.tour_done === false) startTour();
+  if (status.tour_done === false) startTour({ onDone: dailyHello });
+  else dailyHello();
 }
 
 setUnauthorizedHandler(() => {
   if (!state.user) return;
+  unmountCopilot();
   state.user = null;
   state.shell = null;
   toast('Please log in again.', 'err');

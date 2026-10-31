@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Domains\Engine\Catalog\ModelCatalog;
+use App\Domains\Engine\Data\ToolTurn;
+use App\Domains\Engine\EngineKeys;
 use App\Domains\Engine\EngineManager;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Usage\AiUsage;
@@ -23,6 +25,11 @@ class Llm
     private string $feature = 'general';
 
     private ?float $temperature = null;
+
+    private ?string $modelOverride = null;
+
+    /** @var callable|null test hook for agentTurn: fn(string $system, array $messages, array $tools): ToolTurn */
+    public static $toolFake = null;
 
     public function __construct(private ?EngineManager $engines = null)
     {
@@ -138,6 +145,48 @@ class Llm
         $this->record($engine, $result->model, $result->inputTokens, $result->outputTokens, $started);
 
         return $result->text;
+    }
+
+    /** Use a specific model for the next calls (the Copilot's model picker); null = Settings. */
+    public function model(?string $model): static
+    {
+        $clone = clone $this;
+        $clone->modelOverride = $model ?: null;
+
+        return $clone;
+    }
+
+    /**
+     * One step of the Copilot's tool loop (native function calling on the current engine).
+     *
+     * @param  array<int, array>  $messages  provider-neutral transcript (see EngineDriver::toolChat)
+     * @param  array<int, array{name: string, description: string, parameters: array}>  $tools
+     */
+    public function agentTurn(string $system, array $messages, array $tools, int $timeout = 180): ToolTurn
+    {
+        UsageLimit::ensure('token');
+        if (self::$toolFake) {
+            return (self::$toolFake)($system, $messages, $tools);
+        }
+
+        @set_time_limit($timeout + 30);
+        // "anthropic|claude-sonnet-5-5" picks another provider (with its own key); a bare id stays on the Settings engine.
+        [$engine, $model] = EngineKeys::parse($this->modelOverride);
+        $started = microtime(true);
+        $options = ['timeout' => $timeout, 'max_tokens' => 4000]
+            + ($model ? ['model' => $model] : [])
+            + ($engine !== $this->engines->current() ? ['api_key' => EngineKeys::for($engine)] : []);
+
+        try {
+            $turn = $this->engines->driver($engine)->toolChat($system, $messages, $tools, $options);
+        } catch (Throwable $e) {
+            $this->record($engine, $model, null, null, $started, $e->getMessage());
+
+            throw $e instanceof RuntimeException ? $e : new RuntimeException($e->getMessage(), 0, $e);
+        }
+        $this->record($engine, $turn->model, $turn->inputTokens, $turn->outputTokens, $started);
+
+        return $turn;
     }
 
     /** Ask for JSON and decode it, tolerating ```json fences and chatter around the object. */

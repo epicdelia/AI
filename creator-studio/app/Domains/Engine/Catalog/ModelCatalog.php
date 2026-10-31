@@ -104,17 +104,73 @@ class ModelCatalog
         };
     }
 
+    /** @var array<string, array<string, array>>|null */
+    private static ?array $merged = null;
+
+    /**
+     * Curated models plus every chat model ported from MagicAI's EntityEnum
+     * (magicai_models.php, generated). Curated entries win; MagicAI-only reasoning models get
+     * efforts from EntityEnum's own ladders. Same tuple shape as models():
+     * [label, efforts, vision, deprecated] plus the full MagicAI label as a 5th "description".
+     *
+     * @return array<string, array>
+     */
+    public static function all(EngineEnum $engine): array
+    {
+        if (self::$merged === null) {
+            self::$merged = [];
+            $ported = require __DIR__.'/magicai_models.php';
+            foreach (EngineEnum::cases() as $e) {
+                $rows = [];
+                foreach ($ported[$e->value] ?? [] as $id => [$label, $reasoning, $deprecated]) {
+                    $short = trim(preg_split('/\s+\(|\s{2,}|\s+(?=Enhanced|Our |The )/', $label)[0]);
+                    $rows[$id] = [mb_strimwidth($short, 0, 48, '…'), $reasoning ? self::laddersFor($id) : [], self::guessVision($e, $id), (bool) $deprecated, $label];
+                }
+                foreach (self::models($e) as $id => $m) {
+                    $rows[$id] = [$m[0], $m[1], $m[2], $m[3], $rows[$id][4] ?? $m[0]];
+                }
+                self::$merged[$e->value] = $rows;
+            }
+        }
+
+        return self::$merged[$engine->value] ?? [];
+    }
+
+    /** EntityEnum::supportedReasoningEfforts() families, for ported ids not in the curated list. */
+    private static function laddersFor(string $id): array
+    {
+        return match (true) {
+            str_contains($id, '-pro') => self::GPT5_PRO,
+            str_starts_with($id, 'gpt-5.5') => self::GPT5_5,
+            (bool) preg_match('/^gpt-5\.\d/', $id) => self::GPT5_1_PLUS,
+            str_starts_with($id, 'gpt-5') => self::GPT5_ORIGINAL,
+            default => self::O_SERIES,
+        };
+    }
+
+    private static function guessVision(EngineEnum $engine, string $id): bool
+    {
+        return match ($engine) {
+            EngineEnum::OPENAI, EngineEnum::ASSEMBLYAI => (bool) preg_match('/^(gpt-4o|gpt-4\.1|gpt-5|o1$|o3$|o4)/', $id) && ! str_contains($id, 'search') && ! str_contains($id, 'realtime'),
+            EngineEnum::ANTHROPIC => ! str_starts_with($id, 'claude-2'),
+            EngineEnum::GEMINI => true,
+            EngineEnum::XAI => str_contains($id, 'vision') || str_starts_with($id, 'grok-4'),
+            EngineEnum::OPENROUTER => (bool) preg_match('~^(openai/gpt-4o|openai/gpt-5|anthropic/claude-3|google/gemini)~', $id),
+            default => false,
+        };
+    }
+
     public static function find(EngineEnum $engine, string $model): ?array
     {
-        $m = self::models($engine)[$model] ?? null;
+        $m = self::all($engine)[$model] ?? null;
         if ($m === null && $engine === EngineEnum::OPENROUTER && str_contains($model, '/')) {
             // OpenRouter ids are "provider/model": reuse the upstream rules where we know them.
             [$vendor, $id] = explode('/', $model, 2);
             $upstream = ['openai' => EngineEnum::OPENAI, 'anthropic' => EngineEnum::ANTHROPIC, 'google' => EngineEnum::GEMINI, 'x-ai' => EngineEnum::XAI, 'deepseek' => EngineEnum::DEEPSEEK][$vendor] ?? null;
-            $m = $upstream ? (self::models($upstream)[$id] ?? null) : null;
+            $m = $upstream ? (self::all($upstream)[$id] ?? null) : null;
         }
 
-        return $m ? ['id' => $model, 'label' => $m[0], 'efforts' => $m[1], 'vision' => $m[2], 'deprecated' => $m[3]] : null;
+        return $m ? ['id' => $model, 'label' => $m[0], 'efforts' => $m[1], 'vision' => $m[2], 'deprecated' => $m[3], 'description' => $m[4] ?? $m[0]] : null;
     }
 
     /** EntityEnum::isReasoningModel(). Unknown OpenAI ids starting with "gpt-5" or "o1".."o9" count too. */
@@ -175,8 +231,8 @@ class ModelCatalog
     {
         $out = [];
         foreach (EngineEnum::cases() as $engine) {
-            $out[$engine->value] = collect(self::models($engine))
-                ->map(fn ($m, $id) => ['id' => $id, 'label' => $m[0], 'reasoning' => $m[1] !== [], 'efforts' => $m[1], 'vision' => $m[2], 'deprecated' => $m[3]])
+            $out[$engine->value] = collect(self::all($engine))
+                ->map(fn ($m, $id) => ['id' => $id, 'label' => $m[0], 'reasoning' => $m[1] !== [], 'efforts' => $m[1], 'vision' => $m[2], 'deprecated' => $m[3], 'description' => $m[4] ?? $m[0]])
                 ->values()->all();
         }
 

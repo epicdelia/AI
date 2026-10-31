@@ -30,6 +30,21 @@ function append(el, children) {
   }
 }
 
+// Native append()/prepend()/replaceChildren() turn an array argument into the text
+// "[object HTMLButtonElement],[object ...]". Pages pass mapped arrays all the time (h() already
+// flattens them), so make the native methods flatten arrays and skip null/false/undefined too.
+for (const proto of [Element.prototype, DocumentFragment.prototype]) {
+  for (const name of ['append', 'prepend', 'replaceChildren']) {
+    const native = proto[name];
+    if (native.__flattens) continue;
+    const patched = function (...items) {
+      return native.apply(this, items.flat(Infinity).filter((x) => x !== null && x !== undefined && x !== false));
+    };
+    patched.__flattens = true;
+    proto[name] = patched;
+  }
+}
+
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -89,7 +104,7 @@ export async function api(method, path, body) {
  * onDelta(text) gets each chunk; resolves with the "done" payload; throws ApiError on
  * an "error" event or a normal JSON error response (validation runs before streaming).
  */
-export async function apiStream(path, body, { onDelta = () => {}, onMessage = () => {}, onStatus = () => {}, signal } = {}) {
+export async function apiStream(path, body, { onDelta = () => {}, onMessage = () => {}, onStatus = () => {}, onEvent = () => {}, signal } = {}) {
   let res;
   try {
     res = await fetch(`/api/stream/${path}`, {
@@ -123,6 +138,7 @@ export async function apiStream(path, body, { onDelta = () => {}, onMessage = ()
     else if (event === 'status') onStatus(JSON.parse(data));
     else if (event === 'done') result = JSON.parse(data);
     else if (event === 'error') failure = new ApiError(JSON.parse(data), 502, { streamed: true }); // request was accepted, then the AI failed
+    else if (event !== 'stop') { try { onEvent(event, JSON.parse(data)); } catch { onEvent(event, data); } } // tool / action / client / note ...
   };
 
   for (;;) {

@@ -1,6 +1,7 @@
 // Weekly goals: the commitment scoreboard and the blunt-but-kind mentor check-in.
 import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, fmtDay, isoDay, daysUntil, compact, link, mdBlock } from '../core.js';
 import { icon } from '../icons.js';
+import { celebrate } from '../love.js';
 
 /** The row of week squares, also used on the dashboard. */
 export function weekDots(weeks, currentId) {
@@ -110,8 +111,10 @@ export async function renderGoals(view) {
     const checkBtn = h('button', {
       class: 'btn primary',
       onclick: () => busy(checkBtn, 'Checking your uploads…', async () => {
+        const before = weeks.filter((w) => w.status === 'shipped').length;
         const r = await api('POST', 'goals/checkin');
         toast(r.message);
+        if (r.weeks.filter((w) => w.status === 'shipped').length > before) celebrate('shipped');
         await draw();
       }),
     }, icon('refresh'), 'Check in');

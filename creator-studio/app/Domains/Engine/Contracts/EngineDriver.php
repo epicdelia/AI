@@ -3,6 +3,7 @@
 namespace App\Domains\Engine\Contracts;
 
 use App\Domains\Engine\Data\ChatResult;
+use App\Domains\Engine\Data\ToolTurn;
 use App\Domains\Engine\Enums\EngineEnum;
 
 interface EngineDriver
@@ -21,4 +22,15 @@ interface EngineDriver
      * @param  callable(string $delta): void  $onDelta
      */
     public function stream(string $system, array $messages, callable $onDelta, array $options = []): ChatResult;
+
+    /**
+     * One step of a tool-using conversation (native function calling).
+     *
+     * $messages use a provider-neutral shape:
+     *   ['role' => 'user', 'content' => string]
+     *   ['role' => 'assistant', 'content' => ?string, 'tool_calls' => [['id', 'name', 'args']]]
+     *   ['role' => 'tool', 'tool_call_id' => string, 'name' => string, 'content' => string]
+     * $tools: [['name', 'description', 'parameters' => JSON schema]]
+     */
+    public function toolChat(string $system, array $messages, array $tools, array $options = []): ToolTurn;
 }

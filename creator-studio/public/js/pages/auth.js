@@ -1,5 +1,6 @@
 // First-run setup (create the one account) and login.
 import { h, api, clear, field, formData } from '../core.js';
+import { themeSwitch } from '../theme.js';
 
 export function renderAuth(root, initialized, onDone) {
   const error = h('div', { class: 'form-error', role: 'alert', hidden: true });
@@ -34,6 +35,7 @@ export function renderAuth(root, initialized, onDone) {
   }, fields, error, submit);
 
   clear(root).append(h('div', { class: 'auth-wrapper' },
+    h('div', { class: 'auth-theme' }, themeSwitch()),
     h('div', { class: 'auth-card' },
       h('div', { class: 'brand', style: { padding: '0 0 18px' } }, h('div', { class: 'logo' }, '🎬'), h('span', {}, 'Creator Studio')),
       h('h1', {}, initialized ? 'Welcome back' : 'Set up your studio'),

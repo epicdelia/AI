@@ -1,6 +1,7 @@
 // Settings: profile & brand voice, AI engine, API keys, research thresholds, diagnostics, usage.
 import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo } from '../core.js';
 import { icon } from '../icons.js';
+import { themeSwitch } from '../theme.js';
 
 const TIMEZONES = (() => {
   try { return Intl.supportedValuesOf('timeZone'); } catch { return ['Europe/London', 'Europe/Brussels', 'Europe/Amsterdam', 'America/New_York', 'America/Los_Angeles', 'UTC']; }
@@ -120,7 +121,9 @@ export async function renderSettings(view) {
       h('div', {}, field('Model', modelInput, 'leave empty for the default'), modelInfo, modelList),
       effortField,
       h('div', { class: 'span-2' }, baseField),
-      h('div', { class: 'span-2' }, keyFieldBox))),
+      h('div', { class: 'span-2' }, keyFieldBox),
+      h('div', { class: 'span-2' }, secretField('extra_llm_keys', 'More AI keys (optional)',
+        'lets the Copilot use other providers too, e.g. anthropic=sk-ant-…; gemini=AIza…; openrouter=sk-or-… (separate with ;)')))),
 
   section('YouTube & dictation keys', null,
     h('div', { class: 'grid grid-2 tight' },
@@ -143,6 +146,16 @@ export async function renderSettings(view) {
     h('div', { class: 'grid grid-2 tight' },
       secretField('embedding_api_key', 'Extra OpenAI key (optional)', 'used for Memory, read-aloud and thumbnail mockups when your AI engine isn’t OpenAI', 'https://platform.openai.com/api-keys'),
       field('Embedding model', text('embedding_model', { placeholder: 'default for your provider' }), 'leave empty unless you know you need another'))),
+
+  section('Appearance', 'Light, dark, or follow your computer. Ctrl+Shift+L flips between light and dark. Saved in this browser.',
+    themeSwitch()),
+
+  section('Love notes 💕', 'Little notes around the studio: a note of the day, a hello each morning and cheers when she ships. Add your own below.',
+    h('div', { class: 'grid grid-2 tight' },
+      field('Love notes', (inputs.love_notes = h('select', { name: 'love_notes' },
+        [['1', 'On 💕'], ['0', 'Off']].map(([v, l]) => h('option', { value: v, selected: v === (s.love_notes ?? '1') }, l))))),
+      field('Signed by', text('love_from', { placeholder: 'e.g. your name or a nickname' }), 'shown under each note'),
+      h('div', { class: 'span-2' }, field('Your own notes', area('love_custom', 4, { placeholder: 'One note per line. Use {name} for her name.\nI love you, {name} ❤️\nCoffee date after you film this? ☕😘' }), 'mixed in with the built-in ones')))),
 
   section('Usage limits', 'Monthly caps so a busy week can’t run up a surprise bill. Leave empty for no limit. When a cap is reached the AI stops politely until the 1st (or until you raise it).',
     h('div', { class: 'grid grid-3 tight' },

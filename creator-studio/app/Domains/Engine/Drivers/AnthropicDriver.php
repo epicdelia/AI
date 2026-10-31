@@ -3,6 +3,7 @@
 namespace App\Domains\Engine\Drivers;
 
 use App\Domains\Engine\Data\ChatResult;
+use App\Domains\Engine\Data\ToolTurn;
 use App\Domains\Engine\Stream\SseParser;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -82,10 +83,61 @@ class AnthropicDriver extends BaseDriver
         return new ChatResult(trim($text), $in, $out, $model);
     }
 
+    /** Native tool use: `tools` with input_schema in, `tool_use` content blocks out. */
+    public function toolChat(string $system, array $messages, array $tools, array $options = []): ToolTurn
+    {
+        $body = $this->body($system, [], $options);
+        $body['messages'] = self::toolMessages($messages);
+        if ($tools) {
+            $body['tools'] = array_map(fn ($t) => ['name' => $t['name'], 'description' => $t['description'], 'input_schema' => $t['parameters']], $tools);
+        }
+
+        $resp = $this->send($body, $options);
+        if ($resp->failed()) {
+            throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($resp->json('error.message') ?? $resp->body()));
+        }
+
+        $blocks = collect($resp->json('content') ?? []);
+        $calls = $blocks->where('type', 'tool_use')->map(fn ($b) => ['id' => (string) $b['id'], 'name' => (string) $b['name'], 'args' => (array) ($b['input'] ?? [])])->values()->all();
+        $text = trim($blocks->where('type', 'text')->pluck('text')->implode(''));
+        if ($text === '' && ! $calls) {
+            throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
+        }
+
+        return new ToolTurn($text, $calls, $resp->json('usage.input_tokens'), $resp->json('usage.output_tokens'), $resp->json('model') ?? $body['model']);
+    }
+
+    /** Neutral transcript → Anthropic messages; consecutive tool results share one user turn. */
+    private static function toolMessages(array $messages): array
+    {
+        $out = [];
+        foreach ($messages as $m) {
+            if ($m['role'] === 'tool') {
+                $block = ['type' => 'tool_result', 'tool_use_id' => $m['tool_call_id'], 'content' => (string) $m['content']];
+                $last = array_key_last($out);
+                if ($last !== null && $out[$last]['role'] === 'user' && is_array($out[$last]['content']) && ($out[$last]['content'][0]['type'] ?? '') === 'tool_result') {
+                    $out[$last]['content'][] = $block;
+                } else {
+                    $out[] = ['role' => 'user', 'content' => [$block]];
+                }
+            } elseif ($m['role'] === 'assistant' && ! empty($m['tool_calls'])) {
+                $content = ($m['content'] ?? '') !== '' ? [['type' => 'text', 'text' => $m['content']]] : [];
+                foreach ($m['tool_calls'] as $c) {
+                    $content[] = ['type' => 'tool_use', 'id' => $c['id'], 'name' => $c['name'], 'input' => (object) $c['args']];
+                }
+                $out[] = ['role' => 'assistant', 'content' => $content];
+            } else {
+                $out[] = ['role' => $m['role'], 'content' => (string) $m['content']];
+            }
+        }
+
+        return $out;
+    }
+
     private function body(string $system, array $messages, array $options): array
     {
         $body = [
-            'model' => $this->model(),
+            'model' => $this->model($options),
             'max_tokens' => $options['max_tokens'] ?? 8000,
             'system' => $system,
             'messages' => array_map([$this, 'message'], $messages),
@@ -122,6 +174,6 @@ class AnthropicDriver extends BaseDriver
             }
 
             return $http->post($this->baseUrl().'/messages', $body);
-        });
+        }, $options);
     }
 }

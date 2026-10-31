@@ -47,6 +47,12 @@ class ApiController extends Controller
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
             'tour_done' => $user ? Setting::has('tour_done') : null,
+            'love' => $user ? [
+                'enabled' => Setting::get('love_notes', '1') === '1',
+                'name' => Setting::get('creator_name') ?: $user->name,
+                'from' => Setting::get('love_from', ''),
+                'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) Setting::get('love_custom', ''))))),
+            ] : null,
             'user' => $user ? [
                 'id' => $user->id,
                 'name' => $user->name,

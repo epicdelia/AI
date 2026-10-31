@@ -4,7 +4,7 @@ import { h, api, navigate } from './core.js';
 import { icon } from './icons.js';
 
 const STEPS = [
-  { title: 'Welcome to your studio 🎬', text: 'A quick tour of what’s where. It takes a minute, and you can skip any time.' },
+  { title: 'Welcome to your studio 🎬💕', text: 'Someone who loves you very much built this just for you. A quick tour of what’s where: it takes a minute, and you can skip any time.' },
   { to: '/', title: 'Dashboard', text: 'This week’s video, your streak, and what needs doing next. Start every session here.' },
   { to: '/flow', title: 'Dictate', text: 'Hold Space and ramble an idea out loud. You get a clean note you can turn into a video idea.' },
   { to: '/breakouts', title: 'Breakouts', text: 'Add channels in your niche (and news feeds). The scan finds videos doing far better than usual: proof a topic is hot.' },

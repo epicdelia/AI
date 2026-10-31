@@ -3,6 +3,7 @@ import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmD
 import { icon } from '../icons.js';
 import { memoryDialog } from '../components.js';
 import { scriptWizard } from '../wizard.js';
+import { celebrate, loveOn } from '../love.js';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -109,7 +110,7 @@ export async function renderIdeas(view) {
 
     const actions = [];
     if (idea.status === 'new' || idea.status === 'dropped') {
-      actions.push(h('button', { class: 'btn sm pick', onclick: () => update(idea, { status: 'picked' }, 'Picked. Nice choice.').catch((e) => toast(e.message, 'err')) }, icon('heart', 15), 'Pick'));
+      actions.push(h('button', { class: 'btn sm pick', onclick: () => update(idea, { status: 'picked' }, loveOn() ? null : 'Picked. Nice choice.').then(() => celebrate('picked')).catch((e) => toast(e.message, 'err')) }, icon('heart', 15), 'Pick'));
     }
     if (idea.status === 'new' || idea.status === 'picked') {
       actions.push(h('button', { class: 'btn sm', title: 'Pick a title and chapter plan first', onclick: () => scriptWizard({ idea }) }, icon('target', 15), 'Plan it'), draftBtn, blankBtn);

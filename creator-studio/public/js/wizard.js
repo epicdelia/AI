@@ -2,6 +2,7 @@
 // plan, choose a length; the draft then streams into the editor following that plan.
 import { h, api, busy, toast, modal, clear, navigate } from './core.js';
 import { icon } from './icons.js';
+import { celebrate } from './love.js';
 
 /** opts: { idea } (an idea object) or nothing for a free topic. */
 export function scriptWizard({ idea = null } = {}) {
@@ -106,6 +107,7 @@ export function scriptWizard({ idea = null } = {}) {
         onclick: () => busy(go, 'Saving…', async () => {
           const r = await api('POST', 'wizard/create', { ...base(), title: st.title, minutes: st.minutes, chapters: st.chapters });
           close(true);
+          celebrate('wizard');
           navigate(`/scripts/${r.script.id}?draft=1`);
         }),
       }, icon('pen', 15), 'Write the script');

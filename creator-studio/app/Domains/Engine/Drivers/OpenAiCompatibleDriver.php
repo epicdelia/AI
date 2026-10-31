@@ -4,6 +4,7 @@ namespace App\Domains\Engine\Drivers;
 
 use App\Domains\Engine\Catalog\ModelCatalog;
 use App\Domains\Engine\Data\ChatResult;
+use App\Domains\Engine\Data\ToolTurn;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Engine\Stream\SseParser;
 use App\Models\Setting;
@@ -89,13 +90,71 @@ class OpenAiCompatibleDriver extends BaseDriver
         return new ChatResult(trim($text), $in, $out, $model);
     }
 
+    /** Native function calling: `tools` in, `tool_calls` out (OpenAI, Gemini, OpenRouter, DeepSeek, xAI, Together...). */
+    public function toolChat(string $system, array $messages, array $tools, array $options = []): ToolTurn
+    {
+        if ($this->engine === EngineEnum::PERPLEXITY) {
+            $tools = []; // Perplexity's API has no function calling: answer without tools.
+        }
+        $body = $this->body($system, [], $options);
+        $body['messages'] = array_merge([['role' => 'system', 'content' => $system]], self::toolMessages($messages));
+        if ($tools) {
+            $body['tools'] = array_map(fn ($t) => ['type' => 'function', 'function' => [
+                'name' => $t['name'], 'description' => $t['description'], 'parameters' => $t['parameters'],
+            ]], $tools);
+            $body['tool_choice'] = 'auto';
+        }
+
+        $resp = $this->send($body, $options);
+        // Some models/gateways don't do function calling: answer without tools instead of failing.
+        if ($resp->status() === 400 && isset($body['tools']) && preg_match('/tool|function/i', $resp->body())) {
+            unset($body['tools'], $body['tool_choice']);
+            $resp = $this->send($body, $options);
+        }
+        if ($resp->failed()) {
+            $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
+            throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
+        }
+
+        $calls = [];
+        foreach ($resp->json('choices.0.message.tool_calls') ?? [] as $i => $c) {
+            $args = json_decode((string) ($c['function']['arguments'] ?? '{}'), true);
+            $calls[] = ['id' => (string) ($c['id'] ?? 'call_'.$i), 'name' => (string) ($c['function']['name'] ?? ''), 'args' => is_array($args) ? $args : []];
+        }
+        $text = trim((string) ($resp->json('choices.0.message.content') ?? ''));
+        if ($text === '' && ! $calls) {
+            throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
+        }
+
+        return new ToolTurn($text, $calls, $resp->json('usage.prompt_tokens'), $resp->json('usage.completion_tokens'), $resp->json('model') ?? $body['model']);
+    }
+
+    /** Neutral transcript → OpenAI chat messages (assistant tool_calls + role "tool" results). */
+    private static function toolMessages(array $messages): array
+    {
+        $out = [];
+        foreach ($messages as $m) {
+            if ($m['role'] === 'tool') {
+                $out[] = ['role' => 'tool', 'tool_call_id' => $m['tool_call_id'], 'content' => (string) $m['content']];
+            } elseif ($m['role'] === 'assistant' && ! empty($m['tool_calls'])) {
+                $out[] = ['role' => 'assistant', 'content' => ($m['content'] ?? '') !== '' ? $m['content'] : null, 'tool_calls' => array_map(fn ($c) => [
+                    'id' => $c['id'], 'type' => 'function', 'function' => ['name' => $c['name'], 'arguments' => json_encode((object) $c['args'])],
+                ], $m['tool_calls'])];
+            } else {
+                $out[] = ['role' => $m['role'], 'content' => (string) $m['content']];
+            }
+        }
+
+        return $out;
+    }
+
     /**
      * Request body. Reasoning models (ModelCatalog, ported from MagicAI's EntityEnum) get no
      * temperature, max_completion_tokens instead of max_tokens, and a resolved reasoning_effort.
      */
     private function body(string $system, array $messages, array $options): array
     {
-        $model = $this->model();
+        $model = $this->model($options);
         $body = [
             'model' => $model,
             'messages' => array_merge([['role' => 'system', 'content' => $system]], array_map([$this, 'message'], $messages)),
@@ -147,6 +206,6 @@ class OpenAiCompatibleDriver extends BaseDriver
             }
 
             return $http->post($this->baseUrl().'/chat/completions', $body);
-        });
+        }, $options);
     }
 }

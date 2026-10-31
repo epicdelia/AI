@@ -34,6 +34,9 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Clean up audio** | Remove background noise from a recording (ElevenLabs voice isolator) |
 | **Export** | Scripts (any sections), chats and Library documents as Word, PDF (print), Markdown or text |
 | **First-run tour** | A one-minute walkthrough of every page; replay it from the sidebar |
+| **Copilot** (Ctrl+I) | Agentic assistant on every page: floating or docked, page-aware (current script, selection), Agent/Ask modes, any model from any provider with a key, `/` commands, file attachments, voice input, stop, history, projects, feedback. In Agent mode it proposes changes you Apply (and can Undo) |
+| **Dark mode** | Light / Dark / System switch in the sidebar, login screen and Settings (Ctrl+Shift+L) |
+| **Love notes 💕** | A note of the day, a hello each morning and cheers at big moments; sign them and add your own in Settings |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.
@@ -49,7 +52,17 @@ Read-aloud, mockups and Shorts are optional and billed by each provider per use.
   401/403/429/5xx.
 - `app/Domains/Usage/UsageLimit` (from `Entity\Concerns\HasCreditLimit`) and per-unit usage rows
   (from `AITokenType` / the Calculate concerns).
-- Login throttling (from `Helpers\RateLimiter`): 5 wrong passwords per email + IP → 15-minute lock. Generated audio
+- Login throttling (from `Helpers\RateLimiter`): 5 wrong passwords per email + IP → 15-minute lock.
+- All 112 chat models from `EntityEnum` (`app/Domains/Engine/Catalog/magicai_models.php`, generated) merged
+  with the curated catalog; the Copilot can use any provider via "More AI keys".
+
+### Copilot internals
+
+`app/Domains/Copilot`: `CopilotAgent` runs a native function-calling loop (`EngineDriver::toolChat`:
+OpenAI `tools`/`tool_calls`, Anthropic `tool_use`/`tool_result`) for up to 8 steps, streaming
+`status` / `tool` / `action` / `client` / `note` / `data` / `done` events. `CopilotTools` defines
+read tools (run immediately), client tools (open a page) and write tools, which are stored as
+`copilot_actions` proposals and only run on Apply, with Undo. Generated audio
 and images are stored in `storage/app/private/media` and only served to the logged-in user.
 
 ## Automation

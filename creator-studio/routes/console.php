@@ -3,6 +3,8 @@
 use App\Domains\Feeds\FeedReader;
 use App\Domains\Feeds\Models\Feed;
 use App\Domains\Feeds\Models\FeedItem;
+use App\Domains\Media\ClipProject;
+use App\Domains\Media\ShortsClipper;
 use App\Domains\Memory\Memory;
 use App\Domains\Memory\MemoryChunk;
 use App\Domains\Usage\AiUsage;
@@ -59,6 +61,22 @@ Artisan::command('studio:memory {--fresh : Drop the index first (after changing 
     return $track($this, 'memory', fn () => 'Memory indexed: '.$memory->reindexAll().' chunk(s) written.');
 })->purpose('Index scripts, transcripts, Library items, notes and ideas for Memory search');
 
+Artisan::command('studio:clips', function (ShortsClipper $clipper) use ($track) {
+    return $track($this, 'clips', function () use ($clipper) {
+        $pending = ClipProject::where('status', 'processing')->get();
+        foreach ($pending as $p) {
+            if ($p->created_at->lt(now()->subDay())) {
+                $p->update(['status' => 'failed', 'error' => 'Vizard didn’t finish within 24 hours.']);
+
+                continue;
+            }
+            $clipper->refresh($p);
+        }
+
+        return 'Checked '.$pending->count().' Shorts project(s); '.ClipProject::where('status', 'done')->whereIn('id', $pending->pluck('id'))->count().' finished.';
+    });
+})->purpose('Collect finished Shorts from Vizard');
+
 Artisan::command('studio:prune', function () use ($track) {
     return $track($this, 'prune', function () {
         // Like MagicAI's app:clear-* commands: keep the database small.
@@ -97,4 +115,5 @@ Schedule::command('studio:scan')->dailyAt('07:00')->timezone($tz)->when($enabled
 Schedule::command('studio:feeds')->everyThreeHours()->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:checkin')->weeklyOn(1, '08:00')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:memory')->dailyAt('03:30')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:clips')->everyTenMinutes()->when(fn () => rescue(fn () => ClipProject::where('status', 'processing')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

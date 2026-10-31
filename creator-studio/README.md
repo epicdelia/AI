@@ -25,6 +25,12 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Memory** | Search across your own scripts, transcripts, Library, notes and ideas; used by drafts and chat |
 | **Ctrl+K** | Search everything from anywhere |
 | **Upload documents** | PDF, Word, text, Markdown, CSV and SRT/VTT subtitles into the Library (and Memory) |
+| **Listen** | Hear a script (or a selection) read aloud to check pacing: OpenAI or ElevenLabs voices |
+| **Thumbnail mockups** | 16:9 mockups from a scene + text, optionally with her own photos as reference (OpenAI gpt-image or fal.ai) |
+| **Cut Shorts** | Vizard finds the best moments in a published video and returns vertical clips with captions and viral scores |
+
+Read-aloud, mockups and Shorts are optional and billed by each provider per use. Generated audio
+and images are stored in `storage/app/private/media` and only served to the logged-in user.
 
 ## Automation
 

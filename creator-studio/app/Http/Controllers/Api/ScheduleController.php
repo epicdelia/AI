@@ -16,6 +16,7 @@ class ScheduleController extends Controller
         'feeds' => ['command' => 'studio:feeds', 'label' => 'Refresh news feeds', 'when' => 'Every 3 hours'],
         'checkin' => ['command' => 'studio:checkin', 'label' => 'Weekly check-in & mentor verdict', 'when' => 'Mondays at 08:00'],
         'memory' => ['command' => 'studio:memory', 'label' => 'Update Memory index', 'when' => 'Daily at 03:30'],
+        'clips' => ['command' => 'studio:clips', 'label' => 'Collect finished Shorts (Vizard)', 'when' => 'Every 10 min while any are processing'],
         'prune' => ['command' => 'studio:prune', 'label' => 'Clean up old logs & uploads', 'when' => 'Daily at 04:00'],
     ];
 

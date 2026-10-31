@@ -13,7 +13,8 @@ class Setting extends Model
     protected $fillable = ['key', 'value'];
 
     /** Settings whose values are stored encrypted. */
-    public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key'];
+    public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key',
+        'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key'];
 
     public const DEFAULTS = [
         'creator_name' => '',
@@ -32,6 +33,10 @@ class Setting extends Model
         'search_provider' => 'auto',      // auto | serper | perplexity | off (web search for fact-checks and chat)
         'embedding_model' => '',          // empty = provider default; used for Memory search
         'schedule_enabled' => '1',        // daily scan, feed refresh, Monday check-in (needs schedule:work)
+        'tts_provider' => 'auto',         // auto | openai | elevenlabs (read-aloud)
+        'tts_voice' => '',                // OpenAI voice name or ElevenLabs voice id
+        'image_provider' => 'auto',       // auto | openai | fal (thumbnail mockups)
+        'image_model' => 'gpt-image-1',
         'lookback_days' => '4',
         'min_outlier_score' => '3',
         'min_views' => '20000',

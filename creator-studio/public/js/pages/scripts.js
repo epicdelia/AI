@@ -8,6 +8,7 @@ import {
 import { icon } from '../icons.js';
 import { outputPanel, transcribeButton, memoryList } from '../components.js';
 import { scriptWizard } from '../wizard.js';
+import { readAloudCard, thumbnailStudio, shortsPanel } from '../media.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -207,6 +208,7 @@ export async function renderScript(view, id) {
         h('h3', {}, 'Review panel'),
         h('p', { class: 'muted small' }, 'Voice, retention, facts and the top 3 hostile comments. Line edits, never a rewrite.'),
         reviewBtn),
+      readAloudCard(script, () => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).trim()),
       pastWorkCard));
 
   // ---- other tabs ----
@@ -288,6 +290,8 @@ export async function renderScript(view, id) {
   }
 
   const packagePane = h('div');
+  const thumbStudio = thumbnailStudio(script); // built once so the form keeps its text between tab switches
+  const shorts = shortsPanel(script);
   function drawPackage() {
     const outBox = h('div');
     clear(packagePane).append(h('div', { class: 'card' },
@@ -313,7 +317,8 @@ export async function renderScript(view, id) {
         }, t.label);
         return b;
       })),
-      outBox));
+      outBox),
+    thumbStudio);
   }
 
   function docTab(fieldName, { title, generate, empty, help }) {
@@ -418,6 +423,7 @@ export async function renderScript(view, id) {
 
     clear(publishPane).append(
       h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form),
+      shorts,
       h('div', { class: 'card danger-zone' },
         h('h3', {}, 'Delete script'),
         h('p', { class: 'muted' }, 'This removes the script, its review, Substack post and edit brief.'),

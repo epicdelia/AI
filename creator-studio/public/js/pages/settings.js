@@ -122,8 +122,20 @@ export async function renderSettings(view) {
 
   section('Memory', 'Search across your own scripts, transcripts, Library and notes. Works with keywords out of the box; an embeddings key makes it understand meaning.',
     h('div', { class: 'grid grid-2 tight' },
-      secretField('embedding_api_key', 'OpenAI key for Memory (optional)', 'only needed if your AI engine has no embeddings (Claude, DeepSeek, xAI…)', 'https://platform.openai.com/api-keys'),
+      secretField('embedding_api_key', 'Extra OpenAI key (optional)', 'used for Memory, read-aloud and thumbnail mockups when your AI engine isn’t OpenAI', 'https://platform.openai.com/api-keys'),
       field('Embedding model', text('embedding_model', { placeholder: 'default for your provider' }), 'leave empty unless you know you need another'))),
+
+  section('Media', 'Read-aloud, thumbnail mockups and automatic Shorts. Each is optional and billed by its provider per use.',
+    h('div', { class: 'grid grid-2 tight' },
+      field('Read-aloud voice', (inputs.tts_provider = h('select', { name: 'tts_provider' },
+        [['auto', 'Automatic'], ['openai', 'OpenAI voices'], ['elevenlabs', 'ElevenLabs voices']].map(([v, l]) => h('option', { value: v, selected: v === (s.tts_provider || 'auto') }, l)))), 'uses the extra OpenAI key or your OpenAI engine key'),
+      secretField('elevenlabs_api_key', 'ElevenLabs key', 'optional, for more natural voices', 'https://elevenlabs.io/app/settings/api-keys'),
+      field('Thumbnail mockups with', (inputs.image_provider = h('select', { name: 'image_provider' },
+        [['auto', 'Automatic'], ['openai', 'OpenAI (can use your photos)'], ['fal', 'fal.ai (FLUX)']].map(([v, l]) => h('option', { value: v, selected: v === (s.image_provider || 'auto') }, l))))),
+      field('OpenAI image model', (inputs.image_model = h('select', { name: 'image_model' },
+        ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2'].map((m) => h('option', { value: m, selected: m === (s.image_model || 'gpt-image-1') }, m))))),
+      secretField('fal_api_key', 'fal.ai key', 'optional alternative image provider', 'https://fal.ai/dashboard/keys'),
+      secretField('vizard_api_key', 'Vizard key', 'cuts Shorts from your published videos', 'https://vizard.ai/workspace?setting=api'))),
 
   section('Automation', 'Daily breakout scan, feed refresh every 3 hours and a Monday check-in, in your timezone.',
     h('div', { class: 'grid grid-2 tight' },

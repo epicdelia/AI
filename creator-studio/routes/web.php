@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\ScriptWizardController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
@@ -122,6 +123,19 @@ Route::prefix('api')->group(function () {
         Route::get('search', GlobalSearchController::class);
         Route::post('documents/upload', [LibraryController::class, 'upload']);
         Route::get('documents/{document}', [LibraryController::class, 'show']);
+
+        // Media: read-aloud, thumbnail mockups, reference photos, Shorts (Vizard)
+        Route::get('media/capabilities', [MediaController::class, 'capabilities']);
+        Route::get('media', [MediaController::class, 'index']);
+        Route::get('media/{media}/file', [MediaController::class, 'file']);
+        Route::delete('media/{media}', [MediaController::class, 'destroy']);
+        Route::post('media/photos', [MediaController::class, 'uploadPhoto']);
+        Route::post('tts', [MediaController::class, 'speak']);
+        Route::post('thumbnails', [MediaController::class, 'thumbnail']);
+        Route::get('clips', [MediaController::class, 'clips']);
+        Route::post('clips', [MediaController::class, 'submitClips']);
+        Route::post('clips/{project}/refresh', [MediaController::class, 'refreshClips']);
+        Route::delete('clips/{project}', [MediaController::class, 'destroyClips']);
 
         // Memory: search her own past work
         Route::get('memory', [MemoryController::class, 'status']);

@@ -366,3 +366,22 @@ textarea[readonly].script-editor { background: var(--bg); }
 .plan-box { margin: -6px 0 14px; font-size: 0.9rem; }
 .plan-box ol { margin: 6px 0 0; }
 @media (max-width: 900px) { .chapter-edit li { grid-template-columns: 1fr; } }
+
+/* Media: read-aloud, thumbnails, Shorts */
+.tight-row { gap: 6px; }
+.tight-row select { width: auto; flex: 1; min-width: 0; padding: 7px 8px; }
+.audio-box { margin-top: 10px; display: grid; gap: 4px; }
+.audio-box audio { width: 100%; }
+.thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 16px; }
+.thumb { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.thumb img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.thumb figcaption { padding: 6px 8px; gap: 6px; }
+.photo-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.photo { position: relative; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--bg); padding: 0; }
+.photo img { width: 100%; height: 100%; object-fit: cover; }
+.photo.add { display: grid; place-items: center; cursor: pointer; color: var(--muted); border-style: dashed; }
+.photo-x { position: absolute; top: 2px; right: 2px; border: 0; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; background: rgba(0,0,0,0.55); color: #fff; cursor: pointer; }
+.clip-project { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
+.clip { display: grid; gap: 4px; align-content: start; }
+.clip video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 10px; object-fit: cover; }

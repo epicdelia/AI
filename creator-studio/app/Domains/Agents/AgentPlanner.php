@@ -367,8 +367,12 @@ class AgentPlanner
 
         $intel = $signalLines ? "\n\nLive signals and breakout trends to draw inspiration from:\n".implode("\n\n", $signalLines) : '';
 
+        $memory = (new \App\Domains\Agents\Memory\AgentEpisodicMemory())->buildMemoryContext($agent);
+        $memBlock = $memory ? "\n\n{$memory}" : '';
+
         return 'Write these posts, in this order: '.implode(', ', array_map(fn ($p, $n) => "{$n} for {$p}", array_keys($count), $count)).".\n\n"
             .($recent ? "Recent posts (don't repeat them):\n{$recent}" : 'This is the first batch.')
+            .$memBlock
             .$intel;
     }
 

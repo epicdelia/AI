@@ -306,6 +306,86 @@ async function breakoutSpikeModal(agent, onDone) {
   }, { wide: true });
 }
 
+async function deliberateModal(agent, onDone) {
+  return modal(`Multi-Agent Deliberation Committee`, (close) => {
+    const topicInput = h('textarea', {
+      rows: 3,
+      style: { width: '100%', marginBottom: '12px' },
+      placeholder: 'Enter a topic, hypothesis, or engineering takeaway (e.g. "Why we replaced Redis with local SQLite in-memory caches and cut p99 latency by 4x")',
+    });
+
+    const netSelect = h('select', { style: { marginBottom: '12px' } },
+      agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const runBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim();
+        if (!topic) return toast('Please enter a topic.', 'err');
+        await busy(runBtn, 'Deliberating across 4 agents…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Committee running: Generator → Grounding Auditor → Voice Critic → Optimizer…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/deliberate`, {
+              topic,
+              platform: netSelect.value,
+            });
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' } },
+                  h('strong', {}, 'Committee Deliberation Trace'),
+                  h('div', { class: 'row', style: { gap: '6px' } },
+                    h('span', { class: `pill ${r.grounding_score >= 75 ? 'ok' : 'WARN'} small` }, `Grounding: ${r.grounding_score}/100`),
+                    h('span', { class: `pill ${r.voice_score >= 75 ? 'ok' : 'WARN'} small` }, `Voice: ${r.voice_score}/100`))),
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' } },
+                  (r.trace || []).map((t) => h('div', {
+                    style: { padding: '8px 10px', background: 'rgba(0,0,0,0.15)', borderRadius: '6px', fontSize: '13px' },
+                  },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between' } },
+                    h('span', { style: { fontWeight: 600, color: t.passed ? 'var(--ok)' : 'var(--warn)' } }, t.agent),
+                    h('span', { class: 'muted small' }, t.role)),
+                  h('p', { class: 'small muted', style: { margin: '4px 0 0' } },
+                    typeof t.output === 'string' ? t.output : JSON.stringify(t.output))))),
+                h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                  h('strong', { class: 'small' }, 'Final Consensus Post Draft:'),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', marginTop: '6px', fontSize: '13px', fontFamily: 'inherit' } }, r.post.body),
+                  h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', marginTop: '10px' } },
+                    h('button', {
+                      class: 'btn sm primary',
+                      onclick: async () => {
+                        await api('POST', `social`, {
+                          platform: r.post.platform,
+                          body: r.post.body,
+                          parts: r.post.parts,
+                          social_agent_id: agent.id,
+                        });
+                        toast('Post added to drafts queue.');
+                        close();
+                        if (onDone) onDone();
+                      },
+                    }, icon('check', 13), 'Save to drafts queue')))));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Deliberation failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('sparkle', 14), 'Run multi-agent deliberation');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Simulates Big Tech frontier agent committees: 1) Creative Generator creates hook; 2) Grounding Auditor checks claims against source data; 3) Voice Critic removes corporate AI tells and ensures FTC compliance; 4) Consensus Optimizer outputs the verified draft.'),
+      h('label', { class: 'small muted' }, 'Topic / Hypothesis:'),
+      topicInput,
+      h('label', { class: 'small muted' }, 'Target Network:'),
+      netSelect,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        runBtn),
+      resultBox);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -356,6 +436,7 @@ export async function renderAgent(view, id) {
           run,
           h('button', { class: 'btn sm ghost', onclick: () => repurposeModal(a, reload) }, icon('repeat', 14), 'Repurpose video'),
           h('button', { class: 'btn sm ghost', onclick: () => breakoutSpikeModal(a, reload) }, icon('trend', 14), 'Breakout spike'),
+          h('button', { class: 'btn sm ghost', onclick: () => deliberateModal(a, reload) }, icon('sparkle', 14), 'Deliberate committee'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {
@@ -567,9 +648,13 @@ export async function renderAgent(view, id) {
 
           h('div', { class: 'card', style: { marginBottom: '16px' } },
             h('div', { class: 'card-header' },
-              h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Tool Execution Registry'),
-              h('span', { class: 'pill ok small' }, '6 Active Tools')),
-            h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '8px', marginTop: '8px' } },
+              h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Tool Execution Registry (Model Context Protocol / MCP)'),
+              h('div', { class: 'row', style: { gap: '6px' } },
+                h('span', { class: 'pill ok small' }, 'MCP v2024-11-05'),
+                h('span', { class: 'pill picked small' }, 'JSON-RPC 2.0'))),
+            h('p', { class: 'muted small', style: { margin: '4px 0 10px' } },
+              'Standardized Anthropic/OpenAI Model Context Protocol endpoint at ', h('code', {}, 'POST /api/mcp'), '. Available to external Claude, OpenAI Swarm, or local agent runners.'),
+            h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '8px' } },
               tools.map((t) => h('div', {
                 class: 'card',
                 style: { flex: '1 1 calc(33.333% - 8px)', minWidth: '220px', padding: '10px 12px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' },
@@ -578,6 +663,46 @@ export async function renderAgent(view, id) {
                 icon('check', 13),
                 h('strong', { class: 'small' }, t.name)),
               h('div', { class: 'muted small', style: { marginTop: '4px' } }, t.desc))))),
+
+          h('div', { class: 'grid grid-2', style: { gap: '16px', marginBottom: '16px' } },
+            h('div', { class: 'card' },
+              h('div', { class: 'card-header' },
+                h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Episodic & Procedural Memory Bank'),
+                h('span', { class: 'pill ok small' }, 'Few-Shot Memory Active')),
+              h('p', { class: 'muted small' },
+                'Automatically injects past winning exemplars (>1.5x median ER) and past creator rejections/edits into agent prompts to eliminate repeated mistakes.'),
+              h('div', { class: 'row', style: { gap: '8px', marginTop: '10px' } },
+                h('button', {
+                  class: 'btn sm ghost',
+                  onclick: async () => {
+                    const mem = await api('GET', `agents/${a.id}/memory`);
+                    modal('Agent Memory Bank Inspector', (close) => {
+                      return h('div', {},
+                        h('h4', {}, `Winning Exemplars (${mem.winning_exemplars.length})`),
+                        h('ul', { class: 'item-list' }, mem.winning_exemplars.map((w) => h('li', {},
+                          h('div', {}, h('strong', {}, `[${w.platform.toUpperCase()}] ER: ${w.rate}%`), h('p', { class: 'small' }, w.hook))
+                        ))),
+                        h('h4', { style: { marginTop: '16px' } }, `Anti-Patterns & Rejections (${mem.anti_patterns.length})`),
+                        h('ul', { class: 'item-list' }, mem.anti_patterns.map((ap) => h('li', {},
+                          h('div', {}, h('strong', { style: { color: 'var(--warn)' } }, ap.reason), ap.text_sample ? h('p', { class: 'small muted' }, ap.text_sample) : null)
+                        ))),
+                        h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+                          h('button', { class: 'btn', onclick: () => close() }, 'Close')
+                        )
+                      );
+                    }, { wide: true });
+                  },
+                }, icon('eye', 13), 'Inspect memory bank')
+              )
+            ),
+            h('div', { class: 'card' },
+              h('div', { class: 'card-header' },
+                h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Policy-as-Code & Circuit Breakers'),
+                h('span', { class: 'pill ok small' }, 'Guardrails Armed')),
+              h('ul', { class: 'item-list small', style: { marginTop: '8px' } },
+                h('li', {}, h('span', {}, 'Loop Breaker'), h('strong', {}, 'Halt on 2 consecutive duplicate calls')),
+                h('li', {}, h('span', {}, 'Max Execution Budget'), h('strong', {}, '10 steps / $0.50 cap')),
+                h('li', {}, h('span', {}, 'PII & Secret Filter'), h('strong', { style: { color: 'var(--ok)' } }, 'API key & private email redaction'))))),
 
           h('div', { class: 'card' },
             h('div', { class: 'card-header' },

@@ -284,6 +284,11 @@ Route::prefix('api')->group(function () {
         Route::post('agents/{agent}/harness/benchmark', [AgentsController::class, 'benchmark'])->whereNumber('agent');
         Route::get('agents/{agent}/harness/evals', [AgentsController::class, 'evals'])->whereNumber('agent');
         Route::get('agents/{agent}/evals', [AgentsController::class, 'evals'])->whereNumber('agent');
+        Route::get('agents/{agent}/memory', [AgentsController::class, 'memory'])->whereNumber('agent');
+        Route::post('agents/{agent}/deliberate', [AgentsController::class, 'deliberate'])->whereNumber('agent');
+        Route::get('agents/guardrails', [AgentsController::class, 'guardrails']);
+        Route::post('mcp', [AgentsController::class, 'mcp']);
+        Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 
         // Workflows: trigger + steps automations, built on the node canvas
         Route::get('workflows', [WorkflowsController::class, 'index']);

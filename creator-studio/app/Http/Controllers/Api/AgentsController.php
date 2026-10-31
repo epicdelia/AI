@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Agents\AgentLearner;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\BrandResearch;
+use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
+use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Harness\AgentHarness;
 use App\Domains\Agents\Harness\BenchmarkHarness;
+use App\Domains\Agents\Mcp\McpServer;
+use App\Domains\Agents\Memory\AgentEpisodicMemory;
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Publisher;
@@ -161,6 +165,7 @@ class AgentsController extends Controller
             'trace' => $result['trace'],
             'posts' => $result['posts'],
             'evaluations' => $result['evaluations'],
+            'guardrails' => $result['guardrails'] ?? null,
         ]);
     }
 
@@ -191,6 +196,59 @@ class AgentsController extends Controller
             'reports' => $reports,
             'scenarios' => BenchmarkHarness::SCENARIOS,
         ]);
+    }
+
+    public function mcp(Request $request, McpServer $mcp): JsonResponse
+    {
+        $payload = $request->all();
+        $response = $mcp->handle($payload);
+
+        return response()->json($response);
+    }
+
+    public function mcpTools(McpServer $mcp): JsonResponse
+    {
+        $tools = $mcp->handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list']);
+
+        return response()->json($tools['result'] ?? []);
+    }
+
+    public function memory(SocialAgent $agent, AgentEpisodicMemory $memory): JsonResponse
+    {
+        return response()->json($memory->inspect($agent));
+    }
+
+    public function deliberate(Request $request, SocialAgent $agent, MultiAgentDeliberation $ensemble): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:500'],
+            'platform' => ['nullable', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'source_signal' => ['nullable', 'array'],
+            'sponsor' => ['nullable', 'array'],
+        ]);
+
+        try {
+            $result = $ensemble->deliberate($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Multi-agent deliberation completed.',
+            'post' => $result['final_post'],
+            'trace' => $result['trace'],
+            'grounding_score' => $result['grounding_score'],
+            'voice_score' => $result['voice_score'],
+            'guardrails' => $result['guardrails_summary'],
+        ]);
+    }
+
+    public function guardrails(AgentGuardrails $guardrails): JsonResponse
+    {
+        return response()->json($guardrails->summary());
     }
 
     /** Approve (optionally with her edits): it's scheduled at its slot. */

@@ -3,6 +3,7 @@
 namespace App\Domains\Agents\Harness;
 
 use App\Domains\Agents\AgentPlanner;
+use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Social\Models\SocialPost;
@@ -17,8 +18,11 @@ class AgentHarness
 {
     public function __construct(
         private Llm $llm,
-        private ToolRegistry $tools
-    ) {}
+        private ToolRegistry $tools,
+        private ?AgentGuardrails $guardrails = null
+    ) {
+        $this->guardrails ??= new AgentGuardrails();
+    }
 
     /**
      * Run an agent through the complete harness loop.
@@ -26,18 +30,28 @@ class AgentHarness
      * @return array{
      *     trace: array<int, array{phase: string, summary: string, meta?: mixed}>,
      *     posts: array<int, SocialPost>,
-     *     evaluations: array<int, array>
+     *     evaluations: array<int, array>,
+     *     guardrails: array
      * }
      */
     public function execute(SocialAgent $agent): array
     {
         $trace = [];
 
-        // 1. Observation Phase (Tool Registry)
+        // 1. Observation Phase (Tool Registry with Guardrail Validation)
+        $this->guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 4]);
         $breakouts = $this->tools->fetchBreakouts(4);
+
+        $this->guardrails->recordAndValidateToolCall('fetch_news_feeds', ['limit' => 4]);
         $news = $this->tools->fetchNewsFeeds(4);
+
+        $this->guardrails->recordAndValidateToolCall('fetch_recent_scripts', ['limit' => 3]);
         $scripts = $this->tools->fetchRecentScripts(3);
+
+        $this->guardrails->recordAndValidateToolCall('fetch_audience_asks', ['limit' => 3]);
         $asks = $this->tools->fetchAudienceAsks(3);
+
+        $this->guardrails->recordAndValidateToolCall('fetch_active_sponsors');
         $sponsors = $this->tools->fetchActiveSponsors();
 
         $trace[] = [
@@ -110,6 +124,7 @@ class AgentHarness
             'trace' => $trace,
             'posts' => $posts,
             'evaluations' => $evaluations,
+            'guardrails' => $this->guardrails->summary(),
         ];
     }
 

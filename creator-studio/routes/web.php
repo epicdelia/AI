@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/partners', [\App\Http\Controllers\LandingPageController::class, 'partners']);
     Route::get('landing/pricing', [\App\Http\Controllers\LandingPageController::class, 'pricing']);
     Route::get('landing/about', [\App\Http\Controllers\LandingPageController::class, 'about']);
     Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
@@ -197,6 +198,10 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // Brand partners & stages strip
+        Route::get('partners', [\App\Http\Controllers\LandingPageController::class, 'partnersEdit']);
+        Route::put('partners', [\App\Http\Controllers\LandingPageController::class, 'partnersSave']);
 
         // Packages & pricing: prices, visibility, most popular, results per plan
         Route::get('pricing', [\App\Http\Controllers\LandingPageController::class, 'pricingEdit']);

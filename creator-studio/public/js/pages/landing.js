@@ -10,6 +10,7 @@ import { speakingSection } from '../landing-speaking.js';
 import { ctaSection } from '../landing-cta.js';
 import { aboutSection } from '../landing-about.js';
 import { pricingSection } from '../landing-pricing.js';
+import { partnersSection } from '../landing-partners.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -741,13 +742,8 @@ export function renderLanding(view, options = {}) {
         h('span', { class: 'dot' }, '✦'),
       ])));
 
-  // 4. Trusted By Strip
-  const trusted = h('section', { class: 'landing-trusted' },
-    h('div', { class: 'landing-container' },
-      h('div', { class: 'landing-trusted-label' }, 'Brand Partners & Stages'),
-      h('ul', { class: 'landing-trusted-list' },
-        ['IBM', 'Adobe', 'Airalo', 'Temporal', 'Nomad Cruise', 'Digital Garage Tokyo', 'Vently'].map((name) =>
-          h('li', {}, name)))));
+  // 4. Brand Partners & Stages: brands from her dashboard plus the stages from her talks.
+  const trusted = partnersSection();
 
   // 5. Section 01: About: her words from the dashboard's "About you" card, plus live facts.
   const about = aboutSection({ onBookCall: handleBookCall });

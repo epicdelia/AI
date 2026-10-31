@@ -6,6 +6,7 @@ use App\Domains\Landing\About;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
+use App\Domains\Landing\Partners;
 use App\Domains\Landing\Pricing;
 use App\Domains\Landing\Talk;
 use App\Domains\Media\MediaFile;
@@ -51,6 +52,36 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** "Brand Partners & Stages": her brands, then the stages from her talks. */
+    public function partners(): JsonResponse
+    {
+        return response()->json(['items' => Partners::items()])->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function partnersEdit(): JsonResponse
+    {
+        return response()->json(Partners::dashboard());
+    }
+
+    public function partnersSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'brands' => 'present|array|max:24',
+            'brands.*.name' => 'nullable|string|max:40',
+            'brands.*.url' => 'nullable|url:http,https|max:300',
+            'show_stages' => 'required|boolean',
+            'hidden_stages' => 'present|array|max:100',
+            'hidden_stages.*' => 'string|max:150',
+        ]);
+        $data['brands'] = array_values(array_filter(array_map(
+            fn ($b) => ['name' => trim((string) ($b['name'] ?? '')), 'url' => trim((string) ($b['url'] ?? ''))],
+            $data['brands'],
+        ), fn ($b) => $b['name'] !== ''));
+        Partners::save($data);
+
+        return response()->json(Partners::dashboard());
     }
 
     /** "04: Packages & Pricing": the cards, with her prices, live audience and build-slot availability. */

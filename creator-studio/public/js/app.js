@@ -1,6 +1,7 @@
 // Creator Studio entry point: auth gate, app shell and routing.
 import { h, api, clear, link, navigate, setUnauthorizedHandler, toast, loading } from './core.js';
 import { icon } from './icons.js';
+import { installPalette, openPalette } from './palette.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderBreakouts } from './pages/breakouts.js';
@@ -64,6 +65,7 @@ function buildShell() {
   const shell = h('div', { class: 'app-shell' },
     h('aside', { class: 'sidebar' },
       h('div', { class: 'brand' }, h('div', { class: 'logo' }, '🎬'), h('span', {}, 'Creator Studio'), menuBtn),
+      h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)' }, icon('search', 16), h('span', {}, 'Search'), h('kbd', {}, 'Ctrl K')),
       h('nav', { class: 'nav', onclick: () => document.body.classList.remove('nav-open') }, navLinks),
       h('div', { class: 'sidebar-footer' },
         h('div', {}, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
@@ -170,4 +172,5 @@ setUnauthorizedHandler(() => {
 });
 
 window.addEventListener('popstate', route);
+installPalette();
 boot();

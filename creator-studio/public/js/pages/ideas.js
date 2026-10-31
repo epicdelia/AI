@@ -2,6 +2,7 @@
 import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo, loading } from '../core.js';
 import { icon } from '../icons.js';
 import { memoryDialog } from '../components.js';
+import { scriptWizard } from '../wizard.js';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -111,7 +112,7 @@ export async function renderIdeas(view) {
       actions.push(h('button', { class: 'btn sm pick', onclick: () => update(idea, { status: 'picked' }, 'Picked. Nice choice.').catch((e) => toast(e.message, 'err')) }, icon('heart', 15), 'Pick'));
     }
     if (idea.status === 'new' || idea.status === 'picked') {
-      actions.push(draftBtn, blankBtn);
+      actions.push(h('button', { class: 'btn sm', title: 'Pick a title and chapter plan first', onclick: () => scriptWizard({ idea }) }, icon('target', 15), 'Plan it'), draftBtn, blankBtn);
     }
     if (idea.status === 'new' || idea.status === 'picked') {
       actions.push(h('button', { class: 'btn ghost sm', onclick: () => update(idea, { status: 'dropped' }).catch((e) => toast(e.message, 'err')) }, 'Drop'));

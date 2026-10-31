@@ -7,6 +7,7 @@ import {
 } from '../core.js';
 import { icon } from '../icons.js';
 import { outputPanel, transcribeButton, memoryList } from '../components.js';
+import { scriptWizard } from '../wizard.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -41,6 +42,7 @@ export async function renderScripts(view) {
   }, icon('plus'), 'New script');
 
   view.append(pageHead('Scripts', 'Draft, lint, review and package every video. The linter catches the AI tells before anyone else does.',
+    h('button', { class: 'btn primary', onclick: () => scriptWizard() }, icon('target'), 'Plan with wizard'),
     newBtn, link('/ideas', { class: 'btn' }, icon('bulb'), 'From an idea')));
 
   if (!scripts.length) {
@@ -467,13 +469,16 @@ export async function renderScript(view, id) {
       h('div', { class: 'row' }, saveState, statusSelect,
         h('button', { class: 'btn ghost sm', title: 'Download script', onclick: () => download(`${slug(script.title)}.md`, `# ${script.title}\n\n${script.body}`) }, icon('download', 16)))),
     script.idea ? h('p', { class: 'muted small', style: { margin: '-8px 0 14px' } }, 'From idea: ', h('strong', {}, script.idea.title), script.idea.premise ? ` · ${script.idea.premise}` : '') : null,
+    script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
+      h('summary', {}, `Plan: ${script.outline.chapters.length} chapters · ~${script.outline.minutes || 10} min`),
+      h('ol', {}, script.outline.chapters.map((c) => h('li', {}, h('strong', {}, c.title), c.beat ? h('span', { class: 'muted' }, ` · ${c.beat}`) : null)))) : null,
     tabBar, paneBox);
 
   showTab('write');
 
   // Arrived from Ideas → "Draft script": write the draft straight into the editor.
   let draftAbort = null;
-  if (new URLSearchParams(location.search).get('draft') === '1' && script.idea && !script.body.trim()) {
+  if (new URLSearchParams(location.search).get('draft') === '1' && (script.idea || script.outline) && !script.body.trim()) {
     history.replaceState({}, '', `/scripts/${script.id}`);
     draftAbort = new AbortController();
     textarea.readOnly = true;

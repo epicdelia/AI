@@ -1,5 +1,5 @@
 // Library: everything saved from the Toolkit, AI YouTube and chat. Search, star, edit, export.
-import { h, api, busy, toast, pageHead, clear, modal, confirmDialog, mdBlock, copyText, download, slug, timeAgo, debounce, link, emptyState, loading } from '../core.js';
+import { h, api, apiUpload, busy, toast, pageHead, clear, modal, confirmDialog, mdBlock, copyText, download, slug, timeAgo, debounce, link, emptyState, loading } from '../core.js';
 import { icon } from '../icons.js';
 
 const toolLabel = (t) => (t || 'note').replace(/^tool:/, '').replace(/^youtube:/, 'youtube · ').replace(/_/g, ' ');
@@ -116,6 +116,22 @@ export async function renderLibrary(view) {
     }
   }
 
+  // Upload a PDF / Word / text / subtitle file (ported from MagicAI's chat-with-PDF upload).
+  const fileInput = h('input', { type: 'file', hidden: true, accept: '.pdf,.docx,.txt,.md,.markdown,.csv,.srt,.vtt' });
+  const uploadBtn = h('button', { class: 'btn primary', onclick: () => fileInput.click() }, icon('download', 16), 'Upload document');
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    busy(uploadBtn, 'Reading…', async () => {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await apiUpload('documents/upload', fd, { onProgress: (p) => { uploadBtn.lastChild.textContent = p < 1 ? `Uploading ${Math.round(p * 100)}%` : 'Reading…'; } });
+      toast(r.message);
+      await load();
+    });
+  });
+
   const search = h('input', { type: 'search', placeholder: 'Search titles and content…', class: 'search-input' });
   const searchSoon = debounce(() => load().catch((e) => toast(e.message, 'err')), 300);
   search.addEventListener('input', () => { state.q = search.value.trim(); searchSoon(); });
@@ -123,10 +139,17 @@ export async function renderLibrary(view) {
   favBtn.addEventListener('click', () => { state.favorite = !state.favorite; load().catch((e) => toast(e.message, 'err')); });
 
   view.append(
-    pageHead('Library', 'Saved titles, descriptions, captions, breakdowns and drafts. Starred items stay on top.'),
+    pageHead('Library', 'Saved titles, descriptions, captions, breakdowns and drafts, plus documents you upload. Starred items stay on top.', uploadBtn, fileInput),
     h('div', { class: 'row toolbar' }, search, toolSelect, favBtn),
     listBox);
   await load();
+
+  // Opened from Ctrl+K search: /library?doc=12
+  const docId = new URLSearchParams(location.search).get('doc');
+  if (docId) {
+    history.replaceState({}, '', '/library');
+    api('GET', `documents/${docId}`).then((r) => openDoc(r.document)).catch((e) => toast(e.message, 'err'));
+  }
 
   return () => searchSoon.cancel();
 }

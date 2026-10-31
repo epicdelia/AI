@@ -24,16 +24,19 @@ class ScriptStreamController extends Controller
     public function draft(Script $script, Llm $llm, StreamService $sse, Memory $memory): JsonResponse|StreamedResponse
     {
         $idea = $script->idea;
-        if (! $idea) {
-            return response()->json(['error' => 'This script has no idea attached to draft from.'], 422);
+        $plan = $script->outline;
+        if (! $idea && ! $plan) {
+            return response()->json(['error' => 'This script has no idea or plan to draft from.'], 422);
         }
         if (trim((string) $script->body) !== '') {
             return response()->json(['error' => 'This script already has text. Clear it first to draft a new version.'], 422);
         }
 
         // Memory: how she actually talked about related topics before, and what not to repeat.
-        $past = $memory->context($idea->title.' '.$idea->premise, 3, ['transcript', 'script'], [['script', 'transcript'], $script->id]);
-        $user = "The greenlit video idea:\n\n".$idea->asMarkdown()
+        $about = $idea ? $idea->title.' '.$idea->premise : $script->title.' '.($plan['topic'] ?? '');
+        $past = $memory->context($about, 3, ['transcript', 'script'], [['script', 'transcript'], $script->id]);
+        $user = ($idea ? "The greenlit video idea:\n\n".$idea->asMarkdown() : "The video: {$script->title}")
+            .($plan ? "\n\n".ScriptWizardController::planText($plan) : '')
             .($past ? "\n\nFrom her past videos on related topics (match her real phrasing; don't reuse the same stories, jokes or examples):\n\n{$past}" : '');
 
         return $sse->respond(function (StreamService $sse) use ($script, $user, $llm) {

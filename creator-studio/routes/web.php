@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\FeedController;
+use App\Http\Controllers\Api\GlobalSearchController;
+use App\Http\Controllers\Api\ScriptWizardController;
 use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
@@ -110,6 +112,16 @@ Route::prefix('api')->group(function () {
         Route::post('stream/scripts/{script}/substack', [ScriptStreamController::class, 'substack']);
         Route::post('stream/scripts/{script}/edit-brief', [ScriptStreamController::class, 'editBrief']);
         Route::post('stream/scripts/{script}/fact-check', [ScriptStreamController::class, 'factCheck']);
+
+        // Script wizard (title → chapter plan → streamed draft)
+        Route::post('wizard/titles', [ScriptWizardController::class, 'titles']);
+        Route::post('wizard/outlines', [ScriptWizardController::class, 'outlines']);
+        Route::post('wizard/create', [ScriptWizardController::class, 'create']);
+
+        // Ctrl+K search & document upload
+        Route::get('search', GlobalSearchController::class);
+        Route::post('documents/upload', [LibraryController::class, 'upload']);
+        Route::get('documents/{document}', [LibraryController::class, 'show']);
 
         // Memory: search her own past work
         Route::get('memory', [MemoryController::class, 'status']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Landing\Pricing;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Setting;
@@ -41,7 +42,7 @@ class StripePaymentController extends Controller
         'brand_partnership' => [
             'id' => 'brand_partnership',
             'name' => 'Brand Partnership Campaign',
-            'description' => 'Dedicated technical integration across Instagram (384K), YouTube (22K) & LinkedIn (25K).',
+            'description' => 'A dedicated technical integration across her biggest networks, with full digital ad rights.',
             'amount' => 500000, // in cents ($5,000.00)
             'currency' => 'usd',
             'interval' => null,
@@ -56,8 +57,8 @@ class StripePaymentController extends Controller
         ],
         'advisory_session' => [
             'id' => 'advisory_session',
-            'name' => '1-Hour Architecture & Strategy Session',
-            'description' => '60-minute 1-on-1 architecture review, build-vs-buy analysis, or technical roadmap consultation.',
+            'name' => '90-Minute Architecture & Strategy Session',
+            'description' => '90-minute 1-on-1 architecture review, code audit and AI product roadmap.',
             'amount' => 50000, // in cents ($500.00)
             'currency' => 'usd',
             'interval' => null,
@@ -70,8 +71,9 @@ class StripePaymentController extends Controller
     public function packages(): JsonResponse
     {
         return response()->json([
-            'packages' => self::PACKAGES,
-            'package_list' => array_values(self::PACKAGES),
+            // Prices as her dashboard sets them (Packages & pricing), the same the cards show.
+            'packages' => Pricing::packages(),
+            'package_list' => array_values(Pricing::packages()),
             'stripe_configured' => self::secret() !== null,
             'publishable_key' => Setting::get('stripe_publishable_key') ?: env('STRIPE_KEY'),
         ]);
@@ -93,7 +95,7 @@ class StripePaymentController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $pkg = self::PACKAGES[$data['package_id']];
+        $pkg = Pricing::package($data['package_id']);
         $secret = self::secret();
         $customerEmail = $data['customer_email'];
         $customerName = $data['customer_name'];
@@ -110,7 +112,7 @@ class StripePaymentController extends Controller
             'currency' => 'USD',
             'payment_status' => 'pending',
             'deliverables' => [
-                ['platform' => 'stripe', 'format' => $pkg['name']],
+                ['platform' => 'stripe', 'format' => $pkg['name'], 'package' => $pkg['id']],
             ],
             'key_talking_points' => $pkg['description'],
             'notes' => 'Checkout started on the website for ' . $pkg['name'] . '. Notes: ' . (($data['notes'] ?? null) ?: 'None'),

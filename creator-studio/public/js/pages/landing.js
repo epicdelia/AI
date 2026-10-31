@@ -9,6 +9,7 @@ import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
 import { ctaSection } from '../landing-cta.js';
 import { aboutSection } from '../landing-about.js';
+import { pricingSection } from '../landing-pricing.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -133,9 +134,9 @@ export function openStripeModal(pkgId = 'retainer') {
     retainer: { id: 'retainer', name: 'Advisory Retainer (Monthly)', price: '$3,500/mo', desc: 'Ex-Google engineer on call: 2 strategy calls, unlimited async reviews, 24h response. Billed monthly, cancel anytime.' },
     mvp_deposit: { id: 'mvp_deposit', name: 'MVP Build: 50% Project Deposit', price: '$6,000', desc: '50% upfront project deposit for 2-4 week fixed MVP build with Friday live demos.' },
     mvp_full: { id: 'mvp_full', name: 'MVP Build: Full Fixed Package', price: '$12,000', desc: 'Complete fixed-scope MVP: UX design, AI build, cloud deployment, and 30-day post-launch support.' },
-    brand_partnership: { id: 'brand_partnership', name: 'Brand Partnership Campaign', price: '$5,000', desc: 'Dedicated technical integration across Instagram (384K), YouTube (22K) & LinkedIn (25K).' },
+    brand_partnership: { id: 'brand_partnership', name: 'Brand Partnership Campaign', price: '$5,000', desc: 'A dedicated technical integration across her biggest networks, with full digital ad rights.' },
     media_kit_sponsor: { id: 'media_kit_sponsor', name: 'Verified Media Kit Feature', price: '$1,500', desc: 'Featured sponsor placement in Delia’s live media kit and rate card deck.' },
-    advisory_session: { id: 'advisory_session', name: '1-Hour Architecture & Strategy Session', price: '$500', desc: '60-minute 1-on-1 architecture review, build-vs-buy analysis, or technical roadmap consultation.' },
+    advisory_session: { id: 'advisory_session', name: '90-Minute Architecture & Strategy Session', price: '$500', desc: '90-minute 1-on-1 architecture review, code audit and AI product roadmap.' },
   };
 
   const selected = PACKAGES[pkgId] || PACKAGES.retainer;
@@ -150,7 +151,16 @@ export function openStripeModal(pkgId = 'retainer') {
     const payBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('credit-card', 14), ` Pay ${selected.price} with Stripe`);
     const cancelBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel');
     let payLabel = ` Pay ${selected.price} with Stripe`;
+    const priceEl = h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent)' } }, selected.price);
+    // The live price (her dashboard can change it) and whether card payment is set up.
     api('GET', 'stripe/packages').then((p) => {
+      const live = p.packages?.[selected.id];
+      if (live && !submitting) {
+        const price = `$${Math.round(live.amount / 100).toLocaleString('en-US')}${live.interval === 'month' ? '/mo' : ''}`;
+        priceEl.textContent = price;
+        payLabel = ` Pay ${price} with Stripe`;
+        payBtn.replaceChildren(icon('credit-card', 14), payLabel);
+      }
       if (p.stripe_configured || submitting) return;
       payLabel = ' Request an invoice';
       payBtn.replaceChildren(icon('file-text', 14), payLabel);
@@ -192,7 +202,7 @@ export function openStripeModal(pkgId = 'retainer') {
       h('div', { class: 'card', style: { padding: '16px', background: 'var(--panel-2)', border: '1px solid var(--line)', marginBottom: '16px' } },
         h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
           h('strong', {}, selected.name),
-          h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent)' } }, selected.price)),
+          priceEl),
         h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, selected.desc)),
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Cardholder or Client Name', nameInput, 'Required'),
@@ -1053,186 +1063,8 @@ export function renderLanding(view, options = {}) {
     return card;
   }
 
-  // 9. Section 04: Packages & Pricing with exact ag-pt structure
-  const pricing = h('section', { class: 'landing-section', id: 'pricing' },
-    h('div', { class: 'landing-container' },
-      h('div', { class: 'landing-section-head' },
-        h('p', { class: 'landing-section-eyebrow' }, '04: Packages & Pricing'),
-        h('h2', {}, 'Packages that ', h('em', {}, 'pay for themselves')),
-        h('p', { class: 'muted' }, 'Every engagement starts with a free scoping call or instant Stripe checkout. Transparent scopes and zero surprise invoices.')),
-      h('div', { class: 'ag-pt-wrap', role: 'region', tabindex: '0', 'aria-label': 'Plans' },
-        h('div', { class: 'ag-pt-grid', style: { '--ag-pt-cols': '4' } },
-          // Card 1: Strategy Session
-          h('div', { class: 'ag-pt-card' },
-            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
-            h('div', { class: 'ag-pt-head' },
-              h('div', { class: 'ag-pt-title' },
-                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
-                h('h3', { class: 'ag-pt-name' }, 'Strategy Call')),
-              h('div', { class: 'ag-pt-price' },
-                h('span', { class: 'ag-pt-cur' }, '$'),
-                h('span', { class: 'ag-pt-price-now' }, '500'),
-                h('span', { class: 'ag-pt-per' }, '/session')),
-              h('p', { class: 'ag-pt-clarify' }, 'one-time private call'),
-              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleBookCall('consulting') }, '90 minutes private session'),
-              h('div', { class: 'ag-pt-desc-block' },
-                h('p', { class: 'ag-pt-desc' }, 'Private 90-minute architecture review, code audit, and AI product roadmap.'),
-                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('consulting') }, 'Read details'))),
-            h('div', { class: 'ag-pt-actions' },
-              h('div', { class: 'ag-pt-cta' },
-                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('advisory_session') }, 'Book session ($500)'),
-                h('p', { class: 'ag-pt-trust' }, '100% satisfaction guarantee'))),
-            h('div', { class: 'ag-pt-body' },
-              h('div', { class: 'ag-pt-slot' },
-                h('div', { class: 'ag-pt-hosting-strip' },
-                  h('div', { class: 'ag-pt-hosting-head' },
-                    h('span', { class: 'ag-pt-hbadge', title: 'Private 1:1 Video Room' }, icon('play', 14), ' Google Meet 1:1')),
-                  h('div', { class: 'ag-pt-hosting-grid' },
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Duration'), h('strong', { class: 'ag-pt-hm-val' }, '90 min'), h('span', { class: 'ag-pt-hm-sub' }, 'private session')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Seats'), h('strong', { class: 'ag-pt-hm-val' }, '1:1'), h('span', { class: 'ag-pt-hm-sub' }, 'your team')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Turnaround'), h('strong', { class: 'ag-pt-hm-val' }, '24h'), h('span', { class: 'ag-pt-hm-sub' }, 'booking')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Support'), h('strong', { class: 'ag-pt-hm-val' }, '7 days'), h('span', { class: 'ag-pt-hm-sub' }, 'follow-up async'))),
-                  h('div', { class: 'ag-pt-hosting-perks' },
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Full recording & transcript'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Architecture summary report'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Follow-up Q&A for 7 days')))),
-              h('p', { class: 'ag-pt-inherits is-empty', 'aria-hidden': 'true' }),
-              h('ul', { class: 'ag-pt-benefits', role: 'list' },
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '90 minutes private strategy call')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Full code & architecture audit')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'AI model selection & roadmap')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '7-day follow-up async support')),
-                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Ongoing weekly on-call access')),
-                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Full production MVP builds'))))),
-
-          // Card 2: Advisory Retainer
-          h('div', { class: 'ag-pt-card' },
-            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
-            h('div', { class: 'ag-pt-head' },
-              h('div', { class: 'ag-pt-title' },
-                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
-                h('h3', { class: 'ag-pt-name' }, 'Retainer')),
-              h('div', { class: 'ag-pt-price' },
-                h('span', { class: 'ag-pt-cur' }, '$'),
-                h('span', { class: 'ag-pt-price-now' }, '3,500'),
-                h('span', { class: 'ag-pt-per' }, '/mo')),
-              h('p', { class: 'ag-pt-clarify' }, 'billed monthly'),
-              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('retainer') }, 'Save 15% with quarterly'),
-              h('div', { class: 'ag-pt-desc-block' },
-                h('p', { class: 'ag-pt-desc' }, 'An ex-Google engineer on call for your product and engineering team.'),
-                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('retainer') }, 'Read details'))),
-            h('div', { class: 'ag-pt-actions' },
-              h('div', { class: 'ag-pt-cta' },
-                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('retainer') }, 'Start retainer ($3,500)'),
-                h('p', { class: 'ag-pt-trust' }, 'Cancel anytime, no lock-in'))),
-            h('div', { class: 'ag-pt-body' },
-              h('div', { class: 'ag-pt-slot' },
-                h('div', { class: 'ag-pt-hosting-strip' },
-                  h('div', { class: 'ag-pt-hosting-head' },
-                    h('span', { class: 'ag-pt-hbadge', title: 'Advisory Infrastructure' }, icon('sparkle', 14), ' Google Cloud & AI Advisory')),
-                  h('div', { class: 'ag-pt-hosting-grid' },
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Strategy Calls'), h('strong', { class: 'ag-pt-hm-val' }, '2 calls'), h('span', { class: 'ag-pt-hm-sub' }, 'monthly')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Async Reviews'), h('strong', { class: 'ag-pt-hm-val' }, 'Unlimited'), h('span', { class: 'ag-pt-hm-sub' }, 'code & PRs')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Response SLA'), h('strong', { class: 'ag-pt-hm-val' }, '24h'), h('span', { class: 'ag-pt-hm-sub' }, 'guaranteed')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Direct Line'), h('strong', { class: 'ag-pt-hm-val' }, 'Slack / TG'), h('span', { class: 'ag-pt-hm-sub' }, 'priority access'))),
-                  h('div', { class: 'ag-pt-hosting-perks' },
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Bi-weekly deep-dive strategy calls'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Architecture & PR code reviews'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Engineering hiring vetting')))),
-              h('p', { class: 'ag-pt-inherits' }, 'Everything in Strategy Call, and:'),
-              h('ul', { class: 'ag-pt-benefits', role: 'list' },
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '2 deep-dive strategy calls every month')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Unlimited async PR & code reviews')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Direct Slack/Telegram access with 24h SLA')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Build-vs-buy and AI model evaluations')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Cancel anytime with no minimum lock-in')),
-                h('li', { class: 'ag-pt-benefit is-absent' }, h('span', { class: 'ag-pt-bicon is-absent' }, icon('x', 14)), h('span', { class: 'ag-pt-btext' }, 'Dedicated 2-4 week full MVP builds'))))),
-
-          // Card 3: MVP Build (Popular)
-          h('div', { class: 'ag-pt-card is-popular' },
-            h('span', { class: 'ag-pt-ribbon' }, 'Most popular'),
-            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
-            h('div', { class: 'ag-pt-head' },
-              h('div', { class: 'ag-pt-title' },
-                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
-                h('h3', { class: 'ag-pt-name' }, 'MVP Build')),
-              h('div', { class: 'ag-pt-price' },
-                h('span', { class: 'ag-pt-cur' }, '$'),
-                h('span', { class: 'ag-pt-price-now' }, '12,000'),
-                h('span', { class: 'ag-pt-per' }, 'fixed')),
-              h('p', { class: 'ag-pt-clarify' }, 'fixed scope delivery'),
-              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('mvp_deposit') }, 'Pay 50% deposit to start ($6,000)'),
-              h('div', { class: 'ag-pt-desc-block' },
-                h('p', { class: 'ag-pt-desc' }, 'Your idea, live in 2 to 4 weeks: UX design, AI build, and cloud deploy.'),
-                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: () => handleBookCall('mvp_build') }, 'Read details'))),
-            h('div', { class: 'ag-pt-actions' },
-              h('div', { class: 'ag-pt-cta' },
-                h('button', { type: 'button', class: 'vs-btn vs-btn-primary vs-btn-sm', onclick: () => handleStripePay('mvp_deposit') }, 'Pay 50% deposit ($6,000)'),
-                h('p', { class: 'ag-pt-trust' }, '30 days post-launch warranty included'))),
-            h('div', { class: 'ag-pt-body' },
-              h('div', { class: 'ag-pt-slot' },
-                h('div', { class: 'ag-pt-hosting-strip' },
-                  h('div', { class: 'ag-pt-hosting-head' },
-                    h('span', { class: 'ag-pt-hbadge', title: 'Production Cloud Deployment' }, icon('zap', 14), ' Google Cloud Production')),
-                  h('div', { class: 'ag-pt-hosting-grid' },
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Timeline'), h('strong', { class: 'ag-pt-hm-val' }, '2 to 4 wks'), h('span', { class: 'ag-pt-hm-sub' }, 'production ready')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Live Demos'), h('strong', { class: 'ag-pt-hm-val' }, 'Weekly'), h('span', { class: 'ag-pt-hm-sub' }, 'Friday live reviews')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'IP Ownership'), h('strong', { class: 'ag-pt-hm-val' }, '100%'), h('span', { class: 'ag-pt-hm-sub' }, 'all source & code')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Warranty'), h('strong', { class: 'ag-pt-hm-val' }, '30 days'), h('span', { class: 'ag-pt-hm-sub' }, 'post-launch support'))),
-                  h('div', { class: 'ag-pt-hosting-perks' },
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Full UX design, database & responsive app'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Cloud deployment with custom domain & SSL'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), '30 days of post-launch engineering support')))),
-              h('p', { class: 'ag-pt-inherits' }, 'Everything in Retainer, and:'),
-              h('ul', { class: 'ag-pt-benefits', role: 'list' },
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Complete product: UX, AI build & cloud deployment')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Weekly Friday demos to see real live progress')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Production codebase with clean documentation')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '100% ownership of all source code, IP & accounts')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '30 days of dedicated post-launch bug warranty')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Fixed price scope with zero surprise invoices'))))),
-
-          // Card 4: Brand Partnership
-          h('div', { class: 'ag-pt-card' },
-            h('span', { class: 'ag-pt-flag is-empty', 'aria-hidden': 'true' }),
-            h('div', { class: 'ag-pt-head' },
-              h('div', { class: 'ag-pt-title' },
-                h('span', { class: 'ag-pt-voxel', 'aria-hidden': 'true' }, brandMark(18)),
-                h('h3', { class: 'ag-pt-name' }, 'Brand Deal')),
-              h('div', { class: 'ag-pt-price' },
-                h('span', { class: 'ag-pt-cur' }, '$'),
-                h('span', { class: 'ag-pt-price-now' }, '5,000'),
-                h('span', { class: 'ag-pt-per' }, '/campaign')),
-              h('p', { class: 'ag-pt-clarify' }, 'multi-platform campaign'),
-              h('button', { type: 'button', class: 'ag-pt-yearly', onclick: () => handleStripePay('brand_partnership') }, 'Save 20% on 3-episode package'),
-              h('div', { class: 'ag-pt-desc-block' },
-                h('p', { class: 'ag-pt-desc' }, 'Your product explained to an engaged audience of 472K+ tech professionals.'),
-                h('button', { type: 'button', class: 'ag-pt-desc-more', onclick: openMediaKit }, isAuth ? 'View Media Kit' : 'Request Media Kit'))),
-            h('div', { class: 'ag-pt-actions' },
-              h('div', { class: 'ag-pt-cta' },
-                h('button', { type: 'button', class: 'vs-btn vs-btn-secondary vs-btn-sm', onclick: () => handleStripePay('brand_partnership') }, 'Book campaign ($5,000)'),
-                h('p', { class: 'ag-pt-trust' }, 'Full digital ad rights included'))),
-            h('div', { class: 'ag-pt-body' },
-              h('div', { class: 'ag-pt-slot' },
-                h('div', { class: 'ag-pt-hosting-strip' },
-                  h('div', { class: 'ag-pt-hosting-head' },
-                    h('span', { class: 'ag-pt-hbadge', title: 'Verified Audience Metrics' }, icon('users', 14), ' 472K+ Audience Reach')),
-                  h('div', { class: 'ag-pt-hosting-grid' },
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Instagram'), h('strong', { class: 'ag-pt-hm-val' }, '384K'), h('span', { class: 'ag-pt-hm-sub' }, 'followers')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'YouTube'), h('strong', { class: 'ag-pt-hm-val' }, '22K'), h('span', { class: 'ag-pt-hm-sub' }, 'subscribers')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'LinkedIn'), h('strong', { class: 'ag-pt-hm-val' }, '25K'), h('span', { class: 'ag-pt-hm-sub' }, 'tech pros')),
-                    h('div', { class: 'ag-pt-hmetric' }, h('span', { class: 'ag-pt-hm-label' }, 'Lifetime Views'), h('strong', { class: 'ag-pt-hm-val' }, '54M+'), h('span', { class: 'ag-pt-hm-sub' }, 'impressions'))),
-                  h('div', { class: 'ag-pt-hosting-perks' },
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Concept, script & high-retention video'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Native cross-platform distribution'),
-                    h('span', { class: 'ag-pt-hperk' }, icon('check', 11), 'Perpetual digital advertising usage rights')))),
-              h('p', { class: 'ag-pt-inherits' }, 'Dedicated sponsor production, including:'),
-              h('ul', { class: 'ag-pt-benefits', role: 'list' },
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'High-retention technical integration & video')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, '384K Instagram, 22K YouTube & 25K LinkedIn reach')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Full digital ad commercial rights included')),
-                h('li', { class: 'ag-pt-benefit is-added' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Executive post-campaign performance report')),
-                h('li', { class: 'ag-pt-benefit is-carried' }, h('span', { class: 'ag-pt-bicon' }, icon('check', 15)), h('span', { class: 'ag-pt-btext' }, 'Direct link tracking in bio & descriptions')))))))));
+  // 9. Section 04: Packages & Pricing: prices, visibility and "Most popular" from her dashboard.
+  const pricing = pricingSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
 
   // 9. Section 05: Reach & Content: all six networks, live numbers, shown/hidden from her dashboard.
   const platforms = reachSection();

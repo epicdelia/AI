@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/pricing', [\App\Http\Controllers\LandingPageController::class, 'pricing']);
     Route::get('landing/about', [\App\Http\Controllers\LandingPageController::class, 'about']);
     Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
@@ -196,6 +197,10 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // Packages & pricing: prices, visibility, most popular, results per plan
+        Route::get('pricing', [\App\Http\Controllers\LandingPageController::class, 'pricingEdit']);
+        Route::put('pricing', [\App\Http\Controllers\LandingPageController::class, 'pricingSave']);
 
         // "About you" for the landing page's About section
         Route::get('about', [\App\Http\Controllers\LandingPageController::class, 'aboutEdit']);

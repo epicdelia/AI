@@ -6,6 +6,7 @@ use App\Domains\Landing\About;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
+use App\Domains\Landing\Pricing;
 use App\Domains\Landing\Talk;
 use App\Domains\Media\MediaFile;
 use App\Domains\Social\Models\SocialPost;
@@ -50,6 +51,36 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** "04: Packages & Pricing": the cards, with her prices, live audience and build-slot availability. */
+    public function pricing(): JsonResponse
+    {
+        $secret = Setting::get('stripe_secret_key') ?: env('STRIPE_SECRET_KEY');
+
+        return response()->json(['plans' => Pricing::publicPlans(), 'stripe_configured' => (bool) $secret])
+            ->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function pricingEdit(): JsonResponse
+    {
+        return response()->json(Pricing::dashboard());
+    }
+
+    public function pricingSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'plans' => 'required|array',
+            'plans.*.price' => 'required|integer|min:1|max:1000000',
+            'plans.*.visible' => 'required|boolean',
+            'plans.*.popular' => 'sometimes|boolean',
+        ]);
+        $plans = array_intersect_key($data['plans'], Pricing::PLANS);
+        if (! array_filter($plans, fn ($p) => $p['visible'])) {
+            return response()->json(['message' => 'Keep at least one package on your website.', 'errors' => ['plans' => ['Keep at least one package visible.']]], 422);
+        }
+
+        return response()->json(Pricing::save($plans));
     }
 
     /** "01: About": her words plus live facts (audience, latest talk, build-slot availability). */

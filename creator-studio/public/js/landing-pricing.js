@@ -65,7 +65,8 @@ function card(plan, { onBookCall, onStripePay }) {
           h('strong', {}, m.value),
           h('span', { class: 'lp-m-sub' }, m.sub)))),
         plan.perks.length ? h('ul', { class: 'lp-perks' }, plan.perks.map((p) => h('li', {}, icon('check', 11), p))) : null),
-      plan.inherits ? h('p', { class: 'lp-inherits' }, plan.inherits) : null,
+      // An empty line keeps benefit lists starting at the same height in every card.
+      plan.inherits ? h('p', { class: 'lp-inherits' }, plan.inherits) : h('p', { class: 'lp-inherits is-empty', 'aria-hidden': 'true' }, ' '),
       list,
       more ? h('div', { class: 'lp-more' }, more) : null));
 }

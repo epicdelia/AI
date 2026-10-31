@@ -14205,3 +14205,7 @@ a.landing-about-fact:focus-visible { outline: 2px solid var(--accent); outline-o
   .lp-card:not(.is-skeleton) { display: grid; grid-row: span 3; grid-template-rows: subgrid; align-content: start; row-gap: 14px; }
   .lp-card:not(.is-skeleton) > .lp-actions { align-self: end; }
 }
+.lp-inherits.is-empty { visibility: hidden; }
+@media (max-width: 680px) { .lp-inherits.is-empty { display: none; } }
+/* Desktop: every card the same width (equal columns) and height (shared rows), "+ more" on the bottom edge. */
+.lp-card > .lp-body { height: 100%; }

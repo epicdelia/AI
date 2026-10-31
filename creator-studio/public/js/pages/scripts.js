@@ -556,7 +556,8 @@ export async function renderScript(view, id) {
     script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
       h('summary', {}, `Plan: ${script.outline.chapters.length} chapters · ~${script.outline.minutes || 10} min`),
       h('ol', {}, script.outline.chapters.map((c) => h('li', {}, h('strong', {}, c.title), c.beat ? h('span', { class: 'muted' }, ` · ${c.beat}`) : null)))) : null,
-    h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn)),
+    h('div', { class: 'tabs-row' }, tabBar, h('div', { class: 'row tabs-actions' }, prompterBtn, historyBtn,
+      link(`/repurpose?script=${script.id}`, { class: 'btn ghost sm', title: 'Turn this into LinkedIn, Instagram, X and Shorts posts' }, icon('repeat', 15), 'Repurpose'))),
     paneBox);
 
   // ?tab=review|package... (from the dashboard's next step) opens that tab.

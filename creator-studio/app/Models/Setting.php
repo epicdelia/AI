@@ -54,6 +54,15 @@ class Setting extends Model
         'baseline_views' => '',
         'commitment' => '1 long-form video per week',
         'timezone' => 'Europe/London',
+        'linkedin_handle' => '',          // social profiles (shown on the platform pages)
+        'instagram_handle' => '',
+        'x_handle' => '',
+        'x_premium' => '0',               // 1 = long posts allowed on X (25,000 characters)
+        'cadence_linkedin' => '',         // posts per week she aims for on each platform
+        'cadence_instagram' => '',
+        'cadence_x' => '',
+        'cadence_youtube' => '',          // Shorts and community posts (long-form is on Weekly goals)
+        'brand_color' => '#d8487e',       // carousel slide background
     ];
 
     private static ?array $cache = null;

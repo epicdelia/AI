@@ -18,6 +18,7 @@ import { renderSettings } from './pages/settings.js';
 import { renderTools } from './pages/tools.js';
 import { renderLibrary } from './pages/library.js';
 import { renderChat } from './pages/chat.js';
+import { renderCalendar, renderRepurpose, renderPlatform, renderPost } from './pages/social.js';
 
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
@@ -34,18 +35,28 @@ const ROUTES = [
   { path: /^\/library$/, render: renderLibrary, nav: '/library' },
   { path: /^\/chat$/, render: renderChat, nav: '/chat' },
   { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
+  { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
+  { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
+  { path: /^\/(linkedin|instagram|x)$/, render: renderPlatform, nav: null }, // nav = the platform
+  { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
 ];
 
 const NAV = [
   { header: 'Today' },
   { to: '/', label: 'Dashboard', icon: 'home' },
   { to: '/flow', label: 'Dictate', icon: 'mic' },
-  { header: 'Pipeline' },
+  { header: 'YouTube' },
   { to: '/breakouts', label: 'Breakouts', icon: 'trend' },
   { to: '/ideas', label: 'Ideas', icon: 'bulb' },
   { to: '/scripts', label: 'Scripts', icon: 'doc' },
   { to: '/goals', label: 'Weekly goals', icon: 'target' },
   { to: '/channel', label: 'My channel', icon: 'users' },
+  { header: 'Social' },
+  { to: '/calendar', label: 'Calendar', icon: 'calendar' },
+  { to: '/repurpose', label: 'Repurpose', icon: 'repeat' },
+  { to: '/linkedin', label: 'LinkedIn', icon: 'briefcase' },
+  { to: '/instagram', label: 'Instagram', icon: 'camera' },
+  { to: '/x', label: 'X', icon: 'xmark' },
   { header: 'Create' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle' },
   { to: '/chat', label: 'Producer chat', icon: 'chat' },
@@ -57,31 +68,79 @@ const NAV = [
 const root = document.getElementById('app');
 const state = { user: null, cleanup: null, shell: null };
 
+// ---- Sidebar: an icon rail by default on wide screens (expand to see labels; remembered),
+// and a slide-in drawer on phones. ----
+const NAV_KEY = 'studio-nav';
+function navCollapsed() {
+  try { return (localStorage.getItem(NAV_KEY) || 'collapsed') === 'collapsed'; } catch { return true; }
+}
+function applyNavPref() {
+  document.body.classList.toggle('nav-collapsed', navCollapsed());
+}
+function toggleNavCollapsed() {
+  const next = !navCollapsed();
+  try { localStorage.setItem(NAV_KEY, next ? 'collapsed' : 'expanded'); } catch { /* not remembered */ }
+  applyNavPref();
+  state.shell?.syncToggle();
+}
+function openDrawer(open) {
+  document.body.classList.toggle('nav-open', open);
+  state.shell?.drawerToggle.setAttribute('aria-expanded', String(open));
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('nav-open')) openDrawer(false);
+});
+
 function buildShell() {
+  const label = (text) => h('span', { class: 'nav-label' }, text);
   const navLinks = NAV.map((item) => item.header
-    ? h('div', { class: 'nav-header' }, item.header)
-    : link(item.to, { class: 'nav-item', dataset: { to: item.to } }, icon(item.icon), item.label));
+    ? h('div', { class: 'nav-header' }, label(item.header))
+    : link(item.to, { class: 'nav-item', dataset: { to: item.to }, title: item.label, 'aria-label': item.label }, icon(item.icon), label(item.label)));
 
   const content = h('main', { class: 'content-area', id: 'content', tabindex: '-1' });
-  const menuBtn = h('button', {
-    class: 'btn ghost sm menu-toggle',
-    'aria-label': 'Menu',
-    onclick: () => document.body.classList.toggle('nav-open'),
-  }, icon('menu'));
+  const collapseBtn = h('button', { class: 'nav-collapse', onclick: toggleNavCollapsed });
+  const syncToggle = () => {
+    const c = navCollapsed();
+    collapseBtn.replaceChildren(icon(c ? 'chevron-right' : 'chevron-left', 16), label(c ? 'Expand' : 'Collapse'));
+    collapseBtn.title = c ? 'Expand the sidebar' : 'Collapse the sidebar';
+    collapseBtn.setAttribute('aria-label', collapseBtn.title);
+    collapseBtn.setAttribute('aria-expanded', String(!c));
+  };
+  syncToggle();
+  const drawerToggle = h('button', { class: 'btn ghost sm', 'aria-label': 'Open menu', 'aria-expanded': 'false', 'aria-controls': 'sidebar', onclick: () => openDrawer(true) }, icon('menu'));
 
   const shell = h('div', { class: 'app-shell' },
-    h('aside', { class: 'sidebar' },
-      h('div', { class: 'brand' }, h('div', { class: 'logo' }, '🎬'), h('span', {}, 'Creator Studio'), heartButton(), menuBtn),
-      h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)' }, icon('search', 16), h('span', {}, 'Search'), h('kbd', {}, 'Ctrl K')),
-      h('nav', { class: 'nav', onclick: () => document.body.classList.remove('nav-open') }, navLinks),
+    h('aside', { class: 'sidebar', id: 'sidebar' },
+      h('div', { class: 'brand' },
+        h('div', { class: 'logo' }, '🎬'), label('Creator Studio'), heartButton(),
+        h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x'))),
+      h('button', { class: 'search-launch', onclick: openPalette, title: 'Search (Ctrl+K)', 'aria-label': 'Search' }, icon('search', 16), label('Search'), h('kbd', { class: 'nav-label' }, 'Ctrl K')),
+      h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
       h('div', { class: 'sidebar-footer' },
-        h('div', {}, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
-        themeSwitch(),
-        h('button', { class: 'btn ghost sm', onclick: () => startTour() }, icon('play', 14), 'Take the tour'),
-        h('button', { class: 'btn sm', onclick: logout }, icon('logout'), 'Log out'))),
-    content);
+        h('div', { class: 'nav-label' }, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
+        h('div', { class: 'nav-label' }, themeSwitch()),
+        h('button', { class: 'btn ghost sm', title: 'Take the tour', onclick: () => { openDrawer(false); startTour(); } }, icon('play', 14), label('Take the tour')),
+        h('button', { class: 'btn sm', title: 'Log out', onclick: logout }, icon('logout'), label('Log out')),
+        collapseBtn)),
+    h('div', { class: 'nav-backdrop', onclick: () => openDrawer(false) }),
+    h('div', { class: 'main-col' },
+      h('header', { class: 'mobile-bar' },
+        drawerToggle,
+        link('/', { class: 'mobile-brand' }, h('span', { class: 'logo' }, '🎬'), 'Creator Studio'),
+        h('button', { class: 'btn ghost sm', 'aria-label': 'Search', onclick: openPalette }, icon('search'))),
+      content));
 
-  return { el: shell, content };
+  applyNavPref();
+  return { el: shell, content, syncToggle, drawerToggle };
+}
+
+/** Highlight a sidebar item (pages without a fixed item, like a post, call this themselves). */
+function setActiveNav(to) {
+  for (const a of root.querySelectorAll('.nav-item')) {
+    const on = !!to && a.dataset.to === to;
+    a.classList.toggle('active', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  }
 }
 
 async function logout() {
@@ -112,9 +171,8 @@ async function route() {
     if (m) { match = r; params = m.slice(1); break; }
   }
 
-  for (const a of root.querySelectorAll('.nav-item')) {
-    a.classList.toggle('active', !!match && a.dataset.to === match.nav);
-  }
+  openDrawer(false);
+  setActiveNav(match?.nav === null ? `/${params[0]}` : match?.nav);
 
   const content = state.shell.content;
   resetCopilotContext();

@@ -437,7 +437,54 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* Responsive */
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .content-area { padding: 20px 16px; }
   .grid-2, .grid-3, .grid-4, .dictate-box { grid-template-columns: 1fr; }
+}
+
+/* ---- Sidebar: an icon rail by default, expandable (remembered); a slide-in drawer on phones ---- */
+.app-shell { grid-template-columns: var(--nav-w, 240px) minmax(0, 1fr); }
+body.nav-collapsed { --nav-w: 72px; }
+.main-col { min-width: 0; display: flex; flex-direction: column; }
+.sidebar { overflow: hidden; }
+.nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
+.nav-item .icon { flex: none; }
+.mobile-bar, .nav-backdrop, .drawer-close { display: none; }
+.nav-collapse { display: flex; align-items: center; gap: 8px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.85rem; padding: 6px 4px; cursor: pointer; border-radius: 8px; }
+.nav-collapse:hover { color: var(--ink); background: var(--bg); }
+.nav-item:focus-visible, .nav-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+@media (min-width: 901px) {
+  body.nav-collapsed .sidebar { padding: 20px 10px; }
+  body.nav-collapsed .nav-label, body.nav-collapsed .brand .love-heart-btn { display: none; }
+  body.nav-collapsed .brand { justify-content: center; padding: 4px 0 14px; }
+  body.nav-collapsed .nav-item { justify-content: center; padding: 10px 0; }
+  body.nav-collapsed .nav-header { height: 1px; padding: 0; margin: 9px 12px; background: var(--line); }
+  body.nav-collapsed .search-launch { justify-content: center; padding: 9px 0; }
+  body.nav-collapsed .sidebar-footer { padding: 12px 0 0; align-items: center; }
+  body.nav-collapsed .sidebar-footer .btn { padding: 7px; justify-content: center; }
+  body.nav-collapsed .nav-collapse { justify-content: center; padding: 6px; }
+}
+
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); height: 100%;
+    border-right: 1px solid var(--line); border-bottom: 0; padding: 16px 12px;
+    transform: translateX(-105%); transition: transform 0.22s ease; z-index: 1100; box-shadow: var(--shadow-lg);
+    visibility: hidden;
+  }
+  body.nav-open .sidebar { transform: none; visibility: visible; }
+  .nav-backdrop { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  body.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+  body.nav-open { overflow: hidden; }
+  .drawer-close { display: inline-flex; margin-left: auto; }
+  .nav-collapse { display: none; }
+  .nav-item { padding: 12px; }
+  .mobile-bar { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .mobile-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); text-decoration: none; flex: 1; min-width: 0; }
+  .mobile-brand:hover { text-decoration: none; }
+  .mobile-brand .logo { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), var(--violet)); font-size: 15px; }
+}
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-backdrop { transition: none; }
 }

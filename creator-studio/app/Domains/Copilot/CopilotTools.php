@@ -3,6 +3,9 @@
 namespace App\Domains\Copilot;
 
 use App\Domains\Audience\Models\AudienceInsight;
+use App\Domains\Social\Models\SocialPost;
+use App\Domains\Social\Platforms;
+use App\Http\Controllers\Api\SocialController;
 use App\Domains\Copilot\Models\CopilotAction;
 use App\Domains\Copilot\Models\CopilotThread;
 use App\Domains\Feeds\FeedReader;
@@ -32,7 +35,7 @@ use Throwable;
  */
 class CopilotTools
 {
-    public const WRITE = ['edit_script', 'create_script', 'create_idea', 'update_idea', 'add_competitor_channels', 'add_news_feed', 'save_to_library', 'set_week_video'];
+    public const WRITE = ['edit_script', 'create_script', 'create_idea', 'update_idea', 'add_competitor_channels', 'add_news_feed', 'save_to_library', 'set_week_video', 'create_social_post'];
 
     public const CLIENT = ['open_page'];
 
@@ -52,11 +55,12 @@ class CopilotTools
             ['name' => 'list_ideas', 'description' => 'List video ideas, optionally filtered by status or a search word.', 'parameters' => $s(['status' => $str('Filter', ['new', 'picked', 'scripted', 'dropped']), 'query' => $str('Search title/premise')])],
             ['name' => 'list_breakouts', 'description' => 'Recent breakout videos in her niche (views far above their channel median).', 'parameters' => $s(['limit' => $int('How many, max 20')])],
             ['name' => 'list_viewer_requests', 'description' => 'What viewers asked for in the comments of her videos (and any competitor videos she read): questions, requests, confusion, pushback, each with mention counts and a real quote. Strongest signal for what to make next.', 'parameters' => $s([])],
+            ['name' => 'list_social_posts', 'description' => 'Her LinkedIn, Instagram, X and YouTube (Shorts, community) posts: status, schedule, text and logged numbers, plus this week’s progress against her targets.', 'parameters' => $s(['platform' => $str('Filter', ['linkedin', 'instagram', 'x', 'youtube']), 'status' => $str('Filter', ['idea', 'draft', 'scheduled', 'posted'])])],
             ['name' => 'search_my_work', 'description' => 'Search her past scripts, on-camera transcripts, notes, ideas and Library. Use to match her voice or check if she already covered something.', 'parameters' => $s(['query' => $str('What to look for')], ['query'])],
             ['name' => 'search_library', 'description' => 'Search saved Library documents (titles, captions, uploaded briefs) by keyword.', 'parameters' => $s(['query' => $str('Keyword')], ['query'])],
             ['name' => 'check_ai_tells', 'description' => 'Run the AI-tell linter on text (em dashes, banned clichés, missing contractions). Free and instant: use it on anything you write for her.', 'parameters' => $s(['text' => $str('Text to check')], ['text'])],
             ['name' => 'run_writing_tool', 'description' => 'Run a Toolkit template: yt_titles, yt_thumbnail, yt_hooks, yt_description, yt_tags, yt_chapters, yt_community, yt_replies, shorts_script, ig_caption, hashtags, x_thread, linkedin, newsletter, rewrite, tldr, proofread, pros_cons, sponsor_pitch, sponsor_read, media_kit. Inputs are the template fields (usually "topic", "title", "text" or "script").', 'parameters' => $s(['tool' => $str('Template key'), 'inputs' => ['type' => 'object', 'description' => 'Field values', 'additionalProperties' => ['type' => 'string']]], ['tool', 'inputs'])],
-            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
+            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/calendar', '/repurpose', '/linkedin', '/instagram', '/x', '/posts/{id}', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
         ];
         if (WebSearch::available()) {
             $tools[] = ['name' => 'search_web', 'description' => 'Live web search. Use for facts, news, dates, prices or anything that may have changed. Cite the links.', 'parameters' => $s(['query' => $str('Search query')], ['query'])];
@@ -73,6 +77,8 @@ class CopilotTools
                 ['name' => 'add_news_feed', 'description' => 'Propose adding an RSS/Atom feed as an idea signal.', 'parameters' => $s(['url' => $str('Feed URL')], ['url'])],
                 ['name' => 'save_to_library', 'description' => 'Propose saving text (titles, captions, an outline...) to her Library.', 'parameters' => $s(['title' => $str('Title'), 'content' => $str('Markdown content')], ['title', 'content'])],
                 ['name' => 'set_week_video', 'description' => "Propose setting a week's planned video on her scoreboard.", 'parameters' => $s(['week_number' => $int('Week number'), 'video_title' => $str('Video title'), 'script_id' => $int('Optional script id')], ['week_number', 'video_title'])],
+                ['name' => 'create_social_post', 'description' => 'Propose a draft post (she approves it). Formats: linkedin post|carousel, instagram carousel|reel|post|story, x post|thread, youtube short|community. Put thread posts, carousel slides or Reel/Short beats in parts.',
+                    'parameters' => $s(['platform' => $str('Platform', ['linkedin', 'instagram', 'x', 'youtube']), 'format' => $str('Format'), 'title' => $str('Short internal label'), 'body' => $str('Post text or caption'), 'parts' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Thread posts, slides or beats'], 'script_id' => $int('Optional source script id')], ['platform', 'format', 'body'])],
             ]);
         }
 
@@ -94,6 +100,7 @@ class CopilotTools
             'list_ideas' => 'Looking through ideas',
             'list_breakouts' => 'Checking breakouts',
             'list_viewer_requests' => 'Reading what your viewers asked for',
+            'list_social_posts' => 'Looking at your social posts',
             'search_my_work' => 'Searching your past work for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
             'search_library' => 'Searching the Library',
             'search_web' => 'Searching the web for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
@@ -121,6 +128,12 @@ class CopilotTools
                 ->latest()->take(25)->get(['id', 'title', 'premise', 'angle', 'status', 'why_now'])),
             'list_breakouts' => $json(Outlier::orderByDesc('outlier_score')->take(min(20, max(1, (int) ($a['limit'] ?? 10))))
                 ->get(['id', 'title', 'channel_title', 'views', 'outlier_score', 'url', 'published_at'])),
+            'list_social_posts' => $json([
+                'progress' => SocialController::progress(),
+                'posts' => SocialPost::query()->when($a['platform'] ?? null, fn ($q, $p) => $q->where('platform', $p))->when($a['status'] ?? null, fn ($q, $st) => $q->where('status', $st))
+                    ->latest('updated_at')->take(20)->get()->map(fn ($p) => ['id' => $p->id, 'platform' => $p->platform, 'format' => $p->format, 'status' => $p->status, 'title' => $p->title,
+                        'text' => mb_substr($p->asText(), 0, 600), 'scheduled_for' => $p->scheduled_for?->toIso8601String(), 'posted_at' => $p->posted_at?->toIso8601String(), 'engagement' => $p->engagement]),
+            ]),
             'list_viewer_requests' => $json(AudienceInsight::latest('updated_at')->take(10)->get()
                 ->map(fn ($i) => ['video' => $i->video_title, 'her_video' => $i->own, 'url' => $i->url, 'summary' => $i->summary, 'items' => $i->items])),
             'search_my_work' => $json(array_map(fn ($h) => ['type' => $h['source_type'], 'id' => $h['source_id'], 'title' => $h['title'], 'excerpt' => mb_substr($h['content'], 0, 900)],
@@ -182,6 +195,13 @@ class CopilotTools
             'update_idea' => $this->previewIdea($a),
             'add_competitor_channels' => ['Add '.count((array) self::need($a, 'handles')).' channel(s) to the watchlist: '.implode(', ', array_map(fn ($h) => Channel::normalize((string) $h), (array) $a['handles'])), []],
             'add_news_feed' => ['Add news feed: '.self::need($a, 'url'), []],
+            'create_social_post' => (function () use ($a) {
+                if (! Platforms::valid((string) self::need($a, 'platform'), (string) self::need($a, 'format'))) {
+                    throw new RuntimeException('Unknown platform/format. Use one from the tool description.');
+                }
+
+                return ['New '.Platforms::PLATFORMS[$a['platform']]['label'].' '.$a['format'].' draft', ['text' => mb_substr((string) ($a['body'] ?? ''), 0, 400), 'parts' => count((array) ($a['parts'] ?? []))]];
+            })(),
             'save_to_library' => ['Save to Library: “'.self::need($a, 'title').'”', ['words' => str_word_count((string) self::need($a, 'content'))]],
             'set_week_video' => $this->previewWeek($a),
             default => throw new RuntimeException("Unknown tool: {$tool}"),
@@ -298,6 +318,16 @@ class CopilotTools
 
                 return ['message' => "Feed added with {$new} item(s).", 'link' => '/breakouts', 'undo' => ['feed_id' => $feed->id]];
             })(),
+            'create_social_post' => (function () use ($a) {
+                $p = SocialPost::create([
+                    'platform' => $a['platform'], 'format' => $a['format'], 'title' => mb_substr((string) ($a['title'] ?? ''), 0, 200) ?: null,
+                    'body' => (string) ($a['body'] ?? ''), 'parts' => array_values(array_map('strval', (array) ($a['parts'] ?? []))),
+                    'status' => 'draft', 'source' => 'copilot',
+                    'script_id' => ! empty($a['script_id']) && Script::whereKey($a['script_id'])->exists() ? $a['script_id'] : null,
+                ]);
+
+                return ['message' => Platforms::PLATFORMS[$p->platform]['label'].' draft saved.', 'link' => "/posts/{$p->id}", 'undo' => ['post_id' => $p->id]];
+            })(),
             'save_to_library' => (function () use ($a) {
                 $d = Document::create(['title' => mb_substr($a['title'], 0, 200), 'content' => $a['content'], 'tool' => 'copilot']);
 
@@ -342,6 +372,9 @@ class CopilotTools
                 break;
             case 'save_to_library':
                 Document::find($u['document_id'])?->delete();
+                break;
+            case 'create_social_post':
+                SocialPost::find($u['post_id'])?->delete();
                 break;
             case 'set_week_video':
                 Week::find($u['week_id'])?->update($u['before']);

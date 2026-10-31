@@ -186,6 +186,7 @@ class ApiController extends Controller
             ],
             'setup_checks' => $setupChecks,
             'next_step' => NextStep::current(),
+            'social' => \App\Http\Controllers\Api\SocialController::progress(),
             'picked_ideas' => $pickedIdeas,
             'recent_scripts' => $recentScripts,
             'recent_outliers' => $recentOutliers,

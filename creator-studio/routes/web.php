@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
+use App\Http\Controllers\Api\SocialController;
 use App\Http\Controllers\Api\ScriptVersionController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
@@ -70,6 +71,19 @@ Route::prefix('api')->group(function () {
             Route::post('scripts/{script}/versions/{version}/restore', [ScriptVersionController::class, 'restore']);
             Route::delete('scripts/{script}/versions/{version}', [ScriptVersionController::class, 'destroy']);
         });
+
+        // Social: LinkedIn, Instagram, X and YouTube posts, calendar and repurposing
+        Route::get('social/meta', [SocialController::class, 'meta']);
+        Route::get('social/posts', [SocialController::class, 'index']);
+        Route::post('social/posts', [SocialController::class, 'store']);
+        Route::get('social/posts/{post}', [SocialController::class, 'show']);
+        Route::patch('social/posts/{post}', [SocialController::class, 'update']);
+        Route::delete('social/posts/{post}', [SocialController::class, 'destroy']);
+        Route::post('social/posts/{post}/duplicate', [SocialController::class, 'duplicate']);
+        Route::post('social/check', [SocialController::class, 'check']);
+        Route::post('social/repurpose', [SocialController::class, 'repurpose']);
+        Route::get('social/calendar', [SocialController::class, 'calendar']);
+        Route::get('social/stats', [SocialController::class, 'stats']);
 
         // My channel: her videos vs her own median, and what viewers ask for in comments
         Route::get('audience', [AudienceController::class, 'index']);

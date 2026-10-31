@@ -199,6 +199,20 @@ export async function renderSettings(view) {
       field('Baseline views at 7 days', num('baseline_views', { min: 0 }), 'your typical long-form'),
       field('Timezone', (inputs.timezone = h('select', { name: 'timezone' }, TIMEZONES.map((tz) => h('option', { value: tz, selected: tz === s.timezone }, tz))))))),
 
+  section('Social', 'Your profiles, how often you aim to post, and the colour of your carousel slides. Nothing is ever posted for you: the studio drafts, you copy it out.',
+    h('div', { class: 'grid grid-3 tight' },
+      field('LinkedIn handle', text('linkedin_handle', { placeholder: 'the part after linkedin.com/in/' })),
+      field('Instagram handle', text('instagram_handle', { placeholder: '@yourname' })),
+      field('X handle', text('x_handle', { placeholder: '@yourname' })),
+      field('LinkedIn posts a week', num('cadence_linkedin', { min: 0, max: 50, placeholder: 'e.g. 3' })),
+      field('Instagram posts a week', num('cadence_instagram', { min: 0, max: 50, placeholder: 'e.g. 4' })),
+      field('X posts a week', num('cadence_x', { min: 0, max: 100, placeholder: 'e.g. 7' })),
+      field('Shorts & community posts a week', num('cadence_youtube', { min: 0, max: 50, placeholder: 'e.g. 2' }), 'long-form is on Weekly goals'),
+      field('X Premium', (inputs.x_premium = h('select', { name: 'x_premium' },
+        h('option', { value: '0', selected: s.x_premium !== '1' }, 'No: 280 characters per post'),
+        h('option', { value: '1', selected: s.x_premium === '1' }, 'Yes: long posts allowed')))),
+      field('Slide colour', (inputs.brand_color = h('input', { type: 'color', name: 'brand_color', value: s.brand_color || '#d8487e' })), 'carousel background'))),
+
   h('div', { class: 'sticky-save' }, saveBtn));
 
   // ---- diagnostics ----

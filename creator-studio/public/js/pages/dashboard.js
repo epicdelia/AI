@@ -3,6 +3,7 @@ import { h, api, link, pill, fmtDay, daysUntil, compact, timeAgo, emptyState } f
 import { icon } from '../icons.js';
 import { weekDots } from './goals.js';
 import { loveCard } from '../love.js';
+import { socialStrip } from './social.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -97,6 +98,7 @@ export async function renderDashboard(view) {
   view.append(
     heroCard(d),
     nextStepCard(d.next_step),
+    socialStrip(d.social),
     loveCard(),
     setupCard(d.setup_checks),
     h('div', { class: 'grid grid-4', style: { marginTop: '18px' } },

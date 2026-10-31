@@ -38,6 +38,7 @@ import { renderBio } from './pages/bio.js';
 import { renderDeals } from './pages/deals.js';
 import { renderMediaKit } from './pages/mediakit.js';
 import { renderSnippets } from './pages/snippets.js';
+import { renderLanding } from './pages/landing.js';
 import { loveOn } from './love.js';
 import { NAV_ITEMS, MEGA } from './nav.js';
 
@@ -61,6 +62,7 @@ const ROUTES = [
   { path: /^\/deals$/, render: renderDeals, nav: '/deals' },
   { path: /^\/mediakit$/, render: renderMediaKit, nav: '/mediakit' },
   { path: /^\/snippets$/, render: renderSnippets, nav: '/snippets' },
+  { path: /^\/landing$/, render: renderLanding, nav: '/landing' },
   { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
@@ -433,7 +435,8 @@ async function boot() {
   if (!status.authenticated) {
     state.user = null;
     state.shell = null;
-    renderAuth(root, status.initialized, status.welcome, async (user) => {
+
+    const onLoginSuccess = async (user) => {
       state.user = user;
       // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
       const st = await api('GET', 'auth/status').catch(() => ({}));
@@ -449,7 +452,25 @@ async function boot() {
       if (st.tour_done === false) startTour({ onDone: dailyHello });
       else dailyHello();
       checkLove();
-    });
+    };
+
+    const showAuth = () => {
+      renderAuth(root, status.initialized, status.welcome, onLoginSuccess, showLanding);
+    };
+
+    const showLanding = () => {
+      const view = h('div');
+      renderLanding(view, { onAuthClick: showAuth, user: null });
+      clear(root).append(view);
+    };
+
+    // If explicit login requested via path or query, show auth; otherwise show public Tech Unicorn landing page on top
+    const isLoginPath = location.pathname === '/login' || location.pathname === '/auth' || location.search.includes('login=1');
+    if (isLoginPath) {
+      showAuth();
+    } else {
+      showLanding();
+    }
     return;
   }
   state.user = status.user;

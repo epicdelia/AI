@@ -29,6 +29,7 @@ export const NAV_ITEMS = [
   { to: '/tiktok', label: 'TikTok', icon: 'brand:tiktok', desc: 'Videos and photo carousels' },
   { to: '/threads', label: 'Threads', icon: 'brand:threads', desc: 'Posts and threads' },
   { header: 'Create' },
+  { to: '/landing', label: 'Landing page', icon: 'globe', desc: 'Public portfolio, services and packages' },
   { to: '/snippets', label: 'Code cards', icon: 'code', desc: 'Visual code snippets and terminal cards' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle', desc: 'Writing templates for every job' },
   { to: '/chat', label: 'Producer chat', icon: 'chat', desc: 'Think out loud with your producer' },
@@ -56,8 +57,8 @@ export const MEGA = [
     { title: 'Grow & monetize', items: ['/analytics', '/deals', '/mediakit', '/inbox', '/bio'], badges: { '/agents': 'pending', '/inbox': 'inbox' } },
     { title: 'Networks', items: ['/linkedin', '/instagram', '/x', '/tiktok', '/threads'], compact: true }],
     actions: [{ label: 'Plan the week', to: '/agents', icon: 'bot' }, { label: 'Open the calendar', to: '/calendar', icon: 'calendar' }, { label: 'Brand deals', to: '/deals', icon: 'briefcase' }] },
-  { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/snippets', '/tools', '/chat', '/library', '/media'] }],
-    actions: [{ label: 'Repurpose something', to: '/repurpose', icon: 'repeat' }, { label: 'New code card', to: '/snippets', icon: 'code' }] },
+  { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/landing', '/snippets', '/tools', '/chat', '/library', '/media'] }],
+    actions: [{ label: 'Preview landing page', to: '/landing', icon: 'globe' }, { label: 'New code card', to: '/snippets', icon: 'code' }] },
   { id: 'studio', label: 'Studio', groups: [{ title: 'Studio', items: ['/connections', '/brand', '/settings'] }],
     actions: [{ label: 'Make it yours', to: '/settings', icon: 'sliders' }] },
 ];

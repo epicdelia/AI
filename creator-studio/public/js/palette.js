@@ -14,6 +14,7 @@ const ACTIONS = [
   { label: 'Omnichannel repurpose', context: 'Turn scripts into LinkedIn, X, TikTok & newsletters', icon: 'repeat', action: () => navigate('/repurpose') },
   { label: 'Code cards & terminal graphics', context: 'Ray.so visual code snippet studio', icon: 'code', action: () => navigate('/snippets') },
   { label: 'Media kit press deck', context: 'Audience reach, demographics & rate card', icon: 'file-text', action: () => navigate('/mediakit') },
+  { label: 'Tech Unicorn landing page', context: 'Live portfolio, services, packages & speaking', icon: 'globe', action: () => navigate('/landing') },
   { label: 'Dictate an idea', context: 'Voice recording with live streaming transcript', icon: 'mic', action: () => navigate('/flow') },
   { label: 'Toggle dark / light mode', context: 'Switch studio appearance (Ctrl+Shift+L)', icon: 'moon', action: () => {
     const next = effectiveTheme() === 'dark' ? 'light' : 'dark';

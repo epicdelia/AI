@@ -224,7 +224,7 @@ function renderGuidedInstall() {
   return h('div', { class: 'auth-install-card' }, toggleBtn, body);
 }
 
-export function renderAuth(root, initialized, welcome, onDone) {
+export function renderAuth(root, initialized, welcome, onDone, onBackToLanding = null) {
   const params = new URLSearchParams(location.search);
   const errorMsg = params.get('login_error') || '';
   if (params.get('login_error')) history.replaceState({}, '', '/');
@@ -413,6 +413,13 @@ export function renderAuth(root, initialized, welcome, onDone) {
   // Header with brand logo and light/dark switch
   const authHeader = h('header', { class: 'auth-header' },
     h('div', { class: 'auth-header-brand' },
+      onBackToLanding ? h('button', {
+        type: 'button',
+        class: 'btn ghost sm',
+        style: { marginRight: '10px' },
+        onclick: onBackToLanding,
+        title: 'Back to Tech Unicorn',
+      }, icon('chevron-left', 14), 'Tech Unicorn') : null,
       brandMark(28)
     ),
     h('div', { class: 'auth-header-actions' },

@@ -391,6 +391,10 @@ Route::prefix('api')->group(function () {
     });
 });
 
+// Tech Unicorn public landing pages (portfolio, services, speaking, packages)
+Route::get('techunicorn', [\App\Http\Controllers\LandingPageController::class, 'show']);
+Route::get('landing-page', [\App\Http\Controllers\LandingPageController::class, 'show']);
+
 // Link in bio: public page and counted redirects
 Route::get('links', [BioLinksController::class, 'page']);
 Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('link');

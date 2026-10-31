@@ -1,7 +1,7 @@
 // Service worker: makes the studio installable and opens the app shell when the network is
 // down. Pages and files are fetched fresh first (network-first) and only fall back to the
 // cache offline. The API, sign-ins and uploads are never cached: her data always comes live.
-const CACHE = 'studio-shell-v1';
+const CACHE = 'studio-shell-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.json', '/icons/icon.svg'])).then(() => self.skipWaiting()));

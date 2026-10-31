@@ -53,7 +53,7 @@ export async function renderScripts(view) {
     newBtn, link('/ideas', { class: 'btn' }, icon('bulb'), 'From an idea')));
 
   if (!scripts.length) {
-    view.append(h('div', { class: 'card' }, emptyState('📝', 'No scripts yet', 'Pick an idea and let the AI draft it, or start from a blank page.', newBtn.cloneNode(true))));
+    view.append(h('div', { class: 'card' }, emptyState(icon('doc', 30), 'No scripts yet', 'Pick an idea and let the AI draft it, or start from a blank page.', newBtn.cloneNode(true))));
     view.querySelector('.empty .btn')?.addEventListener('click', () => newBtn.click());
     return;
   }
@@ -144,7 +144,7 @@ export async function renderScript(view, id) {
     clear(stats).append(
       h('span', {}, h('strong', {}, words.toLocaleString()), ' words'),
       h('span', {}, h('strong', {}, (words / 150).toFixed(1)), ' min spoken'),
-      h('span', { class: words && (words < 1200 || words > 2250) ? 'warn-text' : '' }, words ? (words < 1200 ? 'under 8 min' : words > 2250 ? 'over 15 min' : '8–15 min ✓') : ''));
+      h('span', { class: words && (words < 1200 || words > 2250) ? 'warn-text' : '' }, words ? (words < 1200 ? 'under 8 min' : words > 2250 ? 'over 15 min' : '8–15 min') : ''));
   }
 
   function jumpToLine(line) {

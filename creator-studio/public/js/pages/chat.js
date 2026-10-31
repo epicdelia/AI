@@ -1,6 +1,6 @@
 // Producer chat: brainstorm with an assistant that already knows her channel, ideas and week.
 import { h, api, apiStream, liveMarkdown, toast, clear, mdBlock, copyText, confirmDialog, navigate, timeAgo, modal } from '../core.js';
-import { icon } from '../icons.js';
+import { icon, brandMark } from '../icons.js';
 import { outputPanel, exportMenu } from '../components.js';
 
 const STARTERS = [
@@ -29,13 +29,13 @@ export async function renderChat(view, id) {
       h('button', { class: 'btn primary block', onclick: () => navigate('/chat') }, icon('plus', 16), 'New chat'),
       h('ul', {}, list.map((c) => h('li', { class: current?.id === c.id ? 'active' : '' },
         h('button', { class: 'chat-link', onclick: () => navigate(`/chat/${c.id}`) },
-          c.pinned ? '📌 ' : '', h('span', { class: 'clamp-1' }, c.title), h('span', { class: 'muted small' }, timeAgo(c.updated_at)))))));
+          c.pinned ? icon('pin', 12) : '', h('span', { class: 'clamp-1' }, c.title), h('span', { class: 'muted small' }, timeAgo(c.updated_at)))))));
   }
 
   function bubble(m) {
     const isUser = m.role === 'user';
     return h('div', { class: `msg ${isUser ? 'user' : 'assistant'}` },
-      h('div', { class: 'msg-avatar' }, isUser ? '🙂' : '🎬'),
+      h('div', { class: 'msg-avatar' }, isUser ? icon('user', 16) : brandMark(16)),
       h('div', { class: 'msg-body' },
         isUser ? h('div', { class: 'pre' }, m.content) : mdBlock(m.content),
         !isUser && m.id ? h('div', { class: 'msg-actions' },
@@ -50,7 +50,7 @@ export async function renderChat(view, id) {
     clear(thread);
     if (!messages.length) {
       thread.append(h('div', { class: 'chat-empty' },
-        h('div', { class: 'empty-icon' }, '🎬'),
+        h('div', { class: 'empty-icon' }, icon('chat', 30)),
         h('h2', {}, 'Your producer is here'),
         h('p', { class: 'muted' }, 'It knows your niche, voice, this week’s goal, your picked ideas and top breakouts.'),
         h('div', { class: 'starters' }, STARTERS.map((s) => h('button', {
@@ -59,7 +59,7 @@ export async function renderChat(view, id) {
       return;
     }
     thread.append(messages.map(bubble));
-    if (sending) thread.append(h('div', { class: 'msg assistant' }, h('div', { class: 'msg-avatar' }, '🎬'), h('div', { class: 'msg-body' }, h('span', { class: 'typing' }, h('i'), h('i'), h('i')))));
+    if (sending) thread.append(h('div', { class: 'msg assistant' }, h('div', { class: 'msg-avatar' }, brandMark(16)), h('div', { class: 'msg-body' }, h('span', { class: 'typing' }, h('i'), h('i'), h('i')))));
     thread.scrollTop = thread.scrollHeight;
   }
 
@@ -78,7 +78,7 @@ export async function renderChat(view, id) {
       messages.push({ role: 'user', content });
       drawThread();
       const live = liveMarkdown('Thinking…');
-      const liveBubble = h('div', { class: 'msg assistant' }, h('div', { class: 'msg-avatar' }, '🎬'), h('div', { class: 'msg-body' }, live.el));
+      const liveBubble = h('div', { class: 'msg assistant' }, h('div', { class: 'msg-avatar' }, brandMark(16)), h('div', { class: 'msg-body' }, live.el));
       thread.querySelector('.msg.assistant:last-child .typing')?.closest('.msg')?.remove();
       thread.append(liveBubble);
       thread.scrollTop = thread.scrollHeight;
@@ -128,7 +128,7 @@ export async function renderChat(view, id) {
         onclick: async () => {
           try { Object.assign(current, (await api('PATCH', `chats/${current.id}`, { pinned: !current.pinned })).conversation); drawSidebar(); drawHeader(); } catch (e) { toast(e.message, 'err'); }
         },
-      }, current.pinned ? 'Unpin' : '📌 Pin'),
+      }, current.pinned ? 'Unpin' : [icon('pin', 14), 'Pin']),
       h('button', {
         class: 'btn ghost sm',
         onclick: async () => {

@@ -1,6 +1,6 @@
 // Creator Studio entry point: auth gate, app shell and routing.
 import { h, api, clear, link, navigate, setUnauthorizedHandler, toast, loading } from './core.js';
-import { icon } from './icons.js';
+import { icon, brandMark } from './icons.js';
 import { installPalette, openPalette } from './palette.js';
 import { startTour } from './tour.js';
 import { themeSwitch } from './theme.js';
@@ -98,9 +98,10 @@ function openDrawer(open) {
   // Drawer mode (phones and tablets): the page behind can't be tabbed into while it's open,
   // focus goes into the drawer, and back to the menu button when it closes.
   const main = document.querySelector('.main-col');
-  if (main) main.inert = open && window.matchMedia('(max-width: 1199px)').matches;
+  const drawerMode = () => window.matchMedia('(max-width: 1199px)').matches || document.documentElement.dataset.nav !== 'sidebar';
+  if (main) main.inert = open && drawerMode();
   if (open && !was) setTimeout(() => document.querySelector('.sidebar .nav-item.active, .sidebar .nav-item')?.focus(), 60);
-  if (!open && was && window.matchMedia('(max-width: 1199px)').matches) state.shell?.drawerToggle.focus();
+  if (!open && was && drawerMode()) state.shell?.drawerToggle.focus();
 }
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('nav-open')) openDrawer(false);
@@ -130,7 +131,7 @@ function buildShell() {
   const shell = h('div', { class: 'app-shell' },
     h('aside', { class: 'sidebar', id: 'sidebar' },
       h('div', { class: 'brand' },
-        h('div', { class: 'logo' }, '🎬'), label('Creator Studio'), heartButton(),
+        brandMark(), label('Creator Studio'), heartButton(),
         h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x'))),
       h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
       h('div', { class: 'sidebar-footer' }, collapseBtn)),
@@ -143,6 +144,14 @@ function buildShell() {
   return { el: shell, content, syncToggle, drawerToggle };
 }
 
+/** Opening the studio on "/" goes to the page she chose (once per visit, so Dashboard still works). */
+function openStartPage() {
+  const start = prefs().start_page;
+  let seen = false;
+  try { seen = sessionStorage.getItem('studio-started') === '1'; sessionStorage.setItem('studio-started', '1'); } catch { /* fine */ }
+  if (!seen && start && start !== '/' && location.pathname === '/' && NAV_ITEMS.some((n) => n.to === start)) history.replaceState({}, '', start);
+}
+
 /** The top bar on every page: search (opens Ctrl K), notifications, Copilot and her menu. */
 function appHeader(drawerToggle) {
   const copilotBtn = h('button', {
@@ -152,8 +161,10 @@ function appHeader(drawerToggle) {
   window.addEventListener('copilot:state', (e) => copilotBtn.setAttribute('aria-pressed', String(!!e.detail.open)));
 
   const name = (window.__studioName || state.user?.name || '').trim();
-  const avatar = h('button', { class: 'hdr-avatar', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Your menu', title: name },
-    (name[0] || '♥').toUpperCase());
+  const avatar = h('button', { class: 'hdr-avatar', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Your menu', title: name });
+  const drawAvatar = () => avatar.replaceChildren(prefs().avatar ? h('img', { src: `/api/me/avatar?${Date.now()}`, alt: '' }) : (name[0] || 'S').toUpperCase());
+  drawAvatar();
+  window.addEventListener('prefs:avatar', drawAvatar);
   let menu = null;
   const closeMenu = () => { menu?.remove(); menu = null; avatar.setAttribute('aria-expanded', 'false'); };
   avatar.addEventListener('click', (e) => {
@@ -176,7 +187,7 @@ function appHeader(drawerToggle) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu) { closeMenu(); avatar.focus(); } });
 
   return h('header', { class: 'app-header' },
-    h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, h('span', { class: 'logo' }, '🎬'), h('span', { class: 'hdr-label' }, 'Creator Studio'))),
+    h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, brandMark(16), h('span', { class: 'hdr-label' }, 'Creator Studio'))),
     h('button', { class: 'hdr-search', type: 'button', onclick: openPalette, 'aria-label': 'Search (Ctrl+K)' },
       icon('search', 16), h('span', { class: 'hdr-search-text' }, 'Search scripts, posts, ideas…'), h('kbd', {}, 'Ctrl K')),
     megaMenus(),
@@ -345,7 +356,7 @@ async function route() {
   if (!match) {
     settle();
     clear(content).append(h('div', { class: 'empty' },
-      h('div', { class: 'empty-icon' }, '🧭'), h('h3', {}, 'Page not found'),
+      h('div', { class: 'empty-icon' }, icon('compass', 30)), h('h3', {}, 'Page not found'),
       link('/', { class: 'btn primary' }, 'Back to dashboard')));
     return;
   }
@@ -377,7 +388,7 @@ async function route() {
 }
 
 async function boot() {
-  clear(root).append(h('div', { class: 'auth-wrapper' }, loading('Opening your studio… 💕')));
+  clear(root).append(h('div', { class: 'auth-wrapper' }, loading('Opening your studio…')));
   let status;
   try {
     status = await api('GET', 'auth/status');
@@ -397,6 +408,7 @@ async function boot() {
       const st = await api('GET', 'auth/status').catch(() => ({}));
       setLove(st.love);
       applyPrefs(st.prefs);
+      openStartPage();
       window.__studioName = st.love?.name || user?.name || '';
       state.shell = null;
       mountCopilot();
@@ -412,6 +424,7 @@ async function boot() {
   state.user = status.user;
   setLove(status.love);
   applyPrefs(status.prefs);
+  openStartPage();
   window.__studioName = status.love?.name || status.user?.name || '';
   mountCopilot();
   startReminders();

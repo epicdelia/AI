@@ -111,7 +111,7 @@ export function briefCard() {
 // ---------------------------------------------------------------- goals
 
 const GOAL_STATUS = {
-  on_track: ['ok', 'On track'], behind: ['bad', 'Behind'], reached: ['ok', 'Reached 🎉'], too_early: ['new', 'Needs a few more days of data'], no_data: ['', 'No follower numbers yet'],
+  on_track: ['ok', 'On track'], behind: ['bad', 'Behind'], reached: ['ok', 'Reached'], too_early: ['new', 'Needs a few more days of data'], no_data: ['', 'No follower numbers yet'],
 };
 
 function goalLine(g) {

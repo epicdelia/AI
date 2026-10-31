@@ -25,7 +25,7 @@ export async function renderAgents(view) {
   if (!d.agents.length) {
     view.append(h('div', { class: 'card ag-hero' },
       h('div', { class: 'ag-hero-art', 'aria-hidden': 'true' }, icon('bot', 54)),
-      h('h2', {}, h('span', { class: 'muted' }, 'Hey 👋 I’m your AI social media agent. From planning to publishing, I '), 'create, schedule and improve your posts using your own results.'),
+      h('h2', {}, h('span', { class: 'muted' }, 'Hey, I’m your AI social media agent. From planning to publishing, I '), 'create, schedule and improve your posts using your own results.'),
       h('button', { class: 'btn primary ag-cta', onclick: () => wizard(meta) }, 'Let’s get started', icon('arrow', 15)),
       h('p', { class: 'muted small' }, 'Every draft is editable, and nothing is published without your approval unless you say so.')));
     return;
@@ -87,7 +87,7 @@ function wizard(meta, existing = null) {
     function welcome() {
       return [
         h('div', { class: 'ag-hero-art', 'aria-hidden': 'true' }, icon('bot', 54)),
-        h('h2', { class: 'wz-hello' }, h('span', { class: 'muted' }, 'Hey 👋 I’m your AI social media agent. From planning to publishing, I help you '), 'create, schedule and improve posts with your own performance insights.'),
+        h('h2', { class: 'wz-hello' }, h('span', { class: 'muted' }, 'Hey, I’m your AI social media agent. From planning to publishing, I help you '), 'create, schedule and improve posts with your own performance insights.'),
         h('button', { class: 'btn primary block wz-primary', type: 'button', onclick: () => go(1) }, 'Let’s get started', icon('arrow', 15)),
         h('p', { class: 'muted small center' }, 'Drafts are fully editable.'),
       ];

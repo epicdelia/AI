@@ -253,6 +253,15 @@ export function toast(message, kind = 'ok', ms = 4200) {
 }
 
 /** Open a modal. `build(close)` returns the body node. Resolves with whatever close() is given. */
+/** The close (x) mark for dialogs, as an SVG (core can't import icons.js without a cycle). */
+function closeIcon() {
+  const span = document.createElement('span');
+  span.className = 'icon';
+  span.setAttribute('aria-hidden', 'true');
+  span.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  return span;
+}
+
 export function modal(title, build, { wide = false } = {}) {
   return new Promise((resolve) => {
     const overlay = h('div', { class: 'modal-overlay' });
@@ -268,7 +277,7 @@ export function modal(title, build, { wide = false } = {}) {
     const dialog = h('div', { class: `modal${wide ? ' wide' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-head' },
         h('h2', {}, title),
-        h('button', { class: 'btn ghost sm', 'aria-label': 'Close', onclick: () => close(undefined) }, '✕')),
+        h('button', { class: 'btn ghost sm', 'aria-label': 'Close', onclick: () => close(undefined) }, closeIcon())),
       build(close));
     overlay.append(dialog);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(undefined); });

@@ -51,7 +51,7 @@ class LoveController extends Controller
     public function open(LoveLetter $letter): JsonResponse
     {
         if ($letter->unlock !== 'anytime' && ! $letter->unlocked_at) {
-            return response()->json(['error' => 'Not yet 😉 '.Love::hint($letter).'.'], 423);
+            return response()->json(['error' => 'Not yet. '.Love::hint($letter).'.'], 423);
         }
         $letter->update(['opened_at' => $letter->opened_at ?? now(), 'unlocked_at' => $letter->unlocked_at ?? now()]);
 

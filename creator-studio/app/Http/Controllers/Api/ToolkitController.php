@@ -139,7 +139,7 @@ class ToolkitController extends Controller
             'prompt' => 'required|string|max:10000',
         ]);
         $data['fields'] = ToolRegistry::cleanFields($data['fields']);
-        $data['icon'] = ($data['icon'] ?? '') ?: '✨';
+        $data['icon'] = ($data['icon'] ?? '') ?: 'sparkle';
         if (! $data['fields']) {
             abort(response()->json(['error' => 'Add at least one field with a name (letters, numbers, underscores).'], 422));
         }

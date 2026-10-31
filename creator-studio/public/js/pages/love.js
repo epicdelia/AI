@@ -5,7 +5,8 @@ import { h, api, busy, toast, pageHead, clear, field, modal, confirmDialog, link
 import { icon } from '../icons.js';
 import { hearts, loveSignature } from '../love.js';
 
-const KIND_EMOJI = { anniversary: '💞', birthday: '🎂', other: '📅' };
+const KIND_ICON = { anniversary: 'heart', birthday: 'gift', other: 'calendar' };
+const kindIcon = (k, size = 16) => icon(KIND_ICON[k] || 'calendar', size);
 const NETS = [['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['youtube', 'YouTube'], ['linkedin', 'LinkedIn'], ['x', 'X'], ['threads', 'Threads']];
 const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString([], { day: 'numeric', month: 'long' });
 
@@ -21,23 +22,23 @@ export async function checkLove() {
   const today = s.calendar?.today?.[0];
   const queue = [];
   if (today) {
-    queue.push(() => modal(today.kind === 'birthday' ? 'Happy birthday! 🎂' : today.kind === 'anniversary' ? `Happy anniversary 💞` : today.label, (close) => h('div', { class: 'love-card love-moment' },
-      h('div', { class: 'love-big' }, KIND_EMOJI[today.kind] || '💌'),
-      h('p', { class: 'love-text' }, today.kind === 'anniversary' && today.years ? `${today.years} year${today.years === 1 ? '' : 's'} of us. Best decision I ever made. ❤️`
-        : today.kind === 'birthday' ? 'Today is all about you. No scripts, no posting schedule, just cake. 🎉' : `Today: ${today.label} 💕`),
+    queue.push(() => modal(today.kind === 'birthday' ? 'Happy birthday!' : today.kind === 'anniversary' ? `Happy anniversary` : today.label, (close) => h('div', { class: 'love-card love-moment' },
+      h('div', { class: 'love-big' }, kindIcon(today.kind, 34)),
+      h('p', { class: 'love-text' }, today.kind === 'anniversary' && today.years ? `${today.years} year${today.years === 1 ? '' : 's'} of us. Best decision I ever made.`
+        : today.kind === 'birthday' ? 'Today is all about you. No scripts, no posting schedule, just cake.' : `Today: ${today.label}`),
       h('p', { class: 'love-sign' }, loveSignature()),
-      h('div', { class: 'row', style: { justifyContent: 'center' } }, h('button', { class: 'btn primary', onclick: () => { close(); hearts(30); } }, '❤️')))));
+      h('div', { class: 'row', style: { justifyContent: 'center' } }, h('button', { class: 'btn primary', onclick: () => { close(); hearts(30); } }, icon('heart-fill', 15), 'Love you')))));
   }
   for (const m of s.milestones || []) {
-    queue.push(() => modal(`${m.count.toLocaleString()} on ${m.label}! 🎉`, (close) => h('div', { class: 'love-card love-moment' },
-      h('div', { class: 'love-big' }, '🏆'),
-      h('p', { class: 'love-text' }, `${m.count.toLocaleString()} people follow you on ${m.label}. Every one of them is lucky. I was first in line. 🥹❤️`),
+    queue.push(() => modal(`${m.count.toLocaleString()} on ${m.label}!`, (close) => h('div', { class: 'love-card love-moment' },
+      h('div', { class: 'love-big' }, icon('trophy', 34)),
+      h('p', { class: 'love-text' }, `${m.count.toLocaleString()} people follow you on ${m.label}. Every one of them is lucky. I was first in line.`),
       h('p', { class: 'love-sign' }, loveSignature()),
-      h('div', { class: 'row', style: { justifyContent: 'center' } }, h('button', { class: 'btn primary', onclick: () => { close(); hearts(30); } }, 'Celebrate 🎉')))));
+      h('div', { class: 'row', style: { justifyContent: 'center' } }, h('button', { class: 'btn primary', onclick: () => { close(); hearts(30); } }, 'Celebrate')))));
   }
   for (const l of s.unlocked || []) {
-    queue.push(() => modal('A letter just unlocked 💌', (close) => h('div', { class: 'love-card love-moment' },
-      h('div', { class: 'love-big envelope-pop' }, '💌'),
+    queue.push(() => modal('A letter just unlocked', (close) => h('div', { class: 'love-card love-moment' },
+      h('div', { class: 'love-big envelope-pop' }, icon('mail', 34)),
       h('p', { class: 'love-text' }, `“${l.title}”`),
       h('div', { class: 'row', style: { justifyContent: 'center' } },
         h('button', { class: 'btn', onclick: () => close() }, 'Later'),
@@ -53,10 +54,10 @@ export async function loveExtras() {
     if (!s.enabled) return;
     const c = s.calendar || {};
     const chips = [];
-    if (c.together_days != null) chips.push(h('span', { class: 'love-chip' }, '💞 ', h('strong', {}, c.together_days.toLocaleString()), ' days together'));
+    if (c.together_days != null) chips.push(h('span', { class: 'love-chip' }, icon('heart', 13), h('strong', {}, c.together_days.toLocaleString()), ' days together'));
     const next = (c.upcoming || []).find((u) => u.days > 0);
-    if (next) chips.push(h('span', { class: 'love-chip' }, `${KIND_EMOJI[next.kind] || '📅'} `, `${next.label} in `, h('strong', {}, next.days), next.days === 1 ? ' day' : ' days'));
-    if (s.waiting) chips.push(link('/love', { class: 'love-chip glow' }, `💌 ${s.waiting} letter${s.waiting === 1 ? '' : 's'} for you`));
+    if (next) chips.push(h('span', { class: 'love-chip' }, kindIcon(next.kind, 13), ' ', `${next.label} in `, h('strong', {}, next.days), next.days === 1 ? ' day' : ' days'));
+    if (s.waiting) chips.push(link('/love', { class: 'love-chip glow' }, icon('mail', 13), ` ${s.waiting} letter${s.waiting === 1 ? '' : 's'} for you`));
     if (s.photo) box.prepend(h('img', { class: 'love-photo-sm', src: '/api/love/photo', alt: 'Us', loading: 'lazy' }));
     box.append(h('div', { class: 'love-chips' }, chips));
   }).catch(() => {});
@@ -76,12 +77,12 @@ export async function renderLove(view) {
   function drawHead() {
     const c = d.calendar;
     clear(head).append(h('div', { class: 'card love-hero' },
-      d.photo ? h('img', { class: 'love-photo', src: `/api/love/photo?${Date.now()}`, alt: 'The two of us' }) : h('div', { class: 'love-photo empty', 'aria-hidden': 'true' }, '💑'),
+      d.photo ? h('img', { class: 'love-photo', src: `/api/love/photo?${Date.now()}`, alt: 'The two of us' }) : h('div', { class: 'love-photo empty', 'aria-hidden': 'true' }, icon('heart', 44)),
       h('div', { class: 'love-hero-main' },
-        h('h2', {}, c.together_days != null ? `${c.together_days.toLocaleString()} days together 💞` : 'Just for you 💌'),
-        c.today?.length ? h('p', { class: 'love-today' }, `Today: ${c.today.map((t) => t.label).join(', ')} 🎉`) : null,
+        h('h2', {}, c.together_days != null ? `${c.together_days.toLocaleString()} days together` : 'Just for you'),
+        c.today?.length ? h('p', { class: 'love-today' }, `Today: ${c.today.map((t) => t.label).join(', ')}`) : null,
         c.upcoming?.length ? h('ul', { class: 'love-countdowns' }, c.upcoming.filter((u) => u.days > 0).map((u) => h('li', {},
-          h('span', {}, KIND_EMOJI[u.kind] || '📅'), h('span', {}, u.label, u.years ? ` (${u.years})` : ''), h('strong', {}, `${u.days} day${u.days === 1 ? '' : 's'}`), h('em', { class: 'muted small' }, fmt(u.date))))) : null,
+          h('span', { class: 'love-cd-ico' }, kindIcon(u.kind)), h('span', {}, u.label, u.years ? ` (${u.years})` : ''), h('strong', {}, `${u.days} day${u.days === 1 ? '' : 's'}`), h('em', { class: 'muted small' }, fmt(u.date))))) : null,
         h('p', { class: 'love-sign' }, loveSignature()))));
   }
 
@@ -94,7 +95,7 @@ export async function renderLove(view) {
       type: 'button', class: `envelope${l.open ? (l.opened_at ? ' read' : ' ready') : ' sealed'}`,
       'aria-label': `${l.title}. ${l.open ? (l.opened_at ? 'Read again' : 'Open it') : l.hint}`,
       onclick: async () => {
-        if (!l.open) { toast(`Not yet 😉 ${l.hint}.`); return; }
+        if (!l.open) { toast(`Not yet ${l.hint}.`); return; }
         const r = await api('POST', `love/letters/${l.id}/open`).catch((e) => { toast(e.message, 'err'); return null; });
         if (!r) return;
         hearts(16);
@@ -104,7 +105,7 @@ export async function renderLove(view) {
       },
     },
     h('span', { class: 'envelope-flap', 'aria-hidden': 'true' }),
-    h('span', { class: 'envelope-seal', 'aria-hidden': 'true' }, l.open ? (l.opened_at ? '💗' : '💌') : '🔒'),
+    h('span', { class: 'envelope-seal', 'aria-hidden': 'true' }, icon(l.open ? (l.opened_at ? 'heart-fill' : 'mail') : 'lock', 26)),
     h('strong', {}, l.title),
     h('span', { class: 'small' }, l.open ? (l.opened_at ? 'Read it again' : 'Ready to open') : l.hint));
     clear(lettersBox).append(
@@ -112,18 +113,18 @@ export async function renderLove(view) {
         fresh.length ? [h('h2', { class: 'section-title' }, 'Waiting for you'), h('div', { class: 'envelopes' }, fresh.map(env))] : null,
         sealed.length ? [h('h2', { class: 'section-title' }, 'Sealed until the moment'), h('div', { class: 'envelopes' }, sealed.map(env))] : null,
         read.length ? [h('h2', { class: 'section-title' }, 'Letters you’ve read'), h('div', { class: 'envelopes' }, read.map(env))] : null,
-      ] : emptyState('💌', 'No letters yet', 'Letters written for you show up here: some open any time, some on a date, some when you hit a milestone.'));
+      ] : emptyState(icon('mail', 30), 'No letters yet', 'Letters written for you show up here: some open any time, some on a date, some when you hit a milestone.'));
   }
 
   // ---- writer's desk (for him) ----
   function drawDesk() {
     clear(desk).append(h('details', { class: 'card writers-desk' },
-      h('summary', {}, h('strong', {}, '✍️ Writer’s desk'), h('span', { class: 'muted small' }, ' letters, dates and the photo (no peeking at the letters, Delia 🙈)')),
+      h('summary', {}, h('strong', {}, icon('pen', 15), ' Writer’s desk'), h('span', { class: 'muted small' }, ' letters, dates and the photo (no peeking at the letters, Delia)')),
       h('div', { class: 'desk-grid' },
         h('div', {},
           h('div', { class: 'card-header' }, h('h3', {}, 'Letters'), h('button', { class: 'btn primary sm', onclick: () => editLetter() }, icon('plus', 14), 'Write a letter')),
           d.letters.length ? h('ul', { class: 'item-list' }, d.letters.map((l) => h('li', {},
-            h('div', { class: 'item-main' }, h('strong', {}, l.title), h('div', { class: 'muted small' }, l.hint, l.opened_at ? ' · read 💗' : '')),
+            h('div', { class: 'item-main' }, h('strong', {}, l.title), h('div', { class: 'muted small' }, l.hint, l.opened_at ? ' · read' : '')),
             h('span', { class: 'row' },
               h('button', { class: 'btn ghost sm', 'aria-label': 'Edit', onclick: () => editLetter(l.id) }, icon('pen', 14)),
               h('button', { class: 'btn ghost sm', 'aria-label': 'Delete', onclick: async () => { if (await confirmDialog(`Delete “${l.title}”?`)) { await api('DELETE', `love/letters/${l.id}`); reload(); } } }, icon('trash', 14)))))) : h('p', { class: 'muted small' }, 'Write the first one: “Open when you’re nervous before filming”, “Open on our anniversary”, “Open at 10K followers”…')),
@@ -135,7 +136,7 @@ export async function renderLove(view) {
     const rows = (d.dates.length ? d.dates : [{ label: 'Our anniversary', date: '', kind: 'anniversary', yearly: true }, { label: 'Her birthday', date: '', kind: 'birthday', yearly: true }]).map((x) => ({ ...x }));
     const list = h('div', { class: 'dates-edit' });
     const draw = () => list.replaceChildren(...rows.map((r, i) => h('div', { class: 'date-row' },
-      h('select', { 'aria-label': 'Kind', onchange: (e) => { r.kind = e.target.value; } }, [['anniversary', '💞'], ['birthday', '🎂'], ['other', '📅']].map(([v, l]) => h('option', { value: v, selected: r.kind === v }, l))),
+      h('select', { 'aria-label': 'Kind', onchange: (e) => { r.kind = e.target.value; } }, [['anniversary', 'Anniversary'], ['birthday', 'Birthday'], ['other', 'Other']].map(([v, l]) => h('option', { value: v, selected: r.kind === v }, l))),
       h('input', { type: 'text', value: r.label, placeholder: 'What', 'aria-label': 'What', oninput: (e) => { r.label = e.target.value; } }),
       h('input', { type: 'date', value: r.date, 'aria-label': 'Date', oninput: (e) => { r.date = e.target.value; } }),
       h('button', { type: 'button', class: 'btn ghost sm', 'aria-label': 'Remove', onclick: () => { rows.splice(i, 1); draw(); } }, icon('x', 13)))));
@@ -143,7 +144,7 @@ export async function renderLove(view) {
     const saveBtn = h('button', {
       class: 'btn sm primary', onclick: () => busy(saveBtn, 'Saving…', async () => {
         await api('PUT', 'love/dates', { together_since: since.value || null, dates: rows.filter((r) => r.label.trim() && r.date).map((r) => ({ ...r, yearly: r.kind !== 'other' || !!r.yearly })) });
-        toast('Dates saved 💕');
+        toast('Dates saved');
         reload();
       }),
     }, 'Save dates');
@@ -160,7 +161,7 @@ export async function renderLove(view) {
       if (!f) return;
       const fd = new FormData();
       fd.append('photo', f);
-      try { await apiUpload('love/photo', fd); toast('Photo saved 📸'); reload(); } catch (e) { toast(e.message, 'err'); }
+      try { await apiUpload('love/photo', fd); toast('Photo saved'); reload(); } catch (e) { toast(e.message, 'err'); }
     } });
     return h('div', { class: 'desk-block' },
       h('h3', {}, 'Our photo'),
@@ -189,7 +190,7 @@ export async function renderLove(view) {
       unlock.value === 'streak' ? field('Weeks in a row', weeks) : null);
     unlock.onchange = sync;
     sync();
-    const ok = await modal(id ? 'Edit letter' : 'Write a letter 💌', (close) => h('div', { class: 'ib-form' },
+    const ok = await modal(id ? 'Edit letter' : 'Write a letter', (close) => h('div', { class: 'ib-form' },
       field('Title she sees on the envelope', title),
       field('Opens', unlock), extra,
       field('The letter', body, 'sealed until it opens; stored encrypted'),
@@ -201,8 +202,8 @@ export async function renderLove(view) {
             await api(id ? 'PUT' : 'POST', id ? `love/letters/${id}` : 'love/letters', { title: title.value.trim(), body: body.value, unlock: unlock.value, unlock_value: value });
             close(true);
           }),
-        }, id ? 'Save' : 'Seal it 💌'))), { wide: true });
-    if (ok) { toast(id ? 'Saved.' : 'Sealed 💌'); reload(); }
+        }, id ? 'Save' : 'Seal it'))), { wide: true });
+    if (ok) { toast(id ? 'Saved.' : 'Sealed'); reload(); }
   }
 
   async function reload() {
@@ -220,12 +221,12 @@ export async function renderLove(view) {
       const save = h('button', { class: 'btn sm', type: 'button', onclick: () => busy(save, 'Saving…', async () => {
         await api('PUT', `love/jar/${t.id}`, { who, answer: ta.value });
         hearts(8);
-        toast('Into the jar 🫙💕');
+        toast('Into the jar');
       }) }, 'Save');
       return h('div', { class: 'jar-answer' }, h('strong', { class: 'small' }, name), ta, save);
     };
     clear(jarBox).append(h('div', { class: 'card jar' },
-      h('div', { class: 'card-header' }, h('h2', {}, '🫙 Memory jar'), h('span', { class: 'muted small' }, 'A question a day, for both of you')),
+      h('div', { class: 'card-header' }, h('h2', { class: 'with-icon' }, icon('jar', 20), 'Memory jar'), h('span', { class: 'muted small' }, 'A question a day, for both of you')),
       h('p', { class: 'jar-question' }, t.question),
       h('div', { class: 'jar-answers' }, box('her', j.her), box('his', j.him)),
       j.past.length ? h('details', { class: 'jar-past' }, h('summary', { class: 'small' }, `${j.past.length} memor${j.past.length === 1 ? 'y' : 'ies'} in the jar`),
@@ -236,6 +237,6 @@ export async function renderLove(view) {
           p.his_answer ? h('p', {}, h('em', {}, `${j.him}: `), p.his_answer) : null)))) : null));
   }
 
-  view.append(pageHead('For you 💌', 'Letters, dates and little moments. Some letters open any time; others wait for a date or a milestone.'), head, jarBox, lettersBox, desk);
+  view.append(pageHead('For you', 'Letters, dates and little moments. Some letters open any time; others wait for a date or a milestone.'), head, jarBox, lettersBox, desk);
   drawHead(); drawLetters(); drawDesk(); drawJar();
 }

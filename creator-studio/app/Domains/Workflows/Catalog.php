@@ -74,7 +74,7 @@ class Catalog
             'reply_comment' => ['kind' => 'action', 'label' => 'Reply to comment', 'icon' => 'chat', 'tone' => 'pink', 'needs' => 'item',
                 'summary' => 'Public reply: {text|instructions}', 'fields' => [
                     $mode,
-                    ['key' => 'text', 'label' => 'Reply', 'type' => 'textarea', 'placeholder' => 'Sent it to your DMs {name} 💌', 'show_if' => ['mode', 'template'], 'required_if' => ['mode', 'template']],
+                    ['key' => 'text', 'label' => 'Reply', 'type' => 'textarea', 'placeholder' => 'Sent it to your DMs {name}', 'show_if' => ['mode', 'template'], 'required_if' => ['mode', 'template']],
                     ['key' => 'instructions', 'label' => 'Guidance for the AI', 'type' => 'textarea', 'placeholder' => 'Facts, links, what to avoid', 'show_if' => ['mode', 'ai']],
                 ]],
             'send_dm' => ['kind' => 'action', 'label' => 'Send DM', 'icon' => 'inbox', 'tone' => 'pink', 'needs' => 'item',
@@ -152,8 +152,8 @@ class Catalog
         return [
             ['id' => 'keyword_dm', 'name' => 'Comment “GUIDE” → DM the link', 'desc' => 'The classic lead magnet: reply publicly and send the link in a private DM.', 'icon' => 'inbox',
                 'nodes' => [$k('comment_keyword', ['keywords' => ['guide'], 'platforms' => ['instagram']]),
-                    $k('reply_comment', ['mode' => 'template', 'text' => 'Sent it to your DMs {name} 💌']),
-                    $k('send_dm', ['mode' => 'template', 'text' => 'Here’s the guide you asked for: (your link) ✨'])]],
+                    $k('reply_comment', ['mode' => 'template', 'text' => 'Sent it to your DMs {name}']),
+                    $k('send_dm', ['mode' => 'template', 'text' => 'Here’s the guide you asked for: (your link)'])]],
             ['id' => 'viral_repurpose', 'name' => 'Post takes off → repurpose everywhere', 'desc' => 'When a post gets 2× your usual engagement, rewrite it for your other networks.', 'icon' => 'trend',
                 'nodes' => [$k('post_performs', ['multiplier' => 2]), $k('repurpose', ['platforms' => ['linkedin', 'threads', 'x'], 'status' => 'draft']),
                     $k('notify', ['message' => 'Your {platform} post is taking off. Drafts for your other networks are ready.'])]],

@@ -1904,3 +1904,117 @@ body.wf-full .content-area { max-width: none; padding: 0; }
   .yt-results li { grid-template-columns: minmax(0, 1fr) 70px 54px; }
   .ask-row { flex-direction: column; }
 }
+
+/* =====================================================================================
+   Calm surfaces (same language as the composer): flat panels, a soft hairline border,
+   a gentle shadow and one accent. No large gradients inside the app; small marks only.
+   ===================================================================================== */
+:root { --radius: 16px; --shadow: 0 1px 2px rgba(43, 34, 48, 0.04), 0 6px 20px rgba(43, 34, 48, 0.045); }
+.card { border-radius: var(--radius); }
+.card-header h2, .card > h2 { letter-spacing: -0.01em; }
+input[type=text], input[type=email], input[type=password], input[type=url], input[type=number], input[type=date], input[type=time], input[type=datetime-local], input[type=search], select, textarea {
+  border-radius: 12px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:hover:not(:focus), select:hover:not(:focus), textarea:hover:not(:focus) { border-color: var(--hover-line); }
+.btn { border-radius: 12px; }
+.btn.sm { border-radius: 10px; }
+
+/* Dashboard hero: a quiet card with her greeting, no colour flood */
+.hero-card, :root[data-theme="dark"] .hero-card { background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.hero-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent); }
+.hero-card h1, .hero-card h2, .hero-card h3 { color: var(--ink); }
+.hero-card .muted, .hero-card .hero-sub { color: var(--muted); }
+.hero-card .hero-eyebrow { color: var(--accent); }
+.hero-motto { margin: 6px 0 0; font-size: 0.92rem; color: var(--muted); font-style: italic; }
+.btn.on-hero { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.on-hero.ghost-light { background: var(--field); color: var(--ink); border-color: var(--line); }
+.btn.on-hero.ghost-light:hover { border-color: var(--hover-line); }
+.hero-week { background: var(--bg) !important; border: 1px solid var(--line); color: var(--ink) !important; }
+.hero-week-num { color: var(--accent) !important; }
+.hero-week-lbl { color: var(--muted) !important; }
+
+/* Flat replacements for the remaining big gradients */
+.talk-button { background: var(--accent); color: var(--accent-ink); }
+.progress-bar, .yt-progress span { background: var(--accent); }
+.mentor-card, :root[data-theme="dark"] .mentor-card { background: var(--panel); border: 1px solid var(--line); }
+.yt-feature { background: var(--panel); }
+.love-note, .love-hero, .jar { background: var(--panel); border-color: var(--tint-love-line); }
+.envelope { background: var(--panel); }
+.toast.love { background: var(--accent); color: var(--accent-ink); }
+.ag-hero-art, .ag-avatar { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+.mega-side { background: var(--bg); }
+.hdr-avatar { background: var(--accent); color: var(--accent-ink); overflow: hidden; padding: 0; }
+.hdr-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hdr-copilot-mark { background: var(--accent); color: var(--accent-ink); }
+.sk-hero { background: var(--panel) !important; border: 1px solid var(--line); }
+.pv-avatar { background: var(--accent); }
+
+/* Personal touches */
+.profile-photo-row { display: flex; align-items: center; gap: 12px; }
+.profile-photo { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--accent-soft); display: grid; place-items: center; color: var(--accent); font-weight: 800; font-size: 1.2rem; flex: none; border: 1px solid var(--line); }
+
+/* ---- Her logo (cube mark) and the SVG icons that replaced emoji ---- */
+.logo.brand-mark, .auth-brand .logo.brand-mark, .hdr-phone .logo.brand-mark, .brand .logo.brand-mark { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 0; box-shadow: none; flex: none; transition: transform 0.15s; }
+.brand .logo.brand-mark { width: 34px; height: 34px; }
+.auth-brand .logo.brand-mark { width: 36px; height: 36px; border-radius: 10px; }
+a:hover > .logo.brand-mark, .brand:hover .logo.brand-mark { transform: scale(1.05); }
+.msg-avatar .logo.brand-mark { width: 100%; height: 100%; border-radius: inherit; }
+.love-heart .icon { display: block; }
+.love-heart.tone-0 { color: var(--accent); }
+.love-heart.tone-1 { color: var(--violet); }
+.love-heart.tone-2 { color: color-mix(in srgb, var(--accent) 60%, #fff); }
+.love-big { color: var(--accent); display: inline-grid; place-items: center; }
+.love-heart-btn { color: var(--accent); display: inline-grid; place-items: center; }
+.with-icon { display: inline-flex; align-items: center; gap: 8px; }
+.with-icon .icon { color: var(--accent); }
+.theme-switch .icon { color: inherit; }
+.empty-icon .icon, .mentor-avatar .icon { color: var(--accent); }
+.love-cd-ico { display: inline-grid; place-items: center; color: var(--accent); }
+.envelope-seal { color: var(--accent); }
+.envelope.sealed .envelope-seal { color: var(--muted); }
+.tool-icon .icon { color: var(--accent); }
+.yt-feature-icon .icon { color: var(--accent); }
+.auth-note-heart { color: var(--accent); display: inline-grid; }
+.auth-note-mobile .icon { color: var(--accent); vertical-align: -2px; }
+
+/* ---- Top menus (default on a computer): the mega menus are the main navigation, the sidebar
+   is the same slide-in drawer as on phones, opened from the menu button. ---- */
+:root[data-nav="top"] .app-shell { grid-template-columns: minmax(0, 1fr); }
+:root[data-nav="top"] .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: min(320px, 86vw) !important; height: 100%; padding: 16px 12px; border-right: 1px solid var(--line); border-radius: 0 22px 22px 0;
+  transform: translateX(-105%); visibility: hidden; transition: transform 0.28s cubic-bezier(.22, 1, .36, 1), visibility 0.28s; z-index: 1100; }
+:root[data-nav="top"] body.nav-open .sidebar { transform: none; visibility: visible; box-shadow: 18px 0 60px rgba(0, 0, 0, 0.22); }
+:root[data-nav="top"] .nav-backdrop { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.2s; backdrop-filter: blur(2px); }
+:root[data-nav="top"] body.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+:root[data-nav="top"] .drawer-close { display: inline-flex; margin-left: auto; }
+:root[data-nav="top"] .sidebar-footer, :root[data-nav="top"] .nav-collapse { display: none; }
+:root[data-nav="top"] .sidebar .nav-label { display: inline !important; }
+:root[data-nav="top"] .sidebar .nav-item { justify-content: flex-start !important; padding: 10px 12px; }
+:root[data-nav="top"] .hdr-phone { display: flex; }
+:root[data-nav="top"] .hdr-phone .mobile-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); text-decoration: none; margin-right: 6px; }
+:root[data-nav="top"] .hdr-phone .mobile-brand:hover { text-decoration: none; }
+:root[data-nav="top"] .content-area { max-width: 1320px; margin: 0 auto; }
+@media (min-width: 1000px) {
+  :root[data-nav="top"] .mega-wrap { display: block; }
+  :root[data-nav="top"] .hdr-search { max-width: 300px; }
+  :root[data-nav="top"] .app-header { padding: 0 clamp(14px, 2.4vw, 32px); }
+}
+@media (min-width: 1000px) and (max-width: 1240px) {
+  :root[data-nav="top"] .hdr-search-text, :root[data-nav="top"] .hdr-search kbd { display: none; }
+  :root[data-nav="top"] .hdr-search { flex: 0 0 40px; width: 40px; padding: 0; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) { :root[data-nav="top"] .sidebar, :root[data-nav="top"] .nav-backdrop { transition: none; } }
+
+/* ---- Boxed layout on a computer: the page sits on a soft canvas, and the header and content
+   share one centred box, so lines stay short and the studio reads like a single sheet. ---- */
+:root { --canvas: color-mix(in srgb, var(--bg) 93%, #2b2230); --box-w: 1200px; }
+:root[data-theme="dark"] { --canvas: color-mix(in srgb, var(--bg) 72%, #000); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --canvas: color-mix(in srgb, var(--bg) 72%, #000); } }
+@media (min-width: 1000px) {
+  body { background: var(--canvas); }
+  .main-col { width: calc(100% - 2 * clamp(12px, 2vw, 28px)); max-width: var(--box-w); margin: 14px auto 28px; min-height: calc(100vh - 42px);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 1px 2px rgba(43, 34, 48, 0.04), 0 12px 40px rgba(43, 34, 48, 0.06); }
+  .app-header, :root[data-nav="top"] .app-header { top: 0; padding: 0 clamp(16px, 2vw, 26px); border-radius: 24px 24px 0 0; background: color-mix(in srgb, var(--bg) 90%, transparent); }
+  .content-area, :root[data-nav="top"] .content-area { max-width: none; margin: 0; padding: 28px clamp(20px, 2.6vw, 36px) 56px; }
+  .mega { left: 12px; right: 12px; }
+}
+@media (min-width: 1200px) { :root[data-nav="sidebar"] .main-col { width: calc(100% - 28px); } }

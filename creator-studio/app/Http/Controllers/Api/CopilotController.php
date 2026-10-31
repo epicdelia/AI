@@ -179,12 +179,12 @@ class CopilotController extends Controller
             'text' => 'nullable|string|max:3000',
         ]);
         if (empty($data['rating']) && empty($data['text'])) {
-            return response()->json(['error' => 'Write a few words or pick 👍 / 👎.'], 422);
+            return response()->json(['error' => 'Write a few words or pick thumbs up or down.'], 422);
         }
         CopilotFeedback::create(['copilot_thread_id' => $data['thread_id'] ?? null, 'copilot_message_id' => $data['message_id'] ?? null,
             'rating' => $data['rating'] ?? null, 'text' => $data['text'] ?? null]);
 
-        return response()->json(['message' => 'Thanks for the feedback 💕']);
+        return response()->json(['message' => 'Thanks for the feedback.']);
     }
 
     /** Record apply/dismiss/undo in the transcript so the agent knows what happened. */

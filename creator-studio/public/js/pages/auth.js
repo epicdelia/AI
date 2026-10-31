@@ -2,7 +2,7 @@
 // on the right with today's love note. Google sign-in appears once the Google app is set up
 // (Connections → YouTube) and only lets her own account in.
 import { h, api, clear, field, formData, modal } from '../core.js';
-import { icon } from '../icons.js';
+import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { noteOfTheDay, setLove } from '../love.js';
 
@@ -86,21 +86,21 @@ export function renderAuth(root, initialized, welcome, onDone) {
   clear(root).append(h('div', { class: 'auth-split' },
     h('main', { class: 'auth-side' },
       h('div', { class: 'auth-top' },
-        h('div', { class: 'auth-brand' }, h('span', { class: 'logo' }, '🎬'), 'Creator Studio'),
+        h('div', { class: 'auth-brand' }, brandMark(20), 'Creator Studio'),
         h('div', { class: 'auth-theme' }, themeSwitch())),
       h('div', { class: 'auth-inner' },
         h('h1', {}, initialized ? 'Sign in' : 'Set up your studio'),
         h('p', { class: 'muted auth-sub' }, initialized
-          ? (name ? `Welcome back, ${name} 💕 Pick up right where you left off.` : 'Welcome back. Pick up right where you left off.')
+          ? (name ? `Welcome back, ${name} Pick up right where you left off.` : 'Welcome back. Pick up right where you left off.')
           : 'Ideas, scripts, every social network, agents and a weekly mentor in one place. This creates the only account for this studio.'),
         google, form),
-      note ? h('p', { class: 'auth-note-mobile' }, '💌 ', note) : null,
+      note ? h('p', { class: 'auth-note-mobile' }, icon('heart-fill', 14), ' ', note) : null,
       h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this computer. Your data stays here.')),
     h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
       h('div', { class: 'auth-glow' }),
       h('img', { class: 'auth-mockup', src: '/images/auth-mockup.png', alt: '', loading: 'eager', decoding: 'async' }),
       note ? h('figure', { class: 'auth-note' },
-        h('span', { class: 'auth-note-heart' }, '💌'),
+        h('span', { class: 'auth-note-heart' }, icon('mail', 22)),
         h('blockquote', {}, note),
         h('figcaption', {}, 'Note of the day')) : null)));
 

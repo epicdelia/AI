@@ -120,7 +120,7 @@ export async function renderAnalytics(view) {
     const entries = Object.entries(data.platforms);
     clear(cardsBox).append(entries.length
       ? h('div', { class: 'an-grid' }, entries.map(([k, p]) => platformCard(k, p)))
-      : h('div', { class: 'card' }, emptyState('📊', 'No posted posts yet',
+      : h('div', { class: 'card' }, emptyState(icon('chart', 30), 'No posted posts yet',
         'Mark posts as posted with their numbers, or import your analytics export, and this fills in.',
         h('button', { class: 'btn primary', onclick: openImport }, icon('download', 16), 'Import numbers'))));
   }

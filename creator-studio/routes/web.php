@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AgentsController;
 use App\Http\Controllers\Api\AudienceController;
 use App\Http\Controllers\Api\BioLinksController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\YouTubeStudioController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ChatController;
@@ -145,6 +146,11 @@ Route::prefix('api')->group(function () {
         Route::delete('youtube/uploads/{upload}', [YouTubeStudioController::class, 'cancelUpload']);
         Route::post('youtube/tests', [YouTubeStudioController::class, 'startTest']);
         Route::post('youtube/tests/{test}/stop', [YouTubeStudioController::class, 'stopTest']);
+
+        // Her profile photo (header avatar)
+        Route::post('me/avatar', [ProfileController::class, 'upload']);
+        Route::get('me/avatar', [ProfileController::class, 'show']);
+        Route::delete('me/avatar', [ProfileController::class, 'destroy']);
 
         // Brand kit
         Route::get('brand', [BrandController::class, 'show']);

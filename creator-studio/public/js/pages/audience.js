@@ -152,7 +152,7 @@ export async function renderAudience(view) {
     clear(reportBox);
     const r = data.report;
     if (!r) {
-      reportBox.append(h('div', { class: 'card' }, emptyState('📺', 'Connect your channel',
+      reportBox.append(h('div', { class: 'card' }, emptyState(icon('play', 30), 'Connect your channel',
         data.error || 'Add your channel and a YouTube key in Settings.',
         link('/settings', { class: 'btn primary' }, icon('gear', 16), 'Open Settings'))));
       return;
@@ -200,7 +200,7 @@ export async function renderAudience(view) {
   function drawInsights() {
     clear(insightsBox).append(h('h2', { class: 'section-title' }, 'What viewers are asking for'));
     if (!data.insights.length) {
-      insightsBox.append(h('div', { class: 'card' }, emptyState('💬', 'No comments read yet',
+      insightsBox.append(h('div', { class: 'card' }, emptyState(icon('chat', 30), 'No comments read yet',
         'Press “Viewer asks” on one of your videos, or paste any video link below. Questions and requests become ideas, and feed your next idea batch automatically.')));
       return;
     }

@@ -58,7 +58,7 @@ export async function renderBreakouts(view) {
     clear(outliersBox);
     freshLabel.textContent = data.fresh_count !== undefined ? `${data.fresh_count} not yet used for ideas` : '';
     if (!data.outliers.length) {
-      outliersBox.append(emptyState('📈', 'No breakouts yet',
+      outliersBox.append(emptyState(icon('trend', 30), 'No breakouts yet',
         'Run a scan. A breakout is a recent long-form video doing at least your minimum multiple of its channel’s median views.'));
       return;
     }

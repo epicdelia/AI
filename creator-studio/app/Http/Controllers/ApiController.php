@@ -72,6 +72,10 @@ class ApiController extends Controller
                 'density' => Setting::get('density', 'comfortable'),
                 'nav_hidden' => json_decode((string) Setting::get('nav_hidden', '[]'), true) ?: [],
                 'dashboard_layout' => json_decode((string) Setting::get('dashboard_layout', ''), true) ?: null,
+                'motto' => Setting::get('motto', ''),
+                'start_page' => Setting::get('start_page', '/'),
+                'nav_mode' => Setting::get('nav_mode', 'top'),
+                'avatar' => (bool) Setting::get('avatar'),
             ] : null,
             'user' => $user ? [
                 'id' => $user->id,

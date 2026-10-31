@@ -6,6 +6,7 @@
 import { h, api, apiStream, apiUpload, toast, clear, markdown, navigate, copyText } from './core.js';
 import { noteOfTheDay, loveOn, hearts } from './love.js';
 import { skList } from './skeleton.js';
+import { icon } from './icons.js';
 
 const MAX = 2000;
 const ATTACH_TYPES = '.txt,.md,.csv,.json,.html,.htm,.css,.js,text/*';
@@ -461,11 +462,11 @@ class CopilotPanel {
     const sel = this.selection();
     if (!this.dropContext && (pageContext.title || pageContext.path !== '/')) {
       chips.push(h('span', { class: 'sbcp-chip-ctx', title: 'The Copilot can see this page' },
-        '📄 ', pageContext.title || pageContext.path,
+        icon('doc', 12), ' ', pageContext.title || pageContext.path,
         h('button', { type: 'button', class: 'sbcp-chip-x', 'aria-label': 'Don’t include this page', onclick: () => { this.dropContext = true; this.renderChips(); } }, '×')));
     }
-    if (sel) chips.push(h('span', { class: 'sbcp-chip-ctx is-sel', title: sel.slice(0, 400) }, `✂️ Selection · ${sel.split(/\s+/).length} words`));
-    this.attachments.forEach((f, i) => chips.push(h('span', { class: 'sbcp-chip-ctx is-file', title: `${f.text.length.toLocaleString()} characters` }, '📎 ', f.name,
+    if (sel) chips.push(h('span', { class: 'sbcp-chip-ctx is-sel', title: sel.slice(0, 400) }, icon('scissors', 12), ` Selection · ${sel.split(/\s+/).length} words`));
+    this.attachments.forEach((f, i) => chips.push(h('span', { class: 'sbcp-chip-ctx is-file', title: `${f.text.length.toLocaleString()} characters` }, icon('paperclip', 12), ' ', f.name,
       h('button', { type: 'button', class: 'sbcp-chip-x', 'aria-label': `Remove ${f.name}`, onclick: () => { this.attachments.splice(i, 1); this.renderChips(); } }, '×'))));
     clear(this.chips).append(chips);
     this.chips.hidden = !chips.length;
@@ -645,7 +646,7 @@ class CopilotPanel {
     const starters = ['Read my current script and tell me the weakest minute', 'Give me 5 title ideas for this week’s video', 'What are my breakouts telling me?', 'Turn the selection into a punchier cold open'];
     clear(this.log).append(h('div', { class: 'sbcp-empty' },
       h('div', { class: 'sbcp-empty-mark', html: SVG.mark }),
-      h('h3', {}, name ? `Hi ${name}${loveOn() ? ' 💕' : ''}` : 'Hi there'),
+      h('h3', {}, name ? `Hi ${name}${loveOn() ? '' : ''}` : 'Hi there'),
       h('p', {}, 'I can read your scripts, ideas and breakouts, search your past work, and (in Agent mode) propose edits you approve.'),
       loveOn() ? h('p', { class: 'sbcp-love' }, noteOfTheDay()) : null,
       h('div', { class: 'sbcp-starters' }, starters.map((s) => h('button', { type: 'button', onclick: () => { this.input.value = s; this.autosize(); this.updateCounter(); this.send(); } }, s))),
@@ -742,8 +743,8 @@ class CopilotPanel {
     return h('div', { class: 'sbcp-msg is-user' },
       h('div', { class: 'sbcp-bubble' }, text),
       (attachments?.length || context?.selection) ? h('div', { class: 'sbcp-meta' },
-        context?.selection ? h('span', {}, `✂️ ${String(context.selection).split(/\s+/).length} words selected`) : null,
-        (attachments || []).map((a) => h('span', {}, `📎 ${a.name}`))) : null);
+        context?.selection ? h('span', {}, [icon('scissors', 12), ` ${String(context.selection).split(/\s+/).length} words selected`]) : null,
+        (attachments || []).map((a) => h('span', {}, [icon('paperclip', 12), ` ${a.name}`]))) : null);
   }
 
   /** An answer bubble: set(text) re-renders Markdown while streaming, finish(id) adds its buttons. */
@@ -765,8 +766,8 @@ class CopilotPanel {
         clear(tools).append(
           h('button', { type: 'button', title: 'Copy', onclick: () => copyText(current) }, 'Copy'),
           pageContext.script_id ? h('button', { type: 'button', title: 'Insert into the script at the cursor', onclick: () => window.dispatchEvent(new CustomEvent('copilot:insert', { detail: { text: current } })) }, 'Insert') : null,
-          messageId ? h('button', { type: 'button', class: 'sbcp-rate', title: 'Good answer', 'aria-label': 'Good answer', onclick: (e) => this.rate(messageId, 'up', e.currentTarget) }, '👍') : null,
-          messageId ? h('button', { type: 'button', class: 'sbcp-rate', title: 'Bad answer', 'aria-label': 'Bad answer', onclick: (e) => this.rate(messageId, 'down', e.currentTarget) }, '👎') : null);
+          messageId ? h('button', { type: 'button', class: 'sbcp-rate', title: 'Good answer', 'aria-label': 'Good answer', onclick: (e) => this.rate(messageId, 'up', e.currentTarget) }, '') : null,
+          messageId ? h('button', { type: 'button', class: 'sbcp-rate', title: 'Bad answer', 'aria-label': 'Bad answer', onclick: (e) => this.rate(messageId, 'down', e.currentTarget) }, '') : null);
       },
     };
     if (text) { bubble.set(text); if (!pending) bubble.finish(id); }
@@ -812,7 +813,7 @@ class CopilotPanel {
         p.before ? h('div', { class: 'sbcp-diff-old' }, h('span', { class: 'sbcp-diff-tag' }, 'Before'), h('div', { class: 'sbcp-diff-text' }, p.before)) : null,
         p.after ? h('div', { class: 'sbcp-diff-new' }, h('span', { class: 'sbcp-diff-tag' }, p.operation === 'append' ? 'Added' : 'After'), h('div', { class: 'sbcp-diff-text' }, p.after)) : null) : null;
       const meta = [p.reason, p.words_before !== undefined ? `${p.words_before} → ${p.words_after} words` : null, p.premise].filter(Boolean).join(' · ');
-      const status = { pending: null, applied: '✓ Applied', dismissed: 'Dismissed', undone: '↶ Undone', failed: `✕ ${a.result?.error || 'Failed'}` }[a.status];
+      const status = { pending: null, applied: 'Applied', dismissed: 'Dismissed', undone: '↶ Undone', failed: `${a.result?.error || 'Failed'}` }[a.status];
       const buttons = a.status === 'pending' ? [
         h('button', { type: 'button', class: 'sbcp-apply', onclick: (e) => this.applyAction(a, e.currentTarget, draw) }, 'Apply'),
         h('button', { type: 'button', class: 'sbcp-dismiss', onclick: async () => { const r = await api('POST', `copilot/actions/${a.id}/dismiss`).catch((e) => toast(e.message, 'err')); if (r) { Object.assign(a, r.action); draw(); } } }, 'Dismiss'),
@@ -932,7 +933,7 @@ class CopilotPanel {
       h('p', { class: 'sbcp-muted' }, 'Group chats by video or series. New chats (and this one) go into the project you pick; History shows only that project.'),
       h('ul', { class: 'sbcp-history' },
         h('li', { class: !this.state.project ? 'is-on' : '' }, h('button', { type: 'button', class: 'sbcp-history-open', onclick: () => choose(null) }, h('span', { class: 'sbcp-history-title' }, 'All chats'))),
-        projects.map((p) => h('li', { class: p === this.state.project ? 'is-on' : '' }, h('button', { type: 'button', class: 'sbcp-history-open', onclick: () => choose(p) }, h('span', { class: 'sbcp-history-title' }, `📁 ${p}`))))),
+        projects.map((p) => h('li', { class: p === this.state.project ? 'is-on' : '' }, h('button', { type: 'button', class: 'sbcp-history-open', onclick: () => choose(p) }, h('span', { class: 'sbcp-history-title' }, `${p}`))))),
       h('form', { class: 'sbcp-ov-form', onsubmit: (e) => { e.preventDefault(); if (name.value.trim()) choose(name.value.trim()); } }, name, h('button', { type: 'submit', class: 'sbcp-apply' }, 'Create'))));
     name.focus();
   }
@@ -940,7 +941,7 @@ class CopilotPanel {
   showFeedback() {
     const text = h('textarea', { rows: 4, maxlength: 3000, placeholder: 'What worked, what didn’t, what you wish it could do…' });
     const rating = { v: null };
-    const thumbs = ['up', 'down'].map((r) => h('button', { type: 'button', class: 'sbcp-thumb', 'aria-pressed': 'false', onclick: (e) => { rating.v = r; thumbs.forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, r === 'up' ? '👍' : '👎'));
+    const thumbs = ['up', 'down'].map((r) => h('button', { type: 'button', class: 'sbcp-thumb', 'aria-pressed': 'false', onclick: (e) => { rating.v = r; thumbs.forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, r === 'up' ? '' : ''));
     this.openOverlay('Send feedback', h('form', {
       class: 'sbcp-ov-form is-col',
       onsubmit: async (e) => {

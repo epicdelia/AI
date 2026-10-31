@@ -101,7 +101,7 @@ export function thumbnailStudio(script) {
               img.photos = img.photos.filter((x) => x.id !== p.id);
               drawPhotos();
             },
-          }, '✕'))),
+          }, ''))),
         uploadPhoto);
     };
     const photoInput = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', hidden: true });
@@ -210,7 +210,7 @@ export function brollPanel(script) {
       const r = await api('GET', `broll?script_id=${script.id}`);
       clear(list).append(r.jobs.map((j) => h('div', { class: 'broll' },
         j.status === 'done' && j.media ? h('video', { src: j.media.url, controls: true, preload: 'metadata', playsinline: true })
-          : h('div', { class: `broll-pending ${j.status}` }, j.status === 'failed' ? '✕ failed' : h('span', {}, h('span', { class: 'spinner' }), ` ${j.status}…`)),
+          : h('div', { class: `broll-pending ${j.status}` }, j.status === 'failed' ? 'failed' : h('span', {}, h('span', { class: 'spinner' }), ` ${j.status}…`)),
         h('div', { class: 'muted small clamp-2' }, j.prompt),
         j.error ? h('div', { class: 'error-text' }, j.error) : null,
         h('div', { class: 'row' },

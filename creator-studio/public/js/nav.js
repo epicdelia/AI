@@ -5,7 +5,7 @@ export const NAV_ITEMS = [
   { header: 'Today' },
   { to: '/', label: 'Dashboard', icon: 'home', desc: 'Your day, what’s due and the week at a glance' },
   { to: '/flow', label: 'Dictate', icon: 'mic', desc: 'Talk it out; it becomes a clean note' },
-  { to: '/love', label: 'For you', icon: 'heart', love: true, desc: 'Letters, dates and little moments 💌' },
+  { to: '/love', label: 'For you', icon: 'heart', love: true, desc: 'Letters, dates and little moments' },
   { header: 'YouTube' },
   { to: '/breakouts', label: 'Breakouts', icon: 'trend', desc: 'Videos beating their channel’s usual' },
   { to: '/ideas', label: 'Ideas', icon: 'bulb', desc: 'Generate, sort and pick your next video' },

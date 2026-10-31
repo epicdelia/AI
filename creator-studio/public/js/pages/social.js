@@ -139,7 +139,7 @@ export async function renderPlatform(view, platform) {
     const posts = list.posts.filter((p) => filter === 'all' || p.status === filter);
     clear(listBox).append(posts.length
       ? h('div', { class: 'post-grid' }, posts.map((p) => postCard(p, m)))
-      : emptyState('✍️', filter === 'all' ? `No ${info.label} posts yet` : `Nothing ${STATUS_LABEL[filter].toLowerCase()}`,
+      : emptyState(icon('pen', 30), filter === 'all' ? `No ${info.label} posts yet` : `Nothing ${STATUS_LABEL[filter].toLowerCase()}`,
         'Write one from scratch, or turn a script into posts with Repurpose.'));
   }
   draw();
@@ -377,7 +377,7 @@ export async function renderPost(view, id) {
           h('div', { class: `muted small${count(t) > limit() ? ' error-text' : ''}` }, `${count(t)}/${limit()}${tweets.length > 1 ? ` · ${i + 1}/${tweets.length}` : ''}`)))));
     } else if (post.platform === 'linkedin') {
       el = h('div', { class: 'pv-li' },
-        h('div', { class: 'pv-head' }, h('div', { class: 'pv-avatar' }, name.slice(0, 1).toUpperCase()), h('div', {}, h('strong', {}, name), h('div', { class: 'muted small' }, 'now · 🌐'))),
+        h('div', { class: 'pv-head' }, h('div', { class: 'pv-avatar' }, name.slice(0, 1).toUpperCase()), h('div', {}, h('strong', {}, name), h('div', { class: 'muted small' }, 'now · ', icon('globe', 11)))),
         h('div', { class: 'pv-text' }, folded(post.body, fold)),
         post.format === 'carousel' && parts.length ? h('div', { class: 'pv-slide', style: { background: m.brand_color } }, h('span', {}, plain(parts[0])), h('span', { class: 'pv-slide-count' }, `1 / ${parts.length}`)) : null);
     } else if (post.platform === 'instagram') {
@@ -388,7 +388,7 @@ export async function renderPost(view, id) {
         h('div', { class: `pv-media ${post.format === 'reel' || post.format === 'story' ? 'tall' : ''}`, style: { background: m.brand_color } },
           firstImg ? h('img', { class: 'pv-photo', src: firstImg.url, alt: firstImg.alt || '' }) : h('span', {}, visual || ' '),
           post.format === 'carousel' && parts.length > 1 ? h('div', { class: 'pv-dots' }, parts.slice(0, 20).map((_, i) => h('i', { class: i === 0 ? 'on' : '' }))) : null,
-          post.format === 'reel' ? h('span', { class: 'pv-badge' }, '▶ Reel') : null),
+          post.format === 'reel' ? h('span', { class: 'pv-badge' }, icon('play', 11), ' Reel') : null),
         post.format !== 'story' ? h('div', { class: 'pv-text' }, h('strong', {}, `${handle} `), folded(post.body, fold)) : null);
     } else if (post.platform === 'tiktok') {
       el = h('div', { class: 'pv-short pv-tiktok', style: { background: m.brand_color } },

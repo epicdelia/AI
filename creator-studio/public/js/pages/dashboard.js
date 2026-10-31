@@ -7,7 +7,7 @@ import { socialStrip } from './social.js';
 import { homeComposer } from '../composer.js';
 import { dueStrip } from '../queue.js';
 import { briefCard } from '../growth.js';
-import { arrangeDashboard, customiseDashboard } from '../prefs.js';
+import { arrangeDashboard, customiseDashboard, prefs } from '../prefs.js';
 import { loveExtras } from './love.js';
 
 const SETUP_LINKS = {
@@ -48,8 +48,9 @@ function heroCard(d) {
   return h('div', { class: 'card hero-card' },
     h('div', { class: 'hero-inner' },
       h('div', {},
-        h('p', { class: 'hero-eyebrow' }, `${greeting()}, ${d.creator_name}`),
+        h('p', { class: 'hero-eyebrow' }, `${greeting()}, ${(window.__studioName || d.creator_name || '').split(' ')[0]}`),
         h('h1', {}, line),
+        prefs().motto ? h('p', { class: 'hero-motto' }, `“${prefs().motto}”`) : null,
         h('p', { class: 'hero-sub' }, sub),
         h('div', { class: 'row', style: { marginTop: '14px' } },
           link('/flow', { class: 'btn on-hero' }, icon('mic'), 'Dictate an idea'),
@@ -110,7 +111,7 @@ export async function renderDashboard(view) {
     { id: 'composer', label: 'Composer', node: homeComposer() },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
-    { id: 'love', label: 'Today’s note 💌', node: love },
+    { id: 'love', label: 'Today’s note', node: love },
     { id: 'setup', label: 'Setup checklist', node: setupCard(d.setup_checks) },
     { id: 'stats', label: 'YouTube stats', node: h('div', { class: 'grid grid-4' },
       statBox(s.shipped, s.missed ? `shipped · ${s.missed} missed` : 'videos shipped', 'tone-good'),
@@ -147,7 +148,7 @@ export async function renderDashboard(view) {
   ));
 
   if (!d.weeks.length && !d.picked_ideas.length && !d.recent_scripts.length) {
-    view.append(h('div', { class: 'card', style: { marginTop: '18px' } }, emptyState('🌱', 'A fresh studio',
+    view.append(h('div', { class: 'card', style: { marginTop: '18px' } }, emptyState(icon('sprout', 30), 'A fresh studio',
       'Start in Settings: add your channel and an AI key. Then add a few competitor channels to watch.',
       link('/settings', { class: 'btn primary' }, 'Open settings'))));
   }

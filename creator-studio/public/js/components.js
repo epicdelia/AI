@@ -85,7 +85,7 @@ export function outputPanel(content, opts = {}) {
         savedId = res.document.id;
         toast(res.message);
       }
-      saveBtn.lastChild.textContent = 'Saved ✓';
+      saveBtn.lastChild.textContent = 'Saved';
     }),
   }, icon('heart', 15), h('span', {}, 'Save to Library'));
 

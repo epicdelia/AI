@@ -10,7 +10,7 @@ export async function renderLibrary(view) {
   const state = { q: '', tool: '', favorite: false, page: 1, lastPage: 1, docs: [], tools: [] };
   const listBox = h('div');
   const toolSelect = h('select', { 'aria-label': 'Filter by tool' });
-  const favBtn = h('button', { class: 'btn sm' }, '★ Favourites');
+  const favBtn = h('button', { class: 'btn sm' }, icon('star', 14), 'Favourites');
 
   async function load(reset = true) {
     if (reset) { state.page = 1; clear(listBox).append(skList(8, { thumb: null, label: 'your Library' })); }
@@ -83,7 +83,7 @@ export async function renderLibrary(view) {
           star.classList.toggle('on', doc.favorite);
         } catch (err) { toast(err.message, 'err'); }
       },
-    }, '★');
+    }, icon('star-fill', 15));
     const preview = doc.content.replace(/[#*_>`[\]]/g, '').replace(/\s+/g, ' ').slice(0, 220);
     return h('article', { class: 'doc-card', tabindex: '0', onclick: () => openDoc(doc), onkeydown: (e) => { if (e.key === 'Enter') openDoc(doc); } },
       star,
@@ -105,7 +105,7 @@ export async function renderLibrary(view) {
   function drawList() {
     clear(listBox);
     if (!state.docs.length) {
-      listBox.append(h('div', { class: 'card' }, emptyState('📚',
+      listBox.append(h('div', { class: 'card' }, emptyState(icon('book', 30),
         state.q || state.tool || state.favorite ? 'Nothing matches' : 'Your Library is empty',
         'Anything you generate in the Toolkit, AI YouTube or a script’s Package tab can be saved here.',
         link('/tools', { class: 'btn primary' }, icon('sparkle'), 'Open the Toolkit'))));

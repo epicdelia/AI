@@ -79,7 +79,7 @@ class Love
             };
             if ($due) {
                 $l->update(['unlocked_at' => now()]);
-                AgentEvent::log('love', "💌 A letter just unlocked for you: “{$l->title}”");
+                AgentEvent::log('love', "A letter just unlocked for you: “{$l->title}”");
                 $new[] = $l;
             }
         }
@@ -108,7 +108,7 @@ class Love
         }
         Setting::put('love_milestones_seen', json_encode($done));
         foreach ($out as $m) {
-            AgentEvent::log('love', '🎉 '.number_format($m['count']).' followers on '.$m['label'].'!', null, null, $m['platform']);
+            AgentEvent::log('love', number_format($m['count']).' followers on '.$m['label'].'!', null, null, $m['platform']);
         }
 
         return array_values($out);

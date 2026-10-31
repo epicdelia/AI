@@ -1,6 +1,7 @@
 // Light / dark / system theme. The choice is stored per browser; index.html applies it before
 // the first paint (no white flash), and "system" follows the OS live.
 import { h } from './core.js';
+import { icon as svgIcon } from './icons.js';
 
 const KEY = 'studio-theme';
 const media = window.matchMedia?.('(prefers-color-scheme: dark)');
@@ -33,12 +34,12 @@ media?.addEventListener?.('change', () => { if (themePref() === 'system') applyT
 /** Light / Dark / System segmented switch (sidebar footer and Settings). */
 export function themeSwitch() {
   const pref = themePref();
-  const opts = [['light', '☀️', 'Light'], ['dark', '🌙', 'Dark'], ['system', '💻', 'System']];
+  const opts = [['light', 'sun', 'Light'], ['dark', 'moon', 'Dark'], ['system', 'monitor', 'System']];
   return h('div', { class: 'theme-switch', role: 'group', 'aria-label': 'Theme' },
     opts.map(([v, icon, label]) => h('button', {
       type: 'button', 'data-theme-opt': v, 'aria-pressed': String(pref === v), title: `${label} theme`,
       onclick: () => setTheme(v),
-    }, h('span', { 'aria-hidden': 'true' }, icon), h('span', { class: 'theme-switch-label' }, label))));
+    }, svgIcon(icon, 14), h('span', { class: 'theme-switch-label' }, label))));
 }
 
 /** Keyboard shortcut: Ctrl+Shift+L flips light/dark. */

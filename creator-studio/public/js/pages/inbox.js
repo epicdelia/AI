@@ -133,7 +133,7 @@ export async function renderInbox(view) {
             h('button', { class: 'btn ghost sm', onclick: () => ruleDialog(r) }, icon('pen', 14)),
             h('button', { class: 'btn ghost sm', 'aria-label': 'Delete', onclick: async () => { if (await confirmDialog(`Delete “${r.name}”?`)) { await api('DELETE', `engage/rules/${r.id}`); load(); } } }, icon('trash', 14))))))) :
         h('div', { class: 'card' }, h('h2', {}, 'Ideas to start with'), h('div', { class: 'ib-presets' }, [
-          ['Comment “GUIDE”, get the link by DM', { name: 'Guide by DM', platforms: ['instagram'], trigger: 'keyword', keywords: ['guide'], reply_mode: 'template', reply_template: 'Sent it to your DMs {name} 💌', dm_text: 'Here’s the guide: (your link)', auto_send: false }],
+          ['Comment “GUIDE”, get the link by DM', { name: 'Guide by DM', platforms: ['instagram'], trigger: 'keyword', keywords: ['guide'], reply_mode: 'template', reply_template: 'Sent it to your DMs {name}', dm_text: 'Here’s the guide: (your link)', auto_send: false }],
           ['Answer questions in my voice', { name: 'Answer questions', platforms: nets.map((n) => n.platform), trigger: 'question', reply_mode: 'ai', instructions: 'Answer briefly. My gear list and links are in my bio.', auto_send: false }],
           ['Reply to every DM', { name: 'DM replies', platforms: ['instagram'], trigger: 'any_dm', reply_mode: 'ai', instructions: 'Friendly and short. For collabs or business, ask them to email me.', auto_send: false }],
         ].map(([label, preset]) => h('button', { class: 'ib-preset', onclick: () => ruleDialog(null, preset) }, icon('bot', 16), label, icon('arrow', 14))))),

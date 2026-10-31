@@ -113,7 +113,7 @@ export async function renderYouTubeStudio(view) {
         h('div', { class: 'row-between' }, h('strong', { class: 'clamp-1' }, t.original_title),
           h('span', { class: `pill ${t.status === 'done' ? 'ok' : t.status === 'running' ? 'new' : t.status === 'failed' ? 'bad' : ''}` }, t.status === 'running' ? 'Running' : t.status === 'done' ? 'Done' : t.status)),
         h('ul', { class: 'yt-results' }, t.results.map((r, i) => h('li', { class: `${t.winner === i ? 'win' : ''}${t.status === 'running' && t.current === i ? ' live' : ''}` },
-          h('span', { class: 'clamp-1' }, r.title, t.status === 'running' && t.current === i ? h('em', { class: 'muted small' }, ' (live now)') : null, t.winner === i ? ' 🏆' : ''),
+          h('span', { class: 'clamp-1' }, r.title, t.status === 'running' && t.current === i ? h('em', { class: 'muted small' }, ' (live now)') : null, t.winner === i ? icon('trophy', 13) : ''),
           h('span', { class: 'yt-bar', role: 'img', 'aria-label': `${r.views_per_hour} views per hour` }, h('span', { style: { width: `${(r.views_per_hour / best) * 100}%` } })),
           h('strong', { class: 'small' }, `${r.views_per_hour}/h`)))),
         t.error ? h('p', { class: 'error-text small' }, t.error) : null,

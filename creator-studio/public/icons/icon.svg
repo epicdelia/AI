@@ -1,16 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#e2558c"/>
-      <stop offset="1" stop-color="#7b5cd6"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <!-- clapperboard -->
-  <g fill="none" stroke="#fff" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">
-    <rect x="120" y="214" width="272" height="170" rx="22"/>
-    <path d="M120 214 L140 136 L392 136 L392 214"/>
-    <path d="M196 136 L172 214 M268 136 L244 214 M340 136 L316 214"/>
+  <rect width="512" height="512" rx="112" fill="#c93a70"/>
+  <g transform="translate(64 64) scale(16)" fill="#ffffff">
+    <path d="M12 3L20 7.5L12 12L4 7.5Z"/>
+    <path opacity=".7" d="M4 7.5L12 12L12 21L4 16.5Z"/>
+    <path opacity=".4" d="M20 7.5L12 12L12 21L20 16.5Z"/>
   </g>
-  <path d="M236 262 L236 336 L298 299 Z" fill="#fff"/>
 </svg>

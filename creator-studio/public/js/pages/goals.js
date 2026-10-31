@@ -95,7 +95,7 @@ export async function renderGoals(view) {
         pageHead('Weekly goals', `Your contract: ${g.commitment}. The scoreboard is the truth, and the mentor keeps it honest.`),
         h('div', { class: 'grid grid-2' },
           h('div', { class: 'card' }, h('h2', {}, 'Make a plan'), planForm(false, draw)()),
-          h('div', { class: 'card' }, emptyState('🎯', 'One video a week',
+          h('div', { class: 'card' }, emptyState(icon('target', 30), 'One video a week',
             'Consistency beats intensity. Plan 12 weeks, ship one long-form video each week, and check in every Monday. The mentor scores each week from your real uploads.'))));
       return;
     }
@@ -146,7 +146,7 @@ export async function renderGoals(view) {
 
     if (latestVerdict) {
       box.append(h('div', { class: 'card mentor-card' },
-        h('div', { class: 'mentor-head' }, h('div', { class: 'mentor-avatar' }, '🧭'), h('div', {}, h('h3', {}, 'Mentor verdict'), h('div', { class: 'muted' }, `on week ${latestVerdict.number}`))),
+        h('div', { class: 'mentor-head' }, h('div', { class: 'mentor-avatar' }, icon('compass', 22)), h('div', {}, h('h3', {}, 'Mentor verdict'), h('div', { class: 'muted' }, `on week ${latestVerdict.number}`))),
         mdBlock(latestVerdict.verdict)));
     }
 

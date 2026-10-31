@@ -20,16 +20,18 @@
         if (p.accent) document.documentElement.setAttribute('data-accent', p.accent);
         if (p.text) document.documentElement.setAttribute('data-text', p.text);
         if (p.density) document.documentElement.setAttribute('data-density', p.density);
+        document.documentElement.setAttribute('data-nav', p.nav || 'top');
       } catch (e) {}
     })();
   </script>
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Studio">
   <link rel="stylesheet" href="/css/studio.css?v=7">
-  <link rel="stylesheet" href="/css/components.css?v=27">
+  <link rel="stylesheet" href="/css/components.css?v=31">
   <link rel="stylesheet" href="/css/copilot.css?v=2">
 </head>
 <body>
@@ -37,6 +39,6 @@
   <div id="app"></div>
   <div id="toast-container" aria-live="polite"></div>
   <noscript>Creator Studio needs JavaScript enabled.</noscript>
-  <script type="module" src="/js/app.js?v=22"></script>
+  <script type="module" src="/js/app.js?v=25"></script>
 </body>
 </html>

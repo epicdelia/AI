@@ -313,7 +313,7 @@ export async function renderWorkflow(view, id) {
   async function testStep(key) {
     await saving;
     const r = await api('POST', `workflows/${wf.id}/test-step`, { key });
-    toast(`${r.ok ? '✓' : '✗'} ${r.message}`, r.ok ? 'ok' : 'err', 10000);
+    toast(r.message, r.ok ? 'ok' : 'err', 10000);
     return r;
   }
 

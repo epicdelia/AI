@@ -77,6 +77,9 @@ class Setting extends Model
         'density' => 'comfortable',       // comfortable | compact
         'nav_hidden' => '[]',             // sidebar items she hid (paths)
         'dashboard_layout' => '',         // JSON: [{id, hidden}] in her order; '' = default
+        'motto' => '',                    // a line of her own under the dashboard greeting
+        'start_page' => '/',              // which page the studio opens on
+        'nav_mode' => 'top',              // top: mega menus across the top, sidebar as a drawer | sidebar: sidebar kept open
     ];
 
     private static ?array $cache = null;

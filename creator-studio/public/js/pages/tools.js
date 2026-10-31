@@ -1,7 +1,10 @@
 // Toolkit: one-click writing tools for creators, her own templates, and AI YouTube.
 import { h, api, apiStream, liveMarkdown, busy, toast, pageHead, clear, modal, confirmDialog, field, navigate, link, emptyState } from '../core.js';
-import { icon } from '../icons.js';
+import { icon, hasIcon, PICKABLE } from '../icons.js';
 import { outputPanel, youtubeDialog } from '../components.js';
+
+/** Toolkit icons are SVG names; an old custom one (an emoji) shows the sparkle instead. */
+function toolIcon(name, size = 20) { return icon(hasIcon(name) ? name : 'sparkle', size); }
 
 export async function renderTools(view, key) {
   const data = await api('GET', 'tools');
@@ -31,9 +34,9 @@ export async function renderTools(view, key) {
     const star = h('button', {
       class: `star${favorites.has(t.key) ? ' on' : ''}`, title: 'Favourite', 'aria-label': `Favourite ${t.name}`,
       onclick: (e) => { e.stopPropagation(); toggleFav(t, star); },
-    }, '★');
+    }, icon('star-fill', 15));
     return h('article', { class: 'tool-card', tabindex: '0', onclick: () => navigate(`/tools/${t.key}`), onkeydown: (e) => { if (e.key === 'Enter') navigate(`/tools/${t.key}`); } },
-      h('div', { class: 'tool-icon' }, t.icon), star,
+      h('div', { class: 'tool-icon' }, toolIcon(t.icon)), star,
       h('h3', {}, t.name),
       h('p', { class: 'muted small' }, t.description || ''),
       t.custom ? h('span', { class: 'tag' }, 'my template') : null);
@@ -46,13 +49,13 @@ export async function renderTools(view, key) {
     else if (filter !== 'all') tools = tools.filter((t) => t.category === filter);
 
     clear(chips).append(
-      [['all', 'All'], ['favorites', '★ Favourites'], ...Object.entries(data.categories)].map(([k, label]) => h('button', {
+      [['all', 'All'], ['favorites', 'Favourites'], ...Object.entries(data.categories)].map(([k, label]) => h('button', {
         class: `tab${filter === k ? ' active' : ''}`, onclick: () => { filter = k; draw(); },
       }, label)));
 
     clear(grid);
     if (!tools.length) {
-      grid.append(h('div', { class: 'card' }, emptyState(filter === 'favorites' ? '⭐' : '🔍',
+      grid.append(h('div', { class: 'card' }, emptyState(icon(filter === 'favorites' ? 'star' : 'search', 30),
         filter === 'favorites' ? 'No favourites yet' : 'Nothing matches',
         filter === 'favorites' ? 'Tap the star on any tool to pin it here.' : filter === 'custom' ? 'Create a template for anything you write often.' : 'Try another word.')));
       return;
@@ -73,7 +76,7 @@ export async function renderTools(view, key) {
     pageHead('Toolkit', 'Titles, thumbnails, descriptions, captions, threads, sponsor emails and more, written in your voice.',
       h('button', { class: 'btn', onclick: () => customToolDialog(null, () => navigate('/tools')) }, icon('plus'), 'New template')),
     h('div', { class: 'card yt-feature' },
-      h('div', { class: 'yt-feature-icon' }, '▶'),
+      h('div', { class: 'yt-feature-icon' }, icon('play', 22)),
       h('div', { style: { flex: 1 } },
         h('h2', {}, 'AI YouTube'),
         h('p', { class: 'muted' }, 'Paste any video link: get why it worked, a summary, quotable lines, chapters or a blog post from its transcript.')),
@@ -136,7 +139,7 @@ function renderRunner(view, tool, data) {
   view.append(
     h('div', { class: 'editor-head' },
       link('/tools', { class: 'btn ghost sm' }, icon('back', 15), 'Toolkit'),
-      h('div', { class: 'runner-title' }, h('span', { class: 'tool-icon sm' }, tool.icon), h('h1', {}, tool.name)),
+      h('div', { class: 'runner-title' }, h('span', { class: 'tool-icon sm' }, toolIcon(tool.icon, 16)), h('h1', {}, tool.name)),
       tool.custom ? h('div', { class: 'row' },
         h('button', { class: 'btn ghost sm', onclick: () => customToolDialog(tool, () => navigate(`/tools/${tool.key}`)) }, icon('pen', 15), 'Edit'),
         h('button', {
@@ -169,7 +172,7 @@ function customToolDialog(tool, onSaved) {
     (tool?.fields?.length ? tool.fields : [{ name: 'topic', label: 'Topic', type: 'textarea', required: true }]).forEach(addRow);
 
     const name = h('input', { type: 'text', required: true, maxlength: 100, value: tool?.name || '' });
-    const iconIn = h('input', { type: 'text', maxlength: 4, value: tool?.icon || '✨', class: 'icon-input' });
+    const iconIn = h('select', { class: 'icon-input' }, PICKABLE.map((n) => h('option', { value: n, selected: (hasIcon(tool?.icon) ? tool.icon : 'sparkle') === n }, n.replace('-', ' '))));
     const desc = h('input', { type: 'text', maxlength: 300, value: tool?.description || '' });
     const prompt = h('textarea', { rows: 6, required: true, placeholder: 'Write 5 pinned-comment ideas for my video about {topic}. Each under 200 characters, end with a question.' }, tool?.prompt || '');
 

@@ -165,7 +165,7 @@ export async function renderIdeas(view) {
   function drawList() {
     clear(listBox);
     if (!state.ideas.length) {
-      listBox.append(h('div', { class: 'card' }, emptyState('💡',
+      listBox.append(h('div', { class: 'card' }, emptyState(icon('bulb', 30),
         state.status ? `No ${state.status} ideas` : 'No ideas yet',
         'Generate a batch from breakout signals, dictate one, or add your own.')));
       return;

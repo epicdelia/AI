@@ -83,15 +83,26 @@ class CopilotTest extends TestCase
         $script = Script::create(['title' => 'Budget apps', 'body' => "## Cold open\nSo today we look at apps.\n\nMore text."]);
         $this->scriptedTurns([
             new ToolTurn('', [['id' => 'c1', 'name' => 'get_script', 'args' => ['script_id' => $script->id]]]),
-            new ToolTurn('Sharpening the opening.', [['id' => 'c2', 'name' => 'edit_script', 'args' => [
-                'script_id' => $script->id, 'operation' => 'replace_text', 'find' => 'So today we look at apps.', 'text' => 'Five apps. One month. £300 I didn’t know I was wasting.', 'reason' => 'payoff first',
-            ]]]),
+            new ToolTurn('Sharpening the opening.', [
+                [
+                    'id' => 'c2',
+                    'name' => 'edit_script',
+                    'args' => [
+                        'script_id' => $script->id,
+                        'operation' => 'replace_text',
+                        'find' => 'So today we look at apps.',
+                        'text' => 'Five apps. One month. £300 I didn’t know I was wasting.',
+                        'reason' => 'payoff first',
+                    ]
+                ]
+            ]),
             new ToolTurn('I proposed a punchier cold open: hit **Apply** if you like it.'),
         ], $seen);
 
         $thread = $this->postJson('/api/copilot/threads', ['mode' => 'agent'])->json('thread');
         $res = $this->postJson("/api/stream/copilot/threads/{$thread['id']}/messages", [
-            'content' => 'Make my cold open punchier', 'context' => ['path' => "/scripts/{$script->id}", 'script_id' => $script->id, 'title' => 'Budget apps', 'selection' => 'So today we look at apps.'],
+            'content' => 'Make my cold open punchier',
+            'context' => ['path' => "/scripts/{$script->id}", 'script_id' => $script->id, 'title' => 'Budget apps', 'selection' => 'So today we look at apps.'],
         ])->assertOk();
         $events = $this->events($res->streamedContent());
 
@@ -104,7 +115,7 @@ class CopilotTest extends TestCase
         $kinds = array_column($events, 0);
         $this->assertContains('action', $kinds);
         $this->assertContains('done', $kinds);
-        $tools = array_values(array_filter($events, fn ($e) => $e[0] === 'tool' && $e[1]['status'] !== 'running'));
+        $tools = array_values(array_filter($events, fn($e) => $e[0] === 'tool' && $e[1]['status'] !== 'running'));
         $this->assertSame(['done', 'proposed'], array_column(array_column($tools, 1), 'status'));
 
         $this->assertStringContainsString('So today', $script->fresh()->body, 'nothing changes before Apply');
@@ -236,11 +247,13 @@ class CopilotTest extends TestCase
         [$e, $m] = EngineKeys::parse('anthropic|claude-sonnet-5-5');
         $this->assertSame([EngineEnum::ANTHROPIC, 'claude-sonnet-5-5'], [$e, $m]);
         $this->assertSame([EngineEnum::OPENAI, 'gpt-4.1'], EngineKeys::parse('gpt-4.1'));
-        $this->assertSame(EngineEnum::OPENAI, EngineKeys::parse('xai|grok-4')[0], 'no xAI key → stays on Settings engine');
+        $this->assertSame([EngineEnum::OPENAI, null], EngineKeys::parse('xai|grok-4'), 'no xAI key → stays on Settings engine with default model');
+        $this->assertSame([EngineEnum::OPENAI, null], EngineKeys::parse('openai|gemini'), 'malformed engine-model pair falls back to default');
+        $this->assertSame([EngineEnum::OPENAI, null], EngineKeys::parse('openai'), 'bare engine falls back to default model');
 
         Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'hi']], 'usage' => ['input_tokens' => 1, 'output_tokens' => 1]])]);
         app(Llm::class)->model('anthropic|claude-sonnet-5-5')->agentTurn('s', [['role' => 'user', 'content' => 'x']], []);
-        Http::assertSent(fn ($r) => str_contains($r->url(), 'anthropic.com') && $r->hasHeader('x-api-key', 'sk-ant-x') && $r['model'] === 'claude-sonnet-5-5');
+        Http::assertSent(fn($r) => str_contains($r->url(), 'anthropic.com') && $r->hasHeader('x-api-key', 'sk-ant-x') && $r['model'] === 'claude-sonnet-5-5');
     }
 
     // ---- native tool calling wire formats ---------------------------------------------
@@ -249,9 +262,20 @@ class CopilotTest extends TestCase
     {
         Setting::put('llm_api_key', 'sk');
         Setting::put('llm_model', 'gpt-4.1');
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => null, 'tool_calls' => [
-            ['id' => 'call_1', 'type' => 'function', 'function' => ['name' => 'get_script', 'arguments' => '{"script_id":4}']],
-        ]]]]])]);
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => null,
+                            'tool_calls' => [
+                                ['id' => 'call_1', 'type' => 'function', 'function' => ['name' => 'get_script', 'arguments' => '{"script_id":4}']],
+                            ]
+                        ]
+                    ]
+                ]
+            ])
+        ]);
         $msgs = [
             ['role' => 'user', 'content' => 'hi'],
             ['role' => 'assistant', 'content' => '', 'tool_calls' => [['id' => 'call_0', 'name' => 'list_scripts', 'args' => []]]],
@@ -260,7 +284,7 @@ class CopilotTest extends TestCase
         $turn = (new OpenAiCompatibleDriver(EngineEnum::OPENAI))->toolChat('sys', $msgs, [['name' => 'get_script', 'description' => 'd', 'parameters' => ['type' => 'object', 'properties' => (object) []]]]);
 
         $this->assertSame([['id' => 'call_1', 'name' => 'get_script', 'args' => ['script_id' => 4]]], $turn->toolCalls);
-        Http::assertSent(fn ($r) => $r['tools'][0]['type'] === 'function' && $r['tools'][0]['function']['name'] === 'get_script'
+        Http::assertSent(fn($r) => $r['tools'][0]['type'] === 'function' && $r['tools'][0]['function']['name'] === 'get_script'
             && $r['messages'][2]['tool_calls'][0]['function']['arguments'] === '{}'
             && $r['messages'][3] === ['role' => 'tool', 'tool_call_id' => 'call_0', 'content' => '[]']);
     }
@@ -269,10 +293,14 @@ class CopilotTest extends TestCase
     {
         Setting::put('llm_engine', 'anthropic');
         Setting::put('llm_api_key', 'sk-ant');
-        Http::fake(['api.anthropic.com/*' => Http::response(['content' => [
-            ['type' => 'text', 'text' => 'Let me look.'],
-            ['type' => 'tool_use', 'id' => 'tu_1', 'name' => 'list_ideas', 'input' => ['status' => 'picked']],
-        ]])]);
+        Http::fake([
+            'api.anthropic.com/*' => Http::response([
+                'content' => [
+                    ['type' => 'text', 'text' => 'Let me look.'],
+                    ['type' => 'tool_use', 'id' => 'tu_1', 'name' => 'list_ideas', 'input' => ['status' => 'picked']],
+                ]
+            ])
+        ]);
         $msgs = [
             ['role' => 'user', 'content' => 'hi'],
             ['role' => 'assistant', 'content' => '', 'tool_calls' => [['id' => 'a', 'name' => 'x', 'args' => []], ['id' => 'b', 'name' => 'y', 'args' => ['q' => 1]]]],
@@ -297,12 +325,39 @@ class CopilotTest extends TestCase
         Setting::put('llm_api_key', 'sk');
         Setting::put('llm_model', 'gpt-4.1');
         $calls = 0;
-        Http::fake(['api.openai.com/*' => function ($req) use (&$calls) {
-            $calls++;
+        Http::fake([
+            'api.openai.com/*' => function ($req) use (&$calls) {
+                $calls++;
 
-            return isset($req['tools']) ? Http::response(['error' => ['message' => 'tools are not supported for this model']], 400) : Http::response(['choices' => [['message' => ['content' => 'plain answer']]]]);
-        }]);
+                return isset($req['tools']) ? Http::response(['error' => ['message' => 'tools are not supported for this model']], 400) : Http::response(['choices' => [['message' => ['content' => 'plain answer']]]]);
+            }
+        ]);
         $turn = (new OpenAiCompatibleDriver(EngineEnum::OPENAI))->toolChat('s', [['role' => 'user', 'content' => 'x']], [['name' => 't', 'description' => 'd', 'parameters' => ['type' => 'object', 'properties' => (object) []]]]);
         $this->assertSame(['plain answer', 2], [$turn->text, $calls]);
+    }
+
+    public function test_gemini_model_sanitization_removes_invalid_prefixes(): void
+    {
+        Setting::put('llm_engine', 'gemini');
+        Setting::put('llm_api_key', 'AIza-test');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'choices' => [['message' => ['content' => 'ok']]],
+            ])
+        ]);
+
+        $driver = new OpenAiCompatibleDriver(EngineEnum::GEMINI);
+
+        // Test with "gemini|gemini-2.5-flash"
+        $driver->chat('sys', [['role' => 'user', 'content' => 'hi']], ['model' => 'gemini|gemini-2.5-flash']);
+        Http::assertSent(fn($r) => $r['model'] === 'gemini-2.5-flash');
+
+        // Test with "models/gemini-2.5-pro"
+        $driver->chat('sys', [['role' => 'user', 'content' => 'hi']], ['model' => 'models/gemini-2.5-pro']);
+        Http::assertSent(fn($r) => $r['model'] === 'gemini-2.5-pro');
+
+        // Test with bare "gemini" -> falls back to default model
+        $driver->chat('sys', [['role' => 'user', 'content' => 'hi']], ['model' => 'gemini']);
+        Http::assertSent(fn($r) => $r['model'] === EngineEnum::GEMINI->defaultModel());
     }
 }

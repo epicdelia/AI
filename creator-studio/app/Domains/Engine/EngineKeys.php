@@ -64,8 +64,18 @@ class EngineKeys
             [$engine, $model] = explode('|', $choice, 2);
             $e = EngineEnum::tryFrom($engine);
             if ($e && self::for($e)) {
-                return [$e, $model !== '' ? $model : null];
+                $cleaned = ($model !== '' && $model !== $engine && EngineEnum::tryFrom($model) === null) ? $model : null;
+
+                return [$e, $cleaned];
             }
+
+            // Engine unavailable: fall back to current engine's default/configured model
+            return [$current, null];
+        }
+
+        // If a bare engine name was passed (e.g. "gemini" or "openai"), use default model
+        if (($e = EngineEnum::tryFrom($choice)) !== null) {
+            return [self::for($e) ? $e : $current, null];
         }
 
         return [$current, $choice];

@@ -33,7 +33,25 @@ abstract class BaseDriver implements EngineDriver
     /** $options['model'] overrides Settings for one call (the Copilot's model picker). */
     protected function model(array $options = []): string
     {
-        return ($options['model'] ?? null) ?: (Setting::get('llm_model') ?: $this->engine->defaultModel());
+        $model = ($options['model'] ?? null) ?: (Setting::get('llm_model') ?: $this->engine->defaultModel());
+
+        // Strip any residual engine prefix (e.g. "gemini|gemini-2.5-flash" -> "gemini-2.5-flash")
+        if (str_contains($model, '|')) {
+            $parts = explode('|', $model, 2);
+            $model = $parts[1] !== '' ? $parts[1] : $this->engine->defaultModel();
+        }
+
+        // If the model string is just an engine name itself (e.g. "gemini" or "openai"), use default
+        if ($model === $this->engine->value || EngineEnum::tryFrom($model) !== null) {
+            $model = $this->engine->defaultModel();
+        }
+
+        // Google's OpenAI-compatible endpoint expects bare IDs (e.g. "gemini-2.5-flash"), not "models/..."
+        if ($this->engine === EngineEnum::GEMINI && str_starts_with($model, 'models/')) {
+            $model = substr($model, 7);
+        }
+
+        return $model;
     }
 
     /**

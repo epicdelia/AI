@@ -42,6 +42,11 @@ class SocialAgent extends Model
         return $this->hasMany(AgentEvent::class);
     }
 
+    public function evalReports(): HasMany
+    {
+        return $this->hasMany(AgentEvalReport::class);
+    }
+
     public function option(string $key, mixed $default = null): mixed
     {
         return $this->options[$key] ?? $default;

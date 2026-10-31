@@ -376,11 +376,11 @@ export async function renderAgent(view, id) {
           h('span', { class: 'small' },
             h('strong', {}, 'Agent Signal Intelligence: '),
             'Ingests live breakout competitor trends, fresh RSS feeds, viewer questions, and your recent scripts to draft high-performing, authentic posts.'))));
-    const TABS = [['approvals', 'Approvals', d.pending.length], ['upcoming', 'Upcoming', d.upcoming.length], ['published', 'Published', d.published.length], ['learning', 'Learning', a.lessons.length], ['activity', 'Activity', null]];
+    const TABS = [['approvals', 'Approvals', d.pending.length], ['upcoming', 'Upcoming', d.upcoming.length], ['published', 'Published', d.published.length], ['learning', 'Learning', a.lessons.length], ['harness', 'Harness & Evals', null], ['activity', 'Activity', null]];
     clear(tabs).append(TABS.map(([k, label, n]) => h('button', {
       class: `tab${tab === k ? ' active' : ''}`, role: 'tab', 'aria-selected': String(tab === k), onclick: () => { tab = k; draw(); },
     }, label, n ? h('span', { class: 'count' }, n) : null)));
-    clear(panel).append({ approvals, upcoming, published, learning, activity }[tab]());
+    clear(panel).append({ approvals, upcoming, published, learning, harness, activity }[tab]());
   }
 
   const kpi = (n, label, cls = '') => h('div', { class: `ag-kpi ${cls}` }, h('strong', {}, n), h('span', {}, label));
@@ -505,6 +505,139 @@ export async function renderAgent(view, id) {
             h('span', { class: 'ag-trend-bar', style: { height: `${t.median_rate != null ? Math.max(4, (t.median_rate / max) * 100) : 0}%` } }),
             h('span', { class: 'ag-trend-label muted small' }, new Date(t.to).toLocaleDateString([], { month: 'short', day: 'numeric' }))))) :
           h('p', { class: 'muted small' }, 'Shows once its posts have views and engagement (from connected accounts or your imports).')));
+  }
+
+  function harness() {
+    const wrap = h('div', { class: 'ag-harness-view' });
+    const loadHarness = async () => {
+      clear(wrap).append(h('p', { class: 'muted small' }, 'Loading harness benchmark metrics…'));
+      try {
+        const ev = await api('GET', `agents/${a.id}/evals`);
+        const tools = [
+          { name: 'fetch_breakouts', label: 'Outlier Competitor Spikes', desc: 'Real-time trending YouTube/viral outliers' },
+          { name: 'fetch_rss_feeds', label: 'Fresh RSS Signals', desc: 'Niche industry feeds and articles' },
+          { name: 'fetch_channel_scripts', label: 'Video Transcripts & Concepts', desc: 'Recently drafted and produced scripts' },
+          { name: 'fetch_audience_asks', label: 'Audience FAQ Extractor', desc: 'Viewer inquiries from comments and inbox' },
+          { name: 'fetch_active_sponsors', label: 'Sponsorship Matching', desc: 'Brand deliverables & FTC disclosures' },
+          { name: 'get_open_schedule_slots', label: 'Cadence & Slots', desc: 'Optimal timing avoiding posting collisions' },
+        ];
+
+        const avgScore = ev.average ?? '—';
+        const avgCls = ev.average >= 80 ? 'ok' : ev.average >= 60 ? 'picked' : 'WARN';
+
+        const runBench = h('button', {
+          class: 'btn primary sm',
+          onclick: () => busy(runBench, 'Benchmarking…', async () => {
+            const r = await api('POST', `agents/${a.id}/harness/benchmark`);
+            toast(r.message);
+            await loadHarness();
+          }),
+        }, icon('sparkle', 14), 'Run benchmark suite');
+
+        const runCycle = h('button', {
+          class: 'btn sm ghost',
+          onclick: () => busy(runCycle, 'Executing…', async () => {
+            const r = await api('POST', `agents/${a.id}/harness/run`);
+            toast(r.message);
+            await loadHarness();
+          }),
+        }, icon('play', 14), 'Run autonomous loop');
+
+        clear(wrap).append(
+          h('div', { class: 'card ag-harness-head', style: { marginBottom: '16px' } },
+            h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' } },
+              h('div', {},
+                h('h2', { style: { margin: 0 } }, 'Agent Harness & Benchmark Suite'),
+                h('p', { class: 'muted small', style: { margin: '4px 0 0' } },
+                  'Automated quality regression harness, 5-factor rubric evaluations (Hook, Voice, Retention, Cliche Freedom, Safety), and sandbox testing.')),
+              h('div', { class: 'row', style: { gap: '8px' } }, runBench, runCycle)),
+            h('div', { class: 'ag-kpis', style: { marginTop: '14px' } },
+              h('div', { class: `ag-kpi` },
+                h('strong', {}, avgScore, avgScore !== '—' ? h('span', { class: 'small muted' }, '/100') : ''),
+                h('span', {}, 'Quality readiness index')),
+              h('div', { class: 'ag-kpi' },
+                h('strong', {}, ev.reports.length),
+                h('span', {}, 'Evaluations recorded')),
+              h('div', { class: 'ag-kpi' },
+                h('strong', {}, Object.keys(ev.scenarios || {}).length),
+                h('span', {}, 'Standard scenarios')),
+              h('div', { class: 'ag-kpi' },
+                h('strong', {}, tools.length),
+                h('span', {}, 'Sandboxed tools')))),
+
+          h('div', { class: 'card', style: { marginBottom: '16px' } },
+            h('div', { class: 'card-header' },
+              h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Tool Execution Registry'),
+              h('span', { class: 'pill ok small' }, '6 Active Tools')),
+            h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '8px', marginTop: '8px' } },
+              tools.map((t) => h('div', {
+                class: 'card',
+                style: { flex: '1 1 calc(33.333% - 8px)', minWidth: '220px', padding: '10px 12px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' },
+              },
+              h('div', { class: 'row', style: { alignItems: 'center', gap: '6px' } },
+                icon('check', 13),
+                h('strong', { class: 'small' }, t.name)),
+              h('div', { class: 'muted small', style: { marginTop: '4px' } }, t.desc))))),
+
+          h('div', { class: 'card' },
+            h('div', { class: 'card-header' },
+              h('h3', { style: { margin: 0, fontSize: '1rem' } }, 'Evaluation Scorecards & Regression History')),
+            !ev.reports.length
+              ? h('div', { style: { padding: '24px 0', textAlign: 'center' } },
+                h('p', { class: 'muted small' }, 'No benchmark reports yet. Run the benchmark suite to evaluate your agent against standardized prompts.'),
+                runBench)
+              : h('div', { class: 'ag-reports-list', style: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' } },
+                ev.reports.map((r) => {
+                  const sc = (ev.scenarios && ev.scenarios[r.scenario]) || { label: r.scenario };
+                  const tells = r.hard_tells_caught || [];
+                  const rub = r.rubric || {};
+                  return h('div', {
+                    class: 'card',
+                    style: { padding: '14px', border: '1px solid var(--border)', background: 'var(--card-subtle, rgba(255,255,255,0.02))' },
+                  },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' } },
+                    h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                      h('span', { class: 'pill picked' }, sc.label || r.scenario),
+                      h('span', { class: `pill ${r.overall_score >= 80 ? 'ok' : r.overall_score >= 60 ? 'new' : 'WARN'}` },
+                        `Score: ${r.overall_score}/100`)),
+                    h('span', { class: 'muted small' }, timeAgo(r.created_at))),
+                  h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap', margin: '8px 0' } },
+                    rub.hook_score != null ? h('span', { class: 'pill small' }, `Hook: ${rub.hook_score}`) : null,
+                    rub.voice_score != null ? h('span', { class: 'pill small' }, `Voice: ${rub.voice_score}`) : null,
+                    rub.retention_score != null ? h('span', { class: 'pill small' }, `Retention: ${rub.retention_score}`) : null,
+                    rub.cliche_freedom_score != null ? h('span', { class: 'pill small' }, `Anti-Cliche: ${rub.cliche_freedom_score}`) : null,
+                    rub.safety_score != null ? h('span', { class: 'pill small' }, `Safety: ${rub.safety_score}`) : null),
+                  tells.length
+                    ? h('div', { class: 'row', style: { gap: '6px', alignItems: 'center', margin: '6px 0' } },
+                      h('span', { class: 'small', style: { color: 'var(--warn)' } }, 'Flagged tells:'),
+                      tells.map((tell) => h('span', { class: 'pill WARN small' }, tell)))
+                    : null,
+                  r.feedback
+                    ? h('p', { class: 'small', style: { margin: '6px 0', color: 'var(--muted)' } }, r.feedback)
+                    : null,
+                  r.generated_output
+                    ? h('details', { style: { marginTop: '8px' } },
+                      h('summary', { class: 'small muted', style: { cursor: 'pointer' } }, 'Inspect generated test output'),
+                      h('pre', {
+                        style: {
+                          whiteSpace: 'pre-wrap',
+                          fontSize: '12px',
+                          background: 'rgba(0,0,0,0.2)',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          marginTop: '6px',
+                          fontFamily: 'monospace',
+                        },
+                      }, r.generated_output))
+                    : null);
+                }))));
+      } catch (err) {
+        clear(wrap).append(h('p', { class: 'muted small', style: { color: 'var(--warn)' } }, `Error loading harness: ${err.message}`));
+      }
+    };
+
+    loadHarness();
+    return wrap;
   }
 
   function activity() {

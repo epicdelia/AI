@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Agents\AgentLearner;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\BrandResearch;
+use App\Domains\Agents\Harness\AgentHarness;
+use App\Domains\Agents\Harness\BenchmarkHarness;
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Publisher;
@@ -139,6 +141,55 @@ class AgentsController extends Controller
         return response()->json([
             'message' => 'Trending reaction post drafted on '.Platforms::PLATFORMS[$post->platform]['label'].'.',
             'post' => $post,
+        ]);
+    }
+
+    public function runHarness(SocialAgent $agent, AgentHarness $harness): JsonResponse
+    {
+        @set_time_limit(300);
+        try {
+            AgentPlanner::assertReady();
+            $result = $harness->execute($agent);
+        } catch (Throwable $e) {
+            AgentEvent::log('failed', "Harness execution failed: {$e->getMessage()}", $agent->id);
+
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Agent Harness completed execution.',
+            'trace' => $result['trace'],
+            'posts' => $result['posts'],
+            'evaluations' => $result['evaluations'],
+        ]);
+    }
+
+    public function benchmark(SocialAgent $agent, BenchmarkHarness $benchmark): JsonResponse
+    {
+        @set_time_limit(300);
+        try {
+            AgentPlanner::assertReady();
+            $res = $benchmark->runSuite($agent);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Benchmark evaluation complete. Overall score: {$res['overall_average']}/100.",
+            'overall_average' => $res['overall_average'],
+            'reports' => $res['reports'],
+        ]);
+    }
+
+    public function evals(SocialAgent $agent): JsonResponse
+    {
+        $reports = $agent->evalReports()->latest()->take(20)->get();
+        $average = $reports->count() ? (int) round($reports->avg('overall_score')) : null;
+
+        return response()->json([
+            'average' => $average,
+            'reports' => $reports,
+            'scenarios' => BenchmarkHarness::SCENARIOS,
         ]);
     }
 

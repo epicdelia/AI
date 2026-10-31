@@ -161,12 +161,20 @@ class Llm
      *
      * @param  array<int, array>  $messages  provider-neutral transcript (see EngineDriver::toolChat)
      * @param  array<int, array{name: string, description: string, parameters: array}>  $tools
+     * @param  callable(string): void|null  $onDelta  streams the turn's text as it's written
      */
-    public function agentTurn(string $system, array $messages, array $tools, int $timeout = 180): ToolTurn
+    public function agentTurn(string $system, array $messages, array $tools, int $timeout = 180, ?callable $onDelta = null): ToolTurn
     {
         UsageLimit::ensure('token');
         if (self::$toolFake) {
-            return (self::$toolFake)($system, $messages, $tools);
+            $turn = (self::$toolFake)($system, $messages, $tools);
+            if ($onDelta && $turn->text !== '') {
+                foreach (preg_split('/(?<=\s)/u', $turn->text, -1, PREG_SPLIT_NO_EMPTY) as $piece) {
+                    $onDelta($piece);
+                }
+            }
+
+            return $turn;
         }
 
         @set_time_limit($timeout + 30);
@@ -175,7 +183,8 @@ class Llm
         $started = microtime(true);
         $options = ['timeout' => $timeout, 'max_tokens' => 4000]
             + ($model ? ['model' => $model] : [])
-            + ($engine !== $this->engines->current() ? ['api_key' => EngineKeys::for($engine)] : []);
+            + ($engine !== $this->engines->current() ? ['api_key' => EngineKeys::for($engine)] : [])
+            + ($onDelta ? ['on_delta' => $onDelta] : []);
 
         try {
             $turn = $this->engines->driver($engine)->toolChat($system, $messages, $tools, $options);

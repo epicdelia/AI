@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CopilotThread extends Model
 {
-    protected $fillable = ['title', 'project', 'mode', 'model'];
+    protected $fillable = ['title', 'project', 'mode', 'model', 'summary', 'summary_upto_id', 'kind'];
+
+    protected $hidden = ['summary'];
 
     public function messages(): HasMany
     {

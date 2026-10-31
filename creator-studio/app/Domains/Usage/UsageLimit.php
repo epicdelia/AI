@@ -57,6 +57,18 @@ class UsageLimit
         }
     }
 
+    /** Cost of one call from her own prices, or null when she hasn't entered any. */
+    public static function cost(int $inputTokens, int $outputTokens): ?float
+    {
+        $in = (float) Setting::get('price_input_per_million', '0');
+        $out = (float) Setting::get('price_output_per_million', '0');
+        if ($in <= 0 && $out <= 0) {
+            return null;
+        }
+
+        return round(($inputTokens * $in + $outputTokens * $out) / 1_000_000, 4);
+    }
+
     /** Her own prices (per 1M input / output tokens) → this month's estimate, or null. */
     public static function estimatedSpend(): ?float
     {

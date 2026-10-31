@@ -105,15 +105,26 @@ class OpenAiCompatibleDriver extends BaseDriver
             $body['tool_choice'] = 'auto';
         }
 
-        $resp = $this->send($body, $options);
+        $onDelta = $options['on_delta'] ?? null;
+        if ($onDelta) {
+            $body['stream'] = true;
+            if (in_array($this->engine, [EngineEnum::OPENAI, EngineEnum::OPENROUTER], true)) {
+                $body['stream_options'] = ['include_usage' => true];
+            }
+        }
+
+        $resp = $this->send($body, $options, (bool) $onDelta);
         // Some models/gateways don't do function calling: answer without tools instead of failing.
         if ($resp->status() === 400 && isset($body['tools']) && preg_match('/tool|function/i', $resp->body())) {
             unset($body['tools'], $body['tool_choice']);
-            $resp = $this->send($body, $options);
+            $resp = $this->send($body, $options, (bool) $onDelta);
         }
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
             throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($msg));
+        }
+        if ($onDelta) {
+            return $this->readToolStream($resp, $body['model'], $onDelta);
         }
 
         $calls = [];
@@ -129,6 +140,58 @@ class OpenAiCompatibleDriver extends BaseDriver
         return new ToolTurn($text, $calls, $resp->json('usage.prompt_tokens'), $resp->json('usage.completion_tokens'), $resp->json('model') ?? $body['model']);
     }
 
+    /**
+     * Streamed tool turn: text deltas go to $onDelta as they arrive; tool calls arrive in pieces
+     * (`delta.tool_calls[i]` with an index, the id and name once, the arguments as JSON fragments).
+     */
+    private function readToolStream(Response $resp, string $model, callable $onDelta): ToolTurn
+    {
+        $text = '';
+        $parts = [];
+        $in = $out = null;
+        SseParser::read($resp->toPsrResponse()->getBody(), function (?string $event, string $data) use (&$text, &$parts, &$in, &$out, &$model, $onDelta) {
+            if ($data === '[DONE]') {
+                return false;
+            }
+            $json = json_decode($data, true);
+            if (! is_array($json)) {
+                return null;
+            }
+            if (isset($json['error'])) {
+                throw new RuntimeException('AI stream error: '.self::clip($json['error']['message'] ?? $json['error']));
+            }
+            $delta = $json['choices'][0]['delta'] ?? [];
+            if (is_string($delta['content'] ?? null) && $delta['content'] !== '') {
+                $text .= $delta['content'];
+                $onDelta($delta['content']);
+            }
+            foreach ($delta['tool_calls'] ?? [] as $n => $tc) {
+                $i = $tc['index'] ?? $n;
+                $parts[$i] ??= ['id' => '', 'name' => '', 'args' => ''];
+                $parts[$i]['id'] = ($tc['id'] ?? '') ?: $parts[$i]['id'];
+                $parts[$i]['name'] = $parts[$i]['name'] ?: (string) ($tc['function']['name'] ?? '');
+                $parts[$i]['args'] .= (string) ($tc['function']['arguments'] ?? '');
+            }
+            $model = $json['model'] ?? $model;
+            $in = $json['usage']['prompt_tokens'] ?? $in;
+            $out = $json['usage']['completion_tokens'] ?? $out;
+
+            return null;
+        });
+
+        ksort($parts);
+        $calls = [];
+        foreach (array_values($parts) as $i => $p) {
+            $args = json_decode($p['args'] !== '' ? $p['args'] : '{}', true);
+            $calls[] = ['id' => $p['id'] ?: 'call_'.$i, 'name' => $p['name'], 'args' => is_array($args) ? $args : []];
+        }
+        if (trim($text) === '' && ! $calls) {
+            throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
+        }
+
+        return new ToolTurn(trim($text), $calls, $in, $out, $model);
+    }
+
     /** Neutral transcript → OpenAI chat messages (assistant tool_calls + role "tool" results). */
     private static function toolMessages(array $messages): array
     {
@@ -141,7 +204,7 @@ class OpenAiCompatibleDriver extends BaseDriver
                     'id' => $c['id'], 'type' => 'function', 'function' => ['name' => $c['name'], 'arguments' => json_encode((object) $c['args'])],
                 ], $m['tool_calls'])];
             } else {
-                $out[] = ['role' => $m['role'], 'content' => (string) $m['content']];
+                $out[] = self::message(['role' => $m['role'], 'content' => (string) $m['content'], 'images' => $m['images'] ?? []]);
             }
         }
 
@@ -176,7 +239,7 @@ class OpenAiCompatibleDriver extends BaseDriver
     }
 
     /** Images become content parts (MagicAI's viaOpenAiWithImage used the same data-URI form). */
-    private function message(array $m): array
+    private static function message(array $m): array
     {
         if (empty($m['images'])) {
             return ['role' => $m['role'], 'content' => $m['content']];

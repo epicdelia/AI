@@ -92,9 +92,16 @@ class AnthropicDriver extends BaseDriver
             $body['tools'] = array_map(fn ($t) => ['name' => $t['name'], 'description' => $t['description'], 'input_schema' => $t['parameters']], $tools);
         }
 
-        $resp = $this->send($body, $options);
+        $onDelta = $options['on_delta'] ?? null;
+        if ($onDelta) {
+            $body['stream'] = true;
+        }
+        $resp = $this->send($body, $options, (bool) $onDelta);
         if ($resp->failed()) {
             throw new RuntimeException("AI request failed ({$resp->status()}): ".self::clip($resp->json('error.message') ?? $resp->body()));
+        }
+        if ($onDelta) {
+            return $this->readToolStream($resp, $body['model'], $onDelta);
         }
 
         $blocks = collect($resp->json('content') ?? []);
@@ -105,6 +112,62 @@ class AnthropicDriver extends BaseDriver
         }
 
         return new ToolTurn($text, $calls, $resp->json('usage.input_tokens'), $resp->json('usage.output_tokens'), $resp->json('model') ?? $body['model']);
+    }
+
+    /** Streamed tool turn: text_delta pieces go to $onDelta; tool_use inputs arrive as input_json_delta fragments. */
+    private function readToolStream(Response $resp, string $model, callable $onDelta): ToolTurn
+    {
+        $text = '';
+        $blocks = [];
+        $in = $out = null;
+        SseParser::read($resp->toPsrResponse()->getBody(), function (?string $event, string $data) use (&$text, &$blocks, &$in, &$out, &$model, $onDelta) {
+            $json = json_decode($data, true);
+            if (! is_array($json)) {
+                return null;
+            }
+            switch ($json['type'] ?? $event) {
+                case 'message_start':
+                    $in = $json['message']['usage']['input_tokens'] ?? $in;
+                    $model = $json['message']['model'] ?? $model;
+                    break;
+                case 'content_block_start':
+                    $b = $json['content_block'] ?? [];
+                    if (($b['type'] ?? '') === 'tool_use') {
+                        $blocks[$json['index'] ?? count($blocks)] = ['id' => (string) $b['id'], 'name' => (string) $b['name'], 'json' => ''];
+                    }
+                    break;
+                case 'content_block_delta':
+                    $d = $json['delta'] ?? [];
+                    if (($d['type'] ?? '') === 'input_json_delta' && isset($blocks[$json['index'] ?? -1])) {
+                        $blocks[$json['index']]['json'] .= (string) ($d['partial_json'] ?? '');
+                    } elseif (is_string($d['text'] ?? null) && $d['text'] !== '') {
+                        $text .= $d['text'];
+                        $onDelta($d['text']);
+                    }
+                    break;
+                case 'message_delta':
+                    $out = $json['usage']['output_tokens'] ?? $out;
+                    break;
+                case 'message_stop':
+                    return false;
+                case 'error':
+                    throw new RuntimeException('AI stream error: '.self::clip($json['error']['message'] ?? $data));
+            }
+
+            return null;
+        });
+
+        ksort($blocks);
+        $calls = array_values(array_map(function ($b) {
+            $args = json_decode($b['json'] !== '' ? $b['json'] : '{}', true);
+
+            return ['id' => $b['id'], 'name' => $b['name'], 'args' => is_array($args) ? $args : []];
+        }, $blocks));
+        if (trim($text) === '' && ! $calls) {
+            throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
+        }
+
+        return new ToolTurn(trim($text), $calls, $in, $out, $model);
     }
 
     /** Neutral transcript → Anthropic messages; consecutive tool results share one user turn. */
@@ -127,7 +190,7 @@ class AnthropicDriver extends BaseDriver
                 }
                 $out[] = ['role' => 'assistant', 'content' => $content];
             } else {
-                $out[] = ['role' => $m['role'], 'content' => (string) $m['content']];
+                $out[] = self::message(['role' => $m['role'], 'content' => (string) $m['content'], 'images' => $m['images'] ?? []]);
             }
         }
 
@@ -150,7 +213,7 @@ class AnthropicDriver extends BaseDriver
     }
 
     /** Images as base64 image blocks before the text, as in MagicAI's viaAnthropicWithImage. */
-    private function message(array $m): array
+    private static function message(array $m): array
     {
         if (empty($m['images'])) {
             return ['role' => $m['role'], 'content' => $m['content']];

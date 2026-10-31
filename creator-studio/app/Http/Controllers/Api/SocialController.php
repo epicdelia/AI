@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Social\DemoContent;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\Platforms;
 use App\Domains\Social\Repurposer;
@@ -26,6 +27,7 @@ class SocialController extends Controller
         return response()->json([
             'platforms' => Platforms::catalog(), 'statuses' => Platforms::STATUSES, 'progress' => self::progress(),
             'brand_color' => Setting::get('brand_color', '#d8487e'),
+            'demo' => DemoContent::count(),
         ]);
     }
 
@@ -144,6 +146,88 @@ class SocialController extends Controller
         return response()->json([
             'posts' => collect($posts)->map(fn ($p) => $p->toArray() + ['checks' => self::checks($p)]),
             'message' => count($posts).' draft(s) ready.',
+        ]);
+    }
+
+    /** Load example posts for every network (no-op if they're already there). */
+    public function demo(): JsonResponse
+    {
+        $n = DemoContent::seed();
+
+        return response()->json(['message' => $n ? "Added {$n} demo posts across your networks." : 'Demo posts are already loaded.', 'demo' => DemoContent::count()]);
+    }
+
+    public function removeDemo(): JsonResponse
+    {
+        $n = DemoContent::remove();
+
+        return response()->json(['message' => "Removed {$n} demo post(s).", 'demo' => 0]);
+    }
+
+    /** What the dashboard composer shows: the model in use and whether an AI key is set. */
+    public function composerMeta(): JsonResponse
+    {
+        $engine = app(\App\Domains\Engine\EngineManager::class)->current();
+
+        return response()->json([
+            'model' => Setting::get('llm_model') ?: $engine->defaultModel(),
+            'engine' => $engine->label(),
+            'ai_ready' => \App\Services\Llm::configured(),
+            'targets' => ['linkedin.post', 'x.thread', 'instagram.carousel', 'tiktok.video', 'threads.post'],
+        ]);
+    }
+
+    /**
+     * The dashboard composer: a short prompt (plus optional images, described by a vision
+     * model) into native drafts for each network she picked.
+     */
+    public function compose(Request $request, Repurposer $repurposer, \App\Services\Llm $llm): JsonResponse
+    {
+        $data = $request->validate([
+            'prompt' => 'required|string|min:3|max:40000',
+            'extra' => 'nullable|string|max:2000',
+            'targets' => 'required|array|min:1|max:12',
+            'targets.*.platform' => 'required|string',
+            'targets.*.format' => 'required|string',
+            'images' => 'nullable|array|max:4',
+            'images.*' => 'string|max:7000000',
+            'status' => 'nullable|in:draft,idea',
+        ]);
+        $prompt = trim($data['prompt']);
+        $source = "What she wants to post about:\n{$prompt}";
+        $note = null;
+        $images = [];
+        foreach ($data['images'] ?? [] as $uri) {
+            if (preg_match('#^data:(image/(?:png|jpe?g|webp|gif));base64,(.+)$#s', $uri, $m)) {
+                $images[] = ['mime' => $m[1], 'data' => $m[2]];
+            }
+        }
+        if ($images) {
+            try {
+                $desc = $llm->as('compose_vision')->see('Describe each image in one or two plain sentences for someone writing a social post about it: what is shown, any readable text, the mood. No guesses about who people are.', 'Describe these images.', $images, 120);
+                $source .= "\n\nImages she attached (to post with it):\n{$desc}";
+            } catch (Throwable $e) {
+                $note = 'The images weren’t described ('.$e->getMessage().'), so the drafts are written from your text only.';
+            }
+        }
+
+        try {
+            $posts = $repurposer->run(mb_substr(strtok($prompt, "\n") ?: 'Composer', 0, 80), $source, $data['targets'], null, trim((string) ($data['extra'] ?? '')), 3);
+            if (($data['status'] ?? 'draft') === 'idea') {
+                foreach ($posts as $p) {
+                    $p->update(['status' => 'idea']);
+                }
+            }
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'posts' => collect($posts)->map(fn ($p) => $p->toArray() + ['checks' => self::checks($p)]),
+            'message' => count($posts).' draft(s) ready.',
+            'note' => $note,
         ]);
     }
 

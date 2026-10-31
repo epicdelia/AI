@@ -8,3 +8,5 @@ routes.php
 routes.scanned.php
 schedule-*
 services.json
+migrated.txt
+migrated.txt.lock

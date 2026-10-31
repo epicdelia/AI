@@ -2,6 +2,7 @@
 import { h, api, busy, toast, pageHead, emptyState, clear, compact, fmtDay, link, pill, confirmDialog, timeAgo, modal, copyText } from '../core.js';
 import { icon } from '../icons.js';
 import { skList } from '../skeleton.js';
+import { bioCard } from '../social-tools.js';
 
 const TYPES = {
   question: ['new', 'Question'],
@@ -244,5 +245,6 @@ export async function renderAudience(view) {
       h('h3', {}, 'Read any video’s comments'),
       h('p', { class: 'muted small' }, 'A competitor’s breakout is a great one: their viewers’ unanswered questions are videos you can make. Costs 1 YouTube quota unit.'),
       anyForm),
-    insightsBox);
+    insightsBox,
+    bioCard('youtube'));
 }

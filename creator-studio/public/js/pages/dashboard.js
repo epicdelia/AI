@@ -4,6 +4,7 @@ import { icon } from '../icons.js';
 import { weekDots } from './goals.js';
 import { loveCard } from '../love.js';
 import { socialStrip } from './social.js';
+import { homeComposer } from '../composer.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -97,6 +98,7 @@ export async function renderDashboard(view) {
 
   view.append(
     heroCard(d),
+    homeComposer(),
     nextStepCard(d.next_step),
     socialStrip(d.social),
     loveCard(),

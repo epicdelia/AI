@@ -2,6 +2,7 @@
 
 namespace App\Domains\Audience;
 
+use App\Domains\Social\SocialDashboard;
 use App\Http\Controllers\Api\AudienceController;
 use App\Models\Setting;
 use App\Services\YouTube;
@@ -42,6 +43,11 @@ class VideoStats
                     'age_days' => $v['age_days'], 'views' => $v['views'], 'likes' => $v['likes'] ?? 0, 'comments' => $v['comments'] ?? 0,
                     'updated_at' => $now, 'created_at' => $now],
             );
+        }
+
+        // Subscribers too, so the analytics dashboard has a YouTube follower line without typing.
+        if (($subs = $this->yt->subscribers($channel)) !== null) {
+            SocialDashboard::recordFollowers(['youtube' => $subs], 'youtube');
         }
 
         return count($report['videos']);

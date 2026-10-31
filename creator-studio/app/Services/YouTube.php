@@ -202,6 +202,15 @@ class YouTube
         return $playlist && str_starts_with($playlist, 'UU') ? 'UC'.substr($playlist, 2) : null;
     }
 
+    /** Her subscriber count (1 quota unit), or null when YouTube hides it. */
+    public function subscribers(string $channel): ?int
+    {
+        $key = preg_match('/^UC[\w-]{22}$/', $channel) ? 'id' : 'forHandle';
+        $s = $this->get('channels', ['part' => 'statistics', $key => $channel])['items'][0]['statistics'] ?? null;
+
+        return $s && empty($s['hiddenSubscriberCount']) && isset($s['subscriberCount']) ? (int) $s['subscriberCount'] : null;
+    }
+
     /** One video's title (1 quota unit). */
     public function videoTitle(string $videoId): ?string
     {

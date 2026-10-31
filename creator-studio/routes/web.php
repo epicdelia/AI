@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\MemoryController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ScriptStreamController;
 use App\Http\Controllers\Api\SocialController;
+use App\Http\Controllers\Api\SocialInsightsController;
 use App\Http\Controllers\Api\ScriptVersionController;
 use App\Http\Controllers\Api\ToolkitController;
 use App\Http\Controllers\Api\TranscriptionController;
@@ -83,8 +84,22 @@ Route::prefix('api')->group(function () {
         Route::post('social/posts/{post}/duplicate', [SocialController::class, 'duplicate']);
         Route::post('social/check', [SocialController::class, 'check']);
         Route::post('social/repurpose', [SocialController::class, 'repurpose']);
+        Route::get('social/composer', [SocialController::class, 'composerMeta']);
+        Route::post('social/compose', [SocialController::class, 'compose']);
+        Route::post('social/demo', [SocialController::class, 'demo']);
+        Route::delete('social/demo', [SocialController::class, 'removeDemo']);
         Route::get('social/calendar', [SocialController::class, 'calendar']);
         Route::get('social/stats', [SocialController::class, 'stats']);
+        Route::get('social/analytics', [SocialInsightsController::class, 'analytics']);
+        Route::get('social/best-times', [SocialInsightsController::class, 'bestTimes']);
+        Route::get('social/dashboard', [SocialInsightsController::class, 'dashboard']);
+        Route::post('social/followers', [SocialInsightsController::class, 'followers']);
+        Route::post('social/posts/{post}/fresh-take', [SocialInsightsController::class, 'freshTake']);
+        Route::post('social/import', [SocialInsightsController::class, 'import']);
+        Route::get('social/bios', [SocialInsightsController::class, 'bios']);
+        Route::post('social/bios/options', [SocialInsightsController::class, 'bioOptions']);
+        Route::put('social/bios', [SocialInsightsController::class, 'saveBio']);
+        Route::post('stream/social/review', [SocialInsightsController::class, 'review']);
 
         // My channel: her videos vs her own median, and what viewers ask for in comments
         Route::get('audience', [AudienceController::class, 'index']);

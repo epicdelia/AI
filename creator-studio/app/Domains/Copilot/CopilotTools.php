@@ -5,6 +5,7 @@ namespace App\Domains\Copilot;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\Platforms;
+use App\Domains\Social\SocialAnalytics;
 use App\Http\Controllers\Api\SocialController;
 use App\Domains\Copilot\Models\CopilotAction;
 use App\Domains\Copilot\Models\CopilotThread;
@@ -55,12 +56,13 @@ class CopilotTools
             ['name' => 'list_ideas', 'description' => 'List video ideas, optionally filtered by status or a search word.', 'parameters' => $s(['status' => $str('Filter', ['new', 'picked', 'scripted', 'dropped']), 'query' => $str('Search title/premise')])],
             ['name' => 'list_breakouts', 'description' => 'Recent breakout videos in her niche (views far above their channel median).', 'parameters' => $s(['limit' => $int('How many, max 20')])],
             ['name' => 'list_viewer_requests', 'description' => 'What viewers asked for in the comments of her videos (and any competitor videos she read): questions, requests, confusion, pushback, each with mention counts and a real quote. Strongest signal for what to make next.', 'parameters' => $s([])],
+            ['name' => 'get_social_analytics', 'description' => 'Her social numbers for the last 4 weeks per platform (posts, engagement, change, best formats), her top posts, and proven posts worth a fresh take. Use for "what is working" questions.', 'parameters' => $s([])],
             ['name' => 'list_social_posts', 'description' => 'Her LinkedIn, Instagram, X, TikTok, Threads and YouTube (Shorts, community) posts: status, schedule, text and logged numbers, plus this week’s progress against her targets.', 'parameters' => $s(['platform' => $str('Filter', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube']), 'status' => $str('Filter', ['idea', 'draft', 'scheduled', 'posted'])])],
             ['name' => 'search_my_work', 'description' => 'Search her past scripts, on-camera transcripts, notes, ideas and Library. Use to match her voice or check if she already covered something.', 'parameters' => $s(['query' => $str('What to look for')], ['query'])],
             ['name' => 'search_library', 'description' => 'Search saved Library documents (titles, captions, uploaded briefs) by keyword.', 'parameters' => $s(['query' => $str('Keyword')], ['query'])],
             ['name' => 'check_ai_tells', 'description' => 'Run the AI-tell linter on text (em dashes, banned clichés, missing contractions). Free and instant: use it on anything you write for her.', 'parameters' => $s(['text' => $str('Text to check')], ['text'])],
             ['name' => 'run_writing_tool', 'description' => 'Run a Toolkit template: yt_titles, yt_thumbnail, yt_hooks, yt_description, yt_tags, yt_chapters, yt_community, yt_replies, shorts_script, ig_caption, hashtags, x_thread, linkedin, newsletter, rewrite, tldr, proofread, pros_cons, sponsor_pitch, sponsor_read, media_kit. Inputs are the template fields (usually "topic", "title", "text" or "script").', 'parameters' => $s(['tool' => $str('Template key'), 'inputs' => ['type' => 'object', 'description' => 'Field values', 'additionalProperties' => ['type' => 'string']]], ['tool', 'inputs'])],
-            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/calendar', '/repurpose', '/linkedin', '/instagram', '/x', '/tiktok', '/threads', '/posts/{id}', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
+            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/calendar', '/analytics', '/repurpose', '/linkedin', '/instagram', '/x', '/tiktok', '/threads', '/posts/{id}', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
         ];
         if (WebSearch::available()) {
             $tools[] = ['name' => 'search_web', 'description' => 'Live web search. Use for facts, news, dates, prices or anything that may have changed. Cite the links.', 'parameters' => $s(['query' => $str('Search query')], ['query'])];
@@ -101,6 +103,7 @@ class CopilotTools
             'list_breakouts' => 'Checking breakouts',
             'list_viewer_requests' => 'Reading what your viewers asked for',
             'list_social_posts' => 'Looking at your social posts',
+            'get_social_analytics' => 'Looking at your social numbers',
             'search_my_work' => 'Searching your past work for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
             'search_library' => 'Searching the Library',
             'search_web' => 'Searching the web for “'.mb_strimwidth((string) ($args['query'] ?? ''), 0, 40, '…').'”',
@@ -128,6 +131,13 @@ class CopilotTools
                 ->latest()->take(25)->get(['id', 'title', 'premise', 'angle', 'status', 'why_now'])),
             'list_breakouts' => $json(Outlier::orderByDesc('outlier_score')->take(min(20, max(1, (int) ($a['limit'] ?? 10))))
                 ->get(['id', 'title', 'channel_title', 'views', 'outlier_score', 'url', 'published_at'])),
+            'get_social_analytics' => $json((function () {
+                $o = SocialAnalytics::overview(4);
+
+                return ['platforms' => collect($o['platforms'])->map(fn ($p) => array_diff_key($p, ['series' => 1])),
+                    'top' => $o['top']->map(fn ($t) => ['id' => $t['post']->id, 'platform' => $t['post']->platform, 'text' => mb_substr($t['post']->asText(), 0, 200), 'vs_median' => $t['vs_median']]),
+                    'worth_a_fresh_take' => SocialAnalytics::recyclable(5)->map(fn ($t) => ['id' => $t['post']->id, 'platform' => $t['post']->platform, 'vs_median' => $t['vs_median']])];
+            })()),
             'list_social_posts' => $json([
                 'progress' => SocialController::progress(),
                 'posts' => SocialPost::query()->when($a['platform'] ?? null, fn ($q, $p) => $q->where('platform', $p))->when($a['status'] ?? null, fn ($q, $st) => $q->where('status', $st))

@@ -319,6 +319,52 @@ Never invent facts, links, numbers or sponsors.
 TXT;
     }
 
+    public static function socialReviewSystem(): string
+    {
+        $name = self::name();
+        $profile = self::profile();
+
+        return <<<TXT
+You're {$name}'s social media strategist. You read the posts she published in the last four weeks on each platform, with the numbers she logged, and tell her what to do next week.
+
+{$profile}
+
+Return Markdown:
+## What worked
+Per platform, the 1 or 2 posts that did best and the likely reason (hook, format, topic, timing), labelled as a guess.
+## What didn't
+The pattern behind the weakest posts, in one or two lines per platform.
+## Next week: 3 experiments
+Concrete, small, testable: "On LinkedIn, post 2 carousels Tuesday morning instead of text posts", not "be more consistent". Say what result would count as a win.
+## Stop doing
+One thing.
+
+Honesty rules: use only the posts and numbers given. With fewer than 5 posts on a platform, say the sample is too small to conclude much. Posts without numbers can't be judged; say how many there are. Never invent benchmarks or what "the algorithm" wants. Under 350 words. No em dashes.
+TXT;
+    }
+
+    public static function freshTakeSystem(): string
+    {
+        $name = self::name();
+
+        return "You rewrite one of {$name}'s best-performing posts as a fresh post for the same platform and format. "
+            .'Keep the core idea and structure that made it work; change the hook, the example and the wording, so it reads new to people who saw the first one. '
+            ."Update anything that may be dated, or mark it [VERIFY]. Never copy a sentence from the original.\n\n"
+            .self::profile()."\n\n".self::voice()."\n\n".self::writingRules()."\n\n"
+            .'Output JSON: {"title": "short internal label", "body": "post text or caption", "parts": ["thread posts, slides or beats, only if the format has them"], "why": "one line: what you kept and what you changed"}';
+    }
+
+    public static function bioSystem(string $platform, string $what, int $limit): string
+    {
+        $name = self::name();
+
+        return "Write 3 options for {$name}'s {$platform} {$what}, each at most {$limit} characters (count carefully; shorter is fine). "
+            .'Say who she helps and what they get, in her voice, specific to her niche. One may include a light personality line. '
+            ."No hashtag lists, no \"passionate about\", no emoji walls (at most 2).\n\n"
+            .self::profile()."\n\n".self::writingRules()."\n\n"
+            .'Output JSON: {"options": ["...", "...", "..."]}';
+    }
+
     public static function mentorSystem(): string
     {
         $name = self::name();

@@ -8,6 +8,7 @@ use App\Models\Idea;
 use App\Models\Note;
 use App\Models\Script;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,10 +23,45 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * A single-user local app: after an update brings new migrations, apply them on the next
+     * web request, so a new table never shows up as "no such table" in her browser. A cheap
+     * fingerprint of the migrations folder decides; a file lock stops two requests racing.
+     */
+    private function migrateIfNeeded(): void
+    {
+        if ($this->app->runningInConsole() || $this->app->runningUnitTests()) {
+            return;
+        }
+        $files = glob(database_path('migrations/*.php')) ?: [];
+        $stamp = count($files).':'.basename((string) end($files));
+        $marker = storage_path('framework/migrated.txt');
+        if (@file_get_contents($marker) === $stamp) {
+            return;
+        }
+        $lock = @fopen($marker.'.lock', 'c');
+        if (! $lock || ! flock($lock, LOCK_EX)) {
+            return;
+        }
+        try {
+            if (@file_get_contents($marker) !== $stamp) {
+                Artisan::call('migrate', ['--force' => true]);
+                file_put_contents($marker, $stamp);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        $this->migrateIfNeeded();
+
         Paginator::defaultView('partials.pagination');
         Paginator::defaultSimpleView('partials.pagination');
 

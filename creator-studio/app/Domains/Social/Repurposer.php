@@ -38,13 +38,13 @@ class Repurposer
      * @param  array<int, array{platform: string, format: string}>  $targets
      * @return array<int, SocialPost>
      */
-    public function run(string $title, string $source, array $targets, ?int $scriptId = null, string $extra = ''): array
+    public function run(string $title, string $source, array $targets, ?int $scriptId = null, string $extra = '', int $minChars = 80): array
     {
         $targets = array_values(array_filter($targets, fn ($t) => Platforms::valid((string) ($t['platform'] ?? ''), (string) ($t['format'] ?? ''))));
         if (! $targets) {
             throw new RuntimeException('Pick at least one platform and format.');
         }
-        if (mb_strlen(trim($source)) < 80) {
+        if (mb_strlen(trim($source)) < $minChars) {
             throw new RuntimeException('Give it a bit more to work with: at least a paragraph.');
         }
 

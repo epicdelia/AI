@@ -27,6 +27,7 @@ class GlobalSearchController extends Controller
         ['Ideas', '/ideas', 'bulb', 'generate brief pick'],
         ['Scripts', '/scripts', 'doc', 'write draft editor'],
         ['My channel', '/channel', 'users', 'my videos performance median comments viewers questions audience'],
+        ['Analytics', '/analytics', 'chart', 'social analytics best time to post engagement import csv bio review recycle'],
         ['Calendar', '/calendar', 'calendar', 'schedule plan week posts social content calendar'],
         ['Repurpose', '/repurpose', 'repeat', 'turn script into posts linkedin instagram x thread carousel reel short'],
         ['LinkedIn', '/linkedin', 'briefcase', 'linkedin posts carousel document'],

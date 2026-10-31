@@ -52,6 +52,14 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Publish kit** | Publish tab: chapter times found in the timestamped recording transcript (no AI; estimated from the script when there's no recording), then one streamed kit with title, description with those chapters, tags, pinned comment and end-screen picks from her best videos, plus a pre-publish checklist |
 | **Reply drafts** | My channel → Replies: drafts for the newest comments with no reply yet (hers and spam left out), in her voice. She edits, copies and posts each; "Open" jumps to the comment |
 | **Skeleton loaders** | Every page and panel shows a placeholder shaped like its content (dashboard, lists, cards, editor, calendar, chat, settings) with one synced shimmer, only after 120 ms so fast pages don't flash; reduced-motion aware and announced to screen readers |
+| **Dashboard composer** | "Let's create…" on the dashboard, in the Copilot's input box: type, dictate (mic) or attach audio (transcribed) and up to 4 images (described by a vision model), pick networks and formats, Drafts or Ideas mode, send: native drafts for every network appear inline with Open and Schedule. Nothing is posted |
+| **Calendar views** | Month (Sunday-first), week and day time grids with a now line, and a list view; platform and status filters; event pills with official logos and a hover card (account, format · status, slide carousel, caption, numbers, date at time); drag to a day or a half-hour slot; double-click a slot to add a post |
+| **Analytics & reports** | Rotating insight ticker, KPI counters (average engagement, total followers, total posts), chart cards for published posts, engagements, impressions and followers with their own network filter, 7/30/90 days, best-time heatmap, top posts, recycle winners (Fresh take), CSV import with column mapping, AI weekly review, printable report |
+| **Followers** | Follower counts per network over time: YouTube subscribers recorded daily by `studio:stats`, the others entered in Analytics → Total followers → Update |
+| **Bios** | Profile bio / headline per network with its limit (Instagram 150, TikTok 80, X 160, Threads ~150, LinkedIn headline 220, YouTube 1,000) and 3 AI options in her voice |
+| **Demo posts** | "Show demo posts" adds example posts, numbers and followers for every network (tagged demo, never touching her own data); "Remove demo posts" deletes exactly those |
+| **Official logos** | LinkedIn, Instagram, X, TikTok, Threads and YouTube marks (Simple Icons, CC0) across the sidebar, calendar, chips and charts |
+| **Auto-migrate** | New migrations are applied on the first web request after an update (single-user local app), so new features never fail with "no such table" |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.

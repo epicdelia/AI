@@ -19,7 +19,9 @@ import { renderSettings } from './pages/settings.js';
 import { renderTools } from './pages/tools.js';
 import { renderLibrary } from './pages/library.js';
 import { renderChat } from './pages/chat.js';
-import { renderCalendar, renderRepurpose, renderPlatform, renderPost } from './pages/social.js';
+import { renderRepurpose, renderPlatform, renderPost } from './pages/social.js';
+import { renderCalendar } from './pages/calendar.js';
+import { renderAnalytics } from './pages/analytics.js';
 
 const ROUTES = [
   { path: /^\/$/, render: renderDashboard, nav: '/' },
@@ -37,6 +39,7 @@ const ROUTES = [
   { path: /^\/chat$/, render: renderChat, nav: '/chat' },
   { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
   { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
+  { path: /^\/analytics$/, render: renderAnalytics, nav: '/analytics' },
   { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
   { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: renderPlatform, nav: null }, // nav = the platform
   { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
@@ -54,12 +57,13 @@ const NAV = [
   { to: '/channel', label: 'My channel', icon: 'users' },
   { header: 'Social' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
+  { to: '/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/repurpose', label: 'Repurpose', icon: 'repeat' },
-  { to: '/linkedin', label: 'LinkedIn', icon: 'briefcase' },
-  { to: '/instagram', label: 'Instagram', icon: 'camera' },
-  { to: '/x', label: 'X', icon: 'xmark' },
-  { to: '/tiktok', label: 'TikTok', icon: 'music' },
-  { to: '/threads', label: 'Threads', icon: 'at' },
+  { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin' },
+  { to: '/instagram', label: 'Instagram', icon: 'brand:instagram' },
+  { to: '/x', label: 'X', icon: 'brand:x' },
+  { to: '/tiktok', label: 'TikTok', icon: 'brand:tiktok' },
+  { to: '/threads', label: 'Threads', icon: 'brand:threads' },
   { header: 'Create' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle' },
   { to: '/chat', label: 'Producer chat', icon: 'chat' },

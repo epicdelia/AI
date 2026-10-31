@@ -12,6 +12,7 @@ const STEPS = [
   { to: '/scripts', title: 'Scripts', text: 'Write with a live AI-tell checker, then review, fact-check, listen back, package titles and thumbnails, and export.' },
   { to: '/channel', title: 'My channel', text: 'How each of your videos did against your own usual, and what viewers ask for in the comments. One click turns a question into an idea.' },
   { to: '/calendar', title: 'Calendar', text: 'Your week on LinkedIn, Instagram, X and YouTube in one place. Drag drafts onto a day; targets per platform keep you consistent.' },
+  { to: '/analytics', title: 'Analytics', text: 'What works on each platform from your own numbers: best formats, best times to post, top posts, and proven posts worth a fresh take. Import your analytics exports to fill it in fast.' },
   { to: '/repurpose', title: 'Repurpose', text: 'Turn a script, transcript or note into a LinkedIn post, an X thread, an Instagram carousel or Reel, and a Short, each written for its own feed.' },
   { to: '/linkedin', title: 'LinkedIn, Instagram, X, TikTok & Threads', text: 'Each platform has its own page: drafts, scheduled and posted, a live preview with the “see more” cut-off, and the numbers you log after posting.' },
   { to: '/goals', title: 'Weekly goals', text: 'One video a week. The mentor checks your real uploads and keeps the score honest.' },

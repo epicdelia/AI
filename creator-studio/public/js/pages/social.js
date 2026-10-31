@@ -7,10 +7,11 @@ import {
 } from '../core.js';
 import { icon } from '../icons.js';
 import { carouselCard } from '../carousel.js';
+import { bioCard, importDialog, demoControl } from '../social-tools.js';
 
-const PLATFORM_ICONS = { linkedin: 'briefcase', instagram: 'camera', x: 'xmark', tiktok: 'music', threads: 'at', youtube: 'play' };
+export const PLATFORM_ICONS = { linkedin: 'brand:linkedin', instagram: 'brand:instagram', x: 'brand:x', tiktok: 'brand:tiktok', threads: 'brand:threads', youtube: 'brand:youtube' };
 const STATUS_PILL = { idea: 'new', draft: 'WARN', scheduled: 'picked', posted: 'ok' };
-const STATUS_LABEL = { idea: 'Idea', draft: 'Draft', scheduled: 'Scheduled', posted: 'Posted' };
+export const STATUS_LABEL = { idea: 'Idea', draft: 'Draft', scheduled: 'Scheduled', posted: 'Posted' };
 const PROFILE_URL = {
   linkedin: (h) => `https://www.linkedin.com/in/${h}`,
   instagram: (h) => `https://www.instagram.com/${h}`,
@@ -89,7 +90,7 @@ export async function newPostDialog(platform = null, extra = {}) {
   });
 }
 
-function postCard(post, m) {
+export function postCard(post, m) {
   const text = plain(post.body) || plain((post.parts || [])[0]) || 'Empty draft';
   const date = post.status === 'posted' && post.posted_at ? `Posted ${when(post.posted_at)}`
     : post.scheduled_for ? `Scheduled ${when(post.scheduled_for)}` : `Edited ${timeAgo(post.updated_at)}`;
@@ -101,7 +102,7 @@ function postCard(post, m) {
       post.engagement ? h('span', {}, ` · ${compact(post.engagement.total)} engagements${post.engagement.rate !== null ? ` (${post.engagement.rate}%)` : ''}`) : null));
 }
 
-function progressChips(progress, only = null) {
+export function progressChips(progress, only = null) {
   const rows = Object.entries(progress).filter(([p, v]) => (only ? p === only : v.target || v.posted || v.scheduled));
   if (!rows.length) return null;
   return h('div', { class: 'progress-chips' }, rows.map(([p, v]) => {
@@ -160,12 +161,14 @@ export async function renderPlatform(view, platform) {
   view.append(
     pageHead(info.label, ABOUT[platform] || '',
       handle ? h('a', { class: 'btn ghost', href: PROFILE_URL[platform](handle), target: '_blank', rel: 'noopener' }, `@${handle}`) : link('/settings', { class: 'btn ghost' }, 'Add your handle'),
+      h('button', { class: 'btn', onclick: async () => { if (await importDialog(m.platforms, platform)) navigate(location.pathname); } }, icon('download', 16), 'Import numbers'),
       link(`/repurpose`, { class: 'btn' }, icon('repeat', 16), 'Repurpose'),
       h('button', { class: 'btn primary', onclick: () => newPostDialog(platform).catch((e) => toast(e.message, 'err')) }, icon('plus', 16), 'New post')),
+    m.demo ? demoControl(m.demo) : null,
     progressChips(m.progress, platform),
     h('div', { class: 'grid grid-sidebar', style: { marginTop: '16px' } },
       h('div', {}, tabBar, listBox),
-      h('aside', {}, statsCard, info.target ? null : h('div', { class: 'card' },
+      h('aside', {}, statsCard, bioCard(platform), info.target ? null : h('div', { class: 'card' },
         h('h3', {}, 'Weekly target'), h('p', { class: 'muted small' }, `Set how many ${info.label} posts a week you’re aiming for in Settings → Social, and track it here and on the calendar.`),
         link('/settings', { class: 'btn sm' }, 'Open Settings')))));
 }
@@ -485,137 +488,6 @@ export async function renderPost(view, id) {
     window.removeEventListener('beforeunload', onUnload);
     saveSoon.flush();
   };
-}
-
-// ------------------------------------------------------------------
-// Calendar: /calendar
-// ------------------------------------------------------------------
-
-function mondayOf(d) {
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-  return x;
-}
-const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-export async function renderCalendar(view) {
-  const m = await meta(true);
-  let start = mondayOf(new Date());
-  let data = null;
-  const head = h('div', { class: 'cal-head' });
-  const grid = h('div', { class: 'cal-grid' });
-  const side = h('div');
-  const progressBox = h('div');
-
-  /** Put a post on a day, keeping its time of day (9:00 if it had none). */
-  async function scheduleOn(postId, day, time = null) {
-    const p = [...data.posts, ...data.unscheduled].find((x) => x.id === postId);
-    const old = p?.scheduled_for ? new Date(p.scheduled_for) : null;
-    const at = new Date(day);
-    if (time) at.setHours(...time.split(':').map(Number), 0, 0);
-    else at.setHours(old ? old.getHours() : 9, old ? old.getMinutes() : 0, 0, 0);
-    await api('PATCH', `social/posts/${postId}`, { scheduled_for: at.toISOString(), status: 'scheduled' });
-    toast(`Scheduled for ${when(at.toISOString())}.`);
-    await load();
-  }
-
-  function scheduleDialog(post) {
-    return modal('Schedule', (close) => {
-      const at = h('input', { type: 'datetime-local', value: toLocalInput(post.scheduled_for) || `${dayKey(new Date())}T09:00`, required: true });
-      const form = h('form', {
-        onsubmit: (e) => {
-          e.preventDefault();
-          busy(form.querySelector('[type=submit]'), 'Saving…', async () => {
-            const [d, t] = at.value.split('T');
-            await scheduleOn(post.id, new Date(`${d}T00:00`), t);
-            close(true);
-          });
-        },
-      }, field('When', at), h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { type: 'submit', class: 'btn primary' }, 'Schedule')));
-      return form;
-    });
-  }
-
-  function item(post) {
-    const t = post.status === 'posted' ? post.posted_at : post.scheduled_for;
-    const el = link(`/posts/${post.id}`, {
-      class: `cal-item pf-${post.platform}${post.status === 'posted' ? ' posted' : ''}`,
-      draggable: post.status === 'posted' ? 'false' : 'true',
-      title: `${m.platforms[post.platform].label} · ${formatLabel(m, post.platform, post.format)} · ${STATUS_LABEL[post.status]}`,
-    },
-    h('span', { class: 'cal-time' }, t ? new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''),
-    icon(PLATFORM_ICONS[post.platform], 13),
-    h('span', { class: 'clamp-2' }, post.title || plain(post.body) || plain(post.parts?.[0]) || formatLabel(m, post.platform, post.format)),
-    post.status === 'posted' ? icon('check', 13) : null);
-    el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', String(post.id)); e.dataTransfer.effectAllowed = 'move'; });
-    return el;
-  }
-
-  function draw() {
-    const end = new Date(start); end.setDate(end.getDate() + 6);
-    const today = dayKey(new Date());
-    clear(head).append(
-      h('div', { class: 'row' },
-        h('button', { class: 'btn sm', 'aria-label': 'Previous week', onclick: () => { start.setDate(start.getDate() - 7); load(); } }, icon('chevron-left', 16)),
-        h('button', { class: 'btn sm', onclick: () => { start = mondayOf(new Date()); load(); } }, 'This week'),
-        h('button', { class: 'btn sm', 'aria-label': 'Next week', onclick: () => { start.setDate(start.getDate() + 7); load(); } }, icon('chevron-right', 16))),
-      h('strong', {}, `${start.toLocaleDateString([], { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}`));
-
-    const byDay = {};
-    for (const p of data.posts) {
-      const t = p.status === 'posted' && p.posted_at ? p.posted_at : p.scheduled_for;
-      if (!t) continue;
-      (byDay[dayKey(new Date(t))] ||= []).push(p);
-    }
-    const ytByDay = {};
-    for (const y of data.youtube) (ytByDay[y.date] ||= []).push(y);
-
-    clear(grid);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start); d.setDate(d.getDate() + i);
-      const key = dayKey(d);
-      const posts = (byDay[key] || []).sort((a, b) => new Date(a.scheduled_for || a.posted_at) - new Date(b.scheduled_for || b.posted_at));
-      const col = h('div', { class: `cal-day${key === today ? ' today' : ''}`, dataset: { day: key } },
-        h('div', { class: 'cal-date' }, h('span', {}, d.toLocaleDateString([], { weekday: 'short' })), h('strong', {}, d.getDate())),
-        (ytByDay[key] || []).map((y) => link(y.link, { class: `cal-item pf-youtube yt-${y.kind}` }, icon('play', 13),
-          h('span', { class: 'clamp-2' }, y.kind === 'due' ? `Due: ${y.title}` : `Published: ${y.title}`))),
-        posts.map(item),
-        h('button', { class: 'cal-add', title: 'New post on this day', onclick: () => newPostDialog(null, { scheduled_for: new Date(`${key}T09:00`).toISOString(), status: 'scheduled' }).catch((e) => toast(e.message, 'err')) }, icon('plus', 14)));
-      col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('drop'); });
-      col.addEventListener('dragleave', () => col.classList.remove('drop'));
-      col.addEventListener('drop', (e) => {
-        e.preventDefault();
-        col.classList.remove('drop');
-        const pid = Number(e.dataTransfer.getData('text/plain'));
-        if (pid) scheduleOn(pid, new Date(`${key}T00:00`)).catch((err) => toast(err.message, 'err'));
-      });
-      grid.append(col);
-    }
-
-    clear(side).append(h('div', { class: 'card' },
-      h('div', { class: 'card-header' }, h('h3', {}, 'Not scheduled yet'),
-        h('button', { class: 'btn ghost sm', onclick: () => newPostDialog().catch((e) => toast(e.message, 'err')) }, icon('plus', 15), 'New')),
-      h('p', { class: 'muted small' }, 'Drag one onto a day, or press Schedule.'),
-      data.unscheduled.length ? h('div', { class: 'cal-unscheduled' }, data.unscheduled.map((p) => h('div', { class: 'cal-u' },
-        item(p), h('button', { class: 'btn ghost sm', onclick: () => scheduleDialog(p).catch((e) => toast(e.message, 'err')) }, 'Schedule'))))
-        : h('p', { class: 'muted small' }, 'All caught up. Repurpose a script for a fresh batch.')));
-    clear(progressBox).append(progressChips(data.progress) || h('p', { class: 'muted small' }, 'Set weekly targets per platform in Settings → Social to track them here.'));
-  }
-
-  async function load() {
-    const end = new Date(start); end.setDate(end.getDate() + 7);
-    data = await api('GET', `social/calendar?from=${encodeURIComponent(start.toISOString())}&to=${encodeURIComponent(end.toISOString())}`);
-    draw();
-  }
-  await load();
-
-  view.append(
-    pageHead('Calendar', 'Everything you’re publishing this week, on every platform. YouTube dates come from your weekly plan and scripts.',
-      link('/repurpose', { class: 'btn' }, icon('repeat', 16), 'Repurpose'),
-      h('button', { class: 'btn primary', onclick: () => newPostDialog().catch((e) => toast(e.message, 'err')) }, icon('plus', 16), 'New post')),
-    progressBox,
-    head,
-    h('div', { class: 'cal-layout' }, grid, side));
 }
 
 // ------------------------------------------------------------------

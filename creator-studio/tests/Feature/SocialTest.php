@@ -176,6 +176,66 @@ class SocialTest extends TestCase
         $this->assertSame(['repurpose'], SocialPost::pluck('source')->unique()->all());
     }
 
+    public function test_composer_turns_a_short_prompt_and_images_into_drafts(): void
+    {
+        $this->getJson('/api/social/composer')->assertOk()->assertJsonStructure(['model', 'engine', 'ai_ready', 'targets']);
+
+        $calls = [];
+        Llm::$fake = function ($system, $user) use (&$calls) {
+            $calls[] = [$system, $user];
+            if (str_contains($system, 'Describe each image')) {
+                return 'A tidy desk with one monitor and a plant.';
+            }
+
+            return json_encode(['posts' => [
+                ['platform' => 'tiktok', 'format' => 'video', 'title' => 'Desk', 'body' => 'Desk reset 👇', 'parts' => ['Hook', 'Beat 2']],
+                ['platform' => 'threads', 'format' => 'post', 'title' => 'Desk q', 'body' => 'What stays on your desk?'],
+            ]]);
+        };
+        $png = 'data:image/png;base64,'.base64_encode('fake-png');
+        $res = $this->postJson('/api/social/compose', [
+            'prompt' => 'my new desk setup', 'extra' => 'playful',
+            'targets' => [['platform' => 'tiktok', 'format' => 'video'], ['platform' => 'threads', 'format' => 'post']],
+            'images' => [$png, 'not-a-data-uri'],
+        ])->assertOk()->json();
+        $this->assertCount(2, $res['posts']);
+        $this->assertNull($res['note']);
+        $this->assertStringContainsString('my new desk setup', $calls[1][1], 'short prompts are fine here');
+        $this->assertStringContainsString('A tidy desk with one monitor', $calls[1][1], 'image description reaches the writer');
+        $this->assertStringContainsString('playful', $calls[1][1]);
+
+        // Without a vision-capable model the drafts are still written, with a note.
+        Llm::$fake = function ($system) {
+            if (str_contains($system, 'Describe each image')) {
+                throw new \RuntimeException('This model can’t look at images.');
+            }
+
+            return json_encode(['posts' => [['platform' => 'x', 'format' => 'post', 'body' => 'Desk post']]]);
+        };
+        $this->postJson('/api/social/compose', ['prompt' => 'desk', 'targets' => [['platform' => 'x', 'format' => 'post']], 'images' => [$png]])
+            ->assertOk()->assertJsonPath('note', fn ($n) => str_contains($n, 'weren’t described'));
+        $this->postJson('/api/social/compose', ['prompt' => 'hi', 'targets' => [['platform' => 'x', 'format' => 'post']]])->assertStatus(422);
+    }
+
+    public function test_demo_posts_load_once_cover_every_network_and_remove_cleanly(): void
+    {
+        $real = SocialPost::create(['platform' => 'x', 'format' => 'post', 'body' => 'Mine', 'status' => 'draft']);
+        \Illuminate\Support\Facades\DB::table('follower_snapshots')->insert(['platform' => 'instagram', 'count' => 999, 'recorded_on' => now()->toDateString(), 'source' => 'manual', 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->postJson('/api/social/demo')->assertOk()->assertJsonPath('demo', 20);
+        $this->postJson('/api/social/demo')->assertOk()->assertJsonPath('message', 'Demo posts are already loaded.');
+        $demo = SocialPost::where('source', 'demo')->get();
+        $this->assertEqualsCanonicalizing(['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube'], $demo->pluck('platform')->unique()->values()->all());
+        $this->assertEqualsCanonicalizing(['posted', 'scheduled', 'draft', 'idea'], $demo->pluck('status')->unique()->values()->all());
+        $this->assertTrue($demo->every(fn ($p) => str_starts_with($p->title, 'Demo · ')));
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('follower_snapshots')->where('platform', 'instagram')->where('source', 'demo')->count(), 'her real counts are left alone');
+        $this->getJson('/api/social/meta')->assertJsonPath('demo', 20);
+
+        $this->deleteJson('/api/social/demo')->assertOk()->assertJsonPath('demo', 0);
+        $this->assertSame([$real->id], SocialPost::pluck('id')->all());
+        $this->assertSame(['manual'], \Illuminate\Support\Facades\DB::table('follower_snapshots')->pluck('source')->all());
+    }
+
     public function test_repurpose_refuses_thin_sources_and_no_targets(): void
     {
         $this->postJson('/api/social/repurpose', ['source' => 'text', 'text' => 'too short', 'targets' => [['platform' => 'x', 'format' => 'post']]])->assertStatus(422);

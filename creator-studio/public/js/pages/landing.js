@@ -638,6 +638,66 @@ export function renderLanding(view, options = {}) {
     isAuth,
   });
 
+  // Single profile/actions button containing Bio, Studio, Book Intro Call, and Light/Dark Switch
+  const avatar = h('button', {
+    class: 'hdr-avatar',
+    type: 'button',
+    'aria-haspopup': 'true',
+    'aria-expanded': 'false',
+    'aria-label': 'Tech Unicorn menu',
+    title: 'Tech Unicorn · Delia Lazarescu',
+  }, 'D');
+
+  let profileMenu = null;
+  const closeProfileMenu = () => {
+    profileMenu?.remove();
+    profileMenu = null;
+    avatar.setAttribute('aria-expanded', 'false');
+  };
+
+  avatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (profileMenu) { closeProfileMenu(); return; }
+    profileMenu = h('div', { class: 'hdr-menu', role: 'menu', onclick: (ev) => ev.stopPropagation() },
+      h('div', { class: 'hdr-menu-head' },
+        h('strong', {}, 'Delia Lazarescu'),
+        h('span', { class: 'muted small' }, '@Tech.Unicorn · Ex-Google Engineer')),
+      themeSwitch(),
+      link('/links', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeProfileMenu },
+        icon('link', 15), 'Link in Bio'),
+      h('button', {
+        class: 'hdr-menu-item',
+        role: 'menuitem',
+        type: 'button',
+        onclick: () => { closeProfileMenu(); handleBookCall('mvp_build'); },
+      }, icon('calendar', 15), 'Book an Intro Call'),
+      h('button', {
+        class: 'hdr-menu-item',
+        role: 'menuitem',
+        type: 'button',
+        onclick: () => { closeProfileMenu(); handleStripePay('retainer'); },
+      }, icon('credit-card', 15), 'Pay with Stripe'),
+      h('button', {
+        class: 'hdr-menu-item',
+        role: 'menuitem',
+        type: 'button',
+        onclick: () => { closeProfileMenu(); onAuthClick(); },
+      }, icon('sparkle', 15), isAuth ? 'Open Studio Dashboard' : 'Studio Login'));
+
+    avatar.parentElement.append(profileMenu);
+    avatar.setAttribute('aria-expanded', 'true');
+    profileMenu.querySelector('a, button.hdr-menu-item')?.focus();
+  });
+
+  document.addEventListener('click', closeProfileMenu);
+  const onEsc = (e) => {
+    if (e.key === 'Escape' && profileMenu) {
+      closeProfileMenu();
+      avatar.focus();
+    }
+  };
+  document.addEventListener('keydown', onEsc);
+
   const nav = h('header', { class: 'landing-nav', id: 'top' },
     h('div', { class: 'landing-container landing-nav-inner' },
       h('a', {
@@ -647,27 +707,15 @@ export function renderLanding(view, options = {}) {
         title: 'Tech Unicorn',
       }, brandMark(28)),
       megaNav,
-      h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-        h('div', { class: 'landing-btn-group' },
-          link('/links', { class: 'btn', title: 'Public Bio Page' }, icon('link', 14), 'Bio'),
-          h('button', {
-            type: 'button',
-            class: 'btn',
-            onclick: onAuthClick,
-            title: isAuth ? 'Open Creator Studio Dashboard' : 'Sign in to Creator Studio',
-          }, icon('sparkle', 14), isAuth ? 'Dashboard' : 'Studio')),
+      h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
         h('button', {
           type: 'button',
-          class: 'btn primary sm',
-          onclick: () => handleBookCall('mvp_build'),
-        }, icon('calendar', 13), 'Book an Intro Call'),
-        themeSwitch(),
-        h('button', {
-          type: 'button',
-          class: 'landing-drawer-toggle btn ghost sm',
-          'aria-label': 'Open navigation drawer',
+          class: 'landing-drawer-toggle',
+          'aria-label': 'Open navigation side drawer',
+          title: 'Open Side Drawer',
           onclick: () => drawer.openDrawer(),
-        }, icon('menu', 18)))));
+        }, icon('menu', 18)),
+        h('div', { class: 'hdr-avatar-wrap' }, avatar))));
 
   // 2. Hero Section
   const hero = h('section', { class: 'landing-hero' },
@@ -916,9 +964,8 @@ export function renderLanding(view, options = {}) {
         h('a', { href: 'mailto:hello@thetechunicorn.com' }, 'Email')),
       h('p', { class: 'muted small' }, '© 2026 Tech Unicorn · Software development, technical advisory & media services · Made somewhere with good wifi 🌴')));
 
-  const landingWrapper = h('div', { class: 'landing-page' },
+  const landingBox = h('div', { class: 'landing-box' },
     nav,
-    drawer.drawerWrap,
     hero,
     marquee,
     trusted,
@@ -931,8 +978,14 @@ export function renderLanding(view, options = {}) {
     cta,
     footer);
 
+  const landingWrapper = h('div', { class: 'landing-page' },
+    drawer.drawerWrap,
+    landingBox);
+
   view.replaceChildren(landingWrapper);
   return () => {
+    document.removeEventListener('click', closeProfileMenu);
+    document.removeEventListener('keydown', onEsc);
     drawer.destroy();
     landingWrapper.remove();
   };

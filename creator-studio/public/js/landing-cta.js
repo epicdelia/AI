@@ -1,7 +1,7 @@
 // Landing page closing section ("Let us build something"), a full-width band that runs into the
 // footer. Every way in feeds her dashboard: the intent tiles book with a type and a source
-// ("Let us build: …") that shows up in "From your website", the availability line follows her
-// Client journey build slots, and the payment button says "Request an invoice" until Stripe is set up.
+// ("Let us build: …") that shows up in "From your website", and the payment button says "Request an
+// invoice" until Stripe is set up. Her email (with one-click copy) lives in the footer: emailPill().
 import { h, api, toast } from './core.js';
 import { icon } from './icons.js';
 
@@ -15,21 +15,8 @@ const INTENTS = [
   { type: 'speaking', icon: 'mic', label: 'A keynote or workshop', hint: 'In person or virtual' },
 ];
 
-/** @param {{ onBookCall: (type: string, service?: string) => void, onStripePay: (pkg: string) => void }} options */
-export function ctaSection({ onBookCall, onStripePay }) {
-  const payBtn = h('button', { type: 'button', class: 'btn ghost lg', onclick: () => onStripePay('retainer') }, icon('tag', 16), 'Pay with Stripe');
-  const availability = h('span', { class: 'landing-close-fact', hidden: true });
-
-  api('GET', 'stripe/packages').then((p) => {
-    if (!p.stripe_configured) payBtn.replaceChildren(icon('file-text', 16), 'Request an invoice');
-  }).catch(() => {});
-  api('GET', 'landing/availability').then((a) => {
-    if (!a?.show) return;
-    availability.hidden = false;
-    availability.classList.add(`is-${a.status}`);
-    availability.replaceChildren(h('i', { 'aria-hidden': 'true' }), a.label);
-  }).catch(() => {});
-
+/** Her email with a one-click copy button (shown in the footer, under the brand description). */
+export function emailPill() {
   const copyBtn = h('button', {
     type: 'button', class: 'landing-close-copy', 'aria-label': `Copy ${EMAIL}`, title: 'Copy email',
     onclick: async () => {
@@ -43,6 +30,19 @@ export function ctaSection({ onBookCall, onStripePay }) {
       }
     },
   }, icon('copy', 14));
+  return h('div', { class: 'landing-close-email' },
+    icon('mail', 15),
+    h('a', { href: `mailto:${EMAIL}?subject=Project%20Inquiry` }, EMAIL),
+    copyBtn);
+}
+
+/** @param {{ onBookCall: (type: string, service?: string) => void, onStripePay: (pkg: string) => void }} options */
+export function ctaSection({ onBookCall, onStripePay }) {
+  const payBtn = h('button', { type: 'button', class: 'btn ghost lg', onclick: () => onStripePay('retainer') }, icon('tag', 16), 'Pay with Stripe');
+
+  api('GET', 'stripe/packages').then((p) => {
+    if (!p.stripe_configured) payBtn.replaceChildren(icon('file-text', 16), 'Request an invoice');
+  }).catch(() => {});
 
   const tiles = INTENTS.map((it) => h('button', {
     type: 'button', class: 'landing-close-tile', onclick: () => onBookCall(it.type, `Let us build: ${it.label}`),
@@ -59,15 +59,7 @@ export function ctaSection({ onBookCall, onStripePay }) {
         h('p', { class: 'landing-close-lede' }, 'App, campaign, keynote, or something bolder. If it makes tech less scary, let us talk.'),
         h('div', { class: 'landing-close-actions' },
           h('button', { type: 'button', class: 'btn primary lg', onclick: () => onBookCall('mvp_build', 'Let us build: Intro call') }, icon('calendar', 16), 'Book an Intro Call'),
-          payBtn),
-        h('div', { class: 'landing-close-email' },
-          icon('mail', 15),
-          h('a', { href: `mailto:${EMAIL}?subject=Project%20Inquiry` }, EMAIL),
-          copyBtn),
-        h('div', { class: 'landing-close-facts' },
-          h('span', { class: 'landing-close-fact' }, icon('clock', 13), 'Replies within 1 business day'),
-          h('span', { class: 'landing-close-fact' }, icon('check', 13), 'Free 30-minute call'),
-          availability)),
+          payBtn)),
       h('div', { class: 'landing-close-intents' },
         h('p', { class: 'landing-close-intents-title' }, 'What are we building?'),
         h('div', { class: 'landing-close-tiles' }, tiles))));

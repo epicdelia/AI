@@ -73,13 +73,13 @@ class TikTokProvider extends Provider
     {
         $profile = $this->profile($token);
         $videos = $this->json($this->http()->withToken($token)
-            ->post('https://open.tiktokapis.com/v2/video/list/?fields=id,title,video_description,share_url,create_time,view_count,like_count,comment_count,share_count', ['max_count' => 20]),
+            ->post('https://open.tiktokapis.com/v2/video/list/?fields=id,title,video_description,share_url,cover_image_url,create_time,view_count,like_count,comment_count,share_count', ['max_count' => 20]),
             'read your videos')['data']['videos'] ?? [];
 
         $posts = array_map(fn ($v) => [
             'external_id' => (string) $v['id'], 'url' => $v['share_url'] ?? null,
             'posted_at' => isset($v['create_time']) ? date(DATE_ATOM, (int) $v['create_time']) : null,
-            'text' => $v['video_description'] ?? $v['title'] ?? '', 'format' => 'video',
+            'text' => $v['video_description'] ?? $v['title'] ?? '', 'format' => 'video', 'thumb' => $v['cover_image_url'] ?? null,
             'metrics' => array_filter(['impressions' => self::int($v['view_count'] ?? null), 'likes' => self::int($v['like_count'] ?? null),
                 'comments' => self::int($v['comment_count'] ?? null), 'shares' => self::int($v['share_count'] ?? null)], fn ($x) => $x !== null),
         ], $videos);

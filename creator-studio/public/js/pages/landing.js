@@ -7,11 +7,12 @@ import { themeSwitch } from '../theme.js';
 import { contentSection } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
-import { ctaSection } from '../landing-cta.js';
+import { ctaSection, emailPill } from '../landing-cta.js';
 import { aboutSection } from '../landing-about.js';
 import { pricingSection } from '../landing-pricing.js';
 import { partnersSection } from '../landing-partners.js';
 import { marqueeSection } from '../landing-marquee.js';
+import { heroSection } from '../landing-hero.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -707,29 +708,8 @@ export function renderLanding(view, options = {}) {
         }, icon('menu', 18)),
         h('div', { class: 'hdr-avatar-wrap' }, avatar))));
 
-  // 2. Hero Section
-  const hero = h('section', { class: 'landing-hero' },
-    h('div', { class: 'landing-container landing-hero-grid' },
-      h('div', { class: 'landing-hero-copy' },
-        h('h1', {}, 'Making tech ', h('em', {}, 'less scary'), ': built from beach cafés in 60+ countries.'),
-        h('p', { class: 'landing-lede' }, 'I am a software engineer who left Big Tech to build apps, create content for 470K+ people, and prove you do not need a hoodie and a standing desk to ship great software.'),
-        h('div', { class: 'landing-hero-actions' },
-          h('button', { type: 'button', class: 'btn primary lg', onclick: () => handleBookCall('mvp_build') }, icon('calendar', 16), 'Book an Intro Call'),
-          h('a', { href: '#pricing', class: 'btn ghost lg' }, 'See Packages & Pricing')),
-        h('p', { class: 'muted small' }, 'Free 30-minute call · fixed-scope proposal within 48 hours · no surprise invoices')),
-      h('div', { class: 'landing-stats-grid' },
-        h('div', { class: 'landing-stat-box' },
-          h('div', { class: 'landing-stat-num' }, '472K+'),
-          h('div', { class: 'landing-stat-lbl' }, 'Combined audience across platforms')),
-        h('div', { class: 'landing-stat-box' },
-          h('div', { class: 'landing-stat-num' }, '69'),
-          h('div', { class: 'landing-stat-lbl' }, 'Countries traveled and worked from')),
-        h('div', { class: 'landing-stat-box' },
-          h('div', { class: 'landing-stat-num' }, '2-4', h('span', { style: { fontSize: '0.5em', color: 'var(--accent)' } }, 'wks')),
-          h('div', { class: 'landing-stat-lbl' }, 'Idea to shipped production MVP')),
-        h('div', { class: 'landing-stat-box' },
-          h('div', { class: 'landing-stat-num' }, 'ex-G'),
-          h('div', { class: 'landing-stat-lbl' }, 'Google engineering background')))));
+  // 2. Hero: her copy from the dashboard's "Hero" card, real numbers, status pill and live stats.
+  const hero = heroSection({ onBookCall: handleBookCall });
 
   // 3. Marquee: her phrases and live facts from the dashboard, shown just above the footer.
   const marquee = marqueeSection();
@@ -1079,7 +1059,8 @@ export function renderLanding(view, options = {}) {
           h('p', { style: { fontSize: '0.84rem', fontWeight: '700', color: 'var(--accent)', margin: '0 0 6px' } },
             'Delia Lazarescu · Ex-Google Engineer · Digital Nomad'),
           h('p', { style: { fontSize: '0.82rem', color: 'var(--muted)', lineHeight: '1.6', margin: 0, maxWidth: '380px' } },
-            'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.')),
+            'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.'),
+          emailPill()),
 
         // Column 1: Core Engineering
         h('div', { class: 'landing-footer-col' },

@@ -146,7 +146,7 @@ class ThreadsProvider extends Provider
     {
         $profile = $this->profile($token);
         $items = $this->json($this->http()->get(self::GRAPH.'/me/threads', [
-            'fields' => 'id,text,permalink,timestamp,media_type,is_quote_post', 'limit' => 50, 'access_token' => $token,
+            'fields' => 'id,text,permalink,timestamp,media_type,media_url,thumbnail_url,is_quote_post', 'limit' => 50, 'access_token' => $token,
         ]), 'read your posts')['data'] ?? [];
 
         $posts = [];
@@ -165,7 +165,8 @@ class ThreadsProvider extends Provider
                     'shares' => isset($m['reposts']) || isset($m['quotes']) ? (int) ($m['reposts'] ?? 0) + (int) ($m['quotes'] ?? 0) : null], fn ($v) => $v !== null);
             }
             $posts[] = ['external_id' => (string) $t['id'], 'url' => $t['permalink'] ?? null, 'posted_at' => $t['timestamp'] ?? null,
-                'text' => $t['text'] ?? '', 'format' => 'post', 'metrics' => $metrics];
+                'text' => $t['text'] ?? '', 'format' => 'post', 'metrics' => $metrics,
+                'thumb' => ($t['media_type'] ?? '') === 'VIDEO' ? ($t['thumbnail_url'] ?? null) : (($t['media_type'] ?? '') === 'IMAGE' ? ($t['media_url'] ?? null) : null)];
         }
 
         return ['followers' => $profile['followers'], 'posts' => $posts, 'meta' => ['posts_read' => count($posts)]];

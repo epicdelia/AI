@@ -203,6 +203,9 @@ class Connections
 
             if ($post) {
                 $post->fill(['external_id' => $id, 'metrics' => array_merge($post->metrics ?? [], $metrics)]);
+                if (! empty($row['thumb'])) {
+                    $post->thumbnail_url = $row['thumb'];
+                }
                 if (! $post->url && ! empty($row['url'])) {
                     $post->url = $row['url'];
                 }
@@ -218,7 +221,7 @@ class Connections
                     'platform' => $platform, 'format' => Platforms::valid($platform, $format) ? $format : array_key_first(Platforms::FORMATS[$platform]),
                     'body' => mb_substr((string) ($row['text'] ?? ''), 0, 10000), 'status' => 'posted',
                     'posted_at' => self::date($row['posted_at'] ?? null) ?? now(), 'url' => $row['url'] ?? null,
-                    'external_id' => $id, 'source' => 'synced', 'metrics' => $metrics,
+                    'external_id' => $id, 'source' => 'synced', 'metrics' => $metrics, 'thumbnail_url' => $row['thumb'] ?? null,
                 ]);
                 $added++;
             }

@@ -181,7 +181,7 @@ class LandingFeed
                 'text' => self::excerpt($p->body, 280),
                 'date' => $p->posted_at?->toIso8601String(),
                 'url' => $p->url,
-                'thumb' => $image ? url('/landing/thumb/'.$p->id) : null,
+                'thumb' => $image ? url('/landing/thumb/'.$p->id) : ($p->thumbnail_url ?: null),
                 'alt' => $image['alt'] ?? null,
                 // Only numbers she logged or that were synced; missing ones are left out, never guessed.
                 'metrics' => array_filter([

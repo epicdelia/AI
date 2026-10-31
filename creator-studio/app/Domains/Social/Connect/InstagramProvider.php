@@ -154,7 +154,7 @@ class InstagramProvider extends Provider
     {
         $profile = $this->profile($token);
         $media = $this->json($this->http()->get(self::GRAPH.'/me/media', [
-            'fields' => 'id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count', 'limit' => 50, 'access_token' => $token,
+            'fields' => 'id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count', 'limit' => 50, 'access_token' => $token,
         ]), 'read your posts')['data'] ?? [];
 
         $posts = [];
@@ -171,6 +171,7 @@ class InstagramProvider extends Provider
             $posts[] = [
                 'external_id' => (string) $m['id'], 'url' => $m['permalink'] ?? null, 'posted_at' => $m['timestamp'] ?? null,
                 'text' => $m['caption'] ?? '', 'metrics' => array_filter($metrics, fn ($v) => $v !== null),
+                'thumb' => ($m['media_type'] ?? '') === 'VIDEO' ? ($m['thumbnail_url'] ?? null) : ($m['media_url'] ?? $m['thumbnail_url'] ?? null),
                 'format' => match (true) {
                     ($m['media_product_type'] ?? '') === 'REELS' => 'reel',
                     ($m['media_product_type'] ?? '') === 'STORY' => 'story',

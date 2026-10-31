@@ -77,13 +77,20 @@ class XProvider extends Provider
         }
         $profile = $this->profile($token);
         $this->spend(1);
-        $tweets = $this->json($this->http()->withToken($token)->get("https://api.x.com/2/users/{$account->external_id}/tweets", [
-            'max_results' => 20, 'exclude' => 'retweets,replies', 'tweet.fields' => 'public_metrics,created_at',
-        ]), 'read your posts')['data'] ?? [];
+        $res = $this->json($this->http()->withToken($token)->get("https://api.x.com/2/users/{$account->external_id}/tweets", [
+            'max_results' => 20, 'exclude' => 'retweets,replies', 'tweet.fields' => 'public_metrics,created_at,attachments',
+            'expansions' => 'attachments.media_keys', 'media.fields' => 'url,preview_image_url',
+        ]), 'read your posts');
+        $tweets = $res['data'] ?? [];
+        $media = [];
+        foreach ($res['includes']['media'] ?? [] as $m) {
+            $media[$m['media_key'] ?? ''] = $m['url'] ?? $m['preview_image_url'] ?? null;
+        }
 
         $posts = array_map(fn ($t) => [
             'external_id' => (string) $t['id'], 'url' => 'https://x.com/'.($profile['handle'] ?? 'i').'/status/'.$t['id'],
             'posted_at' => $t['created_at'] ?? null, 'text' => $t['text'] ?? '', 'format' => 'post',
+            'thumb' => $media[$t['attachments']['media_keys'][0] ?? ''] ?? null,
             'metrics' => array_filter([
                 'impressions' => self::int($t['public_metrics']['impression_count'] ?? null),
                 'likes' => self::int($t['public_metrics']['like_count'] ?? null), 'comments' => self::int($t['public_metrics']['reply_count'] ?? null),

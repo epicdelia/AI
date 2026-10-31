@@ -344,6 +344,7 @@ class ApiController extends Controller
             'recent_outliers' => $recentOutliers,
             'recent_notes' => $recentNotes,
             'reach' => rescue(fn () => \App\Http\Controllers\LandingPageController::reach(), null),
+            'hero' => rescue(fn () => \App\Domains\Landing\Hero::dashboard(), null),
             'marquee' => rescue(fn () => \App\Domains\Landing\Marquee::dashboard(), null),
             'partners' => rescue(fn () => \App\Domains\Landing\Partners::dashboard(), null),
             'pricing' => rescue(fn () => \App\Domains\Landing\Pricing::dashboard(), null),

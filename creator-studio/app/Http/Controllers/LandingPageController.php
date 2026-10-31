@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domains\Landing\About;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
+use App\Domains\Landing\Hero;
 use App\Domains\Landing\LandingFeed;
 use App\Domains\Landing\Marquee;
 use App\Domains\Landing\Partners;
@@ -53,6 +54,34 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** The hero: her headline and intro with real numbers, status pill and four stats. */
+    public function hero(): JsonResponse
+    {
+        return response()->json(Hero::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function heroEdit(): JsonResponse
+    {
+        return response()->json(Hero::dashboard());
+    }
+
+    public function heroSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'headline' => 'required|string|max:160',
+            'lede' => 'required|string|max:400',
+            'reassurance' => 'nullable|string|max:160',
+            'cta' => 'required|string|max:40',
+            'show_status' => 'required|boolean',
+            'stats' => 'required|array|size:4',
+            'stats.*' => 'distinct|string|in:'.implode(',', Hero::STATS),
+        ]);
+        $data['reassurance'] = trim((string) ($data['reassurance'] ?? ''));
+        Hero::save($data);
+
+        return response()->json(Hero::dashboard());
     }
 
     /** The band above the footer: her phrases and live facts, at her speed. */

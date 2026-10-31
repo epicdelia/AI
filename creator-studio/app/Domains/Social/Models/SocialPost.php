@@ -13,7 +13,7 @@ class SocialPost extends Model
     public const METRICS = ['impressions', 'likes', 'comments', 'shares', 'saves'];
 
     protected $fillable = [
-        'platform', 'format', 'title', 'body', 'parts', 'status', 'scheduled_for', 'posted_at', 'url',
+        'platform', 'format', 'title', 'body', 'parts', 'status', 'scheduled_for', 'posted_at', 'url', 'thumbnail_url',
         'script_id', 'source', 'metrics', 'notes', 'source_post_id', 'media', 'pillar', 'external_id',
         'social_agent_id', 'approval', 'agent_original', 'publish_error',
     ];
@@ -40,7 +40,7 @@ class SocialPost extends Model
         // The landing page shows published posts: rebuild it when one appears, changes or goes away.
         $touchesLanding = fn (self $post) => $post->status === 'posted' || $post->getOriginal('status') === 'posted';
         static::saved(function (self $post) use ($touchesLanding) {
-            if ($touchesLanding($post) && $post->wasChanged(['status', 'url', 'title', 'body', 'metrics', 'media', 'posted_at'])) {
+            if ($touchesLanding($post) && $post->wasChanged(['status', 'url', 'title', 'body', 'metrics', 'media', 'posted_at', 'thumbnail_url'])) {
                 \App\Domains\Landing\LandingFeed::forget();
             }
         });

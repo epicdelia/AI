@@ -1012,8 +1012,8 @@ export function renderLanding(view, options = {}) {
       comments: '890',
       audio: 'Original Audio · Tech Unicorn',
       tag: 'AI Experiment',
+      gradient: 'linear-gradient(150deg, #180922 0%, #4a044e 45%, #db2777 100%)',
       url: 'https://www.instagram.com/reel/C_aiEmail7d/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'C_nomadCode60',
@@ -1024,8 +1024,8 @@ export function renderLanding(view, options = {}) {
       comments: '1.4K',
       audio: 'Lofi Coding Beats',
       tag: 'Nomad Life',
+      gradient: 'linear-gradient(150deg, #091224 0%, #0369a1 45%, #06b6d4 100%)',
       url: 'https://www.instagram.com/reel/C_nomadCode60/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'C_vibecodingArch',
@@ -1036,8 +1036,8 @@ export function renderLanding(view, options = {}) {
       comments: '980',
       audio: 'Tech Unicorn Sound',
       tag: 'Engineering',
+      gradient: 'linear-gradient(150deg, #120e1f 0%, #581c87 45%, #a855f7 100%)',
       url: 'https://www.instagram.com/reel/C_vibecodingArch/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'C_bigTechOfferIndie',
@@ -1048,8 +1048,8 @@ export function renderLanding(view, options = {}) {
       comments: '2.1K',
       audio: 'Original audio · Delia',
       tag: 'Career Honesty',
+      gradient: 'linear-gradient(150deg, #220808 0%, #991b1b 45%, #f97316 100%)',
       url: 'https://www.instagram.com/reel/C_bigTechOfferIndie/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'C_aiDevStack2026',
@@ -1060,8 +1060,8 @@ export function renderLanding(view, options = {}) {
       comments: '750',
       audio: 'Tech Beats',
       tag: 'Tools & Stack',
+      gradient: 'linear-gradient(150deg, #171206 0%, #b45309 45%, #eab308 100%)',
       url: 'https://www.instagram.com/reel/C_aiDevStack2026/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'C_remoteRule1',
@@ -1072,8 +1072,8 @@ export function renderLanding(view, options = {}) {
       comments: '1.1K',
       audio: 'Original audio',
       tag: 'Productivity',
+      gradient: 'linear-gradient(150deg, #021a14 0%, #047857 45%, #10b981 100%)',
       url: 'https://www.instagram.com/reel/C_remoteRule1/',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
   ];
 
@@ -1086,8 +1086,8 @@ export function renderLanding(view, options = {}) {
       likes: '48.2K',
       shares: '1.2K',
       tag: '#TokyoTech',
+      gradient: 'linear-gradient(150deg, #0d0f17 0%, #083344 50%, #06b6d4 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'tt_bigTechVsIndie',
@@ -1097,8 +1097,8 @@ export function renderLanding(view, options = {}) {
       likes: '76.5K',
       shares: '3.4K',
       tag: '#ExGoogle',
+      gradient: 'linear-gradient(150deg, #160a12 0%, #4c0519 50%, #f43f5e 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'tt_agentTesting',
@@ -1108,8 +1108,8 @@ export function renderLanding(view, options = {}) {
       likes: '28.9K',
       shares: '920',
       tag: '#AIArchitect',
+      gradient: 'linear-gradient(150deg, #0b0f19 0%, #1e1b4b 50%, #6366f1 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'tt_backpackSetup',
@@ -1119,8 +1119,8 @@ export function renderLanding(view, options = {}) {
       likes: '42.7K',
       shares: '1.8K',
       tag: '#DigitalNomad',
+      gradient: 'linear-gradient(150deg, #071712 0%, #064e3b 50%, #10b981 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'tt_vectorEmbeddings',
@@ -1130,8 +1130,8 @@ export function renderLanding(view, options = {}) {
       likes: '36.1K',
       shares: '1.1K',
       tag: '#TechTok',
+      gradient: 'linear-gradient(150deg, #170b18 0%, #4a044e 50%, #d946ef 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
     {
       id: 'tt_wrapperTrap',
@@ -1141,8 +1141,8 @@ export function renderLanding(view, options = {}) {
       likes: '61.3K',
       shares: '2.9K',
       tag: '#Startups',
+      gradient: 'linear-gradient(150deg, #180f08 0%, #7c2d12 50%, #f97316 100%)',
       url: 'https://www.tiktok.com/@tech.unicorn',
-      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
     },
   ];
 
@@ -1254,21 +1254,90 @@ export function renderLanding(view, options = {}) {
 
   const ytTrack = h('div', { class: 'landing-yt-track', id: 'landing-social-track' });
 
+  function openVideoModal({ title, videoId, url, platform }) {
+    const existing = document.getElementById('landing-video-modal');
+    if (existing) existing.remove();
+
+    if (!videoId) {
+      if (url) window.open(url, '_blank', 'noopener');
+      return;
+    }
+
+    const platformLabels = {
+      youtube: 'YouTube · @Tech.Unicorn',
+      instagram: 'Instagram Reel · @tech.unicorn',
+      tiktok: 'TikTok · @tech.unicorn',
+    };
+
+    const platformIcons = {
+      youtube: 'brand:youtube',
+      instagram: 'brand:instagram',
+      tiktok: 'brand:tiktok',
+    };
+
+    const isVertical = platform === 'instagram' || platform === 'tiktok';
+
+    const modal = h('div', {
+      id: 'landing-video-modal',
+      class: 'landing-video-modal-backdrop',
+      onclick: (e) => {
+        if (e.target === modal) modal.remove();
+      },
+    },
+      h('div', { class: `landing-video-modal-dialog ${isVertical ? 'vertical' : 'landscape'}` },
+        h('button', {
+          type: 'button',
+          class: 'landing-video-modal-close',
+          'aria-label': 'Close player',
+          onclick: () => modal.remove(),
+        }, icon('x', 18)),
+        h('div', { class: `landing-video-modal-player ${isVertical ? 'vertical' : 'landscape'}` },
+          h('iframe', {
+            src: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`,
+            allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+            allowfullscreen: true,
+            title: title || 'Video preview',
+          })),
+        h('div', { class: 'landing-video-modal-foot' },
+          h('div', { style: { minWidth: 0 } },
+            h('strong', { style: { display: 'block', fontSize: '0.92rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, title),
+            h('span', { style: { fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)' } }, platformLabels[platform] || 'Video')),
+          h('a', {
+            href: url || '#',
+            target: '_blank',
+            rel: 'noopener',
+            class: 'btn primary btn-sm',
+            style: { flexShrink: 0 },
+          }, icon(platformIcons[platform] || 'play', 14), platform === 'instagram' ? 'View on IG' : (platform === 'tiktok' ? 'View on TikTok' : 'Watch on YouTube')))));
+
+    document.body.appendChild(modal);
+  }
+
   function renderYtCard(vid) {
+    const thumb = vid.thumb || vid.thumbnail || `https://i.ytimg.com/vi/${vid.id}/hqdefault.jpg`;
     return h('a', {
-      href: vid.url,
+      href: vid.url || `https://www.youtube.com/watch?v=${vid.id}`,
       target: '_blank',
       rel: 'noopener',
       class: 'landing-yt-card',
       title: `Watch "${vid.title}" on YouTube`,
+      onclick: (e) => {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.preventDefault();
+          openVideoModal({ title: vid.title, videoId: vid.id, url: vid.url, platform: 'youtube' });
+        }
+      },
     },
       h('div', { class: 'landing-yt-thumb-wrap' },
         h('img', {
-          src: vid.thumb || `https://i.ytimg.com/vi/${vid.id}/hqdefault.jpg`,
+          src: thumb,
           alt: vid.title,
           class: 'landing-yt-thumb',
           loading: 'lazy',
           referrerpolicy: 'no-referrer',
+          onerror: (e) => {
+            e.currentTarget.src = `https://img.youtube.com/vi/${vid.id}/mqdefault.jpg`;
+          },
         }),
         h('div', { class: 'landing-yt-play' },
           h('div', { class: 'landing-yt-play-circle' }, icon('play', 20))),
@@ -1283,68 +1352,108 @@ export function renderLanding(view, options = {}) {
   }
 
   function renderReelCard(reel) {
+    const thumb = reel.thumb || (reel.video_id ? `https://i.ytimg.com/vi/${reel.video_id}/hqdefault.jpg` : '/images/549290582_18080889986298812_7772569637968987998_n.jpg');
     return h('a', {
       href: reel.url || 'https://instagram.com/tech.unicorn',
       target: '_blank',
       rel: 'noopener',
       class: 'landing-reel-card',
       title: `Watch Reel "${reel.title}" on Instagram`,
+      onclick: (e) => {
+        if (reel.video_id && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.preventDefault();
+          openVideoModal({ title: reel.title, videoId: reel.video_id, url: reel.url, platform: 'instagram' });
+        }
+      },
     },
       h('img', {
-        src: reel.thumb || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+        src: thumb,
         alt: reel.title,
         class: 'landing-reel-bg',
         loading: 'lazy',
+        referrerpolicy: 'no-referrer',
+        onerror: (e) => {
+          if (reel.video_id) {
+            e.currentTarget.src = `https://img.youtube.com/vi/${reel.video_id}/hqdefault.jpg`;
+          }
+        },
       }),
       h('div', { class: 'landing-reel-overlay' }),
       h('div', { class: 'landing-reel-top' },
         h('span', { class: 'landing-reel-badge' },
           icon('brand:instagram', 13),
           h('span', {}, reel.tag || 'Reels')),
-        h('span', { class: 'landing-reel-badge' }, icon('play', 11), h('span', {}, reel.views))),
+        h('span', { class: 'landing-reel-badge' }, icon('play', 11), h('span', {}, reel.views || 'Reels'))),
       h('div', { class: 'landing-reel-center-play' }, icon('play', 18)),
       h('div', { class: 'landing-reel-bottom' },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' } },
+          h('img', {
+            src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+            alt: 'Delia Lazarescu',
+            style: { width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.4)', flexShrink: '0' },
+          }),
+          h('span', { style: { fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255, 255, 255, 0.95)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' } }, '@tech.unicorn')),
         h('h3', { class: 'landing-reel-title' }, reel.title),
         h('p', { class: 'landing-reel-caption' }, reel.caption),
         h('div', { class: 'landing-reel-stats' },
           h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } },
             icon('heart', 12),
-            h('span', {}, reel.likes || '24K')),
-          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.85' } },
+            h('span', {}, reel.likes || '54K')),
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.9' } },
             icon('music', 11),
             h('span', {}, reel.audio || 'Tech Unicorn Audio')))));
   }
 
   function renderTikTokCard(item) {
+    const thumb = item.thumb || (item.video_id ? `https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg` : '/images/549290582_18080889986298812_7772569637968987998_n.jpg');
     return h('a', {
       href: item.url || 'https://tiktok.com/@tech.unicorn',
       target: '_blank',
       rel: 'noopener',
       class: 'landing-tiktok-card',
       title: `Watch "${item.title}" on TikTok`,
+      onclick: (e) => {
+        if (item.video_id && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.preventDefault();
+          openVideoModal({ title: item.title, videoId: item.video_id, url: item.url, platform: 'tiktok' });
+        }
+      },
     },
       h('img', {
-        src: item.thumb || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+        src: thumb,
         alt: item.title,
         class: 'landing-reel-bg',
         loading: 'lazy',
+        referrerpolicy: 'no-referrer',
+        onerror: (e) => {
+          if (item.video_id) {
+            e.currentTarget.src = `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
+          }
+        },
       }),
       h('div', { class: 'landing-reel-overlay' }),
       h('div', { class: 'landing-reel-top' },
         h('span', { class: 'landing-reel-badge' },
           icon('brand:tiktok', 13),
           h('span', {}, item.tag || '#TechTok')),
-        h('span', { class: 'landing-reel-badge' }, icon('eye', 12), h('span', {}, item.views))),
-      h('div', { class: 'landing-reel-center-play', style: { background: 'rgba(37, 244, 238, 0.88)', color: '#000' } },
+        h('span', { class: 'landing-reel-badge' }, icon('eye', 12), h('span', {}, item.views || 'TikTok'))),
+      h('div', { class: 'landing-reel-center-play', style: { background: 'rgba(37, 244, 238, 0.95)', color: '#000', boxShadow: '0 4px 18px rgba(37, 244, 238, 0.5)' } },
         icon('play', 18)),
       h('div', { class: 'landing-reel-bottom' },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' } },
+          h('img', {
+            src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+            alt: 'Delia Lazarescu',
+            style: { width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.4)', flexShrink: '0' },
+          }),
+          h('span', { style: { fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255, 255, 255, 0.95)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' } }, '@tech.unicorn')),
         h('h3', { class: 'landing-reel-title' }, item.title),
         h('p', { class: 'landing-reel-caption' }, item.desc),
         h('div', { class: 'landing-reel-stats' },
           h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } },
             icon('heart', 12),
             h('span', {}, item.likes || '48K')),
-          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.85' } },
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.9' } },
             icon('arrow', 11),
             h('span', {}, item.shares ? `${item.shares} shares` : 'Viral')))));
   }
@@ -1355,6 +1464,21 @@ export function renderLanding(view, options = {}) {
       target: '_blank',
       rel: 'noopener',
       class: 'landing-tweet-card',
+      style: {
+        minWidth: '300px',
+        maxWidth: '360px',
+        flex: '0 0 330px',
+        background: 'var(--panel)',
+        border: '1px solid var(--line)',
+        borderRadius: '18px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '14px',
+        textDecoration: 'none',
+        color: 'inherit',
+      },
       title: `View post on X by ${item.author}`,
     },
       h('div', { class: 'landing-tweet-head' },
@@ -1363,6 +1487,7 @@ export function renderLanding(view, options = {}) {
             src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
             alt: item.author,
             class: 'landing-tweet-avatar',
+            style: { width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: '0', border: '1px solid var(--line)' },
           }),
           h('div', { class: 'landing-tweet-meta' },
             h('span', { class: 'landing-tweet-name' },
@@ -1383,6 +1508,21 @@ export function renderLanding(view, options = {}) {
       target: '_blank',
       rel: 'noopener',
       class: 'landing-thread-card',
+      style: {
+        minWidth: '300px',
+        maxWidth: '360px',
+        flex: '0 0 330px',
+        background: 'var(--panel)',
+        border: '1px solid var(--line)',
+        borderRadius: '18px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '14px',
+        textDecoration: 'none',
+        color: 'inherit',
+      },
       title: `View thread by ${item.author}`,
     },
       h('div', { class: 'landing-tweet-head' },
@@ -1391,6 +1531,7 @@ export function renderLanding(view, options = {}) {
             src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
             alt: item.author,
             class: 'landing-tweet-avatar',
+            style: { width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: '0', border: '1px solid var(--line)' },
           }),
           h('div', { class: 'landing-tweet-meta' },
             h('span', { class: 'landing-tweet-name' }, item.author),
@@ -1464,7 +1605,7 @@ export function renderLanding(view, options = {}) {
   updateSocialTrack();
 
   // Fetch updated multi-platform feeds from backend
-  api('landing/social-feed').then((res) => {
+  api('GET', 'landing/social-feed').then((res) => {
     if (res && res.platforms) {
       if (Array.isArray(res.platforms.youtube) && res.platforms.youtube.length) {
         platformsData.youtube = res.platforms.youtube;
@@ -1483,8 +1624,8 @@ export function renderLanding(view, options = {}) {
       }
       updateSocialTrack();
     }
-  }).catch(() => {
-    // Keep initial verified content
+  }).catch((err) => {
+    console.warn('Could not load dynamic social feed:', err);
   });
 
   const prevBtn = h('button', {

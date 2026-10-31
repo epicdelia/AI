@@ -12699,106 +12699,115 @@ a:hover>.logo.brand-mark,
   border-color: rgba(0, 0, 0, 0.1);
 }
 
+/* ---- About Credential Rows (Left Column) ---- */
+.landing-about-rows {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.landing-about-row-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.landing-about-row-item:hover {
+  border-color: var(--accent);
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.landing-about-row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+}
+
+.landing-about-row-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+
+.landing-about-row-desc {
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.landing-about-row-extra {
+  font-size: 0.8rem;
+  color: var(--ink);
+  line-height: 1.45;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+
+.landing-about-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.landing-about-toggle-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .landing-about-creds {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
 
-  /* ---- About Credential Rows (Left Column) ---- */
-  .landing-about-rows {
-    margin-top: 24px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
+.landing-about-cred {
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
 
-  .landing-about-cred {
-    .landing-about-row-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      padding: 14px 16px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .landing-about-cred:hover {
-      .landing-about-row-item:hover {
-        border-color: var(--accent);
-        transform: translateY(-2px);
-        transform: translateX(3px);
-      }
-
-      .landing-about-row-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: var(--panel-2);
-        color: var(--accent);
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-        border: 1px solid var(--line);
-      }
-
-      .landing-about-row-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--ink);
-        margin: 0 0 2px;
-      }
-
-      .landing-about-row-desc {
-        font-size: 0.84rem;
-        color: var(--muted);
-        line-height: 1.45;
-        margin: 0;
-      }
-
-      .landing-about-row-extra {
-        font-size: 0.8rem;
-        color: var(--ink);
-        line-height: 1.45;
-        margin-top: 6px;
-        padding-top: 6px;
-        border-top: 1px dashed var(--line);
-      }
-
-      .landing-about-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 8px;
-        padding: 6px 14px;
-        border-radius: 100px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        background: var(--panel-2);
-        color: var(--ink);
-        border: 1px solid var(--line);
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-
-      .landing-about-toggle-btn:hover {
-        background: var(--accent-soft);
-        color: var(--accent);
-        border-color: var(--accent);
-      }
-
-      .landing-about-cred-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: var(--panel-2);
-        color: var(--accent);
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-      }
+.landing-about-cred-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
 
       /* ---- Polished Services Cards (matching dashboard composer) ---- */
       .landing-service-card {

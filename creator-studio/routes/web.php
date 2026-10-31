@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\ScriptWizardController;
@@ -139,6 +140,23 @@ Route::prefix('api')->group(function () {
         Route::post('clips', [MediaController::class, 'submitClips']);
         Route::post('clips/{project}/refresh', [MediaController::class, 'refreshClips']);
         Route::delete('clips/{project}', [MediaController::class, 'destroyClips']);
+        Route::get('broll', [MediaController::class, 'broll']);
+        Route::post('broll', [MediaController::class, 'submitBroll']);
+        Route::post('broll/{job}/refresh', [MediaController::class, 'refreshBroll']);
+        Route::delete('broll/{job}', [MediaController::class, 'destroyBroll']);
+        Route::post('audio/clean', [MediaController::class, 'cleanAudio']);
+
+        // Exports (Word / Markdown / text)
+        Route::get('export/scripts/{script}', [ExportController::class, 'script']);
+        Route::get('export/chats/{conversation}', [ExportController::class, 'chat']);
+        Route::get('export/documents/{document}', [ExportController::class, 'document']);
+
+        // First-run tour
+        Route::post('tour/done', function () {
+            \App\Models\Setting::put('tour_done', now()->toIso8601String());
+
+            return response()->json(['ok' => true]);
+        });
 
         // Memory: search her own past work
         Route::get('memory', [MemoryController::class, 'status']);

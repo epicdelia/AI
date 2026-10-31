@@ -2,6 +2,7 @@
 import { h, api, clear, link, navigate, setUnauthorizedHandler, toast, loading } from './core.js';
 import { icon } from './icons.js';
 import { installPalette, openPalette } from './palette.js';
+import { startTour } from './tour.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderBreakouts } from './pages/breakouts.js';
@@ -69,6 +70,7 @@ function buildShell() {
       h('nav', { class: 'nav', onclick: () => document.body.classList.remove('nav-open') }, navLinks),
       h('div', { class: 'sidebar-footer' },
         h('div', {}, h('div', { class: 'user-name' }, state.user?.name || ''), h('div', { class: 'muted' }, state.user?.email || '')),
+        h('button', { class: 'btn ghost sm', onclick: () => startTour() }, icon('play', 14), 'Take the tour'),
         h('button', { class: 'btn sm', onclick: logout }, icon('logout'), 'Log out'))),
     content);
 
@@ -153,14 +155,18 @@ async function boot() {
   if (!status.authenticated) {
     state.user = null;
     state.shell = null;
-    renderAuth(root, status.initialized, (user) => {
+    renderAuth(root, status.initialized, async (user) => {
       state.user = user;
-      route();
+      await route();
+      // A brand-new studio gets the tour; a returning login only if it was never finished.
+      const st = await api('GET', 'auth/status').catch(() => ({}));
+      if (st.tour_done === false) startTour();
     });
     return;
   }
   state.user = status.user;
-  route();
+  await route();
+  if (status.tour_done === false) startTour();
 }
 
 setUnauthorizedHandler(() => {

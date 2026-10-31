@@ -37,6 +37,8 @@ class Setting extends Model
         'monthly_token_limit' => '',      // '' = no limit (UsageLimit, after MagicAI's HasCreditLimit)
         'monthly_image_limit' => '',
         'monthly_tts_char_limit' => '',
+        'monthly_video_limit' => '',
+        'tour_done' => '',                // first-run tour finished (timestamp)
         'price_input_per_million' => '',  // her own prices, only for the spend estimate
         'price_output_per_million' => '',
         'tts_provider' => 'auto',         // auto | openai | elevenlabs (read-aloud)

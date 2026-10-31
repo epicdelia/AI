@@ -1,6 +1,7 @@
 // Library: everything saved from the Toolkit, AI YouTube and chat. Search, star, edit, export.
 import { h, api, apiUpload, busy, toast, pageHead, clear, modal, confirmDialog, mdBlock, copyText, download, slug, timeAgo, debounce, link, emptyState, loading } from '../core.js';
 import { icon } from '../icons.js';
+import { exportMenu } from '../components.js';
 
 const toolLabel = (t) => (t || 'note').replace(/^tool:/, '').replace(/^youtube:/, 'youtube · ').replace(/_/g, ' ');
 
@@ -60,7 +61,7 @@ export async function renderLibrary(view) {
               h('span', { class: 'muted small' }, `updated ${timeAgo(doc.updated_at)}`)),
             h('div', { class: 'output-toolbar' },
               h('button', { class: 'btn ghost sm', onclick: () => copyText(doc.content) }, icon('copy', 15), 'Copy'),
-              h('button', { class: 'btn ghost sm', onclick: () => download(`${slug(doc.title)}.md`, doc.content) }, icon('download', 15), 'Download'),
+              exportMenu(`documents/${doc.id}`, { label: 'Download', getPrint: () => ({ title: doc.title, markdown: doc.content }) }),
               h('button', { class: 'btn ghost sm', onclick: () => { editing = true; draw(); } }, icon('pen', 15), 'Edit')),
             mdBlock(doc.content));
         }

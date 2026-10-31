@@ -1,7 +1,7 @@
 // Producer chat: brainstorm with an assistant that already knows her channel, ideas and week.
 import { h, api, apiStream, liveMarkdown, toast, clear, mdBlock, copyText, confirmDialog, navigate, timeAgo, modal } from '../core.js';
 import { icon } from '../icons.js';
-import { outputPanel } from '../components.js';
+import { outputPanel, exportMenu } from '../components.js';
 
 const STARTERS = [
   'Give me 5 title ideas for the video I picked this week.',
@@ -120,6 +120,9 @@ export async function renderChat(view, id) {
     header.append(h('h1', {}, current ? current.title : 'Producer chat'));
     if (!current) return;
     header.append(h('div', { class: 'row' },
+      exportMenu(`chats/${current.id}`, {
+        getPrint: () => ({ title: current.title, markdown: messages.map((m) => `**${m.role === 'user' ? 'You' : 'Producer'}:**\n\n${m.content}`).join('\n\n---\n\n') }),
+      }),
       h('button', {
         class: 'btn ghost sm', title: current.pinned ? 'Unpin' : 'Pin',
         onclick: async () => {

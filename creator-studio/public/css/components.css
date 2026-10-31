@@ -391,3 +391,25 @@ textarea[readonly].script-editor { background: var(--bg); }
 .mini-thumb { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex: none; }
 .review-subject { display: block; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; margin-bottom: 14px; }
 .big-number { font-size: 1.6rem; font-weight: 800; padding: 4px 0; }
+
+/* B-roll, audio clean-up */
+.broll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+.broll { display: grid; gap: 4px; align-content: start; }
+.broll video, .broll-pending { width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; background: #111; object-fit: cover; }
+.broll-pending { display: grid; place-items: center; color: #fff; font-size: 0.85rem; }
+.broll-pending.failed { background: var(--bad-soft); color: var(--bad); }
+.clean-audio { display: inline-flex; flex-direction: column; gap: 6px; }
+
+/* Export menu */
+.export-wrap { position: relative; display: inline-block; }
+.export-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; min-width: 170px; display: grid; }
+.export-menu[hidden] { display: none; }
+.export-item { border: 0; background: transparent; text-align: left; font: inherit; font-size: 0.88rem; padding: 7px 10px; border-radius: 7px; cursor: pointer; color: var(--ink); }
+.export-item:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* First-run tour */
+.tour-layer { position: fixed; inset: 0; z-index: 2000; }
+.tour-spot { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(43, 34, 48, 0.55); transition: all 0.25s ease; pointer-events: none; }
+.tour-card { position: fixed; width: 340px; max-width: calc(100vw - 32px); background: var(--panel); border-radius: 14px; padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); transition: top 0.25s ease, left 0.25s ease; }
+.tour-card h3 { margin: 4px 0 6px; }
+.tour-card p { margin: 0 0 14px; }

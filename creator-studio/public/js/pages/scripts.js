@@ -6,9 +6,9 @@ import {
   apiStream, liveMarkdown,
 } from '../core.js';
 import { icon } from '../icons.js';
-import { outputPanel, transcribeButton, memoryList } from '../components.js';
+import { outputPanel, transcribeButton, memoryList, exportMenu } from '../components.js';
 import { scriptWizard } from '../wizard.js';
-import { readAloudCard, thumbnailStudio, shortsPanel } from '../media.js';
+import { readAloudCard, thumbnailStudio, shortsPanel, brollPanel, cleanAudioButton } from '../media.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -292,6 +292,7 @@ export async function renderScript(view, id) {
   const packagePane = h('div');
   const thumbStudio = thumbnailStudio(script); // built once so the form keeps its text between tab switches
   const shorts = shortsPanel(script);
+  const broll = brollPanel(script);
   function drawPackage() {
     const outBox = h('div');
     clear(packagePane).append(h('div', { class: 'card' },
@@ -318,7 +319,8 @@ export async function renderScript(view, id) {
         return b;
       })),
       outBox),
-    thumbStudio);
+    thumbStudio,
+    broll);
   }
 
   function docTab(fieldName, { title, generate, empty, help }) {
@@ -393,6 +395,9 @@ export async function renderScript(view, id) {
           if (res.script) Object.assign(script, { transcript: res.script.transcript });
         }, { scriptId: script.id, timestamps: true, label: 'Upload your recording' }),
         h('span', { class: 'muted small' }, 'Exact words from your own audio or video file, with timestamps. Saved to this script.')),
+      h('div', { class: 'row', style: { marginBottom: '12px' } },
+        cleanAudioButton(script.id),
+        h('span', { class: 'muted small' }, 'Noisy room or traffic? Get a clean MP3 of your voice to drop into your edit.')),
       h('p', { class: 'muted small' }, 'Captions are fetched from the public video. If YouTube blocks it, copy the transcript from YouTube (⋯ → Show transcript) and paste it here.'),
       ta));
   }
@@ -423,6 +428,13 @@ export async function renderScript(view, id) {
 
     clear(publishPane).append(
       h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form),
+      h('div', { class: 'card' },
+        h('div', { class: 'card-header' }, h('h2', {}, 'Export everything'),
+          exportMenu(`scripts/${script.id}?parts=outline,body,review,fact_check,transcript,substack,edit_brief`, {
+            label: 'Download',
+            getPrint: () => ({ title: script.title, markdown: [script.body, script.review, script.fact_check, script.substack, script.edit_brief].filter(Boolean).join('\n\n---\n\n') }),
+          })),
+        h('p', { class: 'muted small' }, 'Plan, script, review, fact-check, transcript, Substack post and editor brief in one document. Send the Word file to your editor.')),
       shorts,
       h('div', { class: 'card danger-zone' },
         h('h3', {}, 'Delete script'),
@@ -473,7 +485,7 @@ export async function renderScript(view, id) {
       link('/scripts', { class: 'btn ghost sm' }, icon('back', 15), 'Scripts'),
       h('div', { class: 'editor-title' }, titleInput, h('h1', { class: 'sr-only' }, script.title)),
       h('div', { class: 'row' }, saveState, statusSelect,
-        h('button', { class: 'btn ghost sm', title: 'Download script', onclick: () => download(`${slug(script.title)}.md`, `# ${script.title}\n\n${script.body}`) }, icon('download', 16)))),
+        exportMenu(`scripts/${script.id}?parts=outline,body`, { getPrint: () => ({ title: script.title, markdown: script.body }) }))),
     script.idea ? h('p', { class: 'muted small', style: { margin: '-8px 0 14px' } }, 'From idea: ', h('strong', {}, script.idea.title), script.idea.premise ? ` · ${script.idea.premise}` : '') : null,
     script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
       h('summary', {}, `Plan: ${script.outline.chapters.length} chapters · ~${script.outline.minutes || 10} min`),

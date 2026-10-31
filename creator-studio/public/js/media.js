@@ -171,6 +171,115 @@ export function thumbnailStudio(script) {
 }
 
 // ------------------------------------------------------------------
+// B-roll clips (fal.ai Kling / Veo queue, ported from MagicAI's Packages\FalAI).
+// ------------------------------------------------------------------
+
+/** The script's [B-ROLL: ...] notes, as ready-made prompts. */
+function brollCues(body) {
+  return [...String(body || '').matchAll(/\[B-ROLL:?\s*([^\]]+)\]/gi)].map((m) => m[1].trim()).filter(Boolean).slice(0, 12);
+}
+
+export function brollPanel(script) {
+  const box = h('div', {}, h('p', { class: 'muted small' }, 'Loading…'));
+  const card = h('div', { class: 'card' }, h('h2', {}, 'B-roll clips'), box);
+  let timer = null;
+
+  capabilities().then(async (c) => {
+    if (!c.broll.available) { clear(box).append(needKey('B-roll clips', 'a fal.ai key')); return; }
+    const models = c.broll.models;
+    const prompt = h('textarea', { rows: 2, placeholder: 'Slow push-in on a messy desk covered in receipts, warm morning light' });
+    const model = h('select', {}, models.map((m) => h('option', { value: m.id }, m.label)));
+    const duration = h('select');
+    const aspect = h('select', {}, [['16:9', '16:9'], ['9:16', '9:16 (Shorts)'], ['1:1', '1:1']].map(([v, l]) => h('option', { value: v }, l)));
+    const frame = h('select', {}, h('option', { value: '' }, 'start frame: none'));
+    const syncDur = () => {
+      const m = models.find((x) => x.id === model.value);
+      clear(duration).append(m.durations.map((d) => h('option', { value: d, selected: d === m.default }, d.endsWith('s') ? d : `${d}s`)));
+    };
+    model.addEventListener('change', syncDur);
+    syncDur();
+    api(`GET`, `media?kind=thumbnail&script_id=${script.id}`).then((r) => {
+      [...r.media, ...c.images.photos].forEach((m) => frame.append(h('option', { value: m.id }, `start from: ${m.kind === 'photo' ? 'your photo' : m.title || 'mockup'} #${m.id}`)));
+    }).catch(() => {});
+
+    const cues = brollCues(script.body);
+    const list = h('div', { class: 'broll-grid' });
+
+    const draw = async () => {
+      const r = await api('GET', `broll?script_id=${script.id}`);
+      clear(list).append(r.jobs.map((j) => h('div', { class: 'broll' },
+        j.status === 'done' && j.media ? h('video', { src: j.media.url, controls: true, preload: 'metadata', playsinline: true })
+          : h('div', { class: `broll-pending ${j.status}` }, j.status === 'failed' ? '✕ failed' : h('span', {}, h('span', { class: 'spinner' }), ` ${j.status}…`)),
+        h('div', { class: 'muted small clamp-2' }, j.prompt),
+        j.error ? h('div', { class: 'error-text' }, j.error) : null,
+        h('div', { class: 'row' },
+          j.media ? h('a', { href: `${j.media.url}?download=1`, class: 'btn ghost sm' }, icon('download', 13), 'mp4') : null,
+          h('button', { class: 'btn ghost sm danger', title: 'Delete', onclick: async () => { if (await confirmDialog('Delete this clip?')) { await api('DELETE', `broll/${j.id}`); draw(); } } }, icon('trash', 13))))));
+      clearTimeout(timer);
+      const pending = r.jobs.filter((j) => j.status === 'queued' || j.status === 'running');
+      if (pending.length) {
+        timer = setTimeout(async () => {
+          if (!card.isConnected) return;
+          await Promise.all(pending.map((j) => api('POST', `broll/${j.id}/refresh`).catch(() => {})));
+          draw().catch(() => {});
+        }, 20000);
+      }
+    };
+
+    const go = h('button', {
+      class: 'btn primary',
+      onclick: () => busy(go, 'Queueing…', async () => {
+        if (!prompt.value.trim()) throw new Error('Describe the shot first.');
+        const r = await api('POST', 'broll', { prompt: prompt.value, model: model.value, duration: duration.value, aspect: aspect.value, media_id: frame.value || null, script_id: script.id });
+        toast(r.message);
+        await draw();
+      }),
+    }, icon('play', 14), 'Make clip');
+
+    clear(box).append(
+      h('p', { class: 'muted small' }, 'Short generated shots for your [B-ROLL] notes: cutaways, establishing shots, abstract visuals. No people who need to look like you; film those yourself.'),
+      cues.length ? h('div', { class: 'tool-chips', style: { marginBottom: '8px' } }, cues.map((cue) => h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { prompt.value = cue; } }, cue.length > 48 ? `${cue.slice(0, 48)}…` : cue))) : null,
+      h('div', { class: 'field' }, prompt),
+      h('div', { class: 'row tight-row' }, model, duration, aspect, frame, go),
+      list);
+    draw().catch(() => {});
+  }).catch((e) => clear(box).append(h('p', { class: 'error-text' }, e.message)));
+
+  return card;
+}
+
+/** "Clean the audio" (ElevenLabs voice isolator, ported from MagicAI's audioIsolator). */
+export function cleanAudioButton(scriptId) {
+  const fileInput = h('input', { type: 'file', accept: 'audio/*,video/*', hidden: true });
+  const out = h('div', { class: 'audio-box' });
+  const btn = h('button', { type: 'button', class: 'btn sm', onclick: () => fileInput.click() }, icon('sparkle', 15), 'Clean up audio');
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    fileInput.value = '';
+    if (!f) return;
+    try {
+      const c = await capabilities();
+      if (!c.cleanup) throw new Error('Audio clean-up needs an ElevenLabs key in Settings.');
+      btn.disabled = true;
+      const fd = new FormData();
+      fd.append('file', f);
+      if (scriptId) fd.append('script_id', scriptId);
+      const r = await apiUpload('audio/clean', fd, { onProgress: (p) => { btn.lastChild.textContent = p < 1 ? `Uploading ${Math.round(p * 100)}%` : 'Removing noise…'; } });
+      toast(r.message);
+      clear(out).append(h('audio', { controls: true, src: r.audio.url }),
+        h('a', { href: `${r.audio.url}?download=1`, class: 'btn ghost sm' }, icon('download', 13), 'Download cleaned MP3'));
+    } catch (e) {
+      toast(e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.lastChild.textContent = 'Clean up audio';
+    }
+  });
+
+  return h('span', { class: 'clean-audio' }, btn, fileInput, out);
+}
+
+// ------------------------------------------------------------------
 // Thumbnail critic (AI vision, ported from MagicAI's completeWithImage).
 // ------------------------------------------------------------------
 

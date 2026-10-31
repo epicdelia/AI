@@ -30,6 +30,10 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Cut Shorts** | Vizard finds the best moments in a published video and returns vertical clips with captions and viral scores |
 
 | **Thumbnail critic** | AI vision review of her thumbnail (upload, mockup or published video), optionally against up to 3 breakouts |
+| **B-roll clips** | Short generated shots for `[B-ROLL]` notes via fal.ai (Kling 3, Veo 3.1 Fast), optionally starting from a mockup or photo |
+| **Clean up audio** | Remove background noise from a recording (ElevenLabs voice isolator) |
+| **Export** | Scripts (any sections), chats and Library documents as Word, PDF (print), Markdown or text |
+| **First-run tour** | A one-minute walkthrough of every page; replay it from the sidebar |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.

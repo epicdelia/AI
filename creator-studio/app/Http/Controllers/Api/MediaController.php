@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Media\AudioCleaner;
+use App\Domains\Media\BrollGenerator;
 use App\Domains\Media\ClipProject;
+use App\Domains\Media\VideoJob;
 use App\Domains\Media\MediaFile;
 use App\Domains\Media\ShortsClipper;
 use App\Domains\Media\TextToSpeech;
@@ -34,7 +37,66 @@ class MediaController extends Controller
             'images' => ['providers' => ThumbnailGenerator::providers(), 'default' => ThumbnailGenerator::defaultProvider(),
                 'photos' => MediaFile::where('kind', 'photo')->latest()->get()],
             'clips' => ShortsClipper::available(),
+            'broll' => ['available' => BrollGenerator::available(), 'models' => collect(BrollGenerator::MODELS)->map(fn ($m, $k) => ['id' => $k, 'label' => $m[0], 'durations' => $m[4], 'default' => $m[5]])->values()],
+            'cleanup' => AudioCleaner::available(),
         ]);
+    }
+
+    public function broll(Request $request): JsonResponse
+    {
+        $q = VideoJob::with('media')->latest();
+        if ($sid = $request->query('script_id')) {
+            $q->where('script_id', $sid);
+        }
+
+        return response()->json(['jobs' => $q->take(30)->get()]);
+    }
+
+    public function submitBroll(Request $request, BrollGenerator $gen): JsonResponse
+    {
+        $data = $request->validate([
+            'prompt' => 'required|string|max:2000',
+            'model' => 'nullable|string|max:40',
+            'duration' => 'nullable|string|max:5',
+            'aspect' => 'nullable|string|max:5',
+            'media_id' => 'nullable|exists:media_files,id',
+            'script_id' => 'nullable|exists:scripts,id',
+        ]);
+        try {
+            $job = $gen->submit($data['prompt'], $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['job' => $job, 'message' => 'Queued at fal.ai. Clips take 1–5 minutes; this page checks back.']);
+    }
+
+    public function refreshBroll(VideoJob $job, BrollGenerator $gen): JsonResponse
+    {
+        return response()->json(['job' => $gen->refresh($job)]);
+    }
+
+    public function destroyBroll(VideoJob $job): JsonResponse
+    {
+        $job->media?->delete();
+        $job->delete();
+
+        return response()->json(['message' => 'Removed.']);
+    }
+
+    public function cleanAudio(Request $request, AudioCleaner $cleaner): JsonResponse
+    {
+        $data = $request->validate([
+            'file' => 'required|file|max:'.(AudioCleaner::uploadLimitMb() * 1024),
+            'script_id' => 'nullable|exists:scripts,id',
+        ]);
+        try {
+            $audio = $cleaner->clean($request->file('file'), $data['script_id'] ?? null);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['audio' => $audio, 'message' => 'Background noise removed. Play it below or download the MP3.']);
     }
 
     public function index(Request $request): JsonResponse

@@ -242,7 +242,7 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_schedule_status_and_run_now(): void
     {
-        $this->getJson('/api/schedule')->assertOk()->assertJsonPath('enabled', true)->assertJsonCount(6, 'tasks');
+        $this->getJson('/api/schedule')->assertOk()->assertJsonPath('enabled', true)->assertJsonCount(7, 'tasks');
         $this->postJson('/api/schedule/prune/run')->assertOk()->assertJsonPath('message', fn ($m) => str_starts_with($m, 'Pruned'));
         $this->postJson('/api/schedule/nope/run')->assertNotFound();
         $this->postJson('/api/schedule/checkin/run')->assertStatus(422)->assertJsonPath('error', 'Set up your weekly plan first.');

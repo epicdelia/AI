@@ -17,7 +17,7 @@ use RuntimeException;
  */
 class UsageLimit
 {
-    public const UNITS = ['token' => 'monthly_token_limit', 'image' => 'monthly_image_limit', 'character' => 'monthly_tts_char_limit'];
+    public const UNITS = ['token' => 'monthly_token_limit', 'image' => 'monthly_image_limit', 'character' => 'monthly_tts_char_limit', 'video' => 'monthly_video_limit'];
 
     public static function monthStart(): CarbonImmutable
     {
@@ -49,7 +49,7 @@ class UsageLimit
     public static function ensure(string $unit, int $needed = 0): void
     {
         if (! self::hasBalance($unit, $needed)) {
-            $label = ['token' => 'AI tokens', 'image' => 'thumbnail mockups', 'character' => 'read-aloud characters'][$unit] ?? $unit;
+            $label = ['token' => 'AI tokens', 'image' => 'thumbnail mockups', 'character' => 'read-aloud characters', 'video' => 'b-roll clips'][$unit] ?? $unit;
             throw new RuntimeException(sprintf(
                 "You've reached this month's limit for %s (%s of %s). Raise it in Settings → Usage limits, or wait until the 1st.",
                 $label, number_format(self::used($unit)), number_format((int) self::limit($unit))

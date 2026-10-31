@@ -46,6 +46,7 @@ class ApiController extends Controller
         return response()->json([
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
+            'tour_done' => $user ? Setting::has('tour_done') : null,
             'user' => $user ? [
                 'id' => $user->id,
                 'name' => $user->name,

@@ -149,6 +149,7 @@ export async function renderSettings(view) {
       field('AI tokens per month', num('monthly_token_limit', { min: 0, step: 50000, placeholder: 'e.g. 2000000' }), limitHint(res.limits, 'token')),
       field('Thumbnail mockups per month', num('monthly_image_limit', { min: 0, placeholder: 'e.g. 40' }), limitHint(res.limits, 'image')),
       field('Read-aloud characters per month', num('monthly_tts_char_limit', { min: 0, step: 10000, placeholder: 'e.g. 200000' }), limitHint(res.limits, 'character')),
+      field('B-roll clips per month', num('monthly_video_limit', { min: 0, placeholder: 'e.g. 10' }), limitHint(res.limits, 'video')),
       field('Your price per 1M input tokens', num('price_input_per_million', { min: 0, step: 0.01, placeholder: 'optional' }), 'from your provider’s pricing page'),
       field('Your price per 1M output tokens', num('price_output_per_million', { min: 0, step: 0.01, placeholder: 'optional' }), 'only used for the estimate below'),
       h('div', { class: 'field' }, h('label', {}, 'Estimated spend this month'),

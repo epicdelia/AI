@@ -1,5 +1,5 @@
 // Reusable UI pieces built on core.js: AI output panels and the YouTube analysis dialog.
-import { h, api, apiStream, apiUpload, liveMarkdown, busy, toast, mdBlock, copyText, download, slug, modal, field, clear, link } from './core.js';
+import { h, api, apiStream, apiUpload, liveMarkdown, busy, toast, mdBlock, copyText, download, slug, modal, field, clear, link, escapeHtml, markdown } from './core.js';
 
 let transcribeInfo = null;
 
@@ -119,6 +119,47 @@ export function memoryDialog(query, title = 'Your past work') {
     memoryList(query, { limit: 8 }).then((el) => box.replaceChildren(el)).catch((e) => box.replaceChildren(h('p', { class: 'error-text' }, e.message)));
     return box;
   }, { wide: true });
+}
+
+/**
+ * Download menu: Word / Markdown / text from /api/export/..., PDF via the browser's print
+ * (MagicAI's ExportChatController: generateWord, generateTxt, generatePdf).
+ * opts.getPrint() returns {title, markdown} for the PDF view.
+ */
+export function exportMenu(exportPath, opts = {}) {
+  const menu = h('div', { class: 'export-menu', hidden: true });
+  const toggle = h('button', { class: 'btn ghost sm', type: 'button', 'aria-haspopup': 'true', title: 'Export' }, icon('download', 15), opts.label || 'Export');
+  const href = (format) => `/api/export/${exportPath}${exportPath.includes('?') ? '&' : '?'}format=${format}`;
+  const item = (label, onclick) => h('button', { type: 'button', class: 'export-item', onclick: () => { menu.hidden = true; onclick(); } }, label);
+  menu.append(
+    item('Word (.docx)', () => { location.href = href('docx'); }),
+    item('PDF (print)', () => {
+      const { title, markdown: md } = opts.getPrint ? opts.getPrint() : { title: document.title, markdown: '' };
+      printMarkdown(title, md);
+    }),
+    item('Markdown (.md)', () => { location.href = href('md'); }),
+    item('Text (.txt)', () => { location.href = href('txt'); }));
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+    if (!menu.hidden) setTimeout(() => document.addEventListener('click', () => { menu.hidden = true; }, { once: true }), 0);
+  });
+
+  return h('span', { class: 'export-wrap' }, toggle, menu);
+}
+
+/** Open a clean, printable page so the browser can "Save as PDF". */
+export function printMarkdown(title, md) {
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to print or save as PDF.', 'err'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+<style>body{font:15px/1.6 -apple-system,"Segoe UI",Calibri,sans-serif;color:#2b2230;max-width:720px;margin:32px auto;padding:0 20px}
+h1{color:#d8487e;font-size:26px}h2,h3{margin-top:1.3em}.cue{background:#efeafd;color:#7b5cd6;font-weight:600;padding:0 4px;border-radius:4px}
+blockquote{border-left:3px solid #d8487e;margin:0;padding-left:12px;color:#7f7485}pre{background:#f6edf2;padding:10px;white-space:pre-wrap}
+@page{margin:18mm}</style></head><body><h1>${escapeHtml(title)}</h1>${markdown(md)}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
 }
 
 export function firstLine(text) {

@@ -12961,6 +12961,317 @@ a:hover>.logo.brand-mark,
         border-color: var(--accent);
       }
 
+      /* ---- Multi-Platform Social Media & Content Tabs ---- */
+      .landing-media-tabs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 24px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .landing-media-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .landing-media-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 100px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s cubic-bezier(.22, .61, .36, 1);
+      }
+      .landing-media-tab:hover {
+        background: var(--panel-2);
+        color: var(--ink);
+        border-color: var(--accent);
+      }
+      .landing-media-tab.is-active {
+        background: var(--panel-2);
+        color: var(--ink);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft), 0 4px 14px rgba(0, 0, 0, 0.2);
+      }
+      .landing-media-tab-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 100px;
+        background: var(--line-soft);
+        color: var(--muted);
+        transition: all 0.2s ease;
+      }
+      .landing-media-tab.is-active .landing-media-tab-badge {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      /* Instagram Reels 9:16 Card */
+      .landing-reel-card {
+        flex: 0 0 clamp(200px, 22vw, 240px);
+        aspect-ratio: 9/16;
+        scroll-snap-align: start;
+        border-radius: 18px;
+        overflow: hidden;
+        position: relative;
+        text-decoration: none;
+        color: #fff;
+        background: #120e17;
+        border: 1px solid var(--line);
+        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+      }
+      .landing-reel-card:hover {
+        transform: translateY(-4px);
+        border-color: #E1306C;
+        box-shadow: 0 14px 34px rgba(225, 48, 108, 0.25);
+        text-decoration: none;
+      }
+      .landing-reel-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        filter: brightness(0.68) contrast(1.05);
+        transition: transform 0.35s ease, filter 0.35s ease;
+      }
+      .landing-reel-card:hover .landing-reel-bg {
+        transform: scale(1.05);
+        filter: brightness(0.58) contrast(1.1);
+      }
+      .landing-reel-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.92) 100%);
+        z-index: 1;
+        pointer-events: none;
+      }
+      .landing-reel-top {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .landing-reel-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 100px;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+      }
+      .landing-reel-center-play {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(225, 48, 108, 0.9);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        opacity: 0.88;
+        box-shadow: 0 4px 16px rgba(225, 48, 108, 0.5);
+        transition: transform 0.2s, opacity 0.2s;
+      }
+      .landing-reel-card:hover .landing-reel-center-play {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1;
+      }
+      .landing-reel-bottom {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .landing-reel-title {
+        font-size: 0.86rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #fff;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-reel-caption {
+        font-size: 0.74rem;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.78);
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-reel-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 6px;
+        margin-top: 4px;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      /* TikTok 9:16 Card */
+      .landing-tiktok-card {
+        flex: 0 0 clamp(200px, 22vw, 240px);
+        aspect-ratio: 9/16;
+        scroll-snap-align: start;
+        border-radius: 18px;
+        overflow: hidden;
+        position: relative;
+        text-decoration: none;
+        color: #fff;
+        background: #0d0b10;
+        border: 1px solid var(--line);
+        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+      }
+      .landing-tiktok-card:hover {
+        transform: translateY(-4px);
+        border-color: #25F4EE;
+        box-shadow: 0 14px 34px rgba(37, 244, 238, 0.22);
+        text-decoration: none;
+      }
+
+      /* Twitter / X Post Card */
+      .landing-tweet-card {
+        flex: 0 0 clamp(290px, 34vw, 360px);
+        scroll-snap-align: start;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      }
+      .landing-tweet-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        text-decoration: none;
+      }
+      .landing-tweet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .landing-tweet-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .landing-tweet-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--line);
+      }
+      .landing-tweet-meta {
+        display: flex;
+        flex-direction: column;
+      }
+      .landing-tweet-name {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .landing-tweet-handle {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .landing-tweet-body {
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--ink);
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .landing-tweet-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        font-size: 0.76rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .landing-tweet-metric {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      /* Threads Post Card */
+      .landing-thread-card {
+        flex: 0 0 clamp(290px, 34vw, 360px);
+        scroll-snap-align: start;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      }
+      .landing-thread-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        text-decoration: none;
+      }
+
       /* ---- YouTube Video Slider ---- */
       .landing-yt-section {
         padding-block: 56px;
@@ -13162,6 +13473,182 @@ a:hover>.logo.brand-mark,
         color: var(--muted);
         line-height: 1.5;
         margin: 0;
+      }
+
+      /* ---- How It Works & Delivery Process (Dashboard Parity) ---- */
+      .landing-process-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        position: relative;
+        margin-top: 36px;
+      }
+
+      .landing-process-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s cubic-bezier(.22, .61, .36, 1), box-shadow 0.25s, border-color 0.25s;
+      }
+
+      .landing-process-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 3px;
+        background: var(--grad);
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+
+      .landing-process-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft), 0 16px 36px rgba(0, 0, 0, 0.14);
+      }
+
+      .landing-process-card:hover::before {
+        opacity: 1;
+      }
+
+      .landing-process-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .landing-process-num-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--grad);
+        color: #fff;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        box-shadow: 0 4px 14px rgba(240, 106, 155, 0.35);
+      }
+
+      .landing-process-time-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: var(--panel-2);
+        color: var(--accent);
+        border: 1px solid var(--line);
+      }
+
+      .landing-process-phase {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin: 0 0 4px;
+      }
+
+      .landing-process-title {
+        font-size: 1.08rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 8px;
+        line-height: 1.35;
+      }
+
+      .landing-process-desc {
+        font-size: 0.84rem;
+        color: var(--muted);
+        line-height: 1.55;
+        margin: 0 0 14px;
+      }
+
+      .landing-process-deliverables {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 7px;
+      }
+
+      .landing-process-deliv-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.79rem;
+        color: var(--ink);
+        line-height: 1.4;
+      }
+
+      .landing-process-deliv-check {
+        color: var(--accent);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .landing-process-footer {
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .landing-process-tag {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .landing-process-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 7px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--panel-2);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .landing-process-btn:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+
+      @media (max-width: 1024px) {
+        .landing-process-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .landing-process-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       /* ---- AG Pricing Table & Subscription Cards System ---- */

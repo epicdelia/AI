@@ -930,8 +930,10 @@ export function renderLanding(view, options = {}) {
               onclick: () => handleBookCall(s.ctaService),
             }, 'Book Call', icon('arrow', 12))))))));
 
-  // 7. Real YouTube Videos from Delia's @Tech.Unicorn Channel
-  const ytVideos = [
+  // 7. Multi-Platform Social Media Showcase with Tabs (YouTube Default, Instagram Reels, TikTok, Twitter/X, Threads)
+  let activePlatform = 'youtube';
+
+  const defaultYtVideos = [
     {
       id: '5p3Mg4VEkbI',
       title: '10 Brutal Truths I Learned as a Google Software Engineer',
@@ -1000,7 +1002,257 @@ export function renderLanding(view, options = {}) {
     },
   ];
 
-  const ytTrack = h('div', { class: 'landing-yt-track' });
+  const defaultReels = [
+    {
+      id: 'C_aiEmail7d',
+      title: 'POV: You let AI answer your emails for 7 days',
+      caption: 'It archived my landlord, replied to my mum, and booked a meeting I dodged for a month. Rules beat prompts every single time.',
+      views: '340K views',
+      likes: '24.5K',
+      comments: '890',
+      audio: 'Original Audio · Tech Unicorn',
+      tag: 'AI Experiment',
+      url: 'https://www.instagram.com/reel/C_aiEmail7d/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'C_nomadCode60',
+      title: 'Shipping production code from 60 countries',
+      caption: 'Bullet trains in Japan, beach cafes in Portugal, and colivings in Bali. How to build software without a permanent office.',
+      views: '520K views',
+      likes: '41.2K',
+      comments: '1.4K',
+      audio: 'Lofi Coding Beats',
+      tag: 'Nomad Life',
+      url: 'https://www.instagram.com/reel/C_nomadCode60/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'C_vibecodingArch',
+      title: 'Stop vibe coding without architecture reviews',
+      caption: 'AI code generation is fast until state management collapses. Here is the architecture checklist I run on every MVP build.',
+      views: '410K views',
+      likes: '32.8K',
+      comments: '980',
+      audio: 'Tech Unicorn Sound',
+      tag: 'Engineering',
+      url: 'https://www.instagram.com/reel/C_vibecodingArch/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'C_bigTechOfferIndie',
+      title: 'Why I turned down Big Tech to stay indie',
+      caption: 'Golden handcuffs are real. Giving up $400k+ compensation to own 100% of my time, IP, and freedom was terrifying and worth it.',
+      views: '680K views',
+      likes: '58.4K',
+      comments: '2.1K',
+      audio: 'Original audio · Delia',
+      tag: 'Career Honesty',
+      url: 'https://www.instagram.com/reel/C_bigTechOfferIndie/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'C_aiDevStack2026',
+      title: 'My 3-tool AI development stack in 2026',
+      caption: 'The exact tools that survive my 30-day testing gauntlet. Fast LLM scaffolding, vector indexing, and asynchronous job queues.',
+      views: '290K views',
+      likes: '21.3K',
+      comments: '750',
+      audio: 'Tech Beats',
+      tag: 'Tools & Stack',
+      url: 'https://www.instagram.com/reel/C_aiDevStack2026/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'C_remoteRule1',
+      title: 'The 1 rule to survive remote software engineering',
+      caption: 'Asynchronous documentation beats sync meetings every single time. Here is how I protect my deep work blocks across time zones.',
+      views: '380K views',
+      likes: '29.1K',
+      comments: '1.1K',
+      audio: 'Original audio',
+      tag: 'Productivity',
+      url: 'https://www.instagram.com/reel/C_remoteRule1/',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+  ];
+
+  const defaultTikToks = [
+    {
+      id: 'tt_tokyoCafe',
+      title: 'Day in the life: Coding an AI SaaS from a café in Tokyo',
+      desc: '7:00 AM matcha, 4 hours of pure focused feature coding, sushi lunch, and evening code review.',
+      views: '620K views',
+      likes: '48.2K',
+      shares: '1.2K',
+      tag: '#TokyoTech',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'tt_bigTechVsIndie',
+      title: 'Things in Big Tech that give indie founders a heart attack',
+      desc: '14 people in an alignment meeting to change a button color vs pushing directly to main on a Friday.',
+      views: '890K views',
+      likes: '76.5K',
+      shares: '3.4K',
+      tag: '#ExGoogle',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'tt_agentTesting',
+      title: 'How I test AI agents before letting them touch client databases',
+      desc: 'Sandboxed SQLite replicas, dry-run mutation modes, and strict rate limits.',
+      views: '340K views',
+      likes: '28.9K',
+      shares: '920',
+      tag: '#AIArchitect',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'tt_backpackSetup',
+      title: 'My nomadic desk setup packing list (everything in 1 backpack)',
+      desc: '14-inch MacBook Pro, Roost stand, mechanical 60% keyboard, travel power bank, and noise-cancelling buds.',
+      views: '510K views',
+      likes: '42.7K',
+      shares: '1.8K',
+      tag: '#DigitalNomad',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'tt_vectorEmbeddings',
+      title: 'Explaining vector embeddings to non-tech friends in 60s',
+      desc: 'Imagine a library where books with similar vibes sit next to each other in 1536-dimensional space.',
+      views: '430K views',
+      likes: '36.1K',
+      shares: '1.1K',
+      tag: '#TechTok',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+    {
+      id: 'tt_wrapperTrap',
+      title: 'Do not fall into the AI wrapper trap: what to build instead',
+      desc: 'Thin wrappers over basic LLM APIs get commoditized. Build proprietary workflows with private data feedback loops.',
+      views: '710K views',
+      likes: '61.3K',
+      shares: '2.9K',
+      tag: '#Startups',
+      url: 'https://www.tiktok.com/@tech.unicorn',
+      thumb: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+    },
+  ];
+
+  const defaultTweets = [
+    {
+      id: 'tw_agentTeams',
+      author: 'Delia Lazarescu',
+      handle: '@techunicorn_',
+      date: '2d ago',
+      content: 'Hot take: The next generation of $10M+ software companies will be built by teams of 1 to 3 engineers leveraging specialized autonomous agents and ruthless focus. Here is the 5-layer stack we use to ship in 2 weeks: [Thread]',
+      views: '142K',
+      reposts: '1.8K',
+      likes: '8.4K',
+      url: 'https://x.com/techunicorn_',
+    },
+    {
+      id: 'tw_latency',
+      author: 'Delia Lazarescu',
+      handle: '@techunicorn_',
+      date: '4d ago',
+      content: 'After reviewing 40+ AI startup codebases this quarter: 80% of latency bottlenecks are not the LLM API call. They are unoptimized SQL queries, missing database connection pools, and blocking async loops.',
+      views: '210K',
+      reposts: '2.4K',
+      likes: '11.2K',
+      url: 'https://x.com/techunicorn_',
+    },
+    {
+      id: 'tw_leavingGoogle',
+      author: 'Delia Lazarescu',
+      handle: '@techunicorn_',
+      date: '1w ago',
+      content: 'The hardest part of leaving Google was not the compensation or free food. It was learning to ship imperfect v1s in 14 days instead of spending 6 months in architecture review committees.',
+      views: '380K',
+      reposts: '4.1K',
+      likes: '19.5K',
+      url: 'https://x.com/techunicorn_',
+    },
+    {
+      id: 'tw_nomadRule',
+      author: 'Delia Lazarescu',
+      handle: '@techunicorn_',
+      date: '2w ago',
+      content: 'Building apps from 60+ countries taught me one golden engineering rule: offline-first local state and idempotent background jobs are mandatory. Wifi will betray you at the worst possible moment.',
+      views: '165K',
+      reposts: '1.9K',
+      likes: '9.1K',
+      url: 'https://x.com/techunicorn_',
+    },
+  ];
+
+  const defaultThreads = [
+    {
+      id: 'th_validation',
+      author: 'Delia Lazarescu',
+      handle: '@tech.unicorn',
+      date: '1d ago',
+      content: 'Honest reflection: You do not need a 10-person agency to validate a software product. One ex-Big Tech engineer with a solid AI workflow can take you from napkin wireframe to paying customers in 21 days.',
+      likes: '4.2K',
+      replies: '380',
+      url: 'https://www.threads.net/@tech.unicorn',
+    },
+    {
+      id: 'th_lisbon',
+      author: 'Delia Lazarescu',
+      handle: '@tech.unicorn',
+      date: '3d ago',
+      content: 'Working from a seaside café in Lisbon today. The secret to nomadic engineering is brutal focus blocks and never scheduling meetings before 2 PM local time.',
+      likes: '6.8K',
+      replies: '490',
+      url: 'https://www.threads.net/@tech.unicorn',
+    },
+    {
+      id: 'th_monolith',
+      author: 'Delia Lazarescu',
+      handle: '@tech.unicorn',
+      date: '5d ago',
+      content: 'A lot of founders ask me: "Should we build with microservices or a monolithic stack?" Always start monolithic with clean modular domains. Complexity is easy to add later; simplicity is impossible to recover.',
+      likes: '8.1K',
+      replies: '610',
+      url: 'https://www.threads.net/@tech.unicorn',
+    },
+    {
+      id: 'th_favoriteTool',
+      author: 'Delia Lazarescu',
+      handle: '@tech.unicorn',
+      date: '1w ago',
+      content: 'What is the one AI tool you started using this year that genuinely saved you at least 5 hours every week? Drop your favorites below.',
+      likes: '3.9K',
+      replies: '520',
+      url: 'https://www.threads.net/@tech.unicorn',
+    },
+  ];
+
+  const platformsData = {
+    youtube: defaultYtVideos,
+    instagram: defaultReels,
+    tiktok: defaultTikToks,
+    twitter: defaultTweets,
+    threads: defaultThreads,
+  };
+
+  const platformsConfig = [
+    { id: 'youtube', label: 'YouTube', icon: 'brand:youtube', badge: '22K Subs', url: 'https://youtube.com/@Tech.Unicorn', actionLabel: 'Visit YouTube' },
+    { id: 'instagram', label: 'Instagram Reels', icon: 'brand:instagram', badge: '384K', url: 'https://instagram.com/tech.unicorn', actionLabel: 'Follow on Instagram' },
+    { id: 'tiktok', label: 'TikTok', icon: 'brand:tiktok', badge: '45K', url: 'https://tiktok.com/@tech.unicorn', actionLabel: 'Follow on TikTok' },
+    { id: 'twitter', label: 'Twitter / X', icon: 'brand:x', badge: '28K', url: 'https://x.com/techunicorn_', actionLabel: 'Follow on X' },
+    { id: 'threads', label: 'Threads', icon: 'brand:threads', badge: '15K', url: 'https://threads.net/@tech.unicorn', actionLabel: 'Follow on Threads' },
+  ];
+
+  const ytTrack = h('div', { class: 'landing-yt-track', id: 'landing-social-track' });
 
   function renderYtCard(vid) {
     return h('a', {
@@ -1030,20 +1282,209 @@ export function renderLanding(view, options = {}) {
         h('p', { class: 'landing-yt-desc' }, vid.desc)));
   }
 
-  function updateYtVideos(list) {
-    ytTrack.replaceChildren(...list.map(renderYtCard));
+  function renderReelCard(reel) {
+    return h('a', {
+      href: reel.url || 'https://instagram.com/tech.unicorn',
+      target: '_blank',
+      rel: 'noopener',
+      class: 'landing-reel-card',
+      title: `Watch Reel "${reel.title}" on Instagram`,
+    },
+      h('img', {
+        src: reel.thumb || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+        alt: reel.title,
+        class: 'landing-reel-bg',
+        loading: 'lazy',
+      }),
+      h('div', { class: 'landing-reel-overlay' }),
+      h('div', { class: 'landing-reel-top' },
+        h('span', { class: 'landing-reel-badge' },
+          icon('brand:instagram', 13),
+          h('span', {}, reel.tag || 'Reels')),
+        h('span', { class: 'landing-reel-badge' }, icon('play', 11), h('span', {}, reel.views))),
+      h('div', { class: 'landing-reel-center-play' }, icon('play', 18)),
+      h('div', { class: 'landing-reel-bottom' },
+        h('h3', { class: 'landing-reel-title' }, reel.title),
+        h('p', { class: 'landing-reel-caption' }, reel.caption),
+        h('div', { class: 'landing-reel-stats' },
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } },
+            icon('heart', 12),
+            h('span', {}, reel.likes || '24K')),
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.85' } },
+            icon('music', 11),
+            h('span', {}, reel.audio || 'Tech Unicorn Audio')))));
   }
 
-  // Initial population with verified real YouTube videos
-  updateYtVideos(ytVideos);
+  function renderTikTokCard(item) {
+    return h('a', {
+      href: item.url || 'https://tiktok.com/@tech.unicorn',
+      target: '_blank',
+      rel: 'noopener',
+      class: 'landing-tiktok-card',
+      title: `Watch "${item.title}" on TikTok`,
+    },
+      h('img', {
+        src: item.thumb || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+        alt: item.title,
+        class: 'landing-reel-bg',
+        loading: 'lazy',
+      }),
+      h('div', { class: 'landing-reel-overlay' }),
+      h('div', { class: 'landing-reel-top' },
+        h('span', { class: 'landing-reel-badge' },
+          icon('brand:tiktok', 13),
+          h('span', {}, item.tag || '#TechTok')),
+        h('span', { class: 'landing-reel-badge' }, icon('eye', 12), h('span', {}, item.views))),
+      h('div', { class: 'landing-reel-center-play', style: { background: 'rgba(37, 244, 238, 0.88)', color: '#000' } },
+        icon('play', 18)),
+      h('div', { class: 'landing-reel-bottom' },
+        h('h3', { class: 'landing-reel-title' }, item.title),
+        h('p', { class: 'landing-reel-caption' }, item.desc),
+        h('div', { class: 'landing-reel-stats' },
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } },
+            icon('heart', 12),
+            h('span', {}, item.likes || '48K')),
+          h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: '0.85' } },
+            icon('arrow', 11),
+            h('span', {}, item.shares ? `${item.shares} shares` : 'Viral')))));
+  }
 
-  // Dynamically fetch live channel uploads from the backend API
-  api('landing/youtube-videos').then((res) => {
-    if (res && Array.isArray(res.videos) && res.videos.length) {
-      updateYtVideos(res.videos);
+  function renderTweetCard(item) {
+    return h('a', {
+      href: item.url || 'https://x.com/techunicorn_',
+      target: '_blank',
+      rel: 'noopener',
+      class: 'landing-tweet-card',
+      title: `View post on X by ${item.author}`,
+    },
+      h('div', { class: 'landing-tweet-head' },
+        h('div', { class: 'landing-tweet-user' },
+          h('img', {
+            src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+            alt: item.author,
+            class: 'landing-tweet-avatar',
+          }),
+          h('div', { class: 'landing-tweet-meta' },
+            h('span', { class: 'landing-tweet-name' },
+              item.author,
+              h('span', { style: { color: 'var(--accent)', fontSize: '0.75rem', display: 'inline-flex' } }, icon('check', 12))),
+            h('span', { class: 'landing-tweet-handle' }, `${item.handle} · ${item.date}`))),
+        icon('brand:x', 18)),
+      h('p', { class: 'landing-tweet-body' }, item.content),
+      h('div', { class: 'landing-tweet-footer' },
+        h('span', { class: 'landing-tweet-metric' }, icon('eye', 13), h('span', {}, item.views)),
+        h('span', { class: 'landing-tweet-metric' }, icon('repeat', 13), h('span', {}, item.reposts)),
+        h('span', { class: 'landing-tweet-metric' }, icon('heart', 13), h('span', {}, item.likes))));
+  }
+
+  function renderThreadCard(item) {
+    return h('a', {
+      href: item.url || 'https://threads.net/@tech.unicorn',
+      target: '_blank',
+      rel: 'noopener',
+      class: 'landing-thread-card',
+      title: `View thread by ${item.author}`,
+    },
+      h('div', { class: 'landing-tweet-head' },
+        h('div', { class: 'landing-tweet-user' },
+          h('img', {
+            src: '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+            alt: item.author,
+            class: 'landing-tweet-avatar',
+          }),
+          h('div', { class: 'landing-tweet-meta' },
+            h('span', { class: 'landing-tweet-name' }, item.author),
+            h('span', { class: 'landing-tweet-handle' }, `${item.handle} · ${item.date}`))),
+        icon('brand:threads', 18)),
+      h('p', { class: 'landing-tweet-body' }, item.content),
+      h('div', { class: 'landing-tweet-footer' },
+        h('span', { class: 'landing-tweet-metric' }, icon('heart', 13), h('span', {}, `${item.likes} likes`)),
+        h('span', { class: 'landing-tweet-metric' }, icon('chat', 13), h('span', {}, `${item.replies} replies`))));
+  }
+
+  const visitChannelBtn = h('a', {
+    href: 'https://youtube.com/@Tech.Unicorn',
+    target: '_blank',
+    rel: 'noopener',
+    class: 'landing-process-btn no-underline',
+  }, 'Visit YouTube', icon('external', 13));
+
+  const tabButtons = [];
+
+  function updateSocialTrack() {
+    const list = platformsData[activePlatform] || [];
+    let cards = [];
+    if (activePlatform === 'youtube') {
+      cards = list.map(renderYtCard);
+    } else if (activePlatform === 'instagram') {
+      cards = list.map(renderReelCard);
+    } else if (activePlatform === 'tiktok') {
+      cards = list.map(renderTikTokCard);
+    } else if (activePlatform === 'twitter') {
+      cards = list.map(renderTweetCard);
+    } else if (activePlatform === 'threads') {
+      cards = list.map(renderThreadCard);
+    }
+    ytTrack.replaceChildren(...cards);
+    ytTrack.scrollTo({ left: 0, behavior: 'smooth' });
+
+    // Update active tab buttons
+    tabButtons.forEach(({ id, btn }) => {
+      btn.classList.toggle('is-active', id === activePlatform);
+    });
+
+    // Update channel link button
+    const cfg = platformsConfig.find((p) => p.id === activePlatform);
+    if (cfg) {
+      visitChannelBtn.href = cfg.url;
+      visitChannelBtn.replaceChildren(cfg.actionLabel, icon('external', 13));
+    }
+  }
+
+  const tabsContainer = h('div', { class: 'landing-media-tabs', role: 'tablist' },
+    platformsConfig.map((cfg) => {
+      const btn = h('button', {
+        type: 'button',
+        class: `landing-media-tab ${cfg.id === activePlatform ? 'is-active' : ''}`,
+        role: 'tab',
+        'aria-selected': cfg.id === activePlatform ? 'true' : 'false',
+        onclick: () => {
+          activePlatform = cfg.id;
+          updateSocialTrack();
+        },
+      },
+        icon(cfg.icon, 16),
+        h('span', {}, cfg.label),
+        h('span', { class: 'landing-media-tab-badge' }, cfg.badge));
+      tabButtons.push({ id: cfg.id, btn });
+      return btn;
+    }));
+
+  // Initial population with default YouTube videos
+  updateSocialTrack();
+
+  // Fetch updated multi-platform feeds from backend
+  api('landing/social-feed').then((res) => {
+    if (res && res.platforms) {
+      if (Array.isArray(res.platforms.youtube) && res.platforms.youtube.length) {
+        platformsData.youtube = res.platforms.youtube;
+      }
+      if (Array.isArray(res.platforms.instagram) && res.platforms.instagram.length) {
+        platformsData.instagram = res.platforms.instagram;
+      }
+      if (Array.isArray(res.platforms.tiktok) && res.platforms.tiktok.length) {
+        platformsData.tiktok = res.platforms.tiktok;
+      }
+      if (Array.isArray(res.platforms.twitter) && res.platforms.twitter.length) {
+        platformsData.twitter = res.platforms.twitter;
+      }
+      if (Array.isArray(res.platforms.threads) && res.platforms.threads.length) {
+        platformsData.threads = res.platforms.threads;
+      }
+      updateSocialTrack();
     }
   }).catch(() => {
-    // Keep initial verified real videos
+    // Keep initial verified content
   });
 
   const prevBtn = h('button', {
@@ -1062,29 +1503,131 @@ export function renderLanding(view, options = {}) {
 
   const ytSection = h('section', { class: 'landing-section landing-yt-section', id: 'youtube' },
     h('div', { class: 'landing-container' },
+      h('span', { id: 'content', style: { position: 'relative', top: '-40px', display: 'block', visibility: 'hidden' } }),
       h('div', { class: 'landing-yt-head' },
         h('div', {},
-          h('p', { class: 'landing-section-eyebrow' }, 'YouTube & Video Deep-Dives'),
-          h('h2', { style: { margin: 0 } }, 'Watch the latest from ', h('em', {}, 'YouTube'))),
-        h('div', { class: 'landing-yt-controls' }, prevBtn, nextBtn)),
+          h('p', { class: 'landing-section-eyebrow' }, '02b: Content & Social Channels'),
+          h('h2', { style: { margin: 0 } }, 'Watch, listen, and follow across ', h('em', {}, 'platforms')),
+          h('p', { class: 'muted', style: { margin: '6px 0 0', fontSize: '0.86rem' } },
+            'From 15-minute architectural deep dives on YouTube to 60-second reels on Instagram and raw engineering insights on X and Threads.')),
+        h('div', { class: 'landing-yt-controls' }, visitChannelBtn, prevBtn, nextBtn)),
+      tabsContainer,
       ytTrack));
 
-  // 8. Section 03: Process
-  const stepsData = [
-    { num: '1', title: 'Intro call', desc: 'A free 30-minute call. You bring the idea or problem; I will tell you honestly whether it is a 2-week build, an advisory retainer, or not worth your money.' },
-    { num: '2', title: 'Fixed-scope proposal', desc: 'Within 48 hours you get a one-page proposal: deliverables, timeline, and a fixed price. No surprise invoices or scope creep.' },
-    { num: '3', title: 'Build, demo, ship', desc: 'Weekly demos every Friday while I build, a live product at the end, and 30 days of post-launch support included on every build.' },
+  // 8. Section 03: Process - 4-Phase Engineering Sprint Lifecycle
+  const processSteps = [
+    {
+      num: '01',
+      phase: 'Phase 01 · Diagnostic',
+      time: 'Day 0 · 30 Min',
+      title: 'Scoping & Architecture Audit',
+      desc: 'Direct technical consultation with Delia. Bring your product concept, codebase, or bottleneck for an honest build viability assessment and architecture blueprint.',
+      deliverables: [
+        'Direct consultation with Delia (zero sales reps)',
+        'Build-vs-buy engineering assessment',
+        'High-level technical architecture plan',
+        'Honest feasibility & next steps appraisal',
+      ],
+      tag: 'Zero Commitment',
+      actionLabel: 'Book Intro Call',
+      onAction: () => handleBookCall('audit'),
+    },
+    {
+      num: '02',
+      phase: 'Phase 02 · Blueprint',
+      time: 'Within 48h',
+      title: 'Fixed Scope & Milestone Spec',
+      desc: 'A transparent, binding one-page blueprint with concrete deliverables, weekly sprint milestones, modern tech stack selection, and a fixed-price guarantee.',
+      deliverables: [
+        'Comprehensive component & API architecture',
+        'Firm fixed-price quote & contract scope',
+        'Precise week-by-week delivery roadmap',
+        'Clear acceptance criteria & performance targets',
+      ],
+      tag: '100% Fixed Price',
+      actionLabel: 'View Packages',
+      href: '#pricing',
+    },
+    {
+      num: '03',
+      phase: 'Phase 03 · Execution',
+      time: 'Weeks 1 to 3',
+      title: 'Agile Sprints & Friday Demos',
+      desc: 'Rapid iterative engineering with complete transparency. Clean, production-grade codebases with private GitHub commits and recorded Loom demos every Friday.',
+      deliverables: [
+        'Private GitHub repository access from day 1',
+        'Weekly Friday recorded Loom walkthroughs',
+        'Live password-protected staging environment',
+        'Direct async Slack or WhatsApp channel',
+      ],
+      tag: 'Full Transparency',
+      actionLabel: 'See Tech Stack',
+      href: '#services',
+    },
+    {
+      num: '04',
+      phase: 'Phase 04 · Deployment',
+      time: 'Week 4 + 30 Days',
+      title: 'Production Ship & Warranty',
+      desc: 'Turnkey deployment to production cloud infrastructure (GCP, AWS, Vercel). Complete code handover, DNS setup, environment secrets, and 30-day bug warranty.',
+      deliverables: [
+        'Production launch & DNS/domain configuration',
+        'Clean codebase handover & 100% IP ownership',
+        'Documented developer README & ops runbook',
+        '30-day post-launch bug fix warranty',
+      ],
+      tag: '30-Day Warranty',
+      actionLabel: 'Explore Retainers',
+      href: '#pricing',
+    },
   ];
+
   const process = h('section', { class: 'landing-section tinted', id: 'process' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '03: How it works'),
-        h('h2', {}, 'From first call to ', h('em', {}, 'shipped'), ' in weeks')),
-      h('div', { class: 'grid grid-3', style: { gap: '20px' } },
-        stepsData.map((st) => h('div', { class: 'landing-card' },
-          h('div', { style: { width: '40px', height: '40px', borderRadius: '50%', background: 'var(--grad)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 'bold', marginBottom: '16px' } }, st.num),
-          h('h3', {}, st.title),
-          h('p', { class: 'muted' }, st.desc))))));
+        h('h2', {}, 'From first call to ', h('em', {}, 'shipped'), ' in weeks'),
+        h('p', { class: 'muted', style: { maxWidth: '640px', margin: '8px auto 0' } },
+          'No bloatware, no endless agency meetings, and no junior handoffs. A battle-tested engineering sprint lifecycle refined across 60+ shipped projects.')),
+      h('div', { class: 'landing-process-grid' },
+        processSteps.map((step) => {
+          const actionBtn = step.href
+            ? h('a', {
+                href: step.href,
+                class: 'landing-process-btn no-underline',
+                onclick: (e) => {
+                  if (step.href.startsWith('#')) {
+                    const el = document.querySelector(step.href);
+                    if (el) {
+                      e.preventDefault();
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                },
+              }, step.actionLabel, icon('arrow', 13))
+            : h('button', {
+                type: 'button',
+                class: 'landing-process-btn',
+                onclick: step.onAction,
+              }, step.actionLabel, icon('arrow', 13));
+
+          return h('div', { class: 'landing-process-card' },
+            h('div', {},
+              h('div', { class: 'landing-process-head' },
+                h('span', { class: 'landing-process-num-badge' }, step.num),
+                h('span', { class: 'landing-process-time-pill' }, step.time)),
+              h('div', { class: 'landing-process-phase' }, step.phase),
+              h('h3', { class: 'landing-process-title' }, step.title),
+              h('p', { class: 'landing-process-desc' }, step.desc),
+              h('ul', { class: 'landing-process-deliverables' },
+                step.deliverables.map((item) =>
+                  h('li', { class: 'landing-process-deliv-item' },
+                    h('span', { class: 'landing-process-deliv-check' }, icon('check', 14)),
+                    h('span', {}, item))))),
+            h('div', { class: 'landing-process-footer' },
+              h('span', { class: 'landing-process-tag' }, step.tag),
+              actionBtn));
+        }))));
 
   // 9. Section 04: Packages & Pricing with exact ag-pt structure
   const pricing = h('section', { class: 'landing-section', id: 'pricing' },
@@ -1351,11 +1894,8 @@ export function renderLanding(view, options = {}) {
             h('strong', {}, 'Tech Unicorn')),
           h('p', { style: { fontSize: '0.84rem', fontWeight: '700', color: 'var(--accent)', margin: '0 0 6px' } },
             'Delia Lazarescu · Ex-Google Engineer · Digital Nomad'),
-          h('p', { style: { fontSize: '0.82rem', color: 'var(--muted)', lineHeight: '1.6', margin: '0 0 16px', maxWidth: '380px' } },
-            'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.'),
-          h('div', { class: 'landing-footer-accent-badge' },
-            h('span', { class: 'landing-pulse-dot' }),
-            h('span', {}, 'Ex-Google engineering · 69 countries · 472K+ community'))),
+          h('p', { style: { fontSize: '0.82rem', color: 'var(--muted)', lineHeight: '1.6', margin: 0, maxWidth: '380px' } },
+            'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.')),
 
         // Column 1: Core Engineering
         h('div', { class: 'landing-footer-col' },

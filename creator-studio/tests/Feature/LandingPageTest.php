@@ -139,4 +139,32 @@ class LandingPageTest extends TestCase
             count($videos) > 0
         );
     }
+
+    public function test_social_feed_endpoint_returns_all_platforms_with_youtube_default(): void
+    {
+        $response = $this->getJson('/api/landing/social-feed');
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'active',
+            'channel',
+            'stats' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
+            'handles' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
+            'urls' => ['youtube', 'instagram', 'tiktok', 'twitter', 'threads'],
+            'platforms' => [
+                'youtube',
+                'instagram',
+                'tiktok',
+                'twitter',
+                'threads',
+            ],
+        ]);
+
+        $this->assertSame('youtube', $response->json('active'));
+        $this->assertNotEmpty($response->json('platforms.youtube'));
+        $this->assertNotEmpty($response->json('platforms.instagram'));
+        $this->assertNotEmpty($response->json('platforms.tiktok'));
+        $this->assertNotEmpty($response->json('platforms.twitter'));
+        $this->assertNotEmpty($response->json('platforms.threads'));
+    }
 }

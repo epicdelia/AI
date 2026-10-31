@@ -6,6 +6,7 @@ import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { contentSection } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
+import { speakingSection } from '../landing-speaking.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -1311,34 +1312,8 @@ export function renderLanding(view, options = {}) {
   // 9. Section 05: Reach & Content: all six networks, live numbers, shown/hidden from her dashboard.
   const platforms = reachSection();
 
-  // 10. Section 06: Speaking
-  const speaking = h('section', { class: 'landing-section tinted', id: 'speaking' },
-    h('div', { class: 'landing-container' },
-      h('div', { class: 'landing-section-head' },
-        h('p', { class: 'landing-section-eyebrow' }, '06: On Stage'),
-        h('h2', {}, 'Recently ', h('em', {}, 'keynoting'))),
-      h('div', { style: { display: 'grid', gap: '8px' } },
-        h('div', { class: 'row', style: { justifyContent: 'space-between', padding: '16px 14px', borderBottom: '1px solid var(--line)' } },
-          h('div', { class: 'row', style: { gap: '18px' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.2rem', color: 'var(--accent)', fontWeight: '600' } }, '01'),
-            h('div', {},
-              h('h3', {}, 'Nomad Cruise'),
-              h('p', { class: 'muted small' }, 'Keynote on building a tech career without a fixed address: engineering, content, and revenue.'))),
-          h('span', { class: 'pf-chip' }, 'Keynote')),
-        h('div', { class: 'row', style: { justifyContent: 'space-between', padding: '16px 14px', borderBottom: '1px solid var(--line)' } },
-          h('div', { class: 'row', style: { gap: '18px' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.2rem', color: 'var(--accent)', fontWeight: '600' } }, '02'),
-            h('div', {},
-              h('h3', {}, 'Vently Panel'),
-              h('p', { class: 'muted small' }, 'Panel on creator-led businesses and what happens when engineers learn distribution.'))),
-          h('span', { class: 'pf-chip' }, 'Panel')),
-        h('div', { class: 'row', style: { justifyContent: 'space-between', padding: '16px 14px', borderBottom: '1px solid var(--line)' } },
-          h('div', { class: 'row', style: { gap: '18px' } },
-            h('span', { style: { fontFamily: 'Fraunces, serif', fontSize: '1.2rem', color: 'var(--accent)', fontWeight: '600' } }, '03'),
-            h('div', {},
-              h('h3', {}, 'Digital Garage Tokyo'),
-              h('p', { class: 'muted small' }, 'Workshop on practical AI for non-technical teams: making the intimidating feel obvious.'))),
-          h('span', { class: 'pf-chip' }, 'Workshop')))));
+  // 10. Section 06: On Stage: her talks, managed from the dashboard's Speaking card.
+  const speaking = speakingSection({ onBookCall: handleBookCall });
 
   // 11. Conversion CTA Banner
   const cta = h('section', { class: 'landing-container' },

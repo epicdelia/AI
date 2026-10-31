@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domains\Landing\Audience;
 use App\Domains\Landing\ClientJourney;
 use App\Domains\Landing\LandingFeed;
+use App\Domains\Landing\Talk;
 use App\Domains\Media\MediaFile;
 use App\Domains\Social\Models\SocialPost;
 use App\Models\Setting;
@@ -48,6 +49,37 @@ class LandingPageController extends Controller
         $a = ClientJourney::availability();
 
         return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+    }
+
+    /** "On Stage": her talks (featured, upcoming, past), stats from that list, and her talk topics. */
+    public function talks(): JsonResponse
+    {
+        return response()->json(Talk::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /** An uploaded stage photo, only for a talk that's on the page. */
+    public function talkImage(Talk $talk): Response
+    {
+        abort_unless($talk->visible && $talk->image && ! str_starts_with($talk->image, '/') && Storage::disk('local')->exists($talk->image), 404);
+
+        return Storage::disk('local')->response($talk->image, null, ['Cache-Control' => 'public, max-age=86400']);
+    }
+
+    /** Her dashboard's "Speaking": next talk, stats, and speaking requests from the website. */
+    public static function speaking(): array
+    {
+        $talks = Talk::where('visible', true)->get();
+        $requests = Talk::requests();
+
+        return [
+            'next' => $talks->filter->upcoming->sortBy('date')->first(),
+            'stats' => Talk::stats($talks),
+            'requests' => $requests->count(),
+            'latest_requests' => $requests->sortByDesc('created_at')->take(3)->map(fn ($d) => [
+                'id' => $d->id, 'name' => $d->contact_name ?: $d->brand_name, 'company' => $d->brand_name,
+                'when' => $d->key_talking_points, 'created_at' => $d->created_at,
+            ])->values(),
+        ];
     }
 
     /** A visitor opened an item (sent with sendBeacon, so the link itself is never delayed). */

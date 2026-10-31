@@ -66,6 +66,7 @@ Route::prefix('api')->group(function () {
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
+    Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
@@ -194,6 +195,14 @@ Route::prefix('api')->group(function () {
         Route::post('brand/logo', [BrandController::class, 'uploadLogo']);
         Route::get('brand/logo', [BrandController::class, 'logo']);
         Route::delete('brand/logo', [BrandController::class, 'deleteLogo']);
+
+        // Talks for the landing page's "On Stage"
+        Route::get('talks', [\App\Http\Controllers\Api\TalksController::class, 'index']);
+        Route::post('talks', [\App\Http\Controllers\Api\TalksController::class, 'store']);
+        Route::patch('talks/{talk}', [\App\Http\Controllers\Api\TalksController::class, 'update']);
+        Route::delete('talks/{talk}', [\App\Http\Controllers\Api\TalksController::class, 'destroy']);
+        Route::post('talks/{talk}/image', [\App\Http\Controllers\Api\TalksController::class, 'uploadImage']);
+        Route::delete('talks/{talk}/image', [\App\Http\Controllers\Api\TalksController::class, 'deleteImage']);
 
         // Landing page content feed: what's on it, clicks, pin / hide, refresh now
         Route::get('landing/content', [\App\Http\Controllers\LandingPageController::class, 'content']);
@@ -414,6 +423,7 @@ Route::prefix('api')->group(function () {
 // The public Tech Unicorn landing page is "/" (signed out); old addresses redirect there.
 Route::get('techunicorn', [\App\Http\Controllers\LandingPageController::class, 'show']);
 Route::get('landing-page', [\App\Http\Controllers\LandingPageController::class, 'show']);
+Route::get('landing/talk-image/{talk}', [\App\Http\Controllers\LandingPageController::class, 'talkImage'])->whereNumber('talk');
 Route::get('landing/thumb/{post}', [\App\Http\Controllers\LandingPageController::class, 'thumb'])->whereNumber('post');
 
 // Link in bio: public page and counted redirects

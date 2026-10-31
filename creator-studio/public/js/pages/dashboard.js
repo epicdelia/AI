@@ -10,6 +10,7 @@ import { briefCard } from '../growth.js';
 import { arrangeDashboard, customiseDashboard, prefs } from '../prefs.js';
 import { loveExtras } from './love.js';
 import { websiteCard, reachCard } from '../website-feed.js';
+import { speakingCard } from '../speaking.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -186,6 +187,7 @@ export async function renderDashboard(view) {
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
     { id: 'journey', label: 'Client journey', node: journeyCard(d.journey) },
+    { id: 'speaking', label: 'Speaking', node: speakingCard(d.speaking, () => redraw()) },
     { id: 'reach', label: 'Public reach', node: reachCard(d.reach, () => redraw()) },
     { id: 'website', label: 'Your website feed', node: websiteCard(d.website, () => redraw()) },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },

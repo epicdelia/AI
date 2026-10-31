@@ -19,11 +19,28 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **AI YouTube** | Paste any video link → why it worked, summary, TL;DR, takeaways, quotes, chapters, blog post |
 | **Producer chat** | Persistent chats with an assistant that knows your niche, voice, week and ideas |
 | **Library** | Everything you saved: search, star, edit, download as Markdown |
-| **Settings** | Profile, brand voice, AI provider, keys (encrypted), research thresholds, diagnostics, AI usage |
+| **Settings** | Profile, brand voice, AI provider, keys (encrypted), web search, Memory, automation, research thresholds, diagnostics, AI usage |
+| **Script wizard** | Pick a title → pick and edit a chapter plan → the draft streams in following it |
+| **Facts tab** | Every claim in a script checked against live web results (Serper or Perplexity), with links |
+| **Memory** | Search across your own scripts, transcripts, Library, notes and ideas; used by drafts and chat |
+| **Ctrl+K** | Search everything from anywhere |
+| **Upload documents** | PDF, Word, text, Markdown, CSV and SRT/VTT subtitles into the Library (and Memory) |
+
+## Automation
+
+Breakout scan (daily 07:00), feed refresh (every 3 h), weekly check-in (Mondays 08:00), Memory
+index (03:30) and clean-up (04:00), in her timezone. Keep the scheduler running next to the app:
+
+```sh
+php artisan schedule:work
+```
+
+Each job also runs by hand (`php artisan studio:scan`, `studio:feeds`, `studio:checkin`,
+`studio:memory`, `studio:prune`) or from Settings → Automation → Run.
 
 ## Run it
 
-Requires PHP 8.3+ with `pdo_sqlite`, `mbstring`, `openssl`, `curl`, and Composer.
+Requires PHP 8.3+ with `pdo_sqlite`, `mbstring`, `openssl`, `curl` (and `zip` for Word uploads), and Composer.
 
 ```sh
 cd creator-studio

@@ -301,6 +301,12 @@ Route::prefix('api')->group(function () {
         Route::post('agents/{agent}/cascade-schedule', [AgentsController::class, 'cascadeSchedule'])->whereNumber('agent');
         Route::post('agents/{agent}/hook-matrix', [AgentsController::class, 'hookMatrix'])->whereNumber('agent');
         Route::post('agents/{agent}/fact-check', [AgentsController::class, 'factCheck'])->whereNumber('agent');
+        Route::post('agents/{agent}/reverse-engineer-outlier', [AgentsController::class, 'reverseEngineerOutlier'])->whereNumber('agent');
+        Route::post('agents/{agent}/bandit-titles', [AgentsController::class, 'banditTitles'])->whereNumber('agent');
+        Route::post('agents/launch-title-test', [AgentsController::class, 'launchTitleTest']);
+        Route::post('agents/{agent}/triage-leads', [AgentsController::class, 'triageLeads'])->whereNumber('agent');
+        Route::post('agents/{agent}/escalate-lead-deal', [AgentsController::class, 'escalateLeadDeal'])->whereNumber('agent');
+        Route::post('agents/{agent}/audit-retention', [AgentsController::class, 'auditRetention'])->whereNumber('agent');
         Route::post('mcp', [AgentsController::class, 'mcp']);
         Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 

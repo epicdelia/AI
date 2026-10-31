@@ -1160,6 +1160,434 @@ async function factCheckModal(agent, onDone) {
   }, { wide: true });
 }
 
+async function outlierDeconstructModal(agent, onDone) {
+  return modal('Competitor Outlier Reverse-Engineering & Blue Ocean Angle Hunter', (close) => {
+    const titleInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Enter a competitor breakout video title (e.g. "Why Amazon Prime Video Switched from Serverless to Monolith")',
+    });
+
+    const competitorInput = h('input', {
+      type: 'text',
+      placeholder: 'Competitor / Channel Name (e.g. ByteByteGo)',
+      style: { flex: 1 },
+    });
+
+    const notesInput = h('input', {
+      type: 'text',
+      placeholder: 'Why you think it worked or audience comments (optional)',
+      style: { flex: 2 },
+    });
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const runBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const title = titleInput.value.trim();
+        if (!title) return toast('Please enter a competitor breakout title.', 'err');
+        await busy(runBtn, 'Deconstructing outlier & finding Blue Ocean angles…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Outlier Agent running: Analyzing viral tension → Identifying audience demand gaps → Formulating 3 Blue Ocean counter-angles…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/reverse-engineer-outlier`, {
+              title,
+              competitor_name: competitorInput.value.trim() || undefined,
+              why_it_worked: notesInput.value.trim() || undefined,
+            });
+
+            const res = r.result;
+            const sum = res.outlier_summary;
+            const trig = res.psychological_triggers;
+            const angles = res.blue_ocean_angles || [];
+            const concept = res.actionable_concept;
+
+            const angleCards = angles.map((ang) => h('div', {
+              class: 'card',
+              style: {
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              },
+            },
+            h('div', {},
+              h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } },
+                h('strong', { style: { fontSize: '13px' } }, ang.angle_name),
+                h('span', { class: 'pill ok small' }, `Est. ${ang.predicted_multiplier}`)),
+              h('p', { style: { fontWeight: '600', fontSize: '12px', margin: '4px 0 6px' } }, `“${ang.hook_line}”`),
+              h('p', { class: 'muted small', style: { margin: '0 0 6px' } }, ang.thesis),
+              h('p', { class: 'small', style: { fontSize: '11px', color: 'var(--accent, #6366f1)', margin: 0 } }, `Why it stands out: ${ang.why_it_stands_out}`)),
+            h('button', {
+              class: 'btn sm ghost',
+              style: { marginTop: '10px' },
+              onclick: async () => {
+                await api('POST', 'social', {
+                  platform: agent.platforms[0] || 'linkedin',
+                  body: `${ang.hook_line}\n\n${ang.thesis}\n\n[Continue breakdown here...]`,
+                  parts: [],
+                  social_agent_id: agent.id,
+                });
+                toast(`Saved "${ang.angle_name}" to drafts queue.`);
+                close();
+                if (onDone) onDone();
+              },
+            }, icon('plus', 12), 'Draft This Angle')));
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // Outlier Psychological Diagnosis
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' } },
+                  h('div', {},
+                    h('h3', { style: { margin: '0 0 4px' } }, sum.title),
+                    h('p', { class: 'muted small', style: { margin: 0 } }, `By ${sum.competitor} · ${sum.outlier_multiplier} channel median views`)),
+                  h('span', { class: 'pill WARN small' }, trig.primary_trigger)),
+
+                h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg)', marginBottom: '14px' } },
+                  h('div', { class: 'small' }, h('strong', {}, 'Audience Demand Gap: '), res.audience_demand_gap),
+                  h('div', { class: 'small muted', style: { marginTop: '4px' } }, h('strong', {}, 'Unresolved Friction: '), trig.audience_friction)),
+
+                // 3 Blue Ocean Angles
+                h('h4', { style: { margin: '14px 0 8px', fontSize: '13px' } }, '3 Uncontested "Blue Ocean" Counter-Angles'),
+                h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px', marginBottom: '14px' } }, angleCards),
+
+                // Winning Video Concept
+                concept ? h('div', { class: 'card', style: { padding: '12px', background: 'rgba(34,197,94,0.06)', border: '1px solid var(--ok)' } },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } },
+                    h('strong', { style: { color: 'var(--ok)' } }, 'Recommended Next Video Concept'),
+                    h('button', {
+                      class: 'btn sm primary',
+                      onclick: async () => {
+                        await api('POST', 'ideas', {
+                          title: concept.title,
+                          notes: `${concept.elevator_pitch}\n\nTalking points:\n- ${concept.key_talking_points.join('\n- ')}`,
+                        });
+                        toast(`Saved "${concept.title}" to Idea Bank!`);
+                        close();
+                        if (onDone) onDone();
+                      },
+                    }, icon('check', 12), 'Save to Idea Bank')),
+                  h('h3', { style: { fontSize: '14px', margin: '4px 0' } }, concept.title),
+                  h('p', { class: 'small muted', style: { margin: '0 0 8px' } }, concept.elevator_pitch),
+                  h('ul', { style: { fontSize: '12px', margin: 0, paddingLeft: '18px' } },
+                    (concept.key_talking_points || []).map((pt) => h('li', {}, pt)))) : null));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Deconstruction failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('trend', 14), 'Reverse-Engineer Outlier');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Deconstructs 3x-10x breakout competitor videos, diagnoses the underlying psychological curiosity triggers, uncovers what audience questions were left unanswered, and synthesizes 3 unique Blue Ocean angles that stand out in the algorithm.'),
+      h('label', { class: 'small muted' }, 'Competitor Breakout Video Title:'),
+      titleInput,
+      h('div', { class: 'row', style: { gap: '8px', marginBottom: '12px' } },
+        competitorInput, notesInput),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        runBtn),
+      resultBox);
+  }, { wide: true });
+}
+
+async function banditTitlesModal(agent, onDone) {
+  return modal('Multi-Armed Bandit YouTube Title & Thumbnail Optimizer', (close) => {
+    const topicInput = h('textarea', {
+      rows: 2,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Enter a YouTube video topic or current working title (e.g. "Building Modular Monoliths with Append-Only Logs in Go")',
+    });
+
+    const videoIdInput = h('input', {
+      type: 'text',
+      placeholder: 'YouTube Video ID (optional, for direct A/B testing)',
+      style: { width: '220px', marginBottom: '12px' },
+    });
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const runBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const topic = topicInput.value.trim();
+        if (!topic) return toast('Please enter a video topic.', 'err');
+        await busy(runBtn, 'Generating algorithmic bandit titles & thumbnail concepts…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Bandit Optimizer running: Exploring 4 algorithmic title structures → Evaluating browse affinity & CTR score → Generating high-contrast thumbnail directions…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/bandit-titles`, {
+              topic,
+              video_id: videoIdInput.value.trim() || undefined,
+            });
+
+            const res = r.result;
+            const vars = res.variants || [];
+            const win = res.bandit_winner || {};
+
+            const variantCards = vars.map((v) => h('div', {
+              class: 'card',
+              style: {
+                padding: '12px',
+                borderRadius: '8px',
+                border: win.title === v.title ? '2px solid var(--ok, #22c55e)' : '1px solid var(--border)',
+                background: win.title === v.title ? 'rgba(34,197,94,0.05)' : 'var(--bg)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              },
+            },
+            h('div', {},
+              h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } },
+                h('span', { class: 'pill small' }, v.archetype),
+                h('div', { class: 'row', style: { gap: '4px' } },
+                  h('span', { class: 'muted small' }, `${v.char_count} chars`),
+                  h('span', { class: `pill ${v.predicted_ctr_score >= 90 ? 'ok' : 'WARN'} small` }, `CTR: ${v.predicted_ctr_score}/100`))),
+              h('h3', { style: { fontSize: '14px', margin: '6px 0 8px' } }, v.title),
+              v.thumbnail ? h('div', { style: { padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '11px' } },
+                h('strong', {}, 'Thumbnail Direction: '),
+                h('p', { style: { margin: '2px 0' } }, v.thumbnail.focal_subject),
+                h('div', { class: 'row', style: { gap: '6px', marginTop: '4px' } },
+                  h('span', { class: 'pill ok small' }, `TEXT: "${v.thumbnail.text_overlay}"`),
+                  h('span', { class: 'muted' }, v.thumbnail.color_palette))) : null)));
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // Winning title banner
+                win.title ? h('div', { class: 'card', style: { padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid var(--ok)', marginBottom: '14px' } },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                    h('strong', { style: { color: 'var(--ok)' } }, 'Bandit Algorithmic Winner'),
+                    h('span', { class: 'pill ok small' }, `Predicted CTR: ${win.score}/100`)),
+                  h('h2', { style: { fontSize: '16px', margin: '6px 0 4px' } }, `“${win.title}”`),
+                  h('p', { class: 'small muted', style: { margin: 0 } }, win.strategic_rationale)) : null,
+
+                h('h4', { style: { margin: '0 0 10px', fontSize: '13px' } }, '4 Algorithmic Title Variants & Thumbnails'),
+                h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px', marginBottom: '14px' } }, variantCards),
+
+                // Launch A/B Test action
+                videoIdInput.value.trim() ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+                  h('button', {
+                    class: 'btn primary sm',
+                    onclick: async () => {
+                      try {
+                        const l = await api('POST', 'agents/launch-title-test', {
+                          video_id: videoIdInput.value.trim(),
+                          titles: vars.map((x) => x.title),
+                          hours_per_window: 4,
+                          rounds: 3,
+                        });
+                        toast('Multi-window Title A/B Test initiated on YouTube!');
+                        close();
+                        if (onDone) onDone();
+                      } catch (err) {
+                        toast(err.message, 'err');
+                      }
+                    },
+                  }, icon('chart', 13), 'Launch Multi-Window Title Test')) : null));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Title optimization failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('chart', 14), 'Optimize Titles & Thumbnails');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Generates 4 algorithmic title structures targeting YouTube Browse & Suggested feeds (Provocative Punchy, Quantified Milestone, Skeptical Dilemma, Urgent Warning), predicts CTR scores, pairs with high-contrast thumbnail concepts, and launches multi-window Title A/B tests.'),
+      h('label', { class: 'small muted' }, 'Video Topic / Working Title:'),
+      topicInput,
+      h('label', { class: 'small muted' }, 'YouTube Video ID (Optional, enables direct A/B launch):'),
+      videoIdInput,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        runBtn),
+      resultBox);
+  }, { wide: true });
+}
+
+async function leadTriageModal(agent, onDone) {
+  return modal('Community Lead Triage & Revenue Pipeline Agent', (close) => {
+    const resultBox = h('div', { style: { marginTop: '8px' } });
+
+    const scanBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        await busy(scanBtn, 'Scanning engagement comments and DMs for revenue leads…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Triage Agent running: Screening incoming comments & DMs → Classifying commercial intent → Estimating pipeline deal value…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/triage-leads`, {});
+            const res = r.result;
+            const leads = res.leads || [];
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // KPI Banner
+                h('div', { class: 'row', style: { gap: '16px', marginBottom: '14px', flexWrap: 'wrap' } },
+                  h('div', { class: 'ag-kpi' }, h('strong', {}, res.total_screened), h('span', {}, 'messages screened')),
+                  h('div', { class: 'ag-kpi hot' }, h('strong', {}, res.leads_detected), h('span', {}, 'commercial leads')),
+                  h('div', { class: 'ag-kpi ok' }, h('strong', {}, `$${res.total_pipeline_value.toLocaleString()}`), h('span', {}, 'pipeline opportunity'))),
+
+                h('h4', { style: { margin: '0 0 10px', fontSize: '13px' } }, 'Triaged Inbound Leads & Recommended Responses'),
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+                  leads.map((l) => {
+                    const isLead = l.intent !== 'general_audience';
+                    return h('div', {
+                      class: 'card',
+                      style: {
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: isLead ? '1px solid var(--ok, #22c55e)' : '1px solid var(--border)',
+                        background: isLead ? 'rgba(34,197,94,0.04)' : 'var(--bg)',
+                      },
+                    },
+                    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } },
+                      h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                        h('strong', {}, l.author),
+                        netChip(l.platform, l.platform.toUpperCase()),
+                        h('span', { class: `pill ${isLead ? 'ok' : ''} small` }, l.intent.toUpperCase())),
+                      isLead ? h('strong', { style: { color: 'var(--ok)' } }, `Est. $${l.estimated_value_usd.toLocaleString()}`) : null),
+                    h('p', { class: 'small', style: { margin: '4px 0 6px', fontStyle: 'italic' } }, `“${l.text}”`),
+                    h('div', { style: { padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', margin: '6px 0' } },
+                      h('strong', { class: 'small muted' }, 'Executive Draft Reply: '),
+                      h('p', { class: 'small', style: { margin: '2px 0 0', whiteSpace: 'pre-wrap' } }, l.draft_response)),
+                    isLead ? h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', marginTop: '8px' } },
+                      h('button', {
+                        class: 'btn sm primary',
+                        onclick: async () => {
+                          try {
+                            await api('POST', `agents/${agent.id}/escalate-lead-deal`, {
+                              author: l.author,
+                              intent: l.intent,
+                              estimated_value: l.estimated_value_usd,
+                              text: l.text,
+                            });
+                            toast(`Escalated lead from ${l.author} to Deals pipeline!`);
+                            close();
+                            if (onDone) onDone();
+                          } catch (err) {
+                            toast(err.message, 'err');
+                          }
+                        },
+                      }, icon('briefcase', 12), `Escalate to Deals Pipeline ($${l.estimated_value_usd.toLocaleString()})`)) : null);
+                  }))));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Lead triage failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('users', 14), 'Scan & Triage Engagement Leads');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Scans incoming audience comments and DMs across all connected networks, extracts high-ticket commercial inquiries (brand sponsorships, architecture consulting, speaking invites, course buyers), estimates revenue opportunity, and routes leads into your Deals CRM.'),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Close'),
+        scanBtn),
+      resultBox);
+  }, { wide: true });
+}
+
+async function retentionAuditModal(agent, onDone) {
+  return modal('YouTube Script Retention Curve & Pacing Auditor', (close) => {
+    const textInput = h('textarea', {
+      rows: 5,
+      style: { width: '100%', marginBottom: '10px' },
+      placeholder: 'Paste video script, outline, or talking points to simulate retention drop-off and inject 90-second pacing resets…',
+    });
+
+    const titleInput = h('input', {
+      type: 'text',
+      placeholder: 'Video Title (e.g. Building Sagas Without Distributed Deadlocks)',
+      style: { flex: 2 },
+    });
+
+    const durationInput = h('input', {
+      type: 'number',
+      value: 10,
+      placeholder: 'Target Minutes',
+      style: { width: '130px' },
+    });
+
+    const resultBox = h('div', { style: { marginTop: '16px' } });
+
+    const auditBtn = h('button', {
+      class: 'btn primary',
+      onclick: async () => {
+        const body = textInput.value.trim();
+        if (!body) return toast('Please paste script text or an outline.', 'err');
+        await busy(auditBtn, 'Auditing retention curve & pacing…', async () => {
+          clear(resultBox).append(h('p', { class: 'muted small' }, 'Retention Auditor running: Simulating drop-off curve across 5 video phases → Detecting boredom hazards → Injecting 90-second visual & verbal resets…'));
+          try {
+            const r = await api('POST', `agents/${agent.id}/audit-retention`, {
+              title: titleInput.value.trim() || undefined,
+              body,
+              target_duration_minutes: durationInput.value ? Number(durationInput.value) : 10,
+            });
+
+            const res = r.result;
+            const timeline = res.pacing_timeline || [];
+            const hazards = res.hazards_detected || [];
+
+            clear(resultBox).append(
+              h('div', { class: 'card', style: { padding: '14px', background: 'var(--card-subtle, rgba(255,255,255,0.02))' } },
+                // Header KPIs
+                h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' } },
+                  h('div', {},
+                    h('h3', { style: { margin: '0 0 4px' } }, res.title),
+                    h('p', { class: 'muted small', style: { margin: 0 } }, `${res.pacing_rating} · ${res.target_duration_minutes} min duration`)),
+                  h('div', { class: 'row', style: { gap: '6px' } },
+                    h('span', { class: 'pill ok small' }, `Retention: ${res.retention_score}/100`),
+                    h('span', { class: 'pill ok small' }, `Predicted AVD: ${res.predicted_avd_percent}%`))),
+
+                // Hazards alert
+                hazards.length ? h('div', { style: { marginBottom: '14px' } },
+                  h('h4', { style: { fontSize: '12px', textTransform: 'uppercase', color: 'var(--warn)', margin: '0 0 6px' } }, 'Drop-Off Hazards Detected'),
+                  hazards.map((hz) => h('div', {
+                    style: { padding: '8px 10px', background: 'rgba(239,68,68,0.05)', borderLeft: '3px solid #ef4444', borderRadius: '4px', marginBottom: '6px', fontSize: '12px' },
+                  },
+                  h('strong', {}, `[At ${hz.timestamp_estimate}] ${hz.issue}`),
+                  h('p', { style: { margin: '2px 0 0', color: 'var(--ok)' } }, `Fix: ${hz.remedy}`)))) : null,
+
+                // 5-Phase Retention Timeline
+                h('h4', { style: { margin: '0 0 10px', fontSize: '13px' } }, '5-Phase Pacing Timeline & Injected Resets'),
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' } },
+                  timeline.map((ph) => h('div', {
+                    class: 'card',
+                    style: { padding: '10px 12px', background: 'var(--bg)' },
+                  },
+                  h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' } },
+                    h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+                      h('span', { class: 'pill small' }, ph.timestamp),
+                      h('strong', { class: 'small' }, ph.phase)),
+                    h('span', { class: 'pill ok small' }, `Est. Retention: ${ph.projected_retention}`)),
+                  h('p', { class: 'small muted', style: { margin: '2px 0 6px' } }, ph.focus),
+                  h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } },
+                    (ph.retention_resets || []).map((rst) => h('span', { class: 'pill small', style: { background: 'rgba(99,102,241,0.1)', color: 'var(--accent, #6366f1)' } }, rst)))))),
+
+                // Optimized script excerpt
+                res.optimized_script_excerpt ? h('div', { class: 'card', style: { padding: '12px', background: 'var(--bg)' } },
+                  h('strong', { class: 'small' }, 'Pacing-Optimized Script with Visual Cues:'),
+                  h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', marginTop: '6px', fontFamily: 'inherit' } }, res.optimized_script_excerpt)) : null));
+          } catch (err) {
+            clear(resultBox).append(h('p', { class: 'small', style: { color: 'var(--warn)' } }, `Retention audit failed: ${err.message}`));
+          }
+        });
+      },
+    }, icon('play', 14), 'Audit Retention Pacing');
+
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Simulates YouTube viewer drop-off curves across 5 chronological phases, flags monologue boredom hazards, and injects visual, verbal, and on-screen retention resets every 90 seconds to maximize Average View Duration (AVD %).'),
+      h('label', { class: 'small muted' }, 'Script Outline or Draft Text:'),
+      textInput,
+      h('div', { class: 'row', style: { gap: '8px', marginBottom: '12px' } },
+        titleInput, durationInput),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+        h('button', { class: 'btn', onclick: () => close() }, 'Cancel'),
+        auditBtn),
+      resultBox);
+  }, { wide: true });
+}
+
 export async function renderAgent(view, id) {
   let d = await api('GET', `agents/${id}`);
   const meta = d.meta;
@@ -1218,6 +1646,10 @@ export async function renderAgent(view, id) {
           h('button', { class: 'btn sm ghost', onclick: () => cascadeModal(a, reload) }, icon('flow', 14), 'Transmedia cascade'),
           h('button', { class: 'btn sm ghost', onclick: () => hookMatrixModal(a, reload) }, icon('sparkle', 14), 'Viral hook matrix'),
           h('button', { class: 'btn sm ghost', onclick: () => factCheckModal(a, reload) }, icon('check', 14), 'Fact-check shield'),
+          h('button', { class: 'btn sm ghost', onclick: () => outlierDeconstructModal(a, reload) }, icon('trend', 14), 'Reverse outlier'),
+          h('button', { class: 'btn sm ghost', onclick: () => banditTitlesModal(a, reload) }, icon('chart', 14), 'Bandit titles'),
+          h('button', { class: 'btn sm ghost', onclick: () => leadTriageModal(a, reload) }, icon('users', 14), 'Lead triage'),
+          h('button', { class: 'btn sm ghost', onclick: () => retentionAuditModal(a, reload) }, icon('play', 14), 'Retention audit'),
           h('button', { class: 'btn ghost sm', onclick: async () => { if (await wizard(meta, a)) reload(); } }, icon('pen', 14), 'Edit'),
           h('button', {
             class: 'btn ghost sm', 'aria-label': 'Delete agent', onclick: async () => {

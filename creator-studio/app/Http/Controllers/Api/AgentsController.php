@@ -8,6 +8,7 @@ use App\Domains\Agents\BrandResearch;
 use App\Domains\Agents\Cascade\TransmediaCascade;
 use App\Domains\Agents\Deals\SponsorNegotiator;
 use App\Domains\Agents\Debate\AdversarialDebate;
+use App\Domains\Agents\Engagement\LeadTriageAgent;
 use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
 use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Harness\AgentHarness;
@@ -20,10 +21,13 @@ use App\Domains\Agents\Models\AgentPromptVersion;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Models\SwarmMission;
 use App\Domains\Agents\Optimization\PromptOptimizer;
+use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
 use App\Domains\Agents\Publisher;
+use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
 use App\Domains\Agents\Swarm\AgentSwarm;
 use App\Domains\Agents\TreeSearch\AgentTreeSearch;
 use App\Domains\Agents\Verification\FactCheckShield;
+use App\Domains\Agents\YouTube\TitleBanditOptimizer;
 use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
@@ -524,6 +528,135 @@ class AgentsController extends Controller
             'claims_evaluated' => $result['claims_evaluated'],
             'armored_text' => $result['armored_text'],
             'disclaimers_recommended' => $result['disclaimers_recommended'],
+        ]);
+    }
+
+    public function reverseEngineerOutlier(Request $request, SocialAgent $agent, CompetitorReverseEngineer $engineer): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'outlier_id' => ['nullable', 'exists:outliers,id'],
+            'title' => ['nullable', 'string', 'max:500'],
+            'competitor_name' => ['nullable', 'string', 'max:150'],
+            'why_it_worked' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $result = $engineer->deconstruct($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Competitor breakout reverse-engineered into 3 Blue Ocean angles.',
+            'result' => $result,
+        ]);
+    }
+
+    public function banditTitles(Request $request, SocialAgent $agent, TitleBanditOptimizer $optimizer): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:500'],
+            'current_title' => ['nullable', 'string', 'max:500'],
+            'video_id' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        try {
+            $result = $optimizer->optimize($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => '4 algorithmic bandit title variants and thumbnail concepts generated.',
+            'result' => $result,
+        ]);
+    }
+
+    public function launchTitleTest(Request $request, TitleBanditOptimizer $optimizer): JsonResponse
+    {
+        $data = $request->validate([
+            'video_id' => ['required', 'string', 'max:50'],
+            'titles' => ['required', 'array', 'min:2'],
+            'titles.*' => ['required', 'string', 'max:100'],
+            'hours_per_window' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'rounds' => ['nullable', 'integer', 'min:1', 'max:10'],
+        ]);
+
+        $test = $optimizer->launchTest($data);
+
+        return response()->json([
+            'message' => 'YouTube Title A/B Test initiated.',
+            'test' => $test,
+        ], 201);
+    }
+
+    public function triageLeads(Request $request, SocialAgent $agent, LeadTriageAgent $triageAgent): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'item_id' => ['nullable', 'exists:engagement_items,id'],
+            'messages' => ['nullable', 'array'],
+        ]);
+
+        try {
+            $result = $triageAgent->triage($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Community engagement triaged. Found {$result['leads_detected']} commercial lead(s).",
+            'result' => $result,
+        ]);
+    }
+
+    public function escalateLeadDeal(Request $request, SocialAgent $agent, LeadTriageAgent $triageAgent): JsonResponse
+    {
+        $data = $request->validate([
+            'author' => ['required', 'string', 'max:150'],
+            'intent' => ['nullable', 'string', 'max:50'],
+            'estimated_value' => ['required', 'numeric', 'min:0'],
+            'text' => ['required', 'string', 'max:2000'],
+            'contact_email' => ['nullable', 'email', 'max:150'],
+        ]);
+
+        $deal = $triageAgent->escalateToDeal($agent, $data);
+
+        return response()->json([
+            'message' => "Lead from {$deal->brand_name} escalated to Deals pipeline.",
+            'deal' => $deal,
+        ], 201);
+    }
+
+    public function auditRetention(Request $request, SocialAgent $agent, ScriptRetentionAuditor $auditor): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'script_id' => ['nullable', 'exists:scripts,id'],
+            'title' => ['nullable', 'string', 'max:500'],
+            'body' => ['nullable', 'string', 'max:50000'],
+            'target_duration_minutes' => ['nullable', 'integer', 'min:3', 'max:60'],
+        ]);
+
+        try {
+            $result = $auditor->audit($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Script retention audit complete with 90-second reset pacing.',
+            'result' => $result,
         ]);
     }
 

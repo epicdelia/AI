@@ -4,9 +4,13 @@ namespace App\Domains\Agents\Harness;
 
 use App\Domains\Agents\Cascade\TransmediaCascade;
 use App\Domains\Agents\Deals\SponsorNegotiator;
+use App\Domains\Agents\Engagement\LeadTriageAgent;
 use App\Domains\Agents\Hooks\HookMatrixOptimizer;
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
+use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
 use App\Domains\Agents\Verification\FactCheckShield;
+use App\Domains\Agents\YouTube\TitleBanditOptimizer;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Social\SocialScheduler;
@@ -105,6 +109,51 @@ class ToolRegistry
                     ],
                 ],
             ],
+            [
+                'name' => 'reverse_engineer_outlier',
+                'description' => 'Reverse-engineer a viral competitor breakout video and generate 3 Blue Ocean angles.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'outlier_id' => ['type' => 'integer', 'description' => 'Optional Outlier model ID.'],
+                        'title' => ['type' => 'string', 'description' => 'Outlier video title.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'optimize_bandit_titles',
+                'description' => 'Multi-Armed Bandit title generator: 4 algorithmic title variants with CTR scores and thumbnail concepts.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['topic'],
+                    'properties' => [
+                        'topic' => ['type' => 'string', 'description' => 'Video topic or proposition.'],
+                        'video_id' => ['type' => 'string', 'description' => 'Optional YouTube video ID.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'triage_community_leads',
+                'description' => 'Scan community comments and DMs to detect commercial leads (sponsors, consulting, speaking).',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'item_id' => ['type' => 'integer', 'description' => 'Optional EngagementItem ID to triage.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'audit_script_retention',
+                'description' => 'Audit YouTube script retention pacing, detect drop-off hazards, and inject 90-second resets.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'script_id' => ['type' => 'integer', 'description' => 'Optional Script ID.'],
+                        'title' => ['type' => 'string', 'description' => 'Video title.'],
+                        'body' => ['type' => 'string', 'description' => 'Script outline or text.'],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -126,6 +175,10 @@ class ToolRegistry
             'generate_transmedia_cascade' => $this->generateTransmediaCascade($args),
             'generate_hook_matrix' => $this->generateHookMatrix($args),
             'verify_technical_facts' => $this->verifyTechnicalFacts($args),
+            'reverse_engineer_outlier' => $this->reverseEngineerOutlier($args),
+            'optimize_bandit_titles' => $this->optimizeBanditTitles($args),
+            'triage_community_leads' => $this->triageCommunityLeads($args),
+            'audit_script_retention' => $this->auditScriptRetention($args),
             default => throw new \InvalidArgumentException("Unknown tool: {$name}"),
         };
     }
@@ -204,5 +257,29 @@ class ToolRegistry
         return app(FactCheckShield::class)->verify($agent, [
             'text' => $args['text'] ?? '',
         ]);
+    }
+
+    public function reverseEngineerOutlier(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(CompetitorReverseEngineer::class)->deconstruct($agent, $args);
+    }
+
+    public function optimizeBanditTitles(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(TitleBanditOptimizer::class)->optimize($agent, $args);
+    }
+
+    public function triageCommunityLeads(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(LeadTriageAgent::class)->triage($agent, $args);
+    }
+
+    public function auditScriptRetention(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(ScriptRetentionAuditor::class)->audit($agent, $args);
     }
 }

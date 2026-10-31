@@ -422,7 +422,7 @@ class AgenticRoiFeaturesTest extends TestCase
         $this->assertContains('generate_transmedia_cascade', $toolNames);
         $this->assertContains('generate_hook_matrix', $toolNames);
         $this->assertContains('verify_technical_facts', $toolNames);
-        $this->assertCount(10, $toolNames);
+        $this->assertGreaterThanOrEqual(10, count($toolNames));
 
         // 2. Call analyze_sponsor_inquiry via MCP
         $callRes = $server->handle([

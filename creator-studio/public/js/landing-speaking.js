@@ -4,7 +4,8 @@
 import { h, api } from './core.js';
 import { icon } from './icons.js';
 
-const SHOWN = 4;
+// One talk beside the photo; the rest behind "Show more" so both columns end level.
+const SHOWN = 1;
 
 const fmtDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const daysUntil = (d) => Math.round((new Date(`${d}T00:00:00`) - new Date(new Date().toDateString())) / 86400000);
@@ -12,7 +13,7 @@ const whenLabel = (d) => {
   const n = daysUntil(d);
   return n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days`;
 };
-const meta = (t) => [t.date ? fmtDate(t.date) : null, t.city].filter(Boolean).join(' · ');
+const meta = (t) => [t.date ? fmtDate(t.date) : null, t.time, [t.venue, t.city].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
 
 function featuredCard(t) {
   const body = [
@@ -47,9 +48,9 @@ function talkRow(t, i) {
         t.upcoming ? h('span', { class: 'landing-stage-soon' }, whenLabel(t.date)) : null),
       t.title ? h('p', { class: 'landing-stage-row-title' }, `“${t.title}”`) : null,
       t.description ? h('p', { class: 'muted small landing-stage-row-desc' }, t.description) : null,
-      meta(t) ? h('p', { class: 'landing-stage-row-meta' }, meta(t)) : null),
+      meta(t) ? h('p', { class: 'landing-stage-row-meta' }, icon(t.date ? 'calendar' : 'compass', 12), meta(t)) : null,
+      t.url ? h('span', { class: 'landing-stage-link' }, t.upcoming ? 'Event details' : 'Read more', icon('external', 12)) : null),
     h('span', { class: `landing-stage-kind kind-${t.kind}` }, t.kind_label),
-    t.url ? h('span', { class: 'landing-stage-go', 'aria-hidden': 'true' }, icon('external', 13)) : null,
   ];
   const cls = `landing-stage-row${t.upcoming ? ' is-upcoming' : ''}${i >= SHOWN ? ' is-more' : ''}`;
   return t.url
@@ -57,45 +58,44 @@ function talkRow(t, i) {
     : h('li', { class: cls }, h('div', { class: 'landing-stage-row-link' }, ...inner));
 }
 
-function statsStrip(stats, next) {
-  const items = [
-    stats.talks ? [stats.talks, stats.talks === 1 ? 'talk' : 'talks'] : null,
-    stats.keynotes ? [stats.keynotes, stats.keynotes === 1 ? 'keynote' : 'keynotes'] : null,
-    stats.cities ? [stats.cities, stats.cities === 1 ? 'city' : 'cities'] : null,
-  ].filter(Boolean);
-  return h('div', { class: 'landing-stage-stats' },
-    items.map(([n, label]) => h('span', { class: 'landing-stage-stat' }, h('b', {}, n), label)),
-    next ? h('span', { class: 'landing-stage-stat is-next' }, icon('calendar', 13), 'Next: ', h('b', {}, next.event), ` · ${whenLabel(next.date).toLowerCase()}`) : null);
-}
-
 /** @param {{ onBookCall: (type: string, service?: string) => void }} options */
 export function speakingSection({ onBookCall }) {
   const content = h('div', { class: 'landing-stage', 'aria-busy': 'true' },
     h('div', { class: 'landing-stage-feature is-skeleton', 'aria-hidden': 'true' }),
     h('ul', { class: 'landing-stage-list' }, Array.from({ length: 3 }, () => h('li', { class: 'landing-stage-row is-skeleton', 'aria-hidden': 'true' }))));
-  const statsSlot = h('div');
   const topics = h('ul', { class: 'landing-stage-topics', 'aria-label': 'Talk topics' });
   const book = () => onBookCall('speaking', 'Speaking & Workshops');
+  const cta = h('div', { class: 'landing-stage-cta' },
+    h('div', {},
+      h('strong', {}, 'Bring Delia to your stage'),
+      topics),
+    h('button', { type: 'button', class: 'landing-service-btn is-strong', onclick: book }, icon('mic', 13), 'Book Delia to speak', icon('arrow', 12)));
 
   api('GET', 'landing/talks').then((d) => {
     const talks = d.talks || [];
     if (!talks.length) throw new Error('none');
     const featured = d.featured || talks[0];
     const rest = talks.filter((t) => t.id !== featured.id);
-    statsSlot.replaceChildren(statsStrip(d.stats || {}, (d.upcoming || [])[0]));
 
     const list = h('ol', { class: 'landing-stage-list', id: 'landing-stage-list' }, rest.map(talkRow));
+    // Collapsed, the first talk fills the column and names the rest, which "Show more" reveals.
+    const later = rest.slice(SHOWN);
+    if (later.length) {
+      list.firstElementChild?.querySelector('.landing-stage-row-main')?.append(
+        h('p', { class: 'landing-stage-row-next' }, h('span', {}, 'Also on stage'), later.map((t) => h('b', {}, t.event))));
+    }
     const hidden = rest.length - SHOWN;
+    const moreLabel = (open) => (open ? 'Show less' : `Show ${hidden} more ${hidden === 1 ? 'talk' : 'talks'}`);
     const more = hidden > 0 ? h('button', {
       type: 'button', class: 'landing-service-all-btn', 'aria-expanded': 'false', 'aria-controls': 'landing-stage-list',
       onclick: () => {
         const open = list.classList.toggle('show-all');
         more.setAttribute('aria-expanded', String(open));
-        more.replaceChildren(open ? 'Show fewer talks' : `Show all ${rest.length + 1} talks`, icon('chevron-down', 14));
+        more.replaceChildren(moreLabel(open), icon('chevron-down', 14));
       },
-    }, `Show all ${rest.length + 1} talks`, icon('chevron-down', 14)) : null;
+    }, moreLabel(false), icon('chevron-down', 14)) : null;
 
-    // The call to action sits under the list, beside the photo, so the two columns balance.
+    // The events, then the call to action, beside the photo.
     content.replaceChildren(featuredCard(featured), h('div', { class: 'landing-stage-side' }, list, more ? h('div', { class: 'landing-stage-more' }, more) : null, cta));
     content.removeAttribute('aria-busy');
 
@@ -105,20 +105,12 @@ export function speakingSection({ onBookCall }) {
     content.replaceChildren(h('p', { class: 'muted' }, 'Keynotes, panels and hands-on workshops on AI, building in public and remote engineering.'));
   });
 
-
-  const cta = h('div', { class: 'landing-stage-cta' },
-    h('div', {},
-      h('strong', {}, 'Bring Delia to your stage'),
-      topics),
-    h('button', { type: 'button', class: 'landing-service-btn is-strong', onclick: book }, icon('mic', 13), 'Book Delia to speak', icon('arrow', 12)));
-
   return h('section', { class: 'landing-section tinted', id: 'speaking', 'aria-labelledby': 'landing-stage-heading' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
         h('p', { class: 'landing-section-eyebrow' }, '06: On Stage'),
         h('h2', { id: 'landing-stage-heading' }, 'Recently ', h('em', {}, 'keynoting')),
-        h('p', { class: 'muted' }, 'Keynotes, panels and hands-on workshops that make AI and modern engineering feel obvious.'),
-        statsSlot),
+        h('p', { class: 'muted' }, 'Keynotes, panels and hands-on workshops that make AI and modern engineering feel obvious.')),
       content,
       cta));
 }

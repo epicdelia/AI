@@ -6,6 +6,7 @@ import { startTour } from './tour.js';
 import { themeSwitch } from './theme.js';
 import { setLove, dailyHello, heartButton } from './love.js';
 import { pageSkeleton } from './skeleton.js';
+import { startReminders, stopReminders } from './queue.js';
 import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered } from './copilot.js';
 import { renderAuth } from './pages/auth.js';
 import { renderDashboard } from './pages/dashboard.js';
@@ -152,6 +153,7 @@ function setActiveNav(to) {
 
 async function logout() {
   try { await api('POST', 'auth/logout'); } catch { /* already logged out */ }
+  stopReminders();
   unmountCopilot();
   state.user = null;
   state.shell = null;
@@ -251,6 +253,7 @@ async function boot() {
       window.__studioName = st.love?.name || user?.name || '';
       state.shell = null;
       mountCopilot();
+      startReminders();
       await route();
       // A brand-new studio gets the tour; a returning login only if it was never finished.
       if (st.tour_done === false) startTour({ onDone: dailyHello });
@@ -262,6 +265,7 @@ async function boot() {
   setLove(status.love);
   window.__studioName = status.love?.name || status.user?.name || '';
   mountCopilot();
+  startReminders();
   await route();
   if (status.tour_done === false) startTour({ onDone: dailyHello });
   else dailyHello();

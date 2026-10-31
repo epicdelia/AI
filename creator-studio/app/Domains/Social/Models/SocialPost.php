@@ -13,14 +13,14 @@ class SocialPost extends Model
 
     protected $fillable = [
         'platform', 'format', 'title', 'body', 'parts', 'status', 'scheduled_for', 'posted_at', 'url',
-        'script_id', 'source', 'metrics', 'notes', 'source_post_id',
+        'script_id', 'source', 'metrics', 'notes', 'source_post_id', 'media', 'pillar',
     ];
 
     protected $appends = ['engagement'];
 
     protected function casts(): array
     {
-        return ['parts' => 'array', 'metrics' => 'array', 'scheduled_for' => 'datetime', 'posted_at' => 'datetime'];
+        return ['parts' => 'array', 'metrics' => 'array', 'media' => 'array', 'scheduled_for' => 'datetime', 'posted_at' => 'datetime'];
     }
 
     protected static function booted(): void

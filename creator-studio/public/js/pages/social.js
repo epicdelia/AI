@@ -2,7 +2,7 @@
 // here, copy them out to each app, then mark them posted with the link and the numbers.
 // Nothing is ever posted for her: there are no sign-ins to her accounts.
 import {
-  h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, navigate, link,
+  h, api, apiUpload, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, navigate, link,
   timeAgo, debounce, copyText, slug, compact,
 } from '../core.js';
 import { icon } from '../icons.js';
@@ -197,6 +197,26 @@ export function splitThread(text, limit = 270) {
   return out;
 }
 
+/** The text to paste for a post (thread posts are pasted one by one, so just the first). */
+export function postText(post, m) {
+  const label = m.platforms[post.platform]?.formats[post.format]?.parts;
+  if (THREADY.includes(post.platform) && post.format === 'thread') return post.parts?.[0] || '';
+  return [post.body, ...(label === 'Posts' ? [] : post.parts || [])].filter((x) => String(x || '').trim()).join('\n\n');
+}
+
+/** Copy the post and open the network's composer (nothing is posted for her). */
+export function openInApp(post, m) {
+  const text = postText(post, m);
+  copyText(text, 'Copied. Paste it in the app.');
+  const short = THREADY.includes(post.platform) ? text : (post.body || '');
+  const url = post.platform === 'x' ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(short)}`
+    : post.platform === 'threads' ? `https://www.threads.net/intent/post?text=${encodeURIComponent(short)}`
+    : post.platform === 'tiktok' ? 'https://www.tiktok.com/upload'
+    : post.platform === 'linkedin' ? `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(short)}`
+      : post.platform === 'youtube' ? 'https://studio.youtube.com/' : 'https://www.instagram.com/';
+  window.open(url, '_blank', 'noopener');
+}
+
 export async function renderPost(view, id) {
   const [m, data] = await Promise.all([meta(), api('GET', `social/posts/${id}`)]);
   const post = data.post;
@@ -346,10 +366,11 @@ export async function renderPost(view, id) {
         post.format === 'carousel' && parts.length ? h('div', { class: 'pv-slide', style: { background: m.brand_color } }, h('span', {}, plain(parts[0])), h('span', { class: 'pv-slide-count' }, `1 / ${parts.length}`)) : null);
     } else if (post.platform === 'instagram') {
       const visual = post.format === 'carousel' || post.format === 'story' ? plain(parts[0]) : post.format === 'reel' ? plain(parts[0]) : post.title || 'Your image';
+      const firstImg = (post.media || []).find((x) => String(x.mime).startsWith('image/'));
       el = h('div', { class: 'pv-ig' },
         h('div', { class: 'pv-head' }, h('div', { class: 'pv-avatar ring' }, name.slice(0, 1).toUpperCase()), h('strong', {}, handle)),
         h('div', { class: `pv-media ${post.format === 'reel' || post.format === 'story' ? 'tall' : ''}`, style: { background: m.brand_color } },
-          h('span', {}, visual || ' '),
+          firstImg ? h('img', { class: 'pv-photo', src: firstImg.url, alt: firstImg.alt || '' }) : h('span', {}, visual || ' '),
           post.format === 'carousel' && parts.length > 1 ? h('div', { class: 'pv-dots' }, parts.slice(0, 20).map((_, i) => h('i', { class: i === 0 ? 'on' : '' }))) : null,
           post.format === 'reel' ? h('span', { class: 'pv-badge' }, '▶ Reel') : null),
         post.format !== 'story' ? h('div', { class: 'pv-text' }, h('strong', {}, `${handle} `), folded(post.body, fold)) : null);
@@ -385,10 +406,29 @@ export async function renderPost(view, id) {
       if (post.status !== 'posted') pending.status = 'scheduled';
       saveSoon.flush();
     });
+    const slotNote = h('p', { class: 'muted small slot-note' }, post.notes && post.status === 'scheduled' ? post.notes : '');
+    const slotBtn = post.status === 'posted' ? null : h('button', {
+      class: 'btn ghost sm', title: 'The next good, free time on this network',
+      onclick: () => busy(slotBtn, 'Finding…', async () => {
+        const r = await api('POST', `social/posts/${post.id}/auto-schedule`);
+        Object.assign(post, r.post, { parts: r.post.parts || [], notes: r.reason });
+        toast(r.message);
+        drawStatus();
+      }),
+    }, icon('calendar', 14), 'Next good slot');
     const parts = [
       field('Status', statusSel),
       field('Planned for', at, 'drag it on the Calendar too'),
+      slotBtn ? h('div', {}, slotBtn, slotNote) : null,
     ];
+    if (m.pillars?.length) {
+      const pillarSel = h('select', { 'aria-label': 'Pillar' }, h('option', { value: '' }, '—'), m.pillars.map((p) => h('option', { value: p, selected: p === post.pillar }, p)));
+      pillarSel.addEventListener('change', () => change('pillar', pillarSel.value || null, true));
+      parts.push(field('Pillar', pillarSel));
+    }
+    if (fmtInfo().parts === 'Beats') {
+      parts.push(h('a', { class: 'btn ghost sm', href: `/api/social/posts/${post.id}/srt`, title: 'Captions timed at speaking pace, for the video editor or upload' }, icon('download', 14), 'Captions .srt'));
+    }
     if (post.status === 'posted') {
       const url = h('input', { type: 'url', value: post.url || '', placeholder: 'Link to the live post' });
       url.addEventListener('change', () => change('url', url.value || null, true));
@@ -412,15 +452,57 @@ export async function renderPost(view, id) {
 
   // ---- copy out / open the app ----
   const fullText = () => [post.body, ...(fmtInfo().parts === 'Posts' ? [] : post.parts || [])].filter((x) => String(x || '').trim()).join('\n\n');
-  function openApp() {
-    const text = thready() ? (post.format === 'thread' ? post.parts[0] : post.body) || '' : post.body || '';
-    copyText(thready() ? text : fullText(), 'Copied. Paste it in the app.');
-    const url = post.platform === 'x' ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
-      : post.platform === 'threads' ? `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`
-      : post.platform === 'tiktok' ? 'https://www.tiktok.com/upload'
-      : post.platform === 'linkedin' ? `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`
-        : post.platform === 'youtube' ? 'https://studio.youtube.com/' : 'https://www.instagram.com/';
-    window.open(url, '_blank', 'noopener');
+  const openApp = () => openInApp(post, m);
+
+  // ---- media: images and videos to post with it ----
+  const mediaBox = h('div');
+  const mediaIn = h('input', { type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true });
+  const setPost = (p) => { Object.assign(post, p, { parts: p.parts || [] }); drawMedia(); drawPreview(); };
+  mediaIn.addEventListener('change', async () => {
+    for (const f of [...mediaIn.files]) {
+      const fd = new FormData();
+      fd.append('file', f);
+      try { setPost((await apiUpload(`social/posts/${post.id}/media`, fd)).post); } catch (err) { toast(err.message, 'err'); }
+    }
+    mediaIn.value = '';
+  });
+  async function pickMockup() {
+    const list = (await api('GET', 'media?kind=thumbnail').catch(() => ({ media: [] }))).media;
+    if (!list.length) { toast('No thumbnail mockups yet: make one on a script’s Package tab.'); return; }
+    await modal('Add one of your mockups', (close) => h('div', { class: 'mockup-pick' }, list.map((mf) => h('button', {
+      class: 'mockup-tile', title: mf.title || 'Mockup',
+      onclick: async () => {
+        try { setPost((await api('POST', `social/posts/${post.id}/media/attach`, { media_id: mf.id })).post); close(true); } catch (err) { toast(err.message, 'err'); }
+      },
+    }, h('img', { src: mf.url, alt: mf.title || 'Mockup' })))), { wide: true });
+  }
+  function drawMedia() {
+    const items = post.media || [];
+    clear(mediaBox).append(
+      h('div', { class: 'card-header' }, h('h3', {}, 'Media'),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn ghost sm', onclick: () => pickMockup().catch((e) => toast(e.message, 'err')) }, icon('image', 15), 'From mockups'),
+          h('button', { class: 'btn sm', onclick: () => mediaIn.click() }, icon('plus', 15), 'Upload'))),
+      items.length ? h('ul', { class: 'media-list' }, items.map((it) => {
+        const isImg = String(it.mime).startsWith('image/');
+        const alt = h('textarea', { rows: 2, placeholder: 'Alt text: what’s in the image, for screen readers' }, it.alt || '');
+        alt.addEventListener('change', async () => { try { setPost((await api('POST', `social/posts/${post.id}/media/${it.id}/alt`, { alt: alt.value })).post); } catch (err) { toast(err.message, 'err'); } });
+        const aiBtn = h('button', {
+          class: 'btn ghost sm',
+          onclick: () => busy(aiBtn, 'Writing…', async () => { setPost((await api('POST', `social/posts/${post.id}/media/${it.id}/alt`)).post); }),
+        }, icon('sparkle', 14), 'Write alt text');
+        return h('li', { class: 'media-item' },
+          isImg ? h('img', { src: it.url, alt: it.alt || '' }) : h('video', { src: it.url, controls: true, preload: 'metadata' }),
+          h('div', { class: 'media-meta' },
+            h('div', { class: 'row' }, h('strong', { class: 'clamp-1' }, it.name || 'File'),
+              h('a', { class: 'btn ghost sm', href: `${it.url}?download=1`, title: 'Download to upload it' }, icon('download', 14)),
+              h('button', {
+                class: 'btn ghost sm danger', title: 'Remove',
+                onclick: async () => { try { setPost((await api('DELETE', `social/posts/${post.id}/media/${it.id}`)).post); } catch (err) { toast(err.message, 'err'); } },
+              }, icon('x', 14))),
+            isImg ? [alt, aiBtn] : h('p', { class: 'muted small' }, 'Video: upload it in the app with the caption.')));
+      })) : h('p', { class: 'muted small' }, post.platform === 'instagram' || post.platform === 'tiktok' ? 'Instagram and TikTok need an image or video. Upload it here so everything for this post is in one place.' : 'Optional: an image or video to post with it.'),
+      mediaIn);
   }
 
   const dupBtn = h('select', { class: 'btn-select', 'aria-label': 'Copy to another platform' },
@@ -454,6 +536,7 @@ export async function renderPost(view, id) {
           h('div', { class: 'card-header' }, bodyHead, counter),
           bodyHint, bodyArea),
         h('div', { class: 'card' }, partsBox),
+        h('div', { class: 'card' }, mediaBox),
         slidesBox),
       h('aside', { class: 'sp-side' },
         h('div', { class: 'card' }, h('h3', {}, 'Preview'), preview, h('p', { class: 'muted small' }, 'Roughly how it shows in the feed. Cut-offs are typical phone values; check in the app before posting.')),
@@ -473,6 +556,7 @@ export async function renderPost(view, id) {
   drawCounter();
   syncBody();
   drawParts();
+  drawMedia();
   if (!fmtInfo().parts) partsBox.closest('.card').hidden = true;
   formatSel.addEventListener('change', () => { partsBox.closest('.card').hidden = !fmtInfo().parts; });
   drawPreview();

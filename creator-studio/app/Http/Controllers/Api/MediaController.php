@@ -115,17 +115,14 @@ class MediaController extends Controller
     /** Stream a private file to her (logged-in) browser. */
     public function file(Request $request, MediaFile $media): Response
     {
-        $bytes = $media->contents();
-        abort_if($bytes === null, 404);
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($media->path), 404);
         $name = str($media->title ?: $media->kind)->slug()->limit(60, '').'.'.pathinfo($media->path, PATHINFO_EXTENSION);
 
-        return response($bytes, 200, [
+        // Streamed from disk, so a long video doesn't have to fit in memory.
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($media->path, $name, [
             'Content-Type' => $media->mime,
-            'Content-Length' => (string) strlen($bytes),
-            'Content-Disposition' => ($request->boolean('download') ? 'attachment' : 'inline').'; filename="'.$name.'"',
             'Cache-Control' => 'private, max-age=86400',
-            'Accept-Ranges' => 'none',
-        ]);
+        ], $request->boolean('download') ? 'attachment' : 'inline');
     }
 
     public function destroy(MediaFile $media): JsonResponse

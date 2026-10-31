@@ -215,7 +215,8 @@ export async function renderSettings(view) {
       field('X Premium', (inputs.x_premium = h('select', { name: 'x_premium' },
         h('option', { value: '0', selected: s.x_premium !== '1' }, 'No: 280 characters per post'),
         h('option', { value: '1', selected: s.x_premium === '1' }, 'Yes: long posts allowed')))),
-      field('Slide colour', (inputs.brand_color = h('input', { type: 'color', name: 'brand_color', value: s.brand_color || '#d8487e' })), 'carousel background'))),
+      field('Slide colour', (inputs.brand_color = h('input', { type: 'color', name: 'brand_color', value: s.brand_color || '#d8487e' })), 'carousel background'),
+      h('div', { class: 'span-2' }, field('Content pillars', area('content_pillars', 3, { placeholder: 'One per line, e.g.\nAI tools\nDesk setups\nWomen in tech' }), 'new drafts are tagged with one; Analytics shows what works where')))),
 
   h('div', { class: 'sticky-save' }, saveBtn));
 

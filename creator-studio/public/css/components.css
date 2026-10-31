@@ -1067,3 +1067,36 @@ textarea[readonly].script-editor { background: var(--bg); }
 }
 @media (prefers-reduced-motion: reduce) {
 }
+
+/* ---- Posting queue ---- */
+.due-strip[hidden] { display: none; }
+.due-card { border-left: 4px solid var(--accent); }
+.due-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.due-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--pf); border-radius: 12px; background: var(--field); }
+.due-item.overdue { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 6%, var(--field)); }
+.due-main { display: grid; gap: 2px; min-width: 0; }
+.due-main a { font-weight: 700; color: var(--ink); }
+.due-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.due-next { margin: 10px 0 0; }
+
+/* ---- Media on posts ---- */
+.media-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.media-item { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); }
+.media-item img, .media-item video { width: 120px; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--bg); }
+.media-meta { display: grid; gap: 6px; min-width: 0; }
+.media-meta .row { gap: 4px; align-items: center; }
+.media-meta strong { flex: 1; min-width: 0; }
+.media-meta textarea { width: 100%; font-size: 0.85rem; }
+.mockup-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.mockup-tile { padding: 0; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); cursor: pointer; aspect-ratio: 16 / 9; }
+.mockup-tile:hover, .mockup-tile:focus-visible { border-color: var(--accent); outline: none; }
+.mockup-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pv-media .pv-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slot-note { margin: 6px 0 0; }
+
+@media (max-width: 640px) {
+  .due-item { grid-template-columns: auto minmax(0, 1fr); }
+  .due-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .media-item { grid-template-columns: 1fr; }
+  .media-item img, .media-item video { width: 100%; aspect-ratio: 16 / 9; }
+}

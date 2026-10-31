@@ -112,6 +112,7 @@ export async function renderAnalytics(view) {
   const timesBox = h('div');
   const topBox = h('div');
   const recycleBox = h('div');
+  const pillarBox = h('div');
   const reviewBox = h('div', { class: 'doc-body' });
 
   function drawCards() {
@@ -195,7 +196,23 @@ export async function renderAnalytics(view) {
     },
   }, `${n} weeks`));
 
-  function drawAll() { drawCards(); drawTimes(); drawTop(); drawRecycle(); drawReview(); }
+  function drawPillars() {
+    const rows = data.pillars || [];
+    clear(pillarBox).append(h('div', { class: 'card' },
+      h('div', { class: 'card-header' }, h('h2', {}, 'Content mix'), link('/settings', { class: 'btn ghost sm' }, 'Pillars')),
+      rows.length ? [
+        h('div', { class: 'table-wrap' }, h('table', {},
+          h('thead', {}, h('tr', {}, h('th', {}, 'Pillar'), h('th', {}, 'Network'), h('th', { class: 'num' }, 'Posts'), h('th', { class: 'num' }, 'Median engagement'))),
+          h('tbody', {}, rows.map((r) => h('tr', {},
+            h('td', {}, h('strong', {}, r.pillar)), h('td', {}, platformChip(r.platform, meta)),
+            h('td', { class: 'num' }, r.posts), h('td', { class: 'num' }, compact(r.median_engagement))))))),
+        data.untagged ? h('p', { class: 'muted small' }, `${data.untagged} post(s) with numbers have no pillar yet; pick one in each post’s Publishing box.`) : null,
+      ] : h('p', { class: 'muted small' }, meta.pillars?.length
+        ? 'Tag posts with a pillar (new drafts are tagged for you) and log their numbers to see which topics work where.'
+        : 'Add your content pillars in Settings → Social (e.g. AI tools, Desk setups, Women in tech) to see which topics work on which network.')));
+  }
+
+  function drawAll() { drawCards(); drawTimes(); drawTop(); drawRecycle(); drawPillars(); drawReview(); }
   drawAll();
 
   // ---- dashboard on top: ticker, KPIs, chart cards (each with its own network filter) ----
@@ -240,6 +257,7 @@ export async function renderAnalytics(view) {
     h('div', { class: 'section-head' }, h('h2', { class: 'section-title' }, 'By network'), h('div', { class: 'row' }, periodBtns)),
     cardsBox,
     h('div', { class: 'grid grid-2', style: { marginTop: '18px' } }, timesBox, h('div', {}, topBox, recycleBox)),
+    pillarBox,
     h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Weekly review'), h('div', { class: 'row' }, reviewAt, reviewBtn)), reviewBox));
   view.append(page, tooltipLayer(page));
   return () => tick?.stop();

@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import { PLATFORM_ICONS, STATUS_LABEL, newPostDialog, progressChips } from './social.js';
 import { drawSlide } from '../carousel.js';
 import { demoControl } from '../social-tools.js';
+import { dueStrip } from '../queue.js';
 
 const VIEWS = [['month', 'month'], ['week', 'week'], ['day', 'day'], ['list', 'list']];
 const STATUSES = ['scheduled', 'posted', 'draft', 'idea'];
@@ -36,6 +37,7 @@ export async function renderCalendar(view) {
     anchor: atMidnight(new Date()),
     platforms: new Set(prefs.platforms || Object.keys(meta.platforms)),
     statuses: new Set(prefs.statuses || STATUSES),
+    pillar: '',
     data: null,
   };
   const persist = () => savePrefs({ view: state.view, platforms: [...state.platforms], statuses: [...state.statuses] });
@@ -82,6 +84,7 @@ export async function renderCalendar(view) {
     for (const p of state.data.posts) {
       const t = p.status === 'posted' && p.posted_at ? p.posted_at : p.scheduled_for;
       if (!t || !state.platforms.has(p.platform) || !state.statuses.has(p.status)) continue;
+      if (state.pillar && p.pillar !== state.pillar) continue;
       out.push({ kind: 'post', post: p, platform: p.platform, at: new Date(t), allDay: false });
     }
     if (state.platforms.has('youtube')) {
@@ -122,6 +125,8 @@ export async function renderCalendar(view) {
 
   const slideCache = new Map();
   function slidesFor(p) {
+    const imgs = (p.media || []).filter((x) => String(x.mime).startsWith('image/')).map((x) => x.url);
+    if (imgs.length) return imgs;
     if (!(meta.platforms[p.platform]?.formats[p.format]?.parts === 'Slides') || !p.parts?.length) return [];
     if (!slideCache.has(p.id)) {
       const parts = p.parts.filter((s) => s.trim()).slice(0, 10);
@@ -362,7 +367,13 @@ export async function renderCalendar(view) {
         STATUSES.map((s) => h('button', {
           class: `fc-filter st-${s}${state.statuses.has(s) ? ' on' : ''}`, 'aria-pressed': String(state.statuses.has(s)),
           onclick: () => toggle(state.statuses, s),
-        }, h('span', { class: `fc-status-dot st-${s}`, 'aria-hidden': 'true' }), STATUS_LABEL[s]))));
+        }, h('span', { class: `fc-status-dot st-${s}`, 'aria-hidden': 'true' }), STATUS_LABEL[s]))),
+      meta.pillars?.length ? (() => {
+        const sel = h('select', { class: 'inline-select', 'aria-label': 'Pillar' }, h('option', { value: '' }, 'All pillars'),
+          meta.pillars.map((p) => h('option', { value: p, selected: p === state.pillar }, p)));
+        sel.addEventListener('change', () => { state.pillar = sel.value; draw(); });
+        return sel;
+      })() : null);
   }
 
   function drawSide() {
@@ -373,7 +384,14 @@ export async function renderCalendar(view) {
       h('p', { class: 'muted small' }, 'Drag one onto a day or a time, or press Schedule.'),
       list.length ? h('div', { class: 'fc-unscheduled' }, list.map((p) => h('div', { class: 'fc-u' },
         pill({ kind: 'post', post: p, platform: p.platform, at: new Date(p.updated_at), allDay: true }),
-        h('button', { class: 'btn ghost sm', onclick: () => scheduleDialog(p).catch((e) => toast(e.message, 'err')) }, 'Schedule'))))
+        h('button', { class: 'btn ghost sm', onclick: () => scheduleDialog(p).catch((e) => toast(e.message, 'err')) }, 'Schedule'),
+        (() => {
+          const auto = h('button', {
+            class: 'btn ghost sm', title: 'Put it in its next good, free slot',
+            onclick: () => busy(auto, '…', async () => { const r = await api('POST', `social/posts/${p.id}/auto-schedule`); toast(`${r.message} ${r.source === 'starter' ? '(starter time)' : ''}`); await load(); }),
+          }, 'Auto');
+          return auto;
+        })())))
         : h('p', { class: 'muted small' }, 'All caught up. Repurpose a script for a fresh batch.')));
   }
 
@@ -402,6 +420,7 @@ export async function renderCalendar(view) {
       link('/repurpose', { class: 'btn' }, icon('repeat', 16), 'Repurpose'),
       h('button', { class: 'btn primary', onclick: () => newPostDialog().catch((e) => toast(e.message, 'err')) }, icon('plus', 16), 'New post')),
     meta.demo ? demoControl(meta.demo) : null,
+    dueStrip(),
     progressBox,
     h('div', { class: 'fc-layout' }, h('div', { class: 'fc-main card' }, toolbar, filters, body), side),
     card);

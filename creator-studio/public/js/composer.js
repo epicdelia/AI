@@ -210,9 +210,14 @@ export function homeComposer() {
   }, { wide: true });
 
   // ---- mode: full drafts, or quick ideas to flesh out later ----
-  const modeBtns = [['draft', 'Drafts', 'Drafts: full posts, ready to edit and schedule'], ['idea', 'Ideas', 'Ideas: lighter posts saved as ideas for later']].map(([m, label, title]) => h('button', {
+  const MODES = [
+    ['draft', 'Drafts', 'Drafts: full posts, ready to edit and schedule'],
+    ['idea', 'Ideas', 'Ideas: lighter posts saved as ideas for later'],
+    ['week', 'Week', 'Week: a week of posts from your weekly targets, each scheduled in its next good slot'],
+  ];
+  const modeBtns = MODES.map(([m, label, title]) => h('button', {
     type: 'button', 'aria-pressed': String(state.mode === m), title,
-    onclick: () => { state.mode = m; savePrefs({ mode: m }); modeBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(['draft', 'idea'][i] === m))); },
+    onclick: () => { state.mode = m; savePrefs({ mode: m }); modeBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(MODES[i][0] === m))); sync(); },
   }, label));
 
   // ---- send: one request, a draft per network, shown inline ----
@@ -223,7 +228,7 @@ export function homeComposer() {
     const turn = h('div', { class: 'ms-turn' },
       h('div', { class: 'ms-bubble' }, prompt.length > 600 ? `${prompt.slice(0, 600)}…` : prompt,
         images.length ? h('div', { class: 'ms-bubble-images' }, images.map((src) => h('img', { src, alt: '' }))) : null),
-      h('div', { class: 'ms-answer' }, h('p', { class: 'muted small' }, `Writing for ${providerLabel.textContent}…`), skCards(Math.min(3, state.targets.size), 'your drafts')));
+      h('div', { class: 'ms-answer' }, h('p', { class: 'muted small' }, state.mode === 'week' ? 'Planning your week and finding a good slot for each post…' : `Writing for ${providerLabel.textContent}…`), skCards(3, 'your drafts')));
     thread.append(turn);
     turn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     ta.value = '';
@@ -232,10 +237,12 @@ export function homeComposer() {
     state.busy = true;
     sync();
     try {
-      const r = await api('POST', 'social/compose', {
-        prompt, images, extra: (loadPrefs().direction || '').trim() || null, status: state.mode,
-        targets: [...state.targets].map((k) => { const [platform, format] = k.split('.'); return { platform, format }; }),
-      });
+      const targets = [...state.targets].map((k) => { const [platform, format] = k.split('.'); return { platform, format }; });
+      const extra = (loadPrefs().direction || '').trim() || null;
+      const r = state.mode === 'week'
+        // The week follows her weekly targets; the picked formats decide which format per network.
+        ? await api('POST', 'social/plan-week', { brief: prompt, extra, formats: Object.fromEntries(targets.map((t) => [t.platform, t.format])) })
+        : await api('POST', 'social/compose', { prompt, images, extra, status: state.mode, targets });
       clear(turn.querySelector('.ms-answer')).append(
         h('div', { class: 'ms-answer-head' }, h('strong', {}, r.message),
           link('/calendar', { class: 'btn sm' }, icon('calendar', 15), 'Schedule them')),

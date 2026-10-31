@@ -60,6 +60,12 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build s
 | **Demo posts** | "Show demo posts" adds example posts, numbers and followers for every network (tagged demo, never touching her own data); "Remove demo posts" deletes exactly those |
 | **Official logos** | LinkedIn, Instagram, X, TikTok, Threads and YouTube marks (Simple Icons, CC0) across the sidebar, calendar, chips and charts |
 | **Auto-migrate** | New migrations are applied on the first web request after an update (single-user local app), so new features never fail with "no such table" |
+| **Posting queue & reminders** | "Due now" on the dashboard and calendar (overdue flagged) with Copy & open, Posted and +1 h; a desktop notification while the app is open (Turn on reminders) and the count in the tab title |
+| **Media on posts** | Upload images or videos to a post (streamed, up to 500 MB), or reuse a thumbnail mockup; AI alt text for images; shown in previews and calendar hover cards; download for posting |
+| **Best-time scheduling** | "Next good slot" on a post and "Auto" on unscheduled drafts: her best-ranked free slot within a week once a network has 8+ posts with numbers, else a labelled starter time; one post a day per network, 3 hours apart |
+| **Week planner** | Composer → Week: one brief becomes a week of posts, as many per network as her weekly targets, each scheduled in its next good slot with the reason noted |
+| **Content pillars** | Her topics (Settings → Social); new drafts are tagged, a calendar filter, and Analytics → Content mix shows median engagement per pillar per network |
+| **Captions** | "Captions .srt" for Reels, TikToks and Shorts, timed from the spoken beats at speaking pace |
 | **Usage limits** | Monthly caps for AI tokens, mockups and read-aloud characters; an optional spend estimate from her own prices |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.

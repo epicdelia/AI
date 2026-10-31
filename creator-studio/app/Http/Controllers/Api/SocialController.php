@@ -28,6 +28,7 @@ class SocialController extends Controller
             'platforms' => Platforms::catalog(), 'statuses' => Platforms::STATUSES, 'progress' => self::progress(),
             'brand_color' => Setting::get('brand_color', '#d8487e'),
             'demo' => DemoContent::count(),
+            'pillars' => Repurposer::pillars(),
         ]);
     }
 
@@ -315,6 +316,7 @@ class SocialController extends Controller
             'metrics' => 'sometimes|nullable|array',
             'metrics.*' => 'nullable|integer|min:0',
             'notes' => 'sometimes|nullable|string|max:5000',
+            'pillar' => 'sometimes|nullable|string|max:80',
         ]);
         $platform = $data['platform'] ?? $post?->platform;
         $format = $data['format'] ?? $post?->format;

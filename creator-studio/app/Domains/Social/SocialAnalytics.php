@@ -104,7 +104,17 @@ class SocialAnalytics
                 ->map(fn ($p) => ['post' => $p, 'vs_median' => $median > 0 ? round(self::score($p, $rate) / $median, 2) : null]);
         })->filter(fn ($x) => $x['vs_median'] !== null)->sortByDesc('vs_median')->take(6)->values();
 
-        return ['weeks' => $weeks, 'from' => $start->toDateString(), 'platforms' => $platforms, 'top' => $top];
+        // The content mix: posts and median engagement per pillar on each network.
+        $pillars = $logged->filter(fn ($p) => $p->pillar)->groupBy(fn ($p) => $p->pillar.'|'.$p->platform)
+            ->map(function ($g, $key) {
+                [$pillar, $platform] = explode('|', $key);
+
+                return ['pillar' => $pillar, 'platform' => $platform, 'label' => Platforms::PLATFORMS[$platform]['label'] ?? $platform,
+                    'posts' => $g->count(), 'median_engagement' => (int) YouTube::median($g->pluck('engagement.total')->all())];
+            })->sortByDesc('median_engagement')->values();
+
+        return ['weeks' => $weeks, 'from' => $start->toDateString(), 'platforms' => $platforms, 'top' => $top, 'pillars' => $pillars,
+            'untagged' => $logged->filter(fn ($p) => ! $p->pillar)->count()];
     }
 
     /**

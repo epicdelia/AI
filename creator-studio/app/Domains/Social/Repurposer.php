@@ -48,12 +48,14 @@ class Repurposer
             throw new RuntimeException('Give it a bit more to work with: at least a paragraph.');
         }
 
+        $pillars = self::pillars();
         $wanted = implode("\n", array_map(fn ($t) => "- {$t['platform']}.{$t['format']}: ".self::GUIDES["{$t['platform']}.{$t['format']}"], $targets));
         $system = "You turn {$this->name()}'s work into native posts for each platform. Each post must work on its own for someone who never saw the original.\n\n"
             .Prompts::profile()."\n\n".Prompts::voice()."\n\n".Prompts::writingRules()."\n\n"
             ."Write exactly these, in this order:\n{$wanted}\n\n"
             .'Output JSON: {"posts": [{"platform": "linkedin", "format": "post", "title": "a short internal label", "body": "text", "parts": ["..."]}]}. '
-            .'Use parts only for formats that have them, otherwise []. Plain text inside strings (no Markdown headings). Never invent numbers, quotes or stories that are not in the source.';
+            .'Use parts only for formats that have them, otherwise []. Plain text inside strings (no Markdown headings). Never invent numbers, quotes or stories that are not in the source.'
+            .($pillars ? ' Also give each post a "pillar": exactly one of '.json_encode($pillars, JSON_UNESCAPED_UNICODE).', the one it fits best.' : '');
         $user = "Source: {$title}\n\n".mb_substr(trim($source), 0, 24000).($extra !== '' ? "\n\nHer direction for these posts: {$extra}" : '');
 
         $data = $this->llm->as('repurpose')->json($system, $user);
@@ -76,6 +78,7 @@ class Repurposer
                 'status' => 'draft',
                 'script_id' => $scriptId,
                 'source' => 'repurpose',
+                'pillar' => in_array($p['pillar'] ?? null, $pillars, true) ? $p['pillar'] : null,
             ]);
         }
         if (! $made) {
@@ -83,6 +86,12 @@ class Repurposer
         }
 
         return $made;
+    }
+
+    /** Her content pillars (Settings → Social), one per line. */
+    public static function pillars(): array
+    {
+        return array_values(array_filter(array_map('trim', preg_split('/\R/', (string) \App\Models\Setting::get('content_pillars', '')))));
     }
 
     private function name(): string

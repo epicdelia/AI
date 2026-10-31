@@ -66,7 +66,8 @@ class Setting extends Model
         'cadence_tiktok' => '',
         'cadence_threads' => '',
         'cadence_youtube' => '',          // Shorts and community posts (long-form is on Weekly goals)
-        'brand_color' => '#d8487e',       // carousel slide background
+        'brand_color' => '#d8487e',
+        'content_pillars' => '',          // her content pillars, one per line (tags for posts)       // carousel slide background
     ];
 
     private static ?array $cache = null;

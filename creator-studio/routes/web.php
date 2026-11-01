@@ -307,6 +307,13 @@ Route::prefix('api')->group(function () {
         Route::post('agents/{agent}/triage-leads', [AgentsController::class, 'triageLeads'])->whereNumber('agent');
         Route::post('agents/{agent}/escalate-lead-deal', [AgentsController::class, 'escalateLeadDeal'])->whereNumber('agent');
         Route::post('agents/{agent}/audit-retention', [AgentsController::class, 'auditRetention'])->whereNumber('agent');
+        Route::post('agents/{agent}/audit-deal-fulfillment', [AgentsController::class, 'auditDealFulfillment'])->whereNumber('agent');
+        Route::post('agents/{agent}/generate-deal-wrap-report', [AgentsController::class, 'generateDealWrapReport'])->whereNumber('agent');
+        Route::post('agents/{agent}/synthesize-brand-pitch', [AgentsController::class, 'synthesizeBrandPitch'])->whereNumber('agent');
+        Route::post('agents/{agent}/recycle-evergreen', [AgentsController::class, 'recycleEvergreen'])->whereNumber('agent');
+        Route::post('agents/{agent}/schedule-evergreen-reboot', [AgentsController::class, 'scheduleEvergreenReboot'])->whereNumber('agent');
+        Route::post('agents/{agent}/shield-algorithm', [AgentsController::class, 'shieldAlgorithm'])->whereNumber('agent');
+        Route::post('agents/{agent}/plan-sprint', [AgentsController::class, 'planSprint'])->whereNumber('agent');
         Route::post('mcp', [AgentsController::class, 'mcp']);
         Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 

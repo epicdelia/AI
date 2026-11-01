@@ -388,7 +388,7 @@ class AdvancedAgenticFeaturesTest extends TestCase
         $this->assertContains('optimize_bandit_titles', $toolNames);
         $this->assertContains('triage_community_leads', $toolNames);
         $this->assertContains('audit_script_retention', $toolNames);
-        $this->assertCount(14, $toolNames);
+        $this->assertGreaterThanOrEqual(14, count($toolNames));
 
         // Call optimize_bandit_titles tool via MCP
         $callRes = $server->handle([

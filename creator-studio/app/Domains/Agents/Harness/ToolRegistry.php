@@ -3,10 +3,15 @@
 namespace App\Domains\Agents\Harness;
 
 use App\Domains\Agents\Cascade\TransmediaCascade;
+use App\Domains\Agents\Deals\BrandPitchSynthesizer;
+use App\Domains\Agents\Deals\DealFulfillmentGuardian;
 use App\Domains\Agents\Deals\SponsorNegotiator;
 use App\Domains\Agents\Engagement\LeadTriageAgent;
+use App\Domains\Agents\Guardrails\PlatformAlgorithmShield;
+use App\Domains\Agents\Harness\SprintOrchestrator;
 use App\Domains\Agents\Hooks\HookMatrixOptimizer;
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Optimization\EvergreenRecycler;
 use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
 use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
 use App\Domains\Agents\Verification\FactCheckShield;
@@ -154,6 +159,82 @@ class ToolRegistry
                     ],
                 ],
             ],
+            [
+                'name' => 'audit_deal_fulfillment',
+                'description' => 'Audit draft content against contracted Deal stipulations, FTC disclosures, and non-compete rules.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['content'],
+                    'properties' => [
+                        'content' => ['type' => 'string', 'description' => 'Draft script or social post content.'],
+                        'deal_id' => ['type' => 'integer', 'description' => 'Optional Deal model ID.'],
+                        'platform' => ['type' => 'string', 'description' => 'Target platform.'],
+                        'brand_name' => ['type' => 'string', 'description' => 'Optional sponsor brand name.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'generate_deal_wrap_report',
+                'description' => 'Synthesize executive sponsor wrap report verifying campaign deliverables and audience metrics for invoice sign-off.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'deal_id' => ['type' => 'integer', 'description' => 'Deal model ID.'],
+                        'impressions' => ['type' => 'integer', 'description' => 'Total recorded impressions.'],
+                        'clicks' => ['type' => 'integer', 'description' => 'Total tracked link clicks.'],
+                        'live_url' => ['type' => 'string', 'description' => 'Published video or post URL.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'synthesize_brand_pitch',
+                'description' => 'Synthesize proactive outbound sponsorship pitch package, customized integration concepts, and cold email for target brands.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['brand_name'],
+                    'properties' => [
+                        'brand_name' => ['type' => 'string', 'description' => 'Target company or product name.'],
+                        'product_category' => ['type' => 'string', 'description' => 'Category of product.'],
+                        'pitch_angle' => ['type' => 'string', 'description' => 'Specific video concept or theme.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'recycle_evergreen_content',
+                'description' => 'Recycle historical top-performing technical topics or scripts into 3 modernized 2026 Fresh Take angles.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'topic' => ['type' => 'string', 'description' => 'Past successful topic or proposition.'],
+                        'script_id' => ['type' => 'integer', 'description' => 'Optional Script ID.'],
+                        'target_platform' => ['type' => 'string', 'description' => 'Platform for reboot post.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'shield_platform_algorithm',
+                'description' => 'Audit and auto-armor draft content against platform ranking algorithm penalties (links, dwell time, hashtags).',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['content', 'platform'],
+                    'properties' => [
+                        'content' => ['type' => 'string', 'description' => 'Draft post text.'],
+                        'platform' => ['type' => 'string', 'description' => 'Platform name (linkedin, x, youtube, tiktok, threads).'],
+                        'title' => ['type' => 'string', 'description' => 'Optional title.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'orchestrate_weekly_sprint',
+                'description' => 'Autonomous Executive Producer: synthesize active brand deals, pipeline scripts, and social slots into an optimal weekly sprint.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'hours_available' => ['type' => 'integer', 'description' => 'Weekly production hours available.'],
+                        'focus_topic' => ['type' => 'string', 'description' => 'Primary video or content focus.'],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -179,6 +260,12 @@ class ToolRegistry
             'optimize_bandit_titles' => $this->optimizeBanditTitles($args),
             'triage_community_leads' => $this->triageCommunityLeads($args),
             'audit_script_retention' => $this->auditScriptRetention($args),
+            'audit_deal_fulfillment' => $this->auditDealFulfillment($args),
+            'generate_deal_wrap_report' => $this->generateDealWrapReport($args),
+            'synthesize_brand_pitch' => $this->synthesizeBrandPitch($args),
+            'recycle_evergreen_content' => $this->recycleEvergreenContent($args),
+            'shield_platform_algorithm' => $this->shieldPlatformAlgorithm($args),
+            'orchestrate_weekly_sprint' => $this->orchestrateWeeklySprint($args),
             default => throw new \InvalidArgumentException("Unknown tool: {$name}"),
         };
     }
@@ -281,5 +368,41 @@ class ToolRegistry
     {
         $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
         return app(ScriptRetentionAuditor::class)->audit($agent, $args);
+    }
+
+    public function auditDealFulfillment(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(DealFulfillmentGuardian::class)->auditDraft($agent, $args);
+    }
+
+    public function generateDealWrapReport(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(DealFulfillmentGuardian::class)->generateWrapReport($agent, $args);
+    }
+
+    public function synthesizeBrandPitch(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(BrandPitchSynthesizer::class)->synthesizePitch($agent, $args);
+    }
+
+    public function recycleEvergreenContent(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(EvergreenRecycler::class)->recycle($agent, $args);
+    }
+
+    public function shieldPlatformAlgorithm(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(PlatformAlgorithmShield::class)->auditAndArmor($agent, $args);
+    }
+
+    public function orchestrateWeeklySprint(array $args): array
+    {
+        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        return app(SprintOrchestrator::class)->planSprint($agent, $args);
     }
 }

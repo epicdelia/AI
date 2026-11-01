@@ -6,13 +6,17 @@ use App\Domains\Agents\AgentLearner;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\BrandResearch;
 use App\Domains\Agents\Cascade\TransmediaCascade;
+use App\Domains\Agents\Deals\BrandPitchSynthesizer;
+use App\Domains\Agents\Deals\DealFulfillmentGuardian;
 use App\Domains\Agents\Deals\SponsorNegotiator;
 use App\Domains\Agents\Debate\AdversarialDebate;
 use App\Domains\Agents\Engagement\LeadTriageAgent;
 use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
 use App\Domains\Agents\Guardrails\AgentGuardrails;
+use App\Domains\Agents\Guardrails\PlatformAlgorithmShield;
 use App\Domains\Agents\Harness\AgentHarness;
 use App\Domains\Agents\Harness\BenchmarkHarness;
+use App\Domains\Agents\Harness\SprintOrchestrator;
 use App\Domains\Agents\Hooks\HookMatrixOptimizer;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Memory\AgentEpisodicMemory;
@@ -20,6 +24,7 @@ use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\AgentPromptVersion;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Models\SwarmMission;
+use App\Domains\Agents\Optimization\EvergreenRecycler;
 use App\Domains\Agents\Optimization\PromptOptimizer;
 use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
 use App\Domains\Agents\Publisher;
@@ -656,6 +661,168 @@ class AgentsController extends Controller
 
         return response()->json([
             'message' => 'Script retention audit complete with 90-second reset pacing.',
+            'result' => $result,
+        ]);
+    }
+
+    public function auditDealFulfillment(Request $request, SocialAgent $agent, DealFulfillmentGuardian $guardian): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'deal_id' => ['nullable', 'exists:deals,id'],
+            'content' => ['required', 'string', 'max:50000'],
+            'platform' => ['nullable', 'string', 'max:50'],
+            'title' => ['nullable', 'string', 'max:500'],
+            'brand_name' => ['nullable', 'string', 'max:150'],
+        ]);
+
+        try {
+            $result = $guardian->auditDraft($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Brand deal fulfillment audited. Compliance score: {$result['compliance_score']}.",
+            'result' => $result,
+        ]);
+    }
+
+    public function generateDealWrapReport(Request $request, SocialAgent $agent, DealFulfillmentGuardian $guardian): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'deal_id' => ['nullable', 'exists:deals,id'],
+            'brand_name' => ['nullable', 'string', 'max:150'],
+            'impressions' => ['nullable', 'integer', 'min:0'],
+            'clicks' => ['nullable', 'integer', 'min:0'],
+            'live_url' => ['nullable', 'string', 'max:500'],
+            'positive_comments' => ['nullable', 'array'],
+        ]);
+
+        try {
+            $result = $guardian->generateWrapReport($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Executive sponsor wrap report generated for {$result['brand_name']}.",
+            'result' => $result,
+        ]);
+    }
+
+    public function synthesizeBrandPitch(Request $request, SocialAgent $agent, BrandPitchSynthesizer $synthesizer): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'brand_name' => ['required', 'string', 'max:150'],
+            'product_category' => ['nullable', 'string', 'max:200'],
+            'pitch_angle' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $result = $synthesizer->synthesizePitch($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Outbound sponsorship pitch package synthesized for {$result['target_brand']}.",
+            'result' => $result,
+        ]);
+    }
+
+    public function recycleEvergreen(Request $request, SocialAgent $agent, EvergreenRecycler $recycler): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'script_id' => ['nullable', 'exists:scripts,id'],
+            'post_id' => ['nullable', 'exists:social_posts,id'],
+            'topic' => ['nullable', 'string', 'max:500'],
+            'target_platform' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        try {
+            $result = $recycler->recycle($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Evergreen topic revitalized into 3 modern 2026 angles.',
+            'result' => $result,
+        ]);
+    }
+
+    public function scheduleEvergreenReboot(Request $request, SocialAgent $agent, EvergreenRecycler $recycler): JsonResponse
+    {
+        $data = $request->validate([
+            'reboot' => ['required', 'array'],
+            'reboot.platform' => ['required', 'string', 'max:50'],
+            'reboot.body' => ['required', 'string', 'max:30000'],
+            'reboot.title' => ['nullable', 'string', 'max:500'],
+            'reboot.parts' => ['nullable', 'array'],
+            'scheduled_for' => ['nullable', 'date'],
+        ]);
+
+        $post = $recycler->scheduleReboot($agent, $data);
+
+        return response()->json([
+            'message' => "Evergreen reboot scheduled for {$post->platform}.",
+            'post' => $post,
+        ], 201);
+    }
+
+    public function shieldAlgorithm(Request $request, SocialAgent $agent, PlatformAlgorithmShield $shield): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'platform' => ['required', 'string', 'max:50'],
+            'content' => ['required', 'string', 'max:30000'],
+            'title' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $result = $shield->auditAndArmor($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => "Platform algorithm audit complete. Reach score: {$result['algorithm_reach_score']}.",
+            'result' => $result,
+        ]);
+    }
+
+    public function planSprint(Request $request, SocialAgent $agent, SprintOrchestrator $orchestrator): JsonResponse
+    {
+        @set_time_limit(300);
+        AgentPlanner::assertReady();
+
+        $data = $request->validate([
+            'hours_available' => ['nullable', 'integer', 'min:1', 'max:80'],
+            'focus_topic' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $result = $orchestrator->planSprint($agent, $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Weekly production sprint roadmap generated.',
             'result' => $result,
         ]);
     }

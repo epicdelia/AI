@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>preview</title>
+<style>body{margin:0;display:flex;gap:16px;background:#555;align-items:flex-start}iframe{border:0;background:#fff}</style></head>
+<body>
+<!-- Temporary preview frames (deleted after checking): ?w=390&at=pricing -->
+<script>
+const q = new URLSearchParams(location.search);
+const f = document.createElement('iframe');
+f.src = '/';
+f.style.width = `${q.get('w') || 390}px`;
+f.style.height = `${q.get('h') || 1100}px`;
+document.body.append(f);
+if (q.get('at')) setTimeout(() => { const el = f.contentDocument.getElementById(q.get('at')); if (el) f.contentWindow.scrollTo(0, el.getBoundingClientRect().top + f.contentWindow.scrollY - 10); }, 20000);
+</script>
+</body></html>

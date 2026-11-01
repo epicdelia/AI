@@ -361,6 +361,13 @@ Route::prefix('api')->group(function () {
         Route::delete('youtube/uploads/{upload}', [YouTubeStudioController::class, 'cancelUpload']);
         Route::post('youtube/tests', [YouTubeStudioController::class, 'startTest']);
         Route::post('youtube/tests/{test}/stop', [YouTubeStudioController::class, 'stopTest']);
+        Route::post('youtube/pre-flight', [YouTubeStudioController::class, 'preFlight']);
+        Route::get('youtube/checks/{check}', [YouTubeStudioController::class, 'getCheck']);
+        Route::get('youtube/ab-tests', [YouTubeStudioController::class, 'abTests']);
+        Route::post('youtube/ab-tests', [YouTubeStudioController::class, 'startAbTest']);
+        Route::post('youtube/ab-tests/{abTest}/performance', [YouTubeStudioController::class, 'updateAbTestPerformance']);
+        Route::post('youtube/ab-tests/{abTest}/conclude', [YouTubeStudioController::class, 'concludeAbTest']);
+        Route::post('youtube/ab-tests/{abTest}/stop', [YouTubeStudioController::class, 'stopAbTest']);
 
         // Her profile photo (header avatar)
         Route::post('me/avatar', [ProfileController::class, 'upload']);

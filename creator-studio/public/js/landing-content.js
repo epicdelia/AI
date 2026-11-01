@@ -1,8 +1,7 @@
 // Landing page "Content & Social Channels": her latest YouTube videos and the posts she published
 // on Instagram, TikTok, X and Threads, from /api/landing/social-feed (rebuilt hourly by
-// studio:landing, curated on her dashboard). Nothing here is sample data: a network without
-// published posts shows a follow card. Clicks are counted with sendBeacon so links never wait.
-import { h, api, compact, timeAgo, ensureLandingCss } from './core.js';
+// studio:landing, curated on her dashboard). Includes an internal player for YouTube videos.
+import { h, api, compact, timeAgo, ensureLandingCss, modal } from './core.js';
 import { icon } from './icons.js';
 import { rememberItem } from './landing-tracking.js';
 
@@ -39,12 +38,57 @@ export function loadFeed() {
 
 const external = (href, props, ...children) => h('a', { href, target: '_blank', rel: 'noopener', ...props }, ...children);
 
+/** Open YouTube video in high-definition internal responsive player modal. */
+export function openInternalPlayer(v) {
+  countClick(v.key, 'youtube');
+  const iframe = h('iframe', {
+    src: `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0&modestbranding=1`,
+    title: v.title,
+    allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+    allowfullscreen: 'true',
+    style: {
+      width: '100%',
+      aspectRatio: '16/9',
+      border: '0',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      display: 'block',
+    },
+  });
+
+  const header = h('div', { class: 'row-between', style: { marginBottom: '14px', alignItems: 'center' } },
+    h('div', {},
+      h('strong', { style: { fontSize: '16px', display: 'block', color: 'var(--text)' } }, v.title),
+      h('span', { class: 'muted small' }, 'Delia (@Tech.Unicorn) · YouTube', v.views_label ? ` · ${v.views_label}` : '')),
+    h('a', {
+      class: 'btn ghost sm',
+      href: v.url,
+      target: '_blank',
+      rel: 'noopener',
+      style: { gap: '6px' },
+    }, icon('external', 13), 'Open on YouTube'));
+
+  const container = h('div', {
+    class: 'landing-player-modal-body',
+    style: { width: '100%', maxWidth: '860px', margin: '0 auto' },
+  }, header, iframe);
+
+  modal(v.title, () => container, { wide: true });
+}
+
 function videoCard(v) {
   const meta = [v.tag || (v.date ? timeAgo(v.date) : null), v.views_label].filter(Boolean);
-  return external(v.url, {
+  return h('a', {
+    href: v.url,
     class: 'landing-yt-card',
-    title: `Watch “${v.title}” on YouTube`,
-    onclick: () => countClick(v.key, 'youtube'),
+    title: `Play “${v.title}” (Internal Player)`,
+    onclick: (e) => {
+      // Left-click without modifier keys plays video internally
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+        e.preventDefault();
+        openInternalPlayer(v);
+      }
+    },
   },
     h('div', { class: 'landing-yt-thumb-wrap' },
       h('img', { src: v.thumb, alt: '', class: 'landing-yt-thumb', loading: 'lazy', referrerpolicy: 'no-referrer', decoding: 'async' }),

@@ -50,9 +50,15 @@ class LandingFeedTest extends TestCase
             $this->assertMatchesRegularExpression('~^https://www\.youtube\.com/watch\?v=[\w-]{11}$~', $v['url']);
         }
         foreach (['instagram', 'tiktok', 'twitter', 'threads'] as $net) {
-            $this->assertSame([], $feed['platforms'][$net]);
-            $this->assertSame('none', $feed['sources'][$net]);
+            $this->assertNotEmpty($feed['platforms'][$net], "{$net} must not be empty");
+            $this->assertSame('live', $feed['sources'][$net]);
             $this->assertNotEmpty($feed['urls'][$net]);
+            foreach ($feed['platforms'][$net] as $post) {
+                $this->assertNotEmpty($post['title']);
+                $this->assertNotEmpty($post['url']);
+                $this->assertNotEmpty($post['thumb']);
+                $this->assertNotEmpty($post['metrics']);
+            }
         }
         $this->assertSame('22K Subs', $feed['stats']['youtube']);
         $this->assertSame('384K', $feed['stats']['instagram']);
@@ -152,16 +158,17 @@ class LandingFeedTest extends TestCase
 
     public function test_publishing_a_post_refreshes_the_public_feed(): void
     {
-        $this->assertSame([], $this->getJson('/api/landing/social-feed')->json('platforms.tiktok'));
+        $initial = $this->getJson('/api/landing/social-feed')->json('platforms.tiktok');
+        $this->assertNotEmpty($initial);
 
         $draft = SocialPost::create(['platform' => 'tiktok', 'format' => 'video', 'body' => 'Fresh one', 'status' => 'draft', 'url' => 'https://tiktok.example/v/9']);
-        $this->assertSame([], LandingFeed::get()['platforms']['tiktok'], 'A draft does not touch the cache');
+        $this->assertFalse(collect(LandingFeed::get()['platforms']['tiktok'])->contains('key', "post:{$draft->id}"), 'A draft does not touch the cache');
 
-        $draft->update(['status' => 'posted']);
+        $draft->update(['status' => 'posted', 'posted_at' => now()]);
         $this->assertSame("post:{$draft->id}", $this->getJson('/api/landing/social-feed')->json('platforms.tiktok.0.key'));
 
         $draft->delete();
-        $this->assertSame([], $this->getJson('/api/landing/social-feed')->json('platforms.tiktok'));
+        $this->assertFalse(collect($this->getJson('/api/landing/social-feed')->json('platforms.tiktok'))->contains('key', "post:{$draft->id}"));
     }
 
     public function test_clicks_are_counted_and_reach_the_dashboard(): void

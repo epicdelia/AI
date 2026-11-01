@@ -1,6 +1,5 @@
 // Upload & test: send a video to YouTube from the studio (title, description, tags, thumbnail,
-// scheduled publish) and run title tests on live videos. Uploads go up in pieces, so a big file
-// or a dropped connection doesn't mean starting over.
+// scheduled publish), run Pre-Flight quality & monetization checks, and run Bayesian Multi-Variant A/B/C tests.
 import { h, api, busy, toast, pageHead, clear, field, timeAgo, link, confirmDialog, emptyState } from '../core.js';
 import { icon } from '../icons.js';
 
@@ -15,6 +14,8 @@ export async function renderYouTubeStudio(view) {
 
   const uploadsBox = h('div');
   const testsBox = h('div');
+  const abTestsBox = h('div');
+  const preflightBox = h('div', { class: 'preflight-card-container' });
   let pump = null;
 
   // ---- upload form ----
@@ -34,6 +35,24 @@ export async function renderYouTubeStudio(view) {
     onclick: (e) => { thumb = thumb === m.id ? null : m.id; thumbs.querySelectorAll('.yt-thumb').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget && thumb === m.id))); },
   }, h('img', { src: `/api/media/${m.id}/file`, alt: m.title || 'Thumbnail', loading: 'lazy' }))) : h('p', { class: 'muted small' }, 'No mockups yet: make one on a script (Thumbnail), or set it later in YouTube Studio.'));
   const bar = h('div', { class: 'yt-progress', hidden: true }, h('span'));
+
+  // ---- Pre-Flight Checks button ----
+  const preflightBtn = h('button', {
+    class: 'btn', type: 'button', onclick: () => busy(preflightBtn, 'Checking…', async () => {
+      if (!title.value.trim()) { toast('Enter a title before running checks.', 'err'); return; }
+      const res = await api('POST', 'youtube/pre-flight', {
+        title: title.value.trim(),
+        description: desc.value,
+        body: script?.body || '',
+        script_id: script?.id || null,
+      }).catch((e) => { toast(e.message, 'err'); return null; });
+      if (res?.check) {
+        drawPreflightCheck(res.check);
+        toast('Pre-Flight checks complete.');
+      }
+    }),
+  }, icon('shield', 15), 'Run Pre-Flight Checks');
+
   const send = h('button', {
     class: 'btn primary', disabled: !d.connected, onclick: () => busy(send, 'Uploading…', async () => {
       const f = file.files[0];
@@ -60,6 +79,23 @@ export async function renderYouTubeStudio(view) {
     }),
   }, icon('external', 15), 'Upload to YouTube');
 
+  function drawPreflightCheck(check) {
+    const toneLufs = check.lufs_status === 'pass' ? 'ok' : check.lufs_status === 'warning' ? 'late' : 'bad';
+    const toneAd = check.monetization_rating === 'green' ? 'ok' : check.monetization_rating === 'yellow' ? 'late' : 'bad';
+    clear(preflightBox).append(h('div', { class: 'callout', style: { marginTop: '14px', padding: '12px', border: '1px solid var(--border)' } },
+      h('div', { class: 'row-between' },
+        h('strong', {}, icon('shield', 14), ' Pre-Flight Quality Guard'),
+        h('div', { class: 'row', style: { gap: '6px' } },
+          h('span', { class: `pill ${toneLufs}` }, `Audio: ${check.integrated_lufs} LUFS`),
+          h('span', { class: `pill ${toneAd}` }, `Ad Suitability: ${check.monetization_score}/100`))),
+      h('p', { class: 'small muted', style: { margin: '6px 0 4px' } }, check.loudness_summary),
+      check.flagged_guidelines?.length ? h('ul', { class: 'small', style: { margin: '4px 0 0 16px', color: 'var(--text-muted)' } },
+        check.flagged_guidelines.map((g) => h('li', {}, h('strong', {}, g.guideline), ': ', g.advice))) : null,
+      h('div', { class: 'row', style: { gap: '10px', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' } },
+        h('span', {}, check.technical_notes?.is_uhd_ready ? '✓ 4K UHD Ready' : '✓ 1080p Ready'),
+        h('span', {}, check.has_paid_promotion ? '✓ Paid Promotion Synced' : 'Standard Upload'))));
+  }
+
   function startPump() {
     if (pump) return;
     pump = setInterval(async () => {
@@ -84,7 +120,76 @@ export async function renderYouTubeStudio(view) {
     })) : h('p', { class: 'muted small' }, 'Nothing uploaded from here yet.'));
   }
 
-  // ---- title tests ----
+  // ---- Multi-Variant Bayesian A/B/C testing ----
+  async function newAbTest() {
+    const list = await api('GET', 'youtube/studio/videos').catch((e) => { toast(e.message, 'err'); return null; });
+    if (!list) return;
+    const pick = h('select', {}, list.videos.map((v) => h('option', { value: v.id }, v.title)));
+    const t0 = h('input', { type: 'text', maxlength: 100, value: list.videos[0]?.title || '', placeholder: 'Original Title (Variant A Control)' });
+    pick.onchange = () => {
+      const found = list.videos.find((x) => x.id === pick.value);
+      if (found) t0.value = found.title;
+    };
+    const t1 = h('input', { type: 'text', maxlength: 100, placeholder: 'Challenger Title (Variant B)' });
+    const t2 = h('input', { type: 'text', maxlength: 100, placeholder: 'Challenger Title (Variant C, optional)' });
+
+    const { modal } = await import('../core.js');
+    const ok = await modal('New Bayesian A/B/C Multi-Variant Test', (close) => h('div', { class: 'ib-form' },
+      h('p', { class: 'muted small' }, 'Google Test & Compare Parity: Tests Thumbnail + Title variants simultaneously. Computes Bayesian Beta-Binomial posterior win probabilities and watch time share without time-decay bias.'),
+      field('Video to test', pick),
+      field('Variant A (Original Control)', t0),
+      field('Variant B (Challenger)', t1),
+      field('Variant C (Optional Challenger)', t2),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+        h('button', { class: 'btn', onclick: () => close(false) }, 'Cancel'),
+        h('button', { class: 'btn primary', onclick: (e) => busy(e.currentTarget, 'Creating…', async () => {
+          const variants = [{ title: t1.value.trim() }];
+          if (t2.value.trim()) variants.push({ title: t2.value.trim() });
+          await api('POST', 'youtube/ab-tests', {
+            video_id: pick.value,
+            original_title: t0.value.trim() || list.videos[0]?.title,
+            variants: variants,
+          });
+          close(true);
+        }) }, 'Launch Test & Compare'))), { wide: true });
+    if (ok) { toast('Bayesian Multi-Variant Test started.'); refresh(); }
+  }
+
+  function drawAbTests() {
+    const abTests = d.ab_tests || [];
+    clear(abTestsBox).append(abTests.length ? abTests.map((t) => {
+      const isDone = t.status === 'concluded';
+      const tone = isDone ? 'ok' : t.status === 'running' ? 'new' : 'bad';
+      return h('div', { class: 'yt-test', style: { marginBottom: '16px' } },
+        h('div', { class: 'row-between' },
+          h('strong', { class: 'clamp-1' }, t.original_title),
+          h('span', { class: `pill ${tone}` }, isDone ? 'Concluded' : t.status === 'running' ? 'Active' : t.status)),
+        h('ul', { class: 'yt-results' }, (t.variants || []).map((v, i) => {
+          const isWinner = t.winner_index === i;
+          const stats = (t.statistical_summary || []).find((s) => s.variant_id === i);
+          const winProb = stats ? stats.win_probability : (100 / (t.variants?.length || 1)).toFixed(1);
+          const ctr = stats ? `${stats.posterior_ctr}% CTR` : '0% CTR';
+          const wt = stats ? `${stats.watch_time_share}% watch` : '';
+          return h('li', { class: `${isWinner ? 'win' : ''}` },
+            h('span', { class: 'clamp-1' }, `Variant ${String.fromCharCode(65 + i)}: `, v.title, isWinner ? icon('trophy', 13) : ''),
+            h('span', { class: 'yt-bar' }, h('span', { style: { width: `${winProb}%` } })),
+            h('strong', { class: 'small' }, `${winProb}% win `, h('em', { class: 'muted' }, `(${ctr}, ${wt})`)));
+        })),
+        t.status === 'running' ? h('div', { class: 'row', style: { gap: '8px', marginTop: '8px' } },
+          h('button', { class: 'btn ghost sm', onclick: async () => {
+            if (await confirmDialog('Conclude test and lock highest-performing variant?', { ok: 'Conclude' })) {
+              await api('POST', `youtube/ab-tests/${t.id}/conclude`); refresh();
+            }
+          } }, 'Conclude Winner'),
+          h('button', { class: 'btn ghost sm', onclick: async () => {
+            if (await confirmDialog('Stop test and revert to original title?', { ok: 'Stop' })) {
+              await api('POST', `youtube/ab-tests/${t.id}/stop`); refresh();
+            }
+          } }, 'Stop & Revert')) : null);
+    }) : h('p', { class: 'muted small' }, 'No Bayesian A/B/C tests running yet.'));
+  }
+
+  // ---- legacy title tests ----
   async function newTest() {
     const list = await api('GET', 'youtube/studio/videos').catch((e) => { toast(e.message, 'err'); return null; });
     if (!list) return;
@@ -94,8 +199,8 @@ export async function renderYouTubeStudio(view) {
     const hours = h('select', {}, [[24, 'A day each (recommended)'], [12, '12 hours each'], [48, 'Two days each']].map(([v, l]) => h('option', { value: v }, l)));
     const rounds = h('select', {}, [[2, 'Twice each (fairer)'], [1, 'Once each'], [3, 'Three times each']].map(([v, l]) => h('option', { value: v }, l)));
     const { modal } = await import('../core.js');
-    const ok = await modal('Test titles', (close) => h('div', { class: 'ib-form' },
-      h('p', { class: 'muted small' }, 'Titles take turns on the video; whichever gets the most views per hour wins and stays. Best on videos that are a few days old (steady traffic). The current title is always one of the contenders.'),
+    const ok = await modal('Sequential title rotator', (close) => h('div', { class: 'ib-form' },
+      h('p', { class: 'muted small' }, 'Sequential rotator: titles take turns over 12-48h windows.'),
       field('Video', pick), field('Title B', t1), field('Title C', t2), h('div', { class: 'grid grid-2 tight' }, field('Each turn', hours), field('Turns', rounds)),
       h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
         h('button', { class: 'btn', onclick: () => close(false) }, 'Cancel'),
@@ -103,7 +208,7 @@ export async function renderYouTubeStudio(view) {
           await api('POST', 'youtube/tests', { video_id: pick.value, titles: [t1.value, t2.value].filter((x) => x.trim()), hours: Number(hours.value), rounds: Number(rounds.value) });
           close(true);
         }) }, 'Start test'))), { wide: true });
-    if (ok) { toast('Test started. The first switch happens after the first turn.'); refresh(); }
+    if (ok) { toast('Test started.'); refresh(); }
   }
 
   function drawTests() {
@@ -118,13 +223,19 @@ export async function renderYouTubeStudio(view) {
           h('strong', { class: 'small' }, `${r.views_per_hour}/h`)))),
         t.error ? h('p', { class: 'error-text small' }, t.error) : null,
         t.status === 'running' ? h('button', { class: 'btn ghost sm', onclick: async () => { if (await confirmDialog('Stop the test and put the original title back?', { ok: 'Stop' })) { await api('POST', `youtube/tests/${t.id}/stop`); refresh(); } } }, 'Stop & restore title') : null);
-    }) : h('p', { class: 'muted small' }, 'No title tests yet.'));
+    }) : h('p', { class: 'muted small' }, 'No legacy tests yet.'));
   }
 
-  async function refresh() { d = await api('GET', 'youtube/studio'); drawUploads(); drawTests(); }
+  async function refresh() {
+    d = await api('GET', 'youtube/studio');
+    drawUploads();
+    drawAbTests();
+    drawTests();
+    if (d.checks?.[0]) drawPreflightCheck(d.checks[0]);
+  }
 
   view.append(
-    pageHead('Upload & test', 'Send videos to YouTube from here, scheduled and with your thumbnail, and let titles compete on live videos.'),
+    pageHead('YouTube Studio & Pre-Flight Quality Guard', 'Upload with broadcast -14 LUFS checks, Ad Suitability certification, and Google Test & Compare Bayesian A/B/C testing.'),
     d.connected ? null : h('div', { class: 'card callout warn' }, 'Connect YouTube first: ', link('/connections', {}, 'Connections → YouTube'), '. (If it was connected before this update, reconnect once so the studio may upload.)'),
     h('div', { class: 'grid grid-2' },
       h('div', { class: 'card' },
@@ -132,12 +243,22 @@ export async function renderYouTubeStudio(view) {
         field('Video file', file), field('Title', title, 'up to 100 characters'), field('Description', desc), field('Tags', tags, 'comma separated'),
         h('div', { class: 'grid grid-2 tight' }, field('Visibility', privacy), whenField),
         h('div', { class: 'field' }, h('label', {}, 'Thumbnail'), thumbs),
-        bar, send),
+        preflightBox,
+        h('div', { class: 'row', style: { gap: '8px', marginTop: '12px' } }, preflightBtn, send),
+        bar),
       h('div', {},
-        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Uploads')), uploadsBox),
-        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Title tests'), h('button', { class: 'btn sm', disabled: !d.connected, onclick: newTest }, icon('plus', 14), 'New test')), testsBox))));
+        h('div', { class: 'card' },
+          h('div', { class: 'card-header' },
+            h('h2', {}, 'Test & Compare (A/B/C)'),
+            h('button', { class: 'btn sm primary', disabled: !d.connected, onclick: newAbTest }, icon('plus', 14), 'New A/B/C Test')),
+          abTestsBox),
+        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Uploads queue')), uploadsBox),
+        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Sequential Rotator (Legacy)'), h('button', { class: 'btn sm', disabled: !d.connected, onclick: newTest }, icon('plus', 14), 'New turn test')), testsBox))));
+
   drawUploads();
+  drawAbTests();
   drawTests();
+  if (d.checks?.[0]) drawPreflightCheck(d.checks[0]);
   if (d.uploads.some((u) => ['queued', 'uploading'].includes(u.status))) startPump();
   return () => { clearInterval(pump); };
 }

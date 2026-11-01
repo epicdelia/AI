@@ -108,8 +108,7 @@ export function stackSection({ onBookCall }) {
 function stackCard(pillar, idx) {
   const card = h('article', { class: 'landing-stack-card' },
     h('div', { class: 'landing-stack-card-head' },
-      h('span', { class: 'landing-stack-cat-badge' }, icon(pillar.icon, 13), pillar.category),
-      h('span', { class: 'landing-stack-badge' }, pillar.badge)),
+      h('h3', { class: 'landing-stack-title' }, icon(pillar.icon, 14), pillar.category.toLowerCase())),
     h('p', { class: 'landing-stack-desc' }, pillar.desc),
     h('ul', { class: 'landing-stack-tech-list', 'aria-label': `${pillar.category} tools` },
       pillar.technologies.map((t) => h('li', { class: 'landing-stack-tech-row' },

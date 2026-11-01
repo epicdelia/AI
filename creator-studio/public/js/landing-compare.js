@@ -1,17 +1,17 @@
 // Landing page "05: Why Delia Lazarescu": Comparison Matrix.
 // Demonstrates the concrete advantages of partnering directly with an Ex-Google Principal Engineer
 // versus bloated traditional software agencies or high-variance freelance marketplaces.
-// Compact, polished layout designed for quick scanning.
+// Compact, polished layout designed for quick scanning with natural lowercase / sentence-case typography.
 import { h } from './core.js';
 import { icon, brandMark } from './icons.js';
 
 const COMPARISON_ROWS = [
   {
-    criterion: 'Who Writes Your Code',
+    criterion: 'Who writes your code',
     delia: {
-      text: 'Delia directly (Ex-Google systems engineer and for exstreme difficult requirements - partner with a dedicated corporate software company. )',
+      text: 'Delia directly (Ex-Google systems engineer and for exstreme difficult requirements - partner with a dedicated corporate tech firm)',
       positive: true,
-      badge: 'Solo Principal',
+      badge: 'solo principal',
     },
     agency: {
       text: 'Junior devs rotated behind layers of account managers',
@@ -23,14 +23,14 @@ const COMPARISON_ROWS = [
     },
   },
   {
-    criterion: 'Shipping Velocity',
+    criterion: 'Shipping velocity',
     delia: {
-      text: '2 to 4 Weeks fixed sprint with weekly Friday Loom demos',
+      text: '2 to 4 weeks fixed sprint with weekly Friday Loom demos',
       positive: true,
-      badge: '2–4 Weeks',
+      badge: '2–4 weeks',
     },
     agency: {
-      text: '3 to 6 Months bogged down in committee meetings',
+      text: '3 to 6 months bogged down in committee meetings',
       positive: false,
     },
     freelance: {
@@ -39,11 +39,11 @@ const COMPARISON_ROWS = [
     },
   },
   {
-    criterion: 'Code Quality & Standards',
+    criterion: 'Code quality & standards',
     delia: {
       text: 'Production-grade architecture, automated tests & 30-day warranty',
       positive: true,
-      badge: 'Ex-Google Quality',
+      badge: 'ex-Google quality',
     },
     agency: {
       text: 'Over-engineered codebases or cookie-cutter templates',
@@ -55,11 +55,11 @@ const COMPARISON_ROWS = [
     },
   },
   {
-    criterion: 'Pricing Predictability',
+    criterion: 'Pricing predictability',
     delia: {
-      text: '100% Fixed-price scope or transparent monthly retainer',
+      text: '100% fixed-price scope or transparent monthly retainer',
       positive: true,
-      badge: 'Zero Surprise Fees',
+      badge: 'zero surprise fees',
     },
     agency: {
       text: 'Billable hours, change orders & ballooning invoices',
@@ -75,7 +75,7 @@ const COMPARISON_ROWS = [
     delia: {
       text: 'Async Slack/WhatsApp + weekly recorded Loom walkthroughs',
       positive: true,
-      badge: 'Full Transparency',
+      badge: 'full transparency',
     },
     agency: {
       text: 'Bureaucratic weekly status decks & endless sync calls',
@@ -87,11 +87,11 @@ const COMPARISON_ROWS = [
     },
   },
   {
-    criterion: 'Launch & Distribution',
+    criterion: 'Launch & distribution',
     delia: {
       text: 'Built-in launch amplification to 519K+ developer community',
       positive: true,
-      badge: 'Built-in Distribution',
+      badge: 'built-in distribution',
     },
     agency: {
       text: 'Zero distribution (they hand over code and walk away)',
@@ -109,17 +109,17 @@ export function comparisonSection({ onBookCall }) {
     h('table', { class: 'landing-compare-table', 'aria-label': 'Comparison between Delia Lazarescu, Agencies, and Freelancers' },
       h('thead', {},
         h('tr', {},
-          h('th', { scope: 'col', class: 'landing-compare-th-dim' }, 'Feature / Criterion'),
+          h('th', { scope: 'col', class: 'landing-compare-th-dim' }, 'Feature / criterion'),
           h('th', { scope: 'col', class: 'landing-compare-th-delia' },
             h('div', { class: 'landing-compare-delia-badge-wrap' },
               brandMark(16),
               h('strong', {}, 'Delia Lazarescu')),
-            h('span', { class: 'landing-compare-sub' }, 'Ex-Google Solo Principal')),
+            h('span', { class: 'landing-compare-sub' }, 'ex-Google solo principal')),
           h('th', { scope: 'col', class: 'landing-compare-th-other' },
-            h('strong', {}, 'Traditional Dev Agency'),
+            h('strong', {}, 'Traditional dev agency'),
             h('span', { class: 'landing-compare-sub' }, '5–15 person firm')),
           h('th', { scope: 'col', class: 'landing-compare-th-other' },
-            h('strong', {}, 'Freelance Marketplace'),
+            h('strong', {}, 'Freelance marketplace'),
             h('span', { class: 'landing-compare-sub' }, 'Upwork / Fiverr')))),
       h('tbody', {},
         COMPARISON_ROWS.map((row) =>

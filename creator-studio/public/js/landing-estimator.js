@@ -43,6 +43,7 @@ export function estimatorSection({ onBookCall, onStripePay }) {
     const weeks = typeObj.id === 'retainer' ? 'Ongoing' : `${Math.max(2, Math.round(totalDays / 7))} to ${Math.max(3, Math.ceil(totalDays / 6))} Weeks`;
     const priceText = typeObj.id === 'retainer' ? '$3,500/mo' : `$${typeObj.basePrice.toLocaleString()}`;
     const depositText = typeObj.id === 'retainer' ? '$3,500' : `$${typeObj.depositPrice.toLocaleString()}`;
+    const cloudObj = CLOUDS.find((c) => c.id === selectedCloud) || CLOUDS[0];
 
     resultBox.replaceChildren(
       h('div', { class: 'landing-est-result-card' },
@@ -54,6 +55,16 @@ export function estimatorSection({ onBookCall, onStripePay }) {
             h('span', { class: 'landing-est-price-label' }, typeObj.id === 'retainer' ? 'Monthly Retainer' : 'Fixed-Price Package'),
             h('div', { class: 'landing-est-price' }, priceText),
             typeObj.id !== 'retainer' ? h('span', { class: 'landing-est-deposit' }, `Or ${depositText} (50% deposit to lock slot)`) : null)),
+        h('div', { class: 'landing-est-specs' },
+          h('div', { class: 'landing-est-spec-item' },
+            h('span', { class: 'muted small' }, 'Model:'),
+            h('strong', { class: 'small' }, typeObj.label)),
+          h('div', { class: 'landing-est-spec-item' },
+            h('span', { class: 'muted small' }, 'Capabilities:'),
+            h('strong', { class: 'small' }, `${selectedFeatures.size} of ${FEATURES.length} Selected`)),
+          h('div', { class: 'landing-est-spec-item' },
+            h('span', { class: 'muted small' }, 'Infrastructure:'),
+            h('strong', { class: 'small' }, cloudObj.label))),
         h('ul', { class: 'landing-est-deliverables' },
           h('li', {}, icon('check', 13), h('span', {}, '100% Client Code & IP Ownership from Day 1')),
           h('li', {}, icon('check', 13), h('span', {}, 'Weekly Friday Recorded Loom Video Walkthroughs')),
@@ -69,7 +80,10 @@ export function estimatorSection({ onBookCall, onStripePay }) {
             type: 'button',
             class: 'btn ghost',
             onclick: () => onStripePay('mvp_deposit'),
-          }, icon('credit-card', 14), ` Lock Sprint (${depositText} deposit)`) : null)));
+          }, icon('credit-card', 14), ` Lock Sprint (${depositText} deposit)`) : null),
+        h('div', { class: 'landing-est-trust' },
+          icon('check', 12),
+          h('span', { class: 'small muted' }, 'Fixed-Price Guarantee · Zero Hidden Fees · Direct Line with Delia'))));
   }
 
   // Type Selector

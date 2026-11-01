@@ -1,7 +1,7 @@
 // Landing page "07: FAQ": Frequently Asked Questions about working with Delia.
 // Detailed, authentic answers based on her Creator Studio business model,
 // engineering background, 2-4 week sprints, IP ownership, and nomad logistics.
-// Includes interactive category filters, live instant search, and accessible accordion items.
+// Includes interactive category filters and accessible accordion items.
 import { h } from './core.js';
 import { icon } from './icons.js';
 
@@ -98,29 +98,12 @@ const CATEGORIES = [
 
 /**
  * Interactive FAQ Section for the Tech Unicorn Landing Page.
- * Supports category tabs, instant text search filtering, and accessible accordion items.
+ * Supports category tabs and accessible accordion items.
  */
 export function faqSection({ onBookCall, onStripePay }) {
   let activeCat = 'all';
-  let searchQuery = '';
 
   const listEl = h('div', { class: 'landing-faq-list', role: 'region', 'aria-label': 'FAQ items' });
-
-  // Search input
-  const searchInput = h('input', {
-    type: 'search',
-    class: 'landing-faq-search-input',
-    placeholder: 'Search questions (e.g., "ownership", "deposit", "stack", "timezone")...',
-    'aria-label': 'Search frequently asked questions',
-    oninput: (e) => {
-      searchQuery = e.target.value.toLowerCase().trim();
-      renderItems();
-    },
-  });
-
-  const searchBox = h('div', { class: 'landing-faq-search-wrap' },
-    h('span', { class: 'landing-faq-search-icon', 'aria-hidden': 'true' }, icon('search', 15)),
-    searchInput);
 
   // Category filter buttons
   const catButtons = CATEGORIES.map((cat) => {
@@ -160,37 +143,7 @@ export function faqSection({ onBookCall, onStripePay }) {
       }, icon('mail', 14), ' Email Delia Directly')));
 
   function renderItems() {
-    const filtered = FAQ_ITEMS.filter((item) => {
-      const matchCat = activeCat === 'all' || item.category === activeCat;
-      if (!matchCat) return false;
-      if (!searchQuery) return true;
-      const haystack = `${item.q} ${item.a} ${item.catLabel} ${item.tags.join(' ')}`.toLowerCase();
-      return haystack.includes(searchQuery);
-    });
-
-    if (!filtered.length) {
-      listEl.replaceChildren(h('div', { class: 'landing-faq-empty' },
-        h('span', { class: 'landing-faq-empty-icon' }, icon('search', 28)),
-        h('h3', {}, 'No matching questions found'),
-        h('p', { class: 'muted' }, `No answers match "${searchQuery}". Try a different keyword or book a free call to ask Delia directly.`),
-        h('button', {
-          type: 'button',
-          class: 'btn sm',
-          style: { marginTop: '12px' },
-          onclick: () => {
-            searchInput.value = '';
-            searchQuery = '';
-            activeCat = 'all';
-            catButtons.forEach((b, idx) => {
-              const on = idx === 0;
-              b.classList.toggle('is-active', on);
-              b.setAttribute('aria-pressed', String(on));
-            });
-            renderItems();
-          },
-        }, 'Reset search filter')));
-      return;
-    }
+    const filtered = FAQ_ITEMS.filter((item) => activeCat === 'all' || item.category === activeCat);
 
     listEl.replaceChildren(...filtered.map((item, idx) => faqAccordionItem(item, idx, { onBookCall, onStripePay })));
   }
@@ -204,8 +157,7 @@ export function faqSection({ onBookCall, onStripePay }) {
         h('h2', { id: 'faq-heading' }, 'Frequently asked ', h('em', {}, 'questions')),
         h('p', { class: 'muted' }, 'Clear, transparent answers about timelines, intellectual property, pricing, and how an ex-Google nomad ships production software.')),
       h('div', { class: 'landing-faq-controls' },
-        pillsWrap,
-        searchBox),
+        pillsWrap),
       listEl,
       ctaCard));
 
@@ -272,7 +224,7 @@ export function faqCard() {
     h('div', { class: 'card-header' },
       h('div', {},
         h('h2', {}, 'Landing Page FAQ'),
-        h('p', { class: 'muted small', style: { margin: '2px 0 0' } }, `${FAQ_ITEMS.length} verified questions across ${CATEGORIES.length - 1} categories with instant search & conversion CTAs`)),
+        h('p', { class: 'muted small', style: { margin: '2px 0 0' } }, `${FAQ_ITEMS.length} verified questions across ${CATEGORIES.length - 1} categories with direct booking & deposit links`)),
       h('a', { href: '/#faq', class: 'btn sm ghost' }, icon('eye', 14), 'View on Landing')),
     h('ul', { class: 'item-list' },
       FAQ_ITEMS.slice(0, 4).map((f) =>

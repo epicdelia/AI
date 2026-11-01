@@ -1138,6 +1138,15 @@ export function renderLanding(view, options = {}) {
             'Delia Lazarescu · Ex-Google Engineer · Digital Nomad'),
           h('p', { style: { fontSize: '0.82rem', color: 'var(--muted)', lineHeight: '1.6', margin: 0, maxWidth: '380px' } },
             'AI-powered software development, technical advisory, and high-impact media. Shipped from beach cafés and bullet trains across 60+ countries.'),
+          h('div', { class: 'landing-footer-avail-pill' },
+            h('span', { class: 'landing-nomad-live-dot' }),
+            h('span', {}, 'Taking on 1 MVP build sprint for next month')),
+          h('div', { class: 'landing-footer-stats-strip' },
+            h('span', {}, '519K+ Community'),
+            h('span', { class: 'muted' }, '·'),
+            h('span', {}, '69 Countries'),
+            h('span', { class: 'muted' }, '·'),
+            h('span', {}, 'Ex-Google')),
           emailPill()),
 
         // Column 1: Core Engineering
@@ -1163,24 +1172,44 @@ export function renderLanding(view, options = {}) {
           h('a', { href: 'https://instagram.com/tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'Instagram & Reels'),
           h('a', { href: 'https://linkedin.com/in/delialazarescu', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'LinkedIn Articles'),
           h('a', { href: 'https://tiktok.com/@tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'TikTok Shorts'),
-          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: openMediaKit }, 'Media Kit & Demographics')),
+          h('a', { href: 'https://threads.net/@tech.unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'Threads Daily Dispatches'),
+          h('a', { href: 'https://x.com/tech_unicorn', target: '_blank', rel: 'noopener', class: 'landing-footer-link' }, 'X / Twitter Engineering Takes'),
+          h('a', { href: '#speaking', class: 'landing-footer-link' }, 'Keynote Speaking & Panels'),
+          h('a', { href: '#speaking', class: 'landing-footer-link' }, 'Hands-on AI Workshops'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: openMediaKit }, 'Media Kit & Demographics'),
+          h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Brand Partnerships & Rates'),
+          h('a', { href: '#download', class: 'landing-footer-link' }, 'Free Architecture Blueprint'),
+          h('a', { href: '#about', class: 'landing-footer-link' }, 'Delia’s Story & Background')),
 
         // Column 3: Platform & Connect
         h('div', { class: 'landing-footer-col' },
           h('h3', { class: 'landing-footer-col-title' }, 'Studio & Connect'),
           h('button', { type: 'button', class: 'landing-footer-link-btn', style: { color: 'var(--accent)', fontWeight: '700' }, onclick: () => onAuthClick() }, isAuth ? 'Open Studio Dashboard' : 'Studio Suite Sign In'),
           h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleBookCall('mvp_build') }, 'Book an Intro Call'),
-          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('retainer') }, 'Pay with Stripe'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('retainer') }, 'Pay Retainer ($3,500/mo)'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('mvp_deposit') }, 'Pay 50% MVP Deposit'),
+          h('button', { type: 'button', class: 'landing-footer-link-btn', onclick: () => handleStripePay('advisory_session') }, 'Strategy Session ($500)'),
+          h('a', { href: '#process', class: 'landing-footer-link' }, 'Check Sprint Capacity'),
+          h('a', { href: '#estimator', class: 'landing-footer-link' }, 'Project Scope Estimator'),
+          h('a', { href: '#testimonials', class: 'landing-footer-link' }, 'Client Stories & Reviews'),
           h('a', { href: '/links', class: 'landing-footer-link' }, 'Link in Bio Hub'),
-          h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-link' }, 'hello@thetechunicorn.com'))),
+          h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-link' }, 'hello@thetechunicorn.com'),
+          h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Stripe Checkout Security'),
+          h('a', { href: '#guarantees', class: 'landing-footer-link' }, '24h Response Promise'))),
 
       // Subfooter Bar
       h('div', { class: 'landing-footer-sub' },
         h('div', {},
           h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.')),
         h('div', { class: 'landing-footer-sub-right' },
-          h('a', { href: '#top', class: 'landing-footer-sub-link' }, 'Back to top'),
-          h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links'),
+          h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links Hub'),
+          h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-sub-link' }, 'Contact'),
+          h('button', {
+            type: 'button',
+            class: 'landing-back-to-top-btn',
+            'aria-label': 'Scroll back to top of page',
+            onclick: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+          }, icon('arrow-up', 13), h('span', {}, 'Back to top')),
           h('button', { type: 'button', class: 'landing-footer-link-btn landing-footer-sub-link', onclick: openMediaKit }, 'Media Kit')))));
 
   const stack = stackSection({ onBookCall: handleBookCall });
@@ -1215,14 +1244,33 @@ export function renderLanding(view, options = {}) {
     marquee,
     footer);
 
+  // Floating back to top button
+  const floatingTop = h('button', {
+    type: 'button',
+    class: 'landing-floating-top',
+    'aria-label': 'Back to top',
+    onclick: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+  }, icon('arrow-up', 14), h('span', {}, 'Top'));
+
+  const onScroll = () => {
+    if (window.scrollY > 600) {
+      floatingTop.classList.add('is-visible');
+    } else {
+      floatingTop.classList.remove('is-visible');
+    }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
   const landingWrapper = h('div', { class: 'landing-page' },
     drawer.drawerWrap,
-    landingBox);
+    landingBox,
+    floatingTop);
 
   view.replaceChildren(landingWrapper);
   if (!isAuth) document.title = 'Tech Unicorn · Delia Lazarescu, Engineer & Creator';
   handleLandingLinks({ onBookCall: handleBookCall, onStripePay: handleStripePay });
   return () => {
+    window.removeEventListener('scroll', onScroll);
     document.removeEventListener('click', closeProfileMenu);
     document.removeEventListener('keydown', onEsc);
     drawer.destroy();

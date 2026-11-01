@@ -119,6 +119,8 @@ class ClientDeal
             'annotations_count' => $deal->annotations()->where('status', 'open')->count(),
             'tiers' => self::amountShown($deal) ? \App\Domains\Deals\ProposalTiers::forDeal($deal)['tiers'] : [],
             'selected_tier' => self::amountShown($deal) ? ($deal->selected_tier ?: 'growth') : null,
+            'tiers' => \App\Domains\Deals\ProposalTiers::forDeal($deal)['tiers'],
+            'selected_tier' => $deal->selected_tier ?: 'growth',
             'deliverables' => self::deliverables($deal),
             'payment_terms' => self::amountShown($deal) ? $deal->payment_terms : null,
             'invoiced_at' => $deal->invoiced_at?->toIso8601String(),

@@ -65,3 +65,4 @@ function renderLegalDoc(view, data, type) {
     bodyCard
   );
 }
+

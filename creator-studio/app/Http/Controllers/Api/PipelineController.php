@@ -54,6 +54,7 @@ class PipelineController extends Controller
         $deal->forceFill(['kit_views' => $deal->kit_views + 1, 'kit_viewed_at' => now()])->saveQuietly();
         if ($first) {
             AgentEvent::log('lead', "{$deal->brand_name} opened your media kit. A good moment to follow up.");
+            \App\Domains\Workflows\Engine::fire('deal_opened', \App\Domains\Workflows\Engine::dealContext($deal, ['what' => 'media kit']), "kit:{$deal->id}:".now()->format('YmdH'));
         }
 
         return response()->json(MediaKit::data() + [

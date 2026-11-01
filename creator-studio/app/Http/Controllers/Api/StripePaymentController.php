@@ -220,6 +220,7 @@ class StripePaymentController extends Controller
         if ($payment->wasRecentlyCreated) {
             $deal->update(['subscription_status' => 'active']);
             AgentEvent::log('payment', "Retainer renewed: {$deal->brand_name}, $" . number_format($payment->amount) . '.');
+            \App\Domains\Workflows\Engine::fire('payment', \App\Domains\Workflows\Engine::dealContext($deal, ['amount' => $payment->amount, 'renewal' => true]), "pay:{$payment->id}");
         }
     }
 

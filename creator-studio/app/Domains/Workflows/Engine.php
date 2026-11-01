@@ -2,6 +2,9 @@
 
 namespace App\Domains\Workflows;
 
+use App\Domains\Deals\CallPrep;
+use App\Domains\Landing\Attribution;
+use App\Models\Deal;
 use App\Domains\Agents\AgentPlanner;
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
@@ -86,6 +89,9 @@ class Engine
             'new_dm' => empty(array_filter((array) ($c['keywords'] ?? []))) || self::hasKeyword((string) ($ctx['text'] ?? ''), (array) $c['keywords']),
             'post_performs' => (float) ($ctx['ratio'] ?? 0) >= (float) ($c['multiplier'] ?? 2),
             'any_comment' => ($ctx['intent'] ?? '') !== 'spam',
+            'new_lead' => (int) ($ctx['fit'] ?? 0) >= (int) ($c['min_fit'] ?? 0),
+            'deal_stage' => ($ctx['stage'] ?? null) === ($c['stage'] ?? null),
+            'deal_opened' => in_array($c['what'] ?? 'any', ['any', $ctx['what'] ?? ''], true),
             default => true,
         };
     }
@@ -105,6 +111,21 @@ class Engine
         return ['item_id' => $item->id, 'kind' => $item->kind, 'platform' => $item->platform, 'text' => $item->text, 'author' => $item->author,
             'intent' => $item->intent, 'post_id' => $post?->id, 'post_title' => $post?->title, 'post_url' => $post?->url,
             'post_text' => $post ? mb_substr($post->asText(), 0, 2000) : null];
+    }
+
+    /** Context for a deal event (new lead, stage, payment, opened): {deal}, {contact}, {amount}… */
+    public static function dealContext(Deal $deal, array $extra = []): array
+    {
+        return $extra + ['deal_id' => $deal->id, 'deal' => $deal->brand_name, 'contact' => $deal->contact_name ?: $deal->brand_name,
+            'amount' => (float) $deal->rate, 'source' => $deal->source ? Attribution::label($deal->source) : 'added by hand', 'stage' => $deal->stage,
+            'fit' => $deal->lead_score['score'] ?? null, 'platform' => isset(Platforms::PLATFORMS[$deal->source ?? '']) ? $deal->source : null,
+            'text' => mb_substr((string) ($deal->key_talking_points ?: $deal->notes), 0, 500)];
+    }
+
+    /** Fire a business event without ever breaking what triggered it (a booking, a payment…). */
+    public static function fire(string $event, array $ctx, string $ref): void
+    {
+        rescue(fn () => self::dispatch($event, $ctx, $ref), null, false);
     }
 
     /** Context for a post (published, taking off). */
@@ -367,6 +388,24 @@ class Engine
 
                 return ['ok' => true, 'message' => "“{$agent->name}” planned ".count($this->planner->run($agent)).' post(s).'];
 
+            case 'prep_call':
+                $deal = $this->deal($ctx, $dry);
+                if ($dry) {
+                    return ['ok' => true, 'message' => 'Would write a prep brief for '.($deal?->brand_name ?? 'the lead').'.'];
+                }
+                $brief = app(CallPrep::class)->brief($deal);
+
+                return ['ok' => true, 'message' => "Prep brief ready for {$deal->brand_name}".($brief['researched'] ? ' (with web research)' : '').'.'];
+
+            case 'move_deal':
+                $deal = $this->deal($ctx, $dry);
+                if ($dry) {
+                    return ['ok' => true, 'message' => 'Would move '.($deal?->brand_name ?? 'the deal')." to {$c['stage']}."];
+                }
+                $deal->update(['stage' => $c['stage']]);
+
+                return ['ok' => true, 'message' => "{$deal->brand_name} moved to {$c['stage']}.", 'ctx' => ['stage' => $c['stage']]];
+
             case 'notify':
                 $msg = $this->fill($c['message'], $ctx);
                 if (! $dry) {
@@ -429,6 +468,16 @@ class Engine
         };
     }
 
+    private function deal(array $ctx, bool $dry): ?Deal
+    {
+        $deal = isset($ctx['deal_id']) ? Deal::find($ctx['deal_id']) : null;
+        if (! $deal && ! $dry) {
+            throw new RuntimeException('The deal for this run is gone.');
+        }
+
+        return $deal;
+    }
+
     /** {text}, {author}, {name} (= @author), {platform}, {post_title}, {post_url}, {post_text}. */
     public function fill(string $template, array $ctx): string
     {
@@ -436,6 +485,8 @@ class Engine
             '{text}' => $ctx['text'] ?? '', '{author}' => $ctx['author'] ?? '', '{name}' => ! empty($ctx['author']) ? '@'.ltrim($ctx['author'], '@') : '',
             '{platform}' => isset($ctx['platform']) ? (Platforms::PLATFORMS[$ctx['platform']]['label'] ?? $ctx['platform']) : '',
             '{post_title}' => $ctx['post_title'] ?? '', '{post_url}' => $ctx['post_url'] ?? '', '{post_text}' => $ctx['post_text'] ?? '',
+            '{deal}' => $ctx['deal'] ?? '', '{contact}' => $ctx['contact'] ?? '', '{source}' => $ctx['source'] ?? '', '{stage}' => $ctx['stage'] ?? '',
+            '{amount}' => isset($ctx['amount']) ? '$'.number_format((float) $ctx['amount']) : '', '{fit}' => isset($ctx['fit']) ? (string) $ctx['fit'] : '',
         ];
 
         return trim(preg_replace('/ {2,}/', ' ', strtr($template, $vars)));
@@ -465,6 +516,19 @@ class Engine
 
                 return $post ? self::postContext($post, ['ratio' => (float) ($c['multiplier'] ?? 2), 'sample' => true])
                     : ['platform' => $platforms[0] ?? 'linkedin', 'text' => 'Sample post', 'post_text' => 'Sample post', 'ratio' => 2, 'sample' => true];
+            case 'new_lead':
+            case 'deal_stage':
+            case 'payment':
+            case 'deal_opened':
+                $deal = Deal::whereNotNull('source')->latest()->first() ?? Deal::latest()->first();
+                $extra = ['sample' => true] + ($t['type'] === 'deal_stage' ? ['stage' => $c['stage'] ?? 'contracted'] : []) + ($t['type'] === 'deal_opened' ? ['what' => ($c['what'] ?? 'any') === 'any' ? 'proposal' : $c['what']] : []);
+
+                return $deal ? self::dealContext($deal, $extra)
+                    : $extra + ['deal' => 'Acme Inc', 'contact' => 'Sam', 'amount' => 6000, 'source' => 'YouTube', 'stage' => $extra['stage'] ?? 'inquiry', 'fit' => 72, 'platform' => null, 'text' => 'We need an AI onboarding assistant.'];
+            case 'testimonial':
+                return ['event' => 'testimonial', 'author' => 'Ana (Acme)', 'text' => 'Shipped our MVP in three weeks.', 'platform' => null, 'sample' => true];
+            case 'subscriber':
+                return ['event' => 'subscriber', 'author' => 'dev@example.com', 'text' => '', 'platform' => null, 'sample' => true];
             default:
                 return ['platform' => null, 'text' => '', 'sample' => true];
         }
@@ -473,6 +537,12 @@ class Engine
     public static function describeTrigger(array $ctx): string
     {
         $net = isset($ctx['platform']) && $ctx['platform'] ? (Platforms::PLATFORMS[$ctx['platform']]['label'] ?? $ctx['platform']) : null;
+        if (isset($ctx['deal_id'])) {
+            return "{$ctx['deal']}".(isset($ctx['what']) ? " opened their {$ctx['what']}" : " ({$ctx['stage']})").(! empty($ctx['amount']) ? ', $'.number_format((float) $ctx['amount']) : '').'.';
+        }
+        if (isset($ctx['event']) && in_array($ctx['event'], ['testimonial', 'subscriber'], true)) {
+            return $ctx['event'] === 'testimonial' ? "Testimonial from {$ctx['author']}: ".mb_substr((string) $ctx['text'], 0, 120) : "New subscriber: {$ctx['author']}.";
+        }
         if (isset($ctx['kind'])) {
             return ($ctx['kind'] === 'dm' ? 'DM' : 'Comment').(! empty($ctx['author']) ? " from @{$ctx['author']}" : '').($net ? " on {$net}" : '').': '.mb_substr((string) $ctx['text'], 0, 140);
         }
@@ -535,6 +605,9 @@ class Engine
             $needs = Catalog::get($n['type'])['needs'] ?? null;
             if ($needs === 'item' && ! in_array($event, ['comment', 'dm'], true)) {
                 $p[] = '“'.Catalog::get($n['type'])['label'].'” needs a comment or DM trigger.';
+            }
+            if ($needs === 'deal' && ! in_array($event, ['new_lead', 'deal_stage', 'payment', 'deal_opened'], true)) {
+                $p[] = '“'.Catalog::get($n['type'])['label'].'” needs a deal trigger (New website lead, Deal moves, Payment received, Proposal or kit opened).';
             }
             if ($needs === 'post' && ! in_array($event, ['post_published', 'post_performs'], true)) {
                 $p[] = '“'.Catalog::get($n['type'])['label'].'” needs a post trigger (Post published or Post takes off).';

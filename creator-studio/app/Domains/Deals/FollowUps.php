@@ -33,14 +33,14 @@ class FollowUps
     /** @return Collection<int, array{deal: Deal, days: int, reason: string, kind: string}> */
     public static function due(): Collection
     {
-        return Deal::where(fn ($q) => $q->where('stage', '!=', 'paid')
+        return Deal::where(fn ($q) => $q->whereNotIn('stage', ['paid', 'lost'])
             ->orWhere(fn ($q) => $q->where('paid_at', '<=', now()->subDays(self::TESTIMONIAL_AFTER))->where('paid_at', '>=', now()->subDays(120))
                 ->whereNotIn('id', Testimonial::whereNotNull('deal_id')->select('deal_id'))))
             ->where(fn ($q) => $q->whereNull('follow_up_snoozed_until')->orWhere('follow_up_snoozed_until', '<=', now()))
             ->get()
             ->map(fn (Deal $d) => self::check($d))
             ->filter()
-            ->sortByDesc(fn ($r) => [$r['kind'] === 'kit_opened' ? 1 : 0, $r['days'] * max(1, (float) $r['deal']->rate)])
+            ->sortByDesc(fn ($r) => [in_array($r['kind'], ['kit_opened', 'proposal_opened', 'checkout'], true) ? 1 : 0, $r['days'] * max(1, (float) $r['deal']->rate)])
             ->values();
     }
 
@@ -60,6 +60,12 @@ class FollowUps
         $first = is_array($deal->deliverables) ? ($deal->deliverables[0] ?? []) : [];
         if ($deal->stage === 'inquiry' && ($first['platform'] ?? null) === 'stripe' && $deal->payment_status !== 'paid' && $touch->lte(now()->subDay())) {
             return ['deal' => $deal, 'days' => (int) floor($touch->diffInDays(now())), 'kind' => 'checkout', 'reason' => 'Started a checkout but didn’t pay'];
+        }
+
+        // Opening her proposal page (without accepting yet) after she last wrote: follow up now.
+        if ($deal->room_viewed_at && ! $deal->accepted_at && $deal->room_viewed_at->greaterThan($touch)) {
+            return ['deal' => $deal, 'days' => (int) $touch->diffInDays(now()), 'kind' => 'proposal_opened',
+                'reason' => 'Opened your proposal '.$deal->room_viewed_at->diffForHumans()];
         }
 
         // A brand opening her media kit after she last wrote is the best moment to follow up.

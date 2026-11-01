@@ -15,6 +15,7 @@ class ScheduleController extends Controller
         'scan' => ['command' => 'studio:scan', 'label' => 'Breakout scan', 'when' => 'Daily at 07:00'],
         'feeds' => ['command' => 'studio:feeds', 'label' => 'Refresh news feeds', 'when' => 'Every 3 hours'],
         'checkin' => ['command' => 'studio:checkin', 'label' => 'Weekly check-in & mentor verdict', 'when' => 'Mondays at 08:00'],
+        'pipeline' => ['command' => 'studio:pipeline', 'label' => 'Call prep briefs & morning follow-ups', 'when' => 'Daily at 08:15'],
         'memory' => ['command' => 'studio:memory', 'label' => 'Update Memory index', 'when' => 'Daily at 03:30'],
         'clips' => ['command' => 'studio:clips', 'label' => 'Collect finished Shorts (Vizard)', 'when' => 'Every 10 min while any are processing'],
         'broll' => ['command' => 'studio:broll', 'label' => 'Collect finished b-roll (fal.ai)', 'when' => 'Every 2 min while any are rendering'],

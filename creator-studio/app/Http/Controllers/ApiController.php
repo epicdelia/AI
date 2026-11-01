@@ -589,6 +589,21 @@ class ApiController extends Controller
                 .($own->count() >= 5 ? $own->reverse()->take(2)->map($fmt)->implode("\n")."\n" : '');
         }
 
+        // What pays: content that brought website leads, and the problems those leads wrote about.
+        $paying = collect(rescue(fn () => \App\Domains\Landing\RevenueAttribution::summary(180)['items'], [], false))->where('leads', '>', 0)->take(5);
+        if ($paying->isNotEmpty()) {
+            $userPrompt .= "\nHer content that brought website leads or paying clients (more like these grows her business, not just views):\n"
+                .$paying->map(fn ($i) => "- \"{$i['title']}\" ({$i['platform']}): {$i['leads']} lead(s), \${$i['paid']} paid")->implode("\n")."\n";
+        }
+        $briefs = Deal::whereNotNull('source')->where('created_at', '>=', now()->subDays(90))->latest()->take(8)->pluck('notes')
+            ->map(fn ($n) => trim((string) preg_replace('/^.*Notes from client:\s*/s', '', (string) $n)))
+            ->filter(fn ($t) => mb_strlen($t) >= 30 && ! str_starts_with($t, 'None'))
+            ->map(fn ($t) => '- '.mb_substr(str_replace("\n", ' ', $t), 0, 220));
+        if ($briefs->isNotEmpty()) {
+            $userPrompt .= "\nWhat recent website leads asked her to help with (her ideal clients' problems; a video that solves one attracts more of them):\n"
+                .$briefs->implode("\n")."\n";
+        }
+
         if ($extra !== '') {
             $userPrompt .= "\nPersonal notes/direction from creator:\n{$extra}\n";
         }

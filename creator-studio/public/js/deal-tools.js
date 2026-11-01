@@ -7,7 +7,7 @@ import {
 import { icon } from './icons.js';
 import { printMarkdown } from './components.js';
 
-const KIND_PILL = { kit_opened: ['ok', 'opened kit'], testimonial: ['picked', 'ask for a review'], checkout: ['bad', 'unpaid checkout'], invoiced: ['bad', null] };
+const KIND_PILL = { proposal_opened: ['ok', 'opened proposal'], kit_opened: ['ok', 'opened kit'], testimonial: ['picked', 'ask for a review'], checkout: ['bad', 'unpaid checkout'], invoiced: ['bad', null] };
 const usd = (n, cur = 'USD') => `${cur === 'USD' ? '$' : `${cur} `}${Math.round(Number(n) || 0).toLocaleString()}`;
 const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const pairs = (v, a, b) => lines(v).map((l) => { const i = l.indexOf(':'); return i > 0 ? { [a]: l.slice(0, i).trim(), [b]: l.slice(i + 1).trim() } : { [a]: l, [b]: '' }; });
@@ -381,4 +381,116 @@ export function meetingLine(deal) {
     icon('calendar', 13),
     h('span', {}, `Intro call ${at.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`),
     at > new Date() ? h('a', { href: `/api/deals/${deal.id}/meeting.ics`, class: 'btn ghost sm' }, 'Add to calendar') : pill('', 'past'));
+}
+
+// ---------------------------------------------------------------- closing: client page, prep, lost, insights
+
+/** The client's own deal page (/deal/<token>): proposal, Accept and Pay. */
+export function roomLinkDialog(deal) {
+  return modal(`Client page: ${deal.brand_name}`, () => {
+    const box = h('div', {}, h('p', { class: 'muted' }, 'Making the link…'));
+    api('POST', `deals/${deal.id}/room-link`).then((r) => clear(box).append(
+      h('p', { class: 'muted small' }, 'Send this instead of an attachment: they read the proposal, accept it with their name, and pay by card when Stripe is set up. You’re told when they open it, and accepting moves the deal to Contracted.'),
+      r.has_proposal ? null : h('p', { class: 'small', style: { color: 'var(--warn)' } }, icon('alert', 13), ' Write the proposal first (Deals → Proposal): the page shows it.'),
+      h('div', { class: 'row', style: { gap: '8px' } },
+        h('input', { type: 'text', readonly: true, value: r.url, style: { flex: 1 }, onfocus: (e) => e.target.select() }),
+        h('button', { class: 'btn primary', onclick: () => copyText(r.url, 'Client page link copied.') }, icon('copy', 14), 'Copy')),
+      h('p', { class: 'small', style: { marginTop: '10px' } },
+        r.accepted_at ? `Accepted by ${r.accepted_by}, ${timeAgo(r.accepted_at)}.` : r.views ? `Opened ${r.views} time${r.views === 1 ? '' : 's'}, last ${timeAgo(r.viewed_at)}. Not accepted yet.` : 'Not opened yet.'),
+    )).catch((e) => clear(box).append(h('p', { class: 'error-text' }, e.message)));
+    return box;
+  });
+}
+
+function prepView(p) {
+  const list = (title, xs) => (xs?.length ? h('div', {}, h('h3', { class: 'small' }, title), h('ul', { class: 'mini-list' }, xs.map((x) => h('li', {}, x)))) : null);
+  return h('div', { class: 'prep-brief' },
+    h('p', {}, p.summary),
+    p.about_them ? h('p', { class: 'small' }, h('strong', {}, 'About them: '), p.about_them) : null,
+    p.sources?.length ? h('p', { class: 'small' }, p.sources.map((s, i) => [i ? ' · ' : '', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, s.title)])) : null,
+    list('Likely needs', p.likely_needs),
+    list('Ask them', p.questions),
+    p.objections?.length ? h('div', {}, h('h3', { class: 'small' }, 'If they say…'), h('ul', { class: 'mini-list' }, p.objections.map((o) => h('li', {}, h('span', {}, h('strong', {}, `“${o.objection}”`), h('div', { class: 'muted small' }, o.answer)))))) : null,
+    p.package ? h('p', { class: 'small' }, icon('briefcase', 13), h('strong', {}, ` Suggest: ${p.package.name} ($${Number(p.package.price).toLocaleString()})`), p.package.why ? ` · ${p.package.why}` : '') : null,
+    list('Watch out for', p.red_flags),
+    p.next_step ? h('p', { class: 'small' }, icon('arrow', 13), h('strong', {}, ' Ask for at the end: '), p.next_step) : null,
+    h('p', { class: 'basis-note' }, `${p.ai ? 'AI brief' : 'Template (AI wasn’t available)'}${p.researched ? ', with web research' : ', no web research (set up web search in Settings to include it)'} · ${timeAgo(p.generated_at)}`));
+}
+
+/** Before an intro call: who they are, what to ask, what to suggest. */
+export function prepDialog(deal) {
+  return modal(`Call prep: ${deal.brand_name}`, () => {
+    const out = h('div', {}, deal.prep ? prepView(deal.prep) : h('p', { class: 'muted small' }, 'Writing it now…'));
+    const btn = h('button', { class: 'btn sm' }, icon('sparkle', 13), deal.prep ? 'Write again' : 'Write the brief');
+    const make = () => busy(btn, 'Researching and writing…', async () => {
+      const r = await api('POST', `deals/${deal.id}/prep`);
+      deal.prep = r.prep;
+      clear(out).append(prepView(r.prep));
+    });
+    btn.addEventListener('click', make);
+    if (!deal.prep) setTimeout(make, 0);
+    return h('div', {},
+      h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } },
+        deal.meeting_at ? h('span', { class: 'small' }, icon('calendar', 13), ` ${new Date(deal.meeting_at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`) : h('span'),
+        btn),
+      out);
+  }, { wide: true });
+}
+
+export const LOST_REASONS = { price: 'Price / budget', timing: 'Timing', no_reply: 'Went quiet', competitor: 'Chose someone else', not_fit: 'Not a fit', scope: 'Scope changed', other: 'Other' };
+
+export function lostDialog(deal, onDone) {
+  return modal(`Mark lost: ${deal.brand_name}`, (close) => {
+    const reason = h('select', {}, Object.entries(LOST_REASONS).map(([k, l]) => h('option', { value: k }, l)));
+    const note = h('textarea', { rows: 3, placeholder: 'Optional: what you learned' });
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'Lost deals make your win rate and “why deals are lost” honest. It stays in Deals under Lost.'),
+      field('Why', reason), field('Note', note),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+        h('button', { class: 'btn ghost', onclick: () => close() }, 'Cancel'),
+        h('button', {
+          class: 'btn primary',
+          onclick: (e) => busy(e.currentTarget, 'Saving…', async () => {
+            const r = await api('POST', `deals/${deal.id}/lost`, { reason: reason.value, note: note.value.trim() || null });
+            toast(r.message);
+            close(true);
+            onDone?.();
+          }),
+        }, 'Mark lost')));
+  });
+}
+
+function insightsTable(rows) {
+  return h('div', { class: 'table-wrap' }, h('table', {},
+    h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', { class: 'num' }, 'Deals'), h('th', { class: 'num' }, 'Won'), h('th', { class: 'num' }, 'Win rate'), h('th', { class: 'num' }, 'Revenue'), h('th', { class: 'num' }, 'Avg won'))),
+    h('tbody', {}, rows.map((g) => h('tr', {}, h('td', {}, g.label), h('td', { class: 'num' }, g.deals), h('td', { class: 'num' }, g.won),
+      h('td', { class: 'num' }, g.win_rate === null ? '–' : `${g.win_rate}%`), h('td', { class: 'num' }, usd(g.revenue)), h('td', { class: 'num' }, g.avg_won ? usd(g.avg_won) : '–'))))));
+}
+
+/** Deals: what her closed deals say (win rate, size, days to close, sources, lost reasons, real rates). */
+export function insightsCard() {
+  const body = h('div', {}, h('p', { class: 'muted small' }, 'Loading…'));
+  const box = h('details', { class: 'card insights-card' },
+    h('summary', {}, h('strong', {}, 'Pipeline insights'), h('span', { class: 'muted small' }, ' · what your closed deals say')), body);
+  let loaded = false;
+  box.addEventListener('toggle', async () => {
+    if (!box.open || loaded) return;
+    loaded = true;
+    const r = await api('GET', 'deals/insights').catch((e) => ({ error: e.message }));
+    if (r.error) { clear(body).append(h('p', { class: 'error-text' }, r.error)); return; }
+    const br = r.brand_rates;
+    clear(body).append(
+      r.enough ? null : h('p', { class: 'muted small' }, `Win rates need ${r.needed}+ closed deals (paid or lost); you have ${r.closed}. Mark deals that didn’t happen as lost to keep this honest.`),
+      h('div', { class: 'grid grid-4' },
+        h('div', { class: 'card stat-box tone-good' }, h('div', { class: 'num' }, r.win_rate === null ? '–' : `${r.win_rate}%`), h('div', { class: 'lbl' }, `win rate · ${r.won} won, ${r.lost} lost`)),
+        h('div', { class: 'card stat-box tone-accent' }, h('div', { class: 'num' }, r.median_deal ? usd(r.median_deal) : '–'), h('div', { class: 'lbl' }, 'median deal')),
+        h('div', { class: 'card stat-box tone-violet' }, h('div', { class: 'num' }, r.median_days_to_close ?? '–'), h('div', { class: 'lbl' }, 'days to close (median)')),
+        h('div', { class: 'card stat-box tone-warn' }, h('div', { class: 'num' }, usd(r.revenue)), h('div', { class: 'lbl' }, 'won in the last year'))),
+      r.by_source.length ? [h('h3', { class: 'small', style: { marginTop: '14px' } }, 'By source'), insightsTable(r.by_source)] : null,
+      r.by_type.length ? [h('h3', { class: 'small', style: { marginTop: '14px' } }, 'By kind of deal'), insightsTable(r.by_type)] : null,
+      r.lost_reasons.length ? h('p', { class: 'small', style: { marginTop: '12px' } }, h('strong', {}, 'Why deals are lost: '), r.lost_reasons.map((l) => `${l.label} ${l.count}`).join(' · ')) : null,
+      br.paid_count ? h('p', { class: 'small' }, h('strong', {}, 'Brand deals: '), `brands paid you ${usd(br.paid_median)} (median of ${br.paid_count})`,
+        br.rate_card_median ? `; your rate card suggests ${usd(br.rate_card_median)}${br.paid_median < br.rate_card_median * 0.8 ? '. You may be undercharging.' : '.'}` : '.') : null);
+  });
+  return box;
 }

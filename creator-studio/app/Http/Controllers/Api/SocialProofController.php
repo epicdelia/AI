@@ -6,6 +6,7 @@ use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Deals\FollowUps;
 use App\Domains\Engagement\Models\EngagementItem;
 use App\Domains\Landing\Attribution;
+use App\Domains\Workflows\Engine;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Setting;
@@ -72,6 +73,8 @@ class SocialProofController extends Controller
         $t->update($data + ['submitted_at' => now(), 'status' => $t->status === 'approved' ? 'approved' : 'submitted']);
         if ($first) {
             AgentEvent::log('lead', "{$data['name']} sent you a testimonial".($data['company'] ? " ({$data['company']})" : '').'. Approve it in Website → Testimonials.');
+            Engine::fire('testimonial', ['event' => 'testimonial', 'author' => trim($data['name'].($data['company'] ? " ({$data['company']})" : '')), 'text' => $data['quote'],
+                'platform' => null, 'permission' => $data['permission']], "testimonial:{$t->id}");
         }
 
         return response()->json(['message' => 'Thank you! Your words mean a lot.']);
@@ -100,10 +103,14 @@ class SocialProofController extends Controller
         $from = Attribution::resolve($data['attribution'] ?? null, $request->getHost());
         $sub = Subscriber::firstOrNew(['email' => strtolower(trim($data['email']))]);
         $sub->fill(['name' => $data['name'] ?? $sub->name, 'magnet' => $m['title'], 'unsubscribed_at' => null]);
-        if (! $sub->exists) {
+        $new = ! $sub->exists;
+        if ($new) {
             $sub->fill(['source' => $from['source'], 'attribution' => $from['attribution']]);
         }
         $sub->save();
+        if ($new) {
+            Engine::fire('subscriber', ['event' => 'subscriber', 'author' => $sub->email, 'text' => (string) $sub->name, 'source' => Attribution::label($sub->source), 'platform' => null], "sub:{$sub->id}");
+        }
 
         return response()->json($ok);
     }

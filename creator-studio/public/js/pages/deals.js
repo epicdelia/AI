@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import {
   followUpsCard, followUpDialog, proposalDialog, kitLinkDialog, complianceDialog, wrapReportDialog,
   outboundPitchDialog, prospectsDialog, sourceChip, meetingLine, leadScoreChip,
+  roomLinkDialog, prepDialog, lostDialog, insightsCard,
 } from '../deal-tools.js';
 
 const STAGE_LABELS = {
@@ -19,6 +20,7 @@ const STAGE_LABELS = {
   scheduled: 'Scheduled',
   invoiced: 'Invoiced',
   paid: 'Paid',
+  lost: 'Lost',
 };
 
 const STAGE_PILLS = {
@@ -32,6 +34,7 @@ const STAGE_PILLS = {
   scheduled: 'picked',
   invoiced: 'WARN',
   paid: 'ok',
+  lost: 'dropped',
 };
 
 export async function renderDeals(view) {
@@ -101,14 +104,17 @@ export async function renderDeals(view) {
           deal.stage !== 'paid' ? h('button', { class: 'btn sm ghost', onclick: () => followUpDialog(deal, reload) }, icon('mail', 13), 'Follow up')
             : h('button', { class: 'btn sm ghost', title: 'A private link where they write a testimonial for your site', onclick: () => followUpDialog(deal, reload) }, icon('star', 13), 'Ask for a review'),
           ['prospect', 'inquiry', 'pitching', 'negotiating'].includes(deal.stage) || deal.proposal ? h('button', { class: 'btn sm ghost', onclick: () => proposalDialog(deal, reload) }, icon('doc', 13), 'Proposal') : null,
+          deal.proposal ? h('button', { class: 'btn sm ghost', title: 'A page where they read, accept and pay', onclick: () => roomLinkDialog(deal) }, icon('globe', 13), deal.accepted_at ? 'Accepted ✓' : deal.room_views ? `Client page · opened ${deal.room_views}×` : 'Client page') : null,
+          deal.meeting_at || ['inquiry', 'pitching'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => prepDialog(deal) }, icon('target', 13), deal.prep ? 'Call prep ✓' : 'Call prep') : null,
           h('button', { class: 'btn sm ghost', onclick: () => kitLinkDialog(deal) }, icon('link', 13), 'Kit link'),
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),
           ['contracted', 'production', 'in_review', 'scheduled'].includes(deal.stage) || deal.script_id ? h('button', { class: 'btn sm ghost', onclick: () => complianceDialog(deal) }, icon('check', 13), 'Sponsor check') : null,
           h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice'),
           h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report'),
-          ['scheduled', 'invoiced', 'paid'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => wrapReportDialog(deal) }, icon('file-text', 13), 'Wrap report') : null),
+          ['scheduled', 'invoiced', 'paid'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => wrapReportDialog(deal) }, icon('file-text', 13), 'Wrap report') : null,
+          !['paid', 'lost'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', title: 'It didn’t happen: counts towards your win rate', onclick: () => lostDialog(deal, reload) }, icon('x', 13), 'Lost') : null),
         h('div', { class: 'row' },
-          deal.stage !== 'paid' ? h('button', {
+          !['paid', 'lost'].includes(deal.stage) ? h('button', {
             class: 'btn sm primary',
             onclick: async () => {
               const next = deal.stage === 'prospect' ? 'pitching' : deal.stage === 'invoiced' ? 'paid' : 'invoiced';
@@ -116,7 +122,7 @@ export async function renderDeals(view) {
               toast(`Deal marked as ${STAGE_LABELS[next]}.`);
               await reload();
             },
-          }, deal.stage === 'prospect' ? 'Start pitching' : deal.stage === 'invoiced' ? 'Mark paid' : 'Mark invoiced') : h('span', { class: 'small' }, '✓ Paid'))));
+          }, deal.stage === 'prospect' ? 'Start pitching' : deal.stage === 'invoiced' ? 'Mark paid' : 'Mark invoiced') : h('span', { class: 'small' }, deal.stage === 'lost' ? `Lost${deal.lost_reason ? ` · ${deal.lost_reason.replace('_', ' ')}` : ''}` : '✓ Paid'))));
   }
 
   function draw() {
@@ -486,6 +492,7 @@ Payment Terms: Net 30 days`;
       h('button', { class: 'btn primary', onclick: () => editDealDialog() }, icon('plus', 15), 'New deal')),
     followBox,
     statsRow,
+    insightsCard(),
     tabBar,
     dealsContainer,
   );
@@ -494,11 +501,11 @@ Payment Terms: Net 30 days`;
 
   // ?follow-up=<id> (dashboard next step) or ?proposal=<id> (the Copilot) opens that dialog.
   const params = new URLSearchParams(location.search);
-  const openId = Number(params.get('follow-up') || params.get('proposal'));
+  const openId = Number(params.get('follow-up') || params.get('proposal') || params.get('prep'));
   const target = openId && dealsData.deals.find((d) => d.id === openId);
   if (target) {
     history.replaceState({}, '', '/deals');
-    (params.has('proposal') ? proposalDialog : followUpDialog)(target, reload);
+    (params.has('proposal') ? proposalDialog : params.has('prep') ? prepDialog : followUpDialog)(target, reload);
   }
 }
 

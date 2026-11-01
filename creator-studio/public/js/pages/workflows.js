@@ -436,13 +436,15 @@ export async function renderWorkflow(view, id) {
         const items = Object.entries(cat).filter(([, def]) => def.kind === kind && `${def.label} ${def.summary}`.toLowerCase().includes(term));
         if (!items.length) return null;
         return [h('p', { class: 'wf-add-group' }, title), items.map(([type, def]) => {
-          const blocked = (def.needs === 'item' && !['comment', 'dm'].includes(event)) || (def.needs === 'post' && !['post_published', 'post_performs'].includes(event));
+          const blocked = (def.needs === 'item' && !['comment', 'dm'].includes(event)) || (def.needs === 'post' && !['post_published', 'post_performs'].includes(event))
+            || (def.needs === 'deal' && !['new_lead', 'deal_stage', 'payment', 'deal_opened'].includes(event));
+          const why = { item: 'Needs a comment or DM trigger', post: 'Needs a post trigger', deal: 'Needs a deal trigger' }[def.needs];
           return h('button', {
             type: 'button', class: 'wf-add-item', disabled: blocked,
-            title: blocked ? (def.needs === 'item' ? 'Needs a comment or DM trigger' : 'Needs a post trigger') : '',
+            title: blocked ? why : '',
             onclick: () => (replace ? replaceTrigger(type) : insert(type, at)),
           }, toneIcon(def, 15), h('span', {}, h('strong', {}, def.label), h('span', { class: 'muted small' },
-            blocked ? (def.needs === 'item' ? 'Needs a comment or DM trigger' : 'Needs a post trigger') : def.summary.replace(/\{[^}]+\}/g, '…'))));
+            blocked ? why : def.summary.replace(/\{[^}]+\}/g, '…'))));
         })];
       }));
     };

@@ -86,6 +86,8 @@ class CopilotTools
             ['name' => 'get_revenue_overview', 'description' => 'Her money at a glance: paid this month, open and weighted pipeline, follow-ups due, the website funnel (visits, requests, paid over 30 days) and which channels and videos/posts brought leads and revenue (90 days). Use for "how is the business doing" or "what content pays".', 'parameters' => $s([])],
             ['name' => 'list_follow_ups', 'description' => 'Deals that need a follow-up now (website leads with no reply, proposals with no answer, stalled negotiations, unpaid invoices, brands that opened her media kit), most urgent first.', 'parameters' => $s([])],
             ['name' => 'draft_follow_up', 'description' => 'Draft a follow-up email for one deal, in her voice (subject + body). It is NOT sent: she copies it. Optional angle.', 'parameters' => $s(['deal_id' => $int('Deal id'), 'angle' => $str('Optional angle, e.g. offer a smaller pilot')], ['deal_id'])],
+            ['name' => 'get_pipeline_insights', 'description' => 'What her closed deals say (last year): win rate, median deal size, days to close, which sources and deal types win, why deals were lost, and what brands actually paid vs her rate card. Use for pricing and "where should I focus" questions.', 'parameters' => $s([])],
+            ['name' => 'prep_call', 'description' => 'Write (or rewrite) the prep brief for an intro call with a deal: research on the company (when web search is set up), likely needs, questions, objections, package to suggest. Saved on the deal.', 'parameters' => $s(['deal_id' => $int('Deal id')], ['deal_id'])],
             ['name' => 'list_sponsor_prospects', 'description' => 'Brands currently sponsoring videos in her niche (found in competitor video descriptions during breakout scans), with how many channels, an example, and whether they are already in her deals.', 'parameters' => $s([])],
             ['name' => 'audit_script_retention', 'description' => 'AI retention audit of one of her scripts: where viewers are likely to drop, and pacing resets to add. Its scores are AI estimates: say so.', 'parameters' => $s(['script_id' => $int('Script id'), 'target_duration_minutes' => $int('Optional target length in minutes')], ['script_id'])],
             ['name' => 'generate_hook_matrix', 'description' => 'Six opening hooks in different styles for a topic on one network. Its scores are AI estimates.', 'parameters' => $s(['topic' => $str('Topic or thesis'), 'platform' => $str('Network', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube'])], ['topic'])],
@@ -114,7 +116,7 @@ class CopilotTools
                 ['name' => 'create_social_post', 'description' => 'Propose a draft post (she approves it). Formats: linkedin post|carousel, instagram carousel|reel|post|story, x post|thread, tiktok video|photo, threads post|thread, youtube short|community. Put thread posts, carousel slides or Reel/Short beats in parts.',
                     'parameters' => $s(['platform' => $str('Platform', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube']), 'format' => $str('Format'), 'title' => $str('Short internal label'), 'body' => $str('Post text or caption'), 'parts' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Thread posts, slides or beats'], 'script_id' => $int('Optional source script id')], ['platform', 'format', 'body'])],
                 ['name' => 'update_deal', 'description' => 'Propose changing a deal: move its stage, set the fee, add a dated note, or mark that she followed up. She approves it.',
-                    'parameters' => $s(['deal_id' => $int('Deal id'), 'stage' => $str('New stage', Deal::STAGES), 'rate' => ['type' => 'number', 'description' => 'Agreed fee'], 'note' => $str('A note to add'), 'followed_up' => ['type' => 'boolean', 'description' => 'She has just followed up'], 'reason' => $str('One line: why')], ['deal_id'])],
+                    'parameters' => $s(['deal_id' => $int('Deal id'), 'stage' => $str('New stage', Deal::STAGES), 'rate' => ['type' => 'number', 'description' => 'Agreed fee'], 'note' => $str('A note to add'), 'followed_up' => ['type' => 'boolean', 'description' => 'She has just followed up'], 'lost_reason' => $str('Why it was lost (with stage lost)', array_keys(Deal::LOST_REASONS)), 'reason' => $str('One line: why')], ['deal_id'])],
                 ['name' => 'create_deal', 'description' => 'Propose adding a deal (a brand, client or lead) to her pipeline.',
                     'parameters' => $s(['brand_name' => $str('Brand or client'), 'contact_name' => $str('Contact'), 'contact_email' => $str('Email'), 'stage' => $str('Stage', Deal::STAGES), 'rate' => ['type' => 'number', 'description' => 'Fee if known'], 'notes' => $str('Notes')], ['brand_name'])],
                 ['name' => 'write_proposal', 'description' => 'Propose writing (or rewriting) the client proposal for a deal: scope, timeline, investment from her packages, next steps. Saved on the deal for her to edit and send.',
@@ -152,6 +154,8 @@ class CopilotTools
             'list_follow_ups' => 'Checking who needs a follow-up',
             'draft_follow_up' => 'Drafting a follow-up for deal #'.($args['deal_id'] ?? '?'),
             'list_sponsor_prospects' => 'Looking at sponsors in your niche',
+            'get_pipeline_insights' => 'Reading your closed deals',
+            'prep_call' => 'Preparing the call for deal #'.($args['deal_id'] ?? '?'),
             'audit_script_retention' => 'Auditing the retention of script #'.($args['script_id'] ?? '?'),
             'generate_hook_matrix' => 'Writing hooks',
             'generate_title_variants' => 'Writing title variants',
@@ -219,6 +223,8 @@ class CopilotTools
             'list_follow_ups' => $json(FollowUps::list(20)),
             'draft_follow_up' => $json(FollowUps::draft(Deal::find((int) ($a['deal_id'] ?? 0)) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.'), $this->llm, $a['angle'] ?? null)),
             'list_sponsor_prospects' => $json(SponsorProspects::list(180, 20)),
+            'get_pipeline_insights' => $json(\App\Domains\Deals\PipelineInsights::summary(365)),
+            'prep_call' => $json(app(\App\Domains\Deals\CallPrep::class)->brief(Deal::find((int) ($a['deal_id'] ?? 0)) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.'))),
             default => in_array($tool, self::ENGINES, true) ? $json($this->engine($tool, $a)) : throw new RuntimeException("Unknown tool: {$tool}"),
         };
     }
@@ -475,7 +481,7 @@ class CopilotTools
             })(),
             'update_deal' => (function () use ($a) {
                 $d = Deal::findOrFail($a['deal_id']);
-                $before = self::dealSnapshot($d, ['stage', 'rate', 'notes', 'last_contacted_at', 'stage_changed_at', 'paid_at', 'payment_status', 'invoiced_at']);
+                $before = self::dealSnapshot($d, ['stage', 'rate', 'notes', 'last_contacted_at', 'stage_changed_at', 'paid_at', 'payment_status', 'invoiced_at', 'lost_reason']);
                 $fields = [];
                 if (! empty($a['stage'])) {
                     $fields['stage'] = $a['stage'];
@@ -487,6 +493,9 @@ class CopilotTools
                 }
                 if (isset($a['rate'])) {
                     $fields['rate'] = max(0, (float) $a['rate']);
+                }
+                if (($a['stage'] ?? null) === 'lost') {
+                    $fields['lost_reason'] = isset(Deal::LOST_REASONS[$a['lost_reason'] ?? '']) ? $a['lost_reason'] : 'other';
                 }
                 if (! empty($a['note'])) {
                     $fields['notes'] = trim(($d->notes ? $d->notes."\n\n" : '').now()->format('j M').": {$a['note']}");

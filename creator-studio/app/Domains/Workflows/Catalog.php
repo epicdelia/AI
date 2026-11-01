@@ -7,7 +7,8 @@ namespace App\Domains\Workflows;
  * actions. Fields drive both the config panel and the "not configured yet" check, so a new
  * node type is one entry here plus a handler in Engine.
  *
- * Text fields accept {text}, {author}, {name}, {platform}, {post_title}, {post_url}, {post_text}.
+ * Text fields accept {text}, {author}, {name}, {platform}, {post_title}, {post_url}, {post_text},
+ * and for business triggers {deal}, {contact}, {amount}, {source}, {stage}, {fit}.
  */
 class Catalog
 {
@@ -49,6 +50,28 @@ class Catalog
                     ['key' => 'weekday', 'label' => 'On', 'type' => 'select', 'options' => [['1', 'Monday'], ['2', 'Tuesday'], ['3', 'Wednesday'], ['4', 'Thursday'], ['5', 'Friday'], ['6', 'Saturday'], ['7', 'Sunday']], 'default' => '1', 'show_if' => ['every', 'week']],
                     ['key' => 'time', 'label' => 'At', 'type' => 'time', 'default' => '09:00', 'required' => true],
                 ]],
+            // ---- Business triggers (Deals, the website, payments) ----
+            'new_lead' => ['kind' => 'trigger', 'label' => 'New website lead', 'icon' => 'briefcase', 'tone' => 'blue', 'event' => 'new_lead',
+                'summary' => 'Someone books a call or starts a checkout', 'fields' => [
+                    ['key' => 'min_fit', 'label' => 'Only if the fit score is at least', 'type' => 'number', 'min' => 0, 'max' => 100, 'step' => 5, 'default' => 0],
+                ]],
+            'deal_stage' => ['kind' => 'trigger', 'label' => 'Deal moves', 'icon' => 'briefcase', 'tone' => 'blue', 'event' => 'deal_stage',
+                'summary' => 'A deal moves to {stage}', 'fields' => [
+                    ['key' => 'stage', 'label' => 'To', 'type' => 'select', 'required' => true, 'default' => 'contracted', 'options' => [
+                        ['pitching', 'Pitching'], ['negotiating', 'Negotiating'], ['contracted', 'Contracted'], ['production', 'In production'], ['scheduled', 'Scheduled'],
+                        ['invoiced', 'Invoiced'], ['paid', 'Paid'], ['lost', 'Lost'],
+                    ]],
+                ]],
+            'payment_received' => ['kind' => 'trigger', 'label' => 'Payment received', 'icon' => 'check', 'tone' => 'blue', 'event' => 'payment',
+                'summary' => 'A deal is paid or a retainer renews', 'fields' => []],
+            'deal_opened' => ['kind' => 'trigger', 'label' => 'Proposal or kit opened', 'icon' => 'eye', 'tone' => 'blue', 'event' => 'deal_opened',
+                'summary' => 'A client opens their {what} link', 'fields' => [
+                    ['key' => 'what', 'label' => 'Which link', 'type' => 'select', 'default' => 'any', 'options' => [['any', 'proposal or media kit'], ['proposal', 'proposal'], ['media kit', 'media kit']]],
+                ]],
+            'testimonial_received' => ['kind' => 'trigger', 'label' => 'Testimonial received', 'icon' => 'star', 'tone' => 'blue', 'event' => 'testimonial',
+                'summary' => 'A client sends a testimonial', 'fields' => []],
+            'new_subscriber' => ['kind' => 'trigger', 'label' => 'New subscriber', 'icon' => 'mail', 'tone' => 'blue', 'event' => 'subscriber',
+                'summary' => 'Someone joins your email list', 'fields' => []],
             'manual' => ['kind' => 'trigger', 'label' => 'Run by hand', 'icon' => 'play', 'tone' => 'blue', 'event' => 'manual',
                 'summary' => 'When you press Run', 'fields' => []],
 
@@ -58,6 +81,7 @@ class Catalog
                     ['key' => 'field', 'label' => 'When', 'type' => 'select', 'required' => true, 'default' => 'text', 'options' => [
                         ['text', 'the comment / DM text'], ['intent', 'its type (question, lead, praise, spam)'], ['author', 'the person'], ['platform', 'the network'],
                         ['rate', 'the post’s engagement rate (%)'], ['followers_ratio', 'the post’s rate ÷ her usual'],
+                        ['amount', 'the deal amount'], ['fit', 'the lead’s fit score'], ['source', 'where the lead came from'], ['stage', 'the deal stage'],
                     ]],
                     ['key' => 'op', 'label' => 'Is', 'type' => 'select', 'required' => true, 'default' => 'contains', 'options' => [
                         ['contains', 'contains'], ['not_contains', 'doesn’t contain'], ['is', 'is'], ['is_not', 'is not'], ['gt', 'more than'], ['lt', 'less than'],
@@ -101,6 +125,15 @@ class Catalog
             'notify' => ['kind' => 'action', 'label' => 'Notify me', 'icon' => 'bell', 'tone' => 'green',
                 'summary' => '{message}', 'fields' => [
                     ['key' => 'message', 'label' => 'Message', 'type' => 'textarea', 'required' => true, 'default' => '{author} on {platform}: {text}'],
+                ]],
+            'prep_call' => ['kind' => 'action', 'label' => 'Prep the call', 'icon' => 'doc', 'tone' => 'violet', 'needs' => 'deal',
+                'summary' => 'Write a prep brief for the intro call', 'fields' => [],
+                'help' => 'Research on the company (when web search is set up), questions, objections and the package to suggest. Saved on the deal.'],
+            'move_deal' => ['kind' => 'action', 'label' => 'Move the deal', 'icon' => 'briefcase', 'tone' => 'green', 'needs' => 'deal',
+                'summary' => 'Move it to {stage}', 'fields' => [
+                    ['key' => 'stage', 'label' => 'To', 'type' => 'select', 'required' => true, 'default' => 'pitching', 'options' => [
+                        ['pitching', 'Pitching'], ['negotiating', 'Negotiating'], ['contracted', 'Contracted'], ['production', 'In production'], ['invoiced', 'Invoiced'],
+                    ]],
                 ]],
             'mark' => ['kind' => 'action', 'label' => 'Mark as handled', 'icon' => 'check', 'tone' => 'green', 'needs' => 'item',
                 'summary' => 'Move it out of the Inbox ({as})', 'fields' => [
@@ -165,6 +198,14 @@ class Catalog
                     $k('delay', ['amount' => 10, 'unit' => 'minutes']), $k('reply_comment', ['mode' => 'ai', 'instructions' => 'Answer briefly and specifically.'])]],
             ['id' => 'monday_plan', 'name' => 'Every Monday → plan the week', 'desc' => 'Your agent fills the week every Monday morning and you get a nudge to approve.', 'icon' => 'calendar',
                 'nodes' => [$k('schedule', ['every' => 'week', 'weekday' => '1', 'time' => '08:00']), $k('run_agent', []), $k('notify', ['message' => 'Your week of posts is planned. Approve them in Agents.'])]],
+            ['id' => 'lead_alert', 'name' => 'Strong website lead → notify me + prep the call', 'desc' => 'Leads with a fit score of 60+ ping you right away and get a prep brief.', 'icon' => 'briefcase',
+                'nodes' => [$k('new_lead', ['min_fit' => 60]), $k('notify', ['message' => 'Strong lead: {deal} ({contact}), fit {fit}, from {source}.']), $k('prep_call', [])]],
+            ['id' => 'proposal_opened', 'name' => 'Proposal opened → nudge me', 'desc' => 'The moment a client opens their proposal page, you know: a good time to follow up.', 'icon' => 'eye',
+                'nodes' => [$k('deal_opened', ['what' => 'proposal']), $k('notify', ['message' => '{deal} is reading your proposal right now.'])]],
+            ['id' => 'paid_review', 'name' => 'Paid → ask for a testimonial in a week', 'desc' => 'A reminder 7 days after each payment to send the client their review link.', 'icon' => 'star',
+                'nodes' => [$k('payment_received'), $k('delay', ['amount' => 7, 'unit' => 'days']), $k('notify', ['message' => 'Ask {contact} at {deal} for a testimonial: Deals, Ask for a review.'])]],
+            ['id' => 'testimonial_post', 'name' => 'New testimonial → draft a LinkedIn post', 'desc' => 'Turn a client’s kind words into a post draft for you to check (only quote clients who allowed it).', 'icon' => 'star',
+                'nodes' => [$k('testimonial_received'), $k('ai_post', ['platforms' => ['linkedin'], 'brief' => 'A short, humble post about what we built together, quoting the client: {text}', 'status' => 'draft'])]],
             ['id' => 'publish_crosspost', 'name' => 'LinkedIn post live → Threads version', 'desc' => 'Every LinkedIn post becomes a shorter Threads post in the next good slot.', 'icon' => 'repeat',
                 'nodes' => [$k('post_published', ['platforms' => ['linkedin']]), $k('repurpose', ['platforms' => ['threads'], 'status' => 'scheduled'])]],
         ];

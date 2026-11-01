@@ -42,6 +42,7 @@ import { renderLanding } from './pages/landing.js';
 import { renderWebsite } from './pages/website.js';
 import { renderBrandKit } from './pages/mediakit.js';
 import { renderReview } from './landing-proof.js';
+import { renderDealRoom } from './deal-room.js';
 import { loveOn } from './love.js';
 import { NAV_ITEMS, MEGA } from './nav.js';
 
@@ -68,6 +69,7 @@ const ROUTES = [
   { path: /^\/website$/, render: renderWebsite, nav: '/website' },
   { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, render: renderBrandKit, nav: '/mediakit' },
   { path: /^\/review\/([A-Za-z0-9]{20,64})$/, render: renderReview, nav: '/website' },
+  { path: /^\/deal\/([A-Za-z0-9]{20,64})$/, render: renderDealRoom, nav: '/deals' },
   { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
   { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
@@ -500,6 +502,8 @@ async function boot() {
       if (kit) { state.guestView = 'kit'; showKit(kit[1]); return; }
       const review = location.pathname.match(/^\/review\/([A-Za-z0-9]{20,64})$/);
       if (review) { state.guestView = 'review'; showPublic(renderReview, review[1], 'This review link isn’t active.'); return; }
+      const room = location.pathname.match(/^\/deal\/([A-Za-z0-9]{20,64})$/);
+      if (room) { state.guestView = 'deal'; showPublic(renderDealRoom, room[1], 'This proposal link isn’t active.'); return; }
       const want = isLoginPath() ? 'auth' : 'landing';
       if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
     };

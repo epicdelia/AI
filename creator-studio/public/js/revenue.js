@@ -46,7 +46,8 @@ export function revenueCard(rev) {
       h('span', { title: 'Inquiry 10%, pitching 25%, negotiating 50%, contracted and later 90%+: a rule of thumb, not a forecast from your history.' }, '“Likely” weights each deal by its stage.')),
     rev.meetings?.length ? h('ul', { class: 'mini-list', style: { marginTop: '8px' } }, rev.meetings.map((m) => h('li', {},
       h('span', {}, icon('calendar', 13), ` Intro call: ${m.brand_name}${m.contact_name ? ` (${m.contact_name})` : ''}`),
-      h('span', { class: 'muted small' }, new Date(m.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))))) : null);
+      h('span', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'muted small' }, new Date(m.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })),
+        link(`/deals?prep=${m.id}`, { class: 'btn ghost sm' }, 'Prep'))))) : null);
 }
 
 /** Website funnel: visits → book/buy click → form started → request → paid, with sources. */

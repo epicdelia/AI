@@ -68,6 +68,14 @@ Artisan::command('studio:checkin', function (WeeklyCheckin $checkin) use ($track
     });
 })->purpose('Score the weekly plan from real uploads and get the mentor verdict');
 
+Artisan::command('studio:pipeline', function (\App\Domains\Deals\MorningPipeline $pipeline) use ($track) {
+    return $track($this, 'pipeline', function () use ($pipeline) {
+        $r = $pipeline->run();
+
+        return "Pipeline: {$r['calls']} call(s) in the next 24 h, {$r['prepped']} prep brief(s) written, {$r['follow_ups']} follow-up(s) due.";
+    });
+})->purpose('Prep briefs for the next 24 hours of intro calls, and the morning follow-up briefing');
+
 Artisan::command('studio:memory {--fresh : Drop the index first (after changing the embeddings provider)}', function (Memory $memory) use ($track) {
     if ($this->option('fresh')) {
         MemoryChunk::query()->delete();
@@ -275,6 +283,7 @@ Schedule::call(fn () => Setting::put('scheduler_heartbeat', now()->toIso8601Stri
 Schedule::command('studio:scan')->dailyAt('07:00')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:feeds')->everyThreeHours()->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:checkin')->weeklyOn(1, '08:00')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:pipeline')->dailyAt('08:15')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:memory')->dailyAt('03:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:clips')->everyTenMinutes()->when(fn () => rescue(fn () => ClipProject::where('status', 'processing')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:broll')->everyTwoMinutes()->when(fn () => rescue(fn () => VideoJob::whereIn('status', ['queued', 'running'])->exists(), false, false))->withoutOverlapping();

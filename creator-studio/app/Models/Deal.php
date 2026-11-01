@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domains\Social\Models\SocialPost;
+use App\Domains\Workflows\Engine;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -20,14 +21,21 @@ class Deal extends Model
         'scheduled',
         'invoiced',
         'paid',
+        'lost',
     ];
 
-    /** Not money yet: a brand she might pitch. Left out of pipeline totals. */
-    public const NOT_PIPELINE = ['prospect', 'paid'];
+    /** Not open money: a brand she might pitch, money already in, or a deal that didn't happen. */
+    public const NOT_PIPELINE = ['prospect', 'paid', 'lost'];
+
+    /** Why a deal was lost, for the win-rate insights. */
+    public const LOST_REASONS = [
+        'price' => 'Price / budget', 'timing' => 'Timing', 'no_reply' => 'Went quiet', 'competitor' => 'Chose someone else',
+        'not_fit' => 'Not a fit', 'scope' => 'Scope changed', 'other' => 'Other',
+    ];
 
     /** How likely a deal at each stage is to be paid, for the weighted pipeline (rule of thumb). */
     public const WIN_ODDS = [
-        'prospect' => 0.0, 'inquiry' => 0.1, 'pitching' => 0.25, 'negotiating' => 0.5, 'contracted' => 0.9,
+        'prospect' => 0.0, 'lost' => 0.0, 'inquiry' => 0.1, 'pitching' => 0.25, 'negotiating' => 0.5, 'contracted' => 0.9,
         'production' => 0.9, 'in_review' => 0.95, 'scheduled' => 0.95, 'invoiced' => 0.98, 'paid' => 1.0,
     ];
 
@@ -65,9 +73,17 @@ class Deal extends Model
         'kit_viewed_at',
         'stripe_subscription_id',
         'subscription_status',
+        'room_token',
+        'room_views',
+        'room_viewed_at',
+        'accepted_at',
+        'accepted_by',
+        'prep',
+        'prep_at',
+        'lost_reason',
     ];
 
-    protected $hidden = ['kit_token'];
+    protected $hidden = ['kit_token', 'room_token'];
 
     /** Website leads carry a rule-of-thumb fit score (LeadScore) wherever deals are listed. */
     protected $appends = ['lead_score'];
@@ -94,6 +110,10 @@ class Deal extends Model
             'proposal_at' => 'datetime',
             'meeting_at' => 'datetime',
             'kit_viewed_at' => 'datetime',
+            'room_viewed_at' => 'datetime',
+            'accepted_at' => 'datetime',
+            'prep' => 'array',
+            'prep_at' => 'datetime',
         ];
     }
 
@@ -103,6 +123,21 @@ class Deal extends Model
         static::saving(function (Deal $deal) {
             if ($deal->isDirty('stage') && ! $deal->isDirty('stage_changed_at')) {
                 $deal->stage_changed_at = now();
+            }
+        });
+
+        // Business events for Workflows (each fires once per deal and stage; never blocks the save).
+        static::created(function (Deal $deal) {
+            if ($deal->source) {
+                Engine::fire('new_lead', Engine::dealContext($deal), "deal:{$deal->id}:lead");
+            }
+        });
+        static::updated(function (Deal $deal) {
+            if ($deal->wasChanged('stage')) {
+                Engine::fire('deal_stage', Engine::dealContext($deal), "deal:{$deal->id}:stage:{$deal->stage}");
+            }
+            if ($deal->wasChanged('payment_status') && $deal->payment_status === 'paid') {
+                Engine::fire('payment', Engine::dealContext($deal), "deal:{$deal->id}:paid");
             }
         });
     }

@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\StripePaymentController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PipelineController;
 use App\Http\Controllers\Api\SocialProofController;
+use App\Http\Controllers\Api\DealRoomController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,6 +76,10 @@ Route::prefix('api')->group(function () {
     Route::post('review/{token}', [SocialProofController::class, 'submitReview'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::get('landing/lead-magnet', [SocialProofController::class, 'magnet']);
     Route::post('subscribe', [SocialProofController::class, 'subscribe'])->middleware('throttle:10,1');
+    // A client's deal page: their proposal, Accept, Pay.
+    Route::get('room/{token}', [DealRoomController::class, 'show'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:60,1');
+    Route::post('room/{token}/accept', [DealRoomController::class, 'accept'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
+    Route::post('room/{token}/pay', [DealRoomController::class, 'pay'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::get('kit/{token}', [PipelineController::class, 'kit'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:30,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
@@ -171,6 +176,10 @@ Route::prefix('api')->group(function () {
         Route::post('deals/pitch', [DealsController::class, 'generatePitch']);
         // The money loop: follow-ups, where leads come from, sponsor prospects
         Route::get('deals/follow-ups', [PipelineController::class, 'followUps']);
+        Route::get('deals/insights', [DealRoomController::class, 'insights']);
+        Route::post('deals/{deal}/room-link', [DealRoomController::class, 'link']);
+        Route::post('deals/{deal}/prep', [DealRoomController::class, 'prep']);
+        Route::post('deals/{deal}/lost', [DealRoomController::class, 'lost']);
         Route::get('deals/attribution', [PipelineController::class, 'attribution']);
         Route::get('deals/prospects', [PipelineController::class, 'prospects']);
         Route::post('deals/prospects', [PipelineController::class, 'addProspect']);

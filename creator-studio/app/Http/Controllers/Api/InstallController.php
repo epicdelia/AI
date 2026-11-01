@@ -82,6 +82,10 @@ class InstallController extends Controller
      */
     public function testDatabase(Request $request): JsonResponse
     {
+        if ($this->installed()) {
+            return $this->alreadyInstalled();
+        }
+
         $data = $request->validate([
             'driver' => 'required|string|in:sqlite,mysql,mariadb,pgsql',
             'host' => 'nullable|string',
@@ -186,13 +190,8 @@ class InstallController extends Controller
      */
     public function setupDatabase(Request $request): JsonResponse
     {
-        // Guard: if already installed with users, do not allow unauthenticated database reconfiguration
-        try {
-            if (User::count() > 0) {
-                return response()->json(['error' => 'Application is already installed.'], 403);
-            }
-        } catch (Throwable) {
-            // DB not connected/migrated yet; proceed with installation
+        if ($this->installed()) {
+            return $this->alreadyInstalled();
         }
 
         $data = $request->validate([
@@ -287,6 +286,10 @@ class InstallController extends Controller
      */
     public function runMigrations(): JsonResponse
     {
+        if ($this->installed()) {
+            return $this->alreadyInstalled();
+        }
+
         try {
             Artisan::call('migrate', ['--force' => true]);
             $output = Artisan::output();
@@ -302,6 +305,24 @@ class InstallController extends Controller
                 'error' => 'Migration failed: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * These routes are public so a fresh server can be set up from the browser. Once an
+     * account exists, nobody may test connections, reconfigure or migrate from here.
+     */
+    private function installed(): bool
+    {
+        try {
+            return User::count() > 0;
+        } catch (Throwable) {
+            return false; // DB not connected/migrated yet
+        }
+    }
+
+    private function alreadyInstalled(): JsonResponse
+    {
+        return response()->json(['error' => 'Application is already installed.'], 403);
     }
 
     /**

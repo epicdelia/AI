@@ -46,20 +46,20 @@ use Illuminate\Support\Facades\Route;
 // ==========================================
 
 Route::prefix('api')->group(function () {
-    // Auth
+    // Auth (every public write is rate limited per IP)
     Route::get('auth/status', [ApiController::class, 'authStatus']);
-    Route::post('auth/setup', [ApiController::class, 'setup']);
-    Route::post('auth/register', [ApiController::class, 'register']);
-    Route::post('auth/login', [ApiController::class, 'login']);
+    Route::post('auth/setup', [ApiController::class, 'setup'])->middleware('throttle:5,1');
+    Route::post('auth/register', [ApiController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('auth/login', [ApiController::class, 'login'])->middleware('throttle:20,1');
     Route::post('auth/logout', [ApiController::class, 'logout']);
-    Route::post('auth/forgot-password', [ApiController::class, 'forgotPassword']);
-    Route::post('auth/reset-password', [ApiController::class, 'resetPassword']);
+    Route::post('auth/forgot-password', [ApiController::class, 'forgotPassword'])->middleware('throttle:3,10');
+    Route::post('auth/reset-password', [ApiController::class, 'resetPassword'])->middleware('throttle:10,1');
 
     // Guided Server & Database Install (Optional)
     Route::get('install/status', [InstallController::class, 'status']);
-    Route::post('install/test-db', [InstallController::class, 'testDatabase']);
-    Route::post('install/setup-db', [InstallController::class, 'setupDatabase']);
-    Route::post('install/run-migrations', [InstallController::class, 'runMigrations']);
+    Route::post('install/test-db', [InstallController::class, 'testDatabase'])->middleware('throttle:10,1');
+    Route::post('install/setup-db', [InstallController::class, 'setupDatabase'])->middleware('throttle:5,1');
+    Route::post('install/run-migrations', [InstallController::class, 'runMigrations'])->middleware('throttle:5,1');
 
     // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
     Route::get('stripe/packages', [StripePaymentController::class, 'packages']);
@@ -558,14 +558,17 @@ Route::get('oauth/{platform}/callback', [SocialAccountsController::class, 'callb
 
 // Static public image assets (SVG / PNG / JPG)
 Route::get('images/{file}', function ($file) {
-    $path = public_path('images/'.$file);
-    if (! file_exists($path)) {
+    // Only real image files inside public/images: "../" (or %2F-encoded) must never reach .env.
+    $root = realpath(public_path('images'));
+    $path = realpath(public_path('images/'.$file));
+    $mimes = ['svg' => 'image/svg+xml', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp', 'gif' => 'image/gif'];
+    $ext = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
+    if (! $root || ! $path || ! str_starts_with($path, $root.DIRECTORY_SEPARATOR) || ! is_file($path) || ! isset($mimes[$ext])) {
         abort(404);
     }
-    $mime = str_ends_with($file, '.svg') ? 'image/svg+xml' : (str_ends_with($file, '.png') ? 'image/png' : 'image/jpeg');
 
-    return response()->file($path, ['Content-Type' => $mime]);
-})->where('file', '.*');
+    return response()->file($path, ['Content-Type' => $mimes[$ext], 'X-Content-Type-Options' => 'nosniff']);
+})->where('file', '[A-Za-z0-9._\-/]+');
 
 // Single Page Application (SPA) entry point - pure HTML + Vanilla JavaScript
 Route::fallback(function () {

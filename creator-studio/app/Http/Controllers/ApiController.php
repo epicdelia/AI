@@ -37,6 +37,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
@@ -209,31 +211,30 @@ class ApiController extends Controller
             'email' => 'required|email',
         ]);
 
+        // The code only ever leaves the server by email (or the server log when mail isn't set
+        // up), and the answer is the same whether or not the account exists.
         $email = strtolower(trim($data['email']));
-        $user = User::where('email', $email)->first();
-        if (! $user) {
-            if (User::count() === 1) {
-                $user = User::first();
-            } else {
-                return response()->json(['error' => 'No account found with this email address.'], 404);
+        $user = User::whereRaw('lower(email) = ?', [$email])->first();
+        if ($user) {
+            $code = (string) random_int(100000, 999999);
+
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $user->email],
+                ['token' => Hash::make($code), 'created_at' => now()]
+            );
+            RateLimiter::clear('reset:'.strtolower($user->email));
+
+            try {
+                Mail::raw("Your Creator Studio reset code is {$code}. It expires in 60 minutes.\n\nIf you didn't ask for this, ignore this email.",
+                    fn ($m) => $m->to($user->email)->subject('Your Creator Studio reset code'));
+            } catch (Throwable $e) {
+                Log::warning("Password reset email failed ({$e->getMessage()}). Reset code for {$user->email}: {$code}");
             }
         }
 
-        $code = (string) random_int(100000, 999999);
-
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => Hash::make($code),
-                'created_at' => now(),
-            ]
-        );
-
         return response()->json([
             'ok' => true,
-            'message' => "Reset code generated for {$user->email}.",
-            'email' => $user->email,
-            'code' => $code,
+            'message' => 'If that email has an account, a 6-digit code is on its way. No email set up? Run "php artisan studio:password" on the server.',
         ]);
     }
 
@@ -245,16 +246,9 @@ class ApiController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $email = strtolower(trim($data['email']));
-        $record = DB::table('password_reset_tokens')->where('email', $email)->first();
-
-        if (! $record && User::count() === 1) {
-            $onlyUser = User::first();
-            $record = DB::table('password_reset_tokens')->where('email', $onlyUser->email)->first();
-            if ($record) {
-                $email = $onlyUser->email;
-            }
-        }
+        $user = User::whereRaw('lower(email) = ?', [strtolower(trim($data['email']))])->first();
+        $record = $user ? DB::table('password_reset_tokens')->where('email', $user->email)->first() : null;
+        $email = $user?->email;
 
         if (! $record) {
             return response()->json(['error' => 'No password reset requested for this account.'], 400);
@@ -264,12 +258,19 @@ class ApiController extends Controller
             return response()->json(['error' => 'The reset code has expired. Please request a new one.'], 400);
         }
 
-        $code = trim($data['code']);
-        if (! Hash::check($code, $record->token) && $code !== $record->token) {
+        // A 6-digit code can't survive guessing: 5 wrong tries burn it.
+        $limiterKey = 'reset:'.strtolower($email);
+        if (! Hash::check(trim($data['code']), $record->token)) {
+            RateLimiter::hit($limiterKey, 60 * 60);
+            if (RateLimiter::tooManyAttempts($limiterKey, 5)) {
+                DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+                return response()->json(['error' => 'Too many wrong codes. Please request a new one.'], 429);
+            }
+
             return response()->json(['error' => 'Invalid verification code. Please check and try again.'], 422);
         }
-
-        $user = User::where('email', $email)->first();
+        RateLimiter::clear($limiterKey);
         if (! $user) {
             return response()->json(['error' => 'User account not found.'], 404);
         }

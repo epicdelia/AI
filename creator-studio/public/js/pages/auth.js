@@ -235,9 +235,11 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
     creatorName = 'Delia';
   }
 
-  let mode = initialized ? 'login' : 'setup'; // 'login' | 'register' | 'setup' | 'forgot'
-  let resetCode = '';
+  // Sign-ups close once the studio has its account (nothing is scoped per user).
+  let mode = initialized ? 'login' : 'setup'; // 'login' | 'setup' | 'forgot'
+  let codeSent = false;
   let resetEmail = '';
+  let resetNote = '';
 
   const container = h('div', { class: 'auth-inner' });
 
@@ -246,43 +248,25 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
     const error = h('div', { class: 'form-error', role: 'alert', hidden: !errorMsg }, errorMsg);
     const remember = h('input', { type: 'checkbox', name: 'remember', checked: true });
 
-    // Mode tabs when initialized and not in forgot mode
-    const tabs = (initialized && mode !== 'forgot') ? h('div', { class: 'auth-tabs' },
-      h('button', {
-        type: 'button',
-        class: `auth-tab ${mode === 'login' ? 'active' : ''}`,
-        onclick: () => { mode = 'login'; updateView(); },
-      }, 'Sign in'),
-      h('button', {
-        type: 'button',
-        class: `auth-tab ${mode === 'register' ? 'active' : ''}`,
-        onclick: () => { mode = 'register'; updateView(); },
-      }, 'Create account')
-    ) : null;
-
     let titleText = 'Sign in';
     let subText = `Welcome back, ${creatorName}. Pick up right where you left off.`;
     let submitLabel = 'Sign in';
 
-    if (mode === 'register') {
-      titleText = 'Create account';
-      subText = 'Create an account to manage your channels, ideas, and sponsorships.';
-      submitLabel = 'Create account';
-    } else if (mode === 'setup') {
+    if (mode === 'setup') {
       titleText = 'Set up your studio';
       subText = `Welcome, ${creatorName}! Create your administrator account to launch your creator studio.`;
       submitLabel = 'Create my studio';
     } else if (mode === 'forgot') {
       titleText = 'Reset password';
-      subText = resetCode
-        ? `Enter the verification code and choose a new password for ${resetEmail}.`
-        : 'Enter your email address to receive an instant verification code.';
-      submitLabel = resetCode ? 'Reset & Sign In' : 'Send Reset Code';
+      subText = codeSent
+        ? resetNote
+        : 'Enter your email address and we’ll email you a 6-digit code.';
+      submitLabel = codeSent ? 'Reset & Sign In' : 'Send Reset Code';
     }
 
     const backLink = mode === 'forgot' ? h('button', {
       type: 'button', class: 'auth-back-link',
-      onclick: () => { mode = 'login'; resetCode = ''; updateView(); },
+      onclick: () => { mode = 'login'; codeSent = false; updateView(); },
     }, icon('back', 16), ' Back to sign in') : null;
 
     const formFields = [];
@@ -291,14 +275,8 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       const emailInput = h('input', { type: 'email', name: 'email', required: true, value: resetEmail, placeholder: 'your@email.com' });
       formFields.push(field('Email address', emailInput));
 
-      if (resetCode) {
-        const codeBox = h('div', { class: 'auth-code-box' },
-          h('span', {}, 'Verification code:'),
-          h('span', { class: 'auth-code-val' }, resetCode)
-        );
-        formFields.push(codeBox);
-
-        const codeInput = h('input', { type: 'text', name: 'code', required: true, value: resetCode, placeholder: '6-digit code' });
+      if (codeSent) {
+        const codeInput = h('input', { type: 'text', name: 'code', required: true, inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '6-digit code' });
         formFields.push(field('Verification Code', codeInput));
 
         const pass = passwordField('password', 'New Password', 'new-password', { minlength: 8, placeholder: 'At least 8 characters' });
@@ -306,7 +284,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
         formFields.push(passwordMeter(pass.input));
         formFields.push(passwordField('password_confirmation', 'Confirm New Password', 'new-password', { minlength: 8, placeholder: 'Once more' }).container);
       }
-    } else if (mode === 'setup' || mode === 'register') {
+    } else if (mode === 'setup') {
       formFields.push(
         field('Your name', h('input', { type: 'text', name: 'name', value: mode === 'setup' ? creatorName : '', required: true, maxlength: 100, autocomplete: 'name', placeholder: 'Delia Lazarescu' }), 'used on your dashboard and in AI prompts'),
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' }))
@@ -324,7 +302,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
           h('label', { class: 'auth-remember' }, remember, ' Remember me'),
           h('button', {
             type: 'button', class: 'auth-link',
-            onclick: () => { mode = 'forgot'; resetCode = ''; updateView(); },
+            onclick: () => { mode = 'forgot'; codeSent = false; updateView(); },
           }, 'Forgot password?'))
       );
     }
@@ -340,11 +318,12 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
         try {
           const body = formData(form);
           if (mode === 'forgot') {
-            if (!resetCode) {
-              // Request code
+            if (!codeSent) {
+              // Request code: it arrives by email, never in this response
               const res = await api('POST', 'auth/forgot-password', { email: body.email });
               resetEmail = body.email;
-              resetCode = res.code || '123456';
+              resetNote = res.message;
+              codeSent = true;
               updateView();
               return;
             } else {
@@ -355,11 +334,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
             }
           }
 
-          let endpoint = 'auth/login';
-          if (mode === 'register') endpoint = 'auth/register';
-          else if (mode === 'setup') endpoint = 'auth/setup';
-
-          const res = await api('POST', endpoint, body);
+          const res = await api('POST', mode === 'setup' ? 'auth/setup' : 'auth/login', body);
           onDone(res.user);
         } catch (err) {
           error.textContent = err.message;
@@ -375,29 +350,14 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       h('div', { class: 'auth-or' }, h('span'), 'or', h('span')),
     ] : null;
 
-    let switchRow = null;
-    if (initialized && mode !== 'forgot') {
-      if (mode === 'login') {
-        switchRow = h('p', { class: 'auth-foot muted small' },
-          'Don’t have an account? ',
-          h('button', { type: 'button', class: 'auth-link', onclick: () => { mode = 'register'; updateView(); } }, 'Create one'));
-      } else {
-        switchRow = h('p', { class: 'auth-foot muted small' },
-          'Already have an account? ',
-          h('button', { type: 'button', class: 'auth-link', onclick: () => { mode = 'login'; updateView(); } }, 'Sign in'));
-      }
-    }
-
     const guidedInstall = mode === 'setup' ? renderGuidedInstall() : null;
 
     container.append(
       backLink,
-      tabs,
       h('h1', {}, titleText),
       h('p', { class: 'muted auth-sub' }, subText),
       google,
       form,
-      switchRow,
       guidedInstall
     );
 

@@ -90,16 +90,16 @@ class LoginTest extends TestCase
 
     public function test_in_app_password_reset_flow(): void
     {
-        // 1. Request code
+        // 1. Request code: it goes out by email, never back in the response
         $forgot = $this->postJson('/api/auth/forgot-password', [
-            'email' => 'delia@example.com',
+            'email' => 'Delia@Example.com',
         ])->assertOk();
-
-        $code = $forgot->json('code');
-        $this->assertNotEmpty($code);
+        $this->assertNull($forgot->json('code'));
+        $code = $this->sentResetCode();
+        $this->assertStringNotContainsString($code, $forgot->getContent());
 
         // 2. Reset password
-        $reset = $this->postJson('/api/auth/reset-password', [
+        $this->postJson('/api/auth/reset-password', [
             'email' => 'delia@example.com',
             'code' => $code,
             'password' => 'new-secret-password-123',
@@ -108,5 +108,52 @@ class LoginTest extends TestCase
 
         $this->assertAuthenticated();
         $this->assertTrue(Hash::check('new-secret-password-123', User::first()->fresh()->password));
+    }
+
+    public function test_reset_for_an_unknown_email_never_falls_back_to_her_account(): void
+    {
+        $forgot = $this->postJson('/api/auth/forgot-password', ['email' => 'attacker@evil.test'])->assertOk();
+        $this->assertStringNotContainsString('delia@example.com', $forgot->getContent());
+        $this->assertCount(0, app('mailer')->getSymfonyTransport()->messages());
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+
+        $this->postJson('/api/auth/reset-password', [
+            'email' => 'attacker@evil.test', 'code' => '123456',
+            'password' => 'taken-over-123', 'password_confirmation' => 'taken-over-123',
+        ])->assertStatus(400);
+        $this->assertGuest();
+    }
+
+    public function test_five_wrong_codes_burn_the_reset_code(): void
+    {
+        $this->postJson('/api/auth/forgot-password', ['email' => 'delia@example.com'])->assertOk();
+        $code = $this->sentResetCode();
+        $wrong = $code === '111111' ? '222222' : '111111';
+        $body = ['email' => 'delia@example.com', 'password' => 'new-secret-123', 'password_confirmation' => 'new-secret-123'];
+
+        foreach (range(1, 4) as $_) {
+            $this->postJson('/api/auth/reset-password', $body + ['code' => $wrong])->assertStatus(422);
+        }
+        $this->postJson('/api/auth/reset-password', $body + ['code' => $wrong])->assertStatus(429);
+        $this->postJson('/api/auth/reset-password', $body + ['code' => $code])->assertStatus(400);
+        $this->assertGuest();
+    }
+
+    public function test_install_endpoints_are_locked_once_installed(): void
+    {
+        $this->postJson('/api/install/test-db', ['driver' => 'sqlite', 'database' => ':memory:'])->assertForbidden();
+        $this->postJson('/api/install/setup-db', ['driver' => 'sqlite', 'database' => ':memory:'])->assertForbidden();
+        $this->postJson('/api/install/run-migrations')->assertForbidden();
+    }
+
+    private function sentResetCode(): string
+    {
+        $messages = app('mailer')->getSymfonyTransport()->messages();
+        $this->assertCount(1, $messages);
+        $this->assertSame('delia@example.com', $messages->first()->getEnvelope()->getRecipients()[0]->getAddress());
+        $this->assertMatchesRegularExpression('/code is (\d{6})/', $messages->first()->toString());
+        preg_match('/code is (\d{6})/', $messages->first()->toString(), $m);
+
+        return $m[1];
     }
 }

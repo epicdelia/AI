@@ -75,6 +75,8 @@ class ClientNotifier
     /** Email the client (and teammates) about a request, unless they turned emails off. */
     public static function email(Deal $deal, string $subject, string $line): void
     {
+        rescue(fn () => ClientWebhookDispatcher::dispatch($deal, 'update', $subject, $line), null, false);
+
         foreach (self::recipients($deal) as $user) {
             AuthController::mail($user->email, $subject,
                 "Hi {$user->name},\n\n{$line}\n\n".url('/requests/'.$deal->id)."\n\n— ".Prompts::name()."\n\n(Turn these emails off in Account & security.)");

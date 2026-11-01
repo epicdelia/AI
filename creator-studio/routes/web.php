@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AgentsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientsController;
+use App\Http\Controllers\Api\LegalController;
 use App\Http\Controllers\Api\PortalController;
 use App\Http\Controllers\Api\AudienceController;
 use App\Http\Controllers\Api\BioLinksController;
@@ -84,6 +85,7 @@ Route::prefix('api')->group(function () {
     Route::post('subscribe', [SocialProofController::class, 'subscribe'])->middleware('throttle:10,1'); // its own honeypot
     // A client's deal page: their proposal, Accept, Pay.
     Route::get('room/{token}', [DealRoomController::class, 'show'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:60,1');
+    Route::post('room/{token}/select-tier', [DealRoomController::class, 'selectTier'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:20,1');
     Route::post('room/{token}/accept', [DealRoomController::class, 'accept'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::post('room/{token}/pay', [DealRoomController::class, 'pay'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::get('kit/{token}', [PipelineController::class, 'kit'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:30,1');
@@ -97,6 +99,10 @@ Route::prefix('api')->group(function () {
     Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
+
+    // EU Compliance & Commercial Legal Framework
+    Route::get('legal/privacy', [LegalController::class, 'privacy']);
+    Route::get('legal/terms', [LegalController::class, 'terms']);
 
     // Everyone signed in: their own account, and the email confirmation resend.
     Route::middleware(['auth', 'active', 'ability:account'])->group(function () {
@@ -116,6 +122,7 @@ Route::prefix('api')->group(function () {
             Route::delete('account', [AccountController::class, 'destroy'])->middleware('throttle:5,1');
             Route::get('account/sessions', [AccountController::class, 'sessions']);
             Route::delete('account/sessions', [AccountController::class, 'endOtherSessions'])->middleware('throttle:5,1');
+            Route::get('account/export', [AccountController::class, 'export'])->middleware('throttle:5,1');
         });
     });
 
@@ -140,10 +147,15 @@ Route::prefix('api')->group(function () {
         Route::post('requests/{deal}/annotations', [PortalController::class, 'addAnnotation'])->whereNumber('deal')->middleware('throttle:30,1');
         Route::post('requests/{deal}/annotations/{annotation}/resolve', [PortalController::class, 'resolveAnnotation'])->whereNumber(['deal', 'annotation'])->middleware('throttle:30,1');
         Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
+        Route::get('requests/{deal}/compliance', [PortalController::class, 'compliance'])->whereNumber('deal');
+        Route::get('requests/{deal}/compliance/report', [PortalController::class, 'complianceReport'])->whereNumber('deal');
+        Route::post('requests/{deal}/select-tier', [PortalController::class, 'selectTier'])->whereNumber('deal')->middleware('throttle:20,1');
         Route::get('requests/{deal}/add-ons', [PortalController::class, 'addOns'])->whereNumber('deal');
         Route::post('requests/{deal}/add-ons', [PortalController::class, 'applyAddOn'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::get('brand-vault', [PortalController::class, 'brandVault']);
         Route::put('brand-vault', [PortalController::class, 'saveBrandVault'])->middleware('throttle:10,1');
+        Route::post('webhook/test', [PortalController::class, 'testWebhook'])->middleware('throttle:10,1');
+        Route::get('referrals', [PortalController::class, 'referrals']);
         Route::get('calls/slots', [PortalController::class, 'slots']);
         Route::post('calls', [PortalController::class, 'bookCall'])->middleware('throttle:5,10');
         Route::middleware('ability:portal.billing')->group(function () {

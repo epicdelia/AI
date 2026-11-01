@@ -87,6 +87,9 @@ class Deal extends Model
         'signer_user_agent',
         'signer_email',
         'add_ons',
+        'selected_tier',
+        'referral_partner_id',
+        'referral_credit_earned',
     ];
 
     protected $hidden = ['kit_token', 'room_token'];
@@ -159,6 +162,7 @@ class Deal extends Model
             }
             if ($deal->wasChanged('payment_status') && $deal->payment_status === 'paid') {
                 Engine::fire('payment', Engine::dealContext($deal), "deal:{$deal->id}:paid");
+                rescue(fn () => \App\Domains\Clients\PartnerReferrals::attributePayment($deal), null, true);
             }
         });
     }

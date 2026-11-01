@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Clients\ClientAnalytics;
+use App\Domains\Clients\ClientComplianceAuditor;
 use App\Domains\Clients\ClientDeal;
 use App\Domains\Clients\ClientNotifier;
+use App\Domains\Clients\ClientWebhookDispatcher;
 use App\Domains\Clients\DealAddOns;
 use App\Domains\Clients\DealFiles;
 use App\Domains\Clients\Models\ClientBrandVault;
 use App\Domains\Clients\Models\DealMessage;
 use App\Domains\Clients\Models\DeliverableAnnotation;
 use App\Domains\Clients\Models\TeamInvite;
+use App\Domains\Clients\PartnerReferrals;
+use App\Domains\Clients\TaxCompliance;
+use App\Domains\Deals\ProposalTiers;
 use App\Domains\Landing\BookingSlots;
 use App\Domains\Landing\Pricing;
 use App\Domains\Security\Audit;
@@ -449,6 +454,49 @@ class PortalController extends Controller
         return response()->json(['vault' => $vault->toResponse()]);
     }
 
+    public function selectTier(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        abort_if($deal->accepted_at, 409, 'This proposal has already been signed.');
+        $data = $request->validate(['tier' => 'required|string|in:essential,growth,enterprise']);
+
+        $res = ProposalTiers::selectTier($deal, $data['tier'], $request->user());
+        return response()->json($res);
+    }
+
+    public function compliance(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        return response()->json(ClientComplianceAuditor::audit($deal));
+    }
+
+    public function complianceReport(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        return response()->json([
+            'deal_id' => $deal->id,
+            'brand_name' => $deal->brand_name,
+            'title' => 'Executive Campaign Wrap & Compliance Report',
+            'markdown' => ClientComplianceAuditor::wrapReportMarkdown($deal),
+            'generated_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function testWebhook(Request $request): JsonResponse
+    {
+        $url = $request->input('webhook_url') ?: $request->input('url');
+        if (! $url || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return response()->json(['message' => 'A valid webhook URL is required.'], 422);
+        }
+        $res = ClientWebhookDispatcher::testPing($url, $request->user());
+        return response()->json($res, $res['ok'] ? 200 : 422);
+    }
+
+    public function referrals(Request $request): JsonResponse
+    {
+        return response()->json(PartnerReferrals::summary($request->user()));
+    }
+
     public function saveBrandVault(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -463,6 +511,10 @@ class PortalController extends Controller
             'talking_points' => 'nullable|array',
             'dos_and_donts' => 'nullable|array',
             'utm_params' => 'nullable|array',
+            'slack_webhook_url' => 'nullable|url|max:500',
+            'tax_id' => 'nullable|string|max:50',
+            'billing_address' => 'nullable|string|max:500',
+            'country_code' => 'nullable|string|max:3',
         ]);
 
         $vault->update(array_filter([
@@ -473,6 +525,10 @@ class PortalController extends Controller
             'talking_points' => $data['talking_points'] ?? $vault->talking_points,
             'dos_and_donts' => $data['dos_and_donts'] ?? $vault->dos_and_donts,
             'utm_params' => $data['utm_params'] ?? $vault->utm_params,
+            'slack_webhook_url' => $data['slack_webhook_url'] ?? $vault->slack_webhook_url,
+            'tax_id' => $data['tax_id'] ?? $vault->tax_id,
+            'billing_address' => $data['billing_address'] ?? $vault->billing_address,
+            'country_code' => $data['country_code'] ?? $vault->country_code,
         ], fn ($v) => $v !== null));
 
         Audit::log('brand_vault_updated', $user, $vault);
@@ -608,13 +664,18 @@ class PortalController extends Controller
         $business = trim((string) Setting::get('invoice_details', ''));
         $money = fn ($n, $c) => strtoupper($c ?: 'USD').' '.number_format((float) $n, 2);
         $total = array_sum(array_column($lines, 1));
-        $md = "# {$kind} {$number}\n\n**From:** {$from}".($business ? "\n\n".$business : '')."\n\n**To:** {$owner->name}".($companyName ? ", {$companyName}" : '')." ({$owner->email})\n\n**Date:** ".now()->toFormattedDayDateString()."\n\n";
+        $taxNotice = TaxCompliance::billingNoticeForUser($user);
+        $taxHeader = TaxCompliance::billingHeaderForUser($user);
+
+        $md = "# {$kind} {$number}\n\n**From:** {$from}".($business ? "\n\n".$business : '')."\n\n{$taxHeader}\n\n**Date:** ".now()->toFormattedDayDateString()."\n\n";
         $md .= "| Item | Amount |\n|---|---|\n";
         foreach ($lines as [$item, $amount, $currency]) {
             $md .= '| '.str_replace('|', '/', $item).' | '.$money($amount, $currency)." |\n";
         }
 
-        return $md.'| **Total** | **'.$money($total, $lines[0][2] ?? 'USD')."** |\n\n{$footer}\n";
+        $noticeSection = $taxNotice ? "\n\n> **Tax & Statutory Compliance:** {$taxNotice}\n" : '';
+
+        return $md.'| **Total** | **'.$money($total, $lines[0][2] ?? 'USD')."** |\n\n{$footer}{$noticeSection}\n";
     }
 
     private function mine(Request $request): Builder

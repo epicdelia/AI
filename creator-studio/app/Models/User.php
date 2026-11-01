@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -16,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
  * `role` is never mass assignable: sign-up always makes a client (Role::forSignUp), the first
  * install makes her the admin, and nothing a request sends can change that.
  */
-#[Fillable(['name', 'email', 'password', 'company', 'phone', 'notify_email'])]
+#[Fillable(['name', 'email', 'password', 'company', 'phone', 'notify_email', 'referral_code', 'referral_credits', 'referred_by_id'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_last_step'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -40,12 +41,18 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
             'notify_email' => 'boolean',
+            'referral_credits' => 'integer',
         ];
     }
 
     public function deals(): HasMany
     {
         return $this->hasMany(Deal::class);
+    }
+
+    public function brandVault(): HasOne
+    {
+        return $this->hasOne(\App\Domains\Clients\Models\ClientBrandVault::class, 'user_id');
     }
 
     /** The client whose requests this account shares (themselves, or the teammate who invited them). */

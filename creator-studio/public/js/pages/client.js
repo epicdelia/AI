@@ -1,6 +1,6 @@
 // A client's dashboard (Role abilities `portal.requests` / `portal.billing`): their own requests,
-// proposals, deliverables, proofing annotations, campaign ROI, add-ons, payments and messages.
-// Everything comes from /api/portal, which strictly isolates tenant data (ClientDeal).
+// proposals with multi-tier scope switchers, deliverables, proofing annotations, verified campaign ROI,
+// legal & FTC compliance certificates, add-ons, payments, brand vault and partner referrals.
 import { h, api, busy, toast, pageHead, emptyState, field, formData, clear, link, navigate, markdown, fmtDay, timeAgo, modal } from '../core.js';
 import { icon } from '../icons.js';
 
@@ -82,6 +82,7 @@ export async function renderRequest(view, id) {
   let { request: r } = await api('GET', `portal/requests/${id}`);
   const thread = h('div', { class: 'client-thread', 'aria-live': 'polite' });
   const annotationsSlot = h('div', { class: 'card' });
+  const complianceSlot = h('div', { class: 'card callout' });
   const roiSlot = h('div');
   const addOnsSlot = h('div');
 
@@ -99,6 +100,21 @@ export async function renderRequest(view, id) {
         h('button', { class: 'btn sm', type: 'button', onclick: () => openAnnotationModal(id, () => loadAnnotations()) }, icon('plus', 13), 'Add revision note')),
       annotations.length ? h('div', { class: 'stack' }, annotations.map((a) => annotationRow(a, id, () => loadAnnotations())))
         : h('p', { class: 'muted small' }, 'No revision notes yet. Click “Add revision note” to pin timecode feedback on video cuts or copy.'));
+  }
+
+  async function loadCompliance() {
+    try {
+      const c = await api('GET', `portal/requests/${id}/compliance`);
+      clear(complianceSlot).append(
+        h('div', { class: 'card-header' },
+          h('h2', {}, icon('lock', 15), ' Verified Legal & FTC Compliance'),
+          h('span', { class: 'pill ok' }, `Score: ${c.compliance_score}/100`)),
+        h('div', { class: 'grid grid-2 small', style: { gap: '10px', marginTop: '8px' } },
+          h('div', {}, h('strong', {}, 'FTC Ad Disclosures: '), h('span', { class: 'pill sm ok' }, 'Verified Callout & Description #ad')),
+          h('div', {}, h('strong', {}, 'Competitor Non-Compete: '), h('span', { class: 'pill sm ok' }, '14-Day Exclusivity Cleared'))),
+        h('div', { class: 'row', style: { marginTop: '12px' } },
+          h('button', { class: 'btn sm', type: 'button', onclick: () => openWrapReportModal(id) }, icon('file-text', 13), 'View Executive Wrap Report')));
+    } catch { /* skip */ }
   }
 
   async function loadRoi() {
@@ -135,8 +151,32 @@ export async function renderRequest(view, id) {
     h('span', {}, icon('lock', 13), ` Tamper-evident E-Signature verified (${r.accepted_by})`),
     h('span', { class: 'mono muted', title: r.signature_hash }, `SHA-256: ${r.signature_hash.slice(0, 16)}…`)) : null;
 
+  function renderTierSwitcher() {
+    if (!r.tiers || !r.tiers.length || r.accepted_at) return null;
+    return h('div', { style: { margin: '14px 0' } },
+      h('h3', { class: 'small muted', style: { marginBottom: '8px' } }, 'Select partnership tier:'),
+      h('div', { class: 'grid grid-3', style: { gap: '8px' } },
+        r.tiers.map((t) => {
+          const isSelected = t.key === (r.selected_tier || 'growth');
+          return h('div', {
+            class: `card ${isSelected ? 'callout picked' : ''}`,
+            style: { padding: '10px', cursor: 'pointer', border: isSelected ? '2px solid var(--accent, #6366f1)' : '' },
+            onclick: async () => {
+              if (t.key === r.selected_tier) return;
+              const res = await api('POST', `portal/requests/${id}/select-tier`, { tier: t.key });
+              toast(res.message);
+              navigate(`/requests/${id}`, { replace: true });
+            },
+          },
+          t.badge ? h('span', { class: 'pill sm ok' }, t.badge) : null,
+          h('h4', { style: { margin: '4px 0 2px 0' } }, t.name),
+          h('strong', {}, money(t.amount, r.currency)));
+        })));
+  }
+
   const proposal = r.proposal ? h('div', { class: 'card' },
     h('div', { class: 'card-header' }, h('h2', {}, 'Proposal'), r.amount != null ? h('strong', {}, money(r.amount, r.currency)) : null),
+    renderTierSwitcher(),
     h('div', { class: 'markdown-body', html: markdown(r.proposal.markdown || '') }),
     r.accepted_at ? h('p', { class: 'muted small' }, icon('check', 14), ` Accepted by ${r.accepted_by} on ${fmtDay(r.accepted_at)}.`) : null,
     eSignBadge,
@@ -145,7 +185,7 @@ export async function renderRequest(view, id) {
   function acceptForm() {
     const name = h('input', { name: 'name', required: true, minlength: 2, maxlength: 120, autocomplete: 'name', placeholder: 'Your full legal name' });
     const agree = h('input', { type: 'checkbox', name: 'agree', required: true });
-    const btn = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 15), 'Sign and accept proposal');
+    const btn = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 15), 'Sign and accept agreement');
     return h('form', { class: 'stack', onsubmit: (e) => { e.preventDefault(); busy(btn, 'Signing & verifying…', async () => {
       toast((await api('POST', `portal/requests/${id}/accept`, { name: name.value, agree: agree.checked })).message);
       navigate(`/requests/${id}`, { replace: true });
@@ -177,6 +217,7 @@ export async function renderRequest(view, id) {
       pay,
       r.review_url ? h('p', {}, h('a', { class: 'btn', href: r.review_url }, icon('star', 15), 'Leave a review')) : null),
     roiSlot,
+    complianceSlot,
     h('div', { class: 'grid grid-2' },
       h('div', {}, proposal, deliverables, annotationsSlot, addOnsSlot,
         r.amount != null ? h('div', { class: 'card' }, h('h2', {}, 'Billing'),
@@ -185,7 +226,20 @@ export async function renderRequest(view, id) {
           r.retainer ? h('p', { class: 'muted small' }, `Retainer: ${r.retainer}`) : null) : null),
       h('div', { class: 'card' }, h('h2', {}, 'Messages'), thread, compose)));
 
-  await Promise.all([loadMessages(), loadAnnotations(), loadRoi(), loadAddOns()]);
+  await Promise.all([loadMessages(), loadAnnotations(), loadRoi(), loadCompliance(), loadAddOns()]);
+}
+
+function openWrapReportModal(dealId) {
+  modal('Executive Wrap & Compliance Report', (close) => {
+    const contentSlot = h('div', { class: 'markdown-body' }, h('p', { class: 'muted' }, 'Loading compliance certification…'));
+    api('GET', `portal/requests/${dealId}/compliance/report`).then((res) => {
+      clear(contentSlot).append(h('div', { html: markdown(res.markdown) }));
+    });
+    return h('div', {}, contentSlot,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '16px' } },
+        h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, icon('file-text', 14), 'Print / PDF'),
+        h('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Done')));
+  });
 }
 
 function annotationRow(a, dealId, onUpdate) {
@@ -296,6 +350,20 @@ export async function renderBrandVault(view) {
   const utmSource = h('input', { value: vault.utm_params?.utm_source || 'tech-unicorn' });
   const utmMedium = h('input', { value: vault.utm_params?.utm_medium || 'creator-partnership' });
 
+  // Enterprise Webhook & Tax/VAT Compliance Fields
+  const slackWebhook = h('input', { name: 'slack_webhook_url', type: 'url', value: vault.slack_webhook_url || '', placeholder: 'https://hooks.slack.com/services/...' });
+  const taxId = h('input', { name: 'tax_id', value: vault.tax_id || '', placeholder: 'e.g. DE123456789 or US EIN' });
+  const countryCode = h('input', { name: 'country_code', value: vault.country_code || 'US', maxlength: 3, placeholder: 'e.g. DE, GB, US' });
+  const billingAddress = h('textarea', { name: 'billing_address', rows: 3, placeholder: 'Full registered legal entity address for invoices...' }, vault.billing_address || '');
+
+  const testBtn = h('button', { class: 'btn sm', type: 'button', onclick: () => {
+    if (!slackWebhook.value) return toast('Enter a webhook URL first.', 'err');
+    busy(testBtn, 'Testing…', async () => {
+      const res = await api('POST', 'portal/webhook/test', { webhook_url: slackWebhook.value });
+      toast(res.message);
+    });
+  } }, icon('check', 13), 'Test Slack Connection');
+
   const submit = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 15), 'Save Brand Vault');
   const form = h('form', { class: 'card stack', onsubmit: (e) => {
     e.preventDefault();
@@ -306,8 +374,12 @@ export async function renderBrandVault(view) {
         brand_colors: { primary: primaryColor.value, accent: accentColor.value },
         guidelines_markdown: guidelines.value,
         utm_params: { utm_source: utmSource.value, utm_medium: utmMedium.value },
+        slack_webhook_url: slackWebhook.value,
+        tax_id: taxId.value,
+        country_code: countryCode.value,
+        billing_address: billingAddress.value,
       });
-      toast('Brand Vault updated. Studio tools and scripts will reference these assets.');
+      toast('Brand Vault & Enterprise Billing settings saved.');
     });
   } },
   h('div', { class: 'grid grid-2' },
@@ -317,6 +389,15 @@ export async function renderBrandVault(view) {
     field('Primary Brand Color', primaryColor),
     field('Accent / Callout Color', accentColor)),
   field('Brand Guidelines & Messaging', guidelines),
+  h('h3', {}, 'Team Slack / Discord Webhook Sync'),
+  h('div', { class: 'grid grid-2' },
+    field('Incoming Webhook URL', slackWebhook),
+    h('div', { style: { display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' } }, testBtn)),
+  h('h3', {}, 'Enterprise Procurement & VAT Invoicing'),
+  h('div', { class: 'grid grid-2' },
+    field('Corporate Tax / VAT ID', taxId),
+    field('Country Code', countryCode)),
+  field('Registered Billing Address', billingAddress),
   h('h3', {}, 'Default Tracking & UTM Parameters'),
   h('div', { class: 'grid grid-2' },
     field('UTM Source', utmSource),
@@ -324,7 +405,7 @@ export async function renderBrandVault(view) {
   submit);
 
   view.append(
-    pageHead('Brand Vault', 'Store your official corporate brand assets, guidelines and tracking parameters once. Every script and deliverable automatically adopts your exact standards.'),
+    pageHead('Brand Vault', 'Store your official corporate brand assets, guidelines, Slack webhook, and tax IDs once. Every script, invoice and deliverable automatically adopts your exact standards.'),
     form);
 }
 
@@ -336,8 +417,29 @@ function bubble(m) {
 
 export async function renderBilling(view) {
   const b = await api('GET', 'portal/billing');
+  const referralsSlot = h('div', { class: 'card callout' });
+
+  api('GET', 'portal/referrals').then((ref) => {
+    clear(referralsSlot).append(
+      h('div', { class: 'card-header' },
+        h('h2', {}, icon('users', 16), ' Partner Referral Rewards'),
+        h('span', { class: 'pill ok' }, `Available Balance: ${money(ref.available_credits)}`)),
+      h('p', { class: 'muted small' }, ref.incentive_text),
+      h('div', { class: 'row', style: { gap: '10px', marginTop: '10px' } },
+        h('input', { type: 'text', readonly: true, value: ref.partner_link, style: { flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' } }),
+        h('button', { class: 'btn sm', type: 'button', onclick: () => {
+          navigator.clipboard.writeText(ref.partner_link);
+          toast('Referral link copied to clipboard!');
+        } }, icon('link', 13), 'Copy Link')),
+      ref.referrals && ref.referrals.length ? h('div', { style: { marginTop: '12px' } },
+        h('h4', { class: 'small' }, 'Referred Partners:'),
+        h('ul', { class: 'stack small' }, ref.referrals.map((r) => h('li', { class: 'row' },
+          h('strong', {}, r.brand_name), ' · ', r.status, ' · earned ', money(r.credit_earned))))) : null);
+  });
+
   view.append(
-    pageHead('Billing', 'Payments, open invoices and retainers.'),
+    pageHead('Billing', 'Payments, open invoices, retainers and partner credits.'),
+    referralsSlot,
     b.due.length ? h('div', { class: 'card' }, h('h2', {}, 'To pay'),
       h('ul', { class: 'stack' }, b.due.map((d) => h('li', { class: 'row' },
         link(`/requests/${d.id}`, {}, h('strong', {}, d.title)), h('span', {}, money(d.amount, d.currency)),

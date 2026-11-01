@@ -43,6 +43,10 @@ class ClientBrandVault extends Model
             'talking_points' => $this->talking_points ?: [],
             'dos_and_donts' => $this->dos_and_donts ?: ['dos' => [], 'donts' => []],
             'utm_params' => $this->utm_params ?: ['utm_source' => 'tech-unicorn', 'utm_medium' => 'creator-partnership'],
+            'slack_webhook_url' => $this->slack_webhook_url,
+            'tax_id' => $this->tax_id,
+            'billing_address' => $this->billing_address,
+            'country_code' => $this->country_code ?: 'US',
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }

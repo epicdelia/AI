@@ -208,6 +208,87 @@ class AccountController extends Controller
         return response()->json(['message' => 'Signed out on every other device.']);
     }
 
+    /**
+     * GDPR Article 20: Right to Data Portability.
+     * Provides a structured, machine-readable JSON archive of all personal data,
+     * account details, brand vault assets, deals, and audit records.
+     */
+    public function export(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = [
+            'export_metadata' => [
+                'standard' => 'GDPR Article 20 (Right to Data Portability)',
+                'regulation' => 'Regulation (EU) 2016/679',
+                'exported_at' => now()->toIso8601String(),
+                'user_id' => $user->id,
+                'data_controller' => config('app.name', 'Delia | Creator Studio'),
+            ],
+            'profile' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'company' => $user->company,
+                'phone' => $user->phone,
+                'role' => $user->role()->value,
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'created_at' => $user->created_at?->toIso8601String(),
+                'referral_code' => $user->referral_code,
+                'referral_credits' => (int) ($user->referral_credits ?? 0),
+            ],
+            'brand_vault' => $user->brandVault ? $user->brandVault->toResponse() : null,
+            'deals' => $user->deals()->with(['files', 'messages', 'annotations'])->get()->map(function ($deal) {
+                return [
+                    'id' => $deal->id,
+                    'brand_name' => $deal->brand_name,
+                    'contact_name' => $deal->contact_name,
+                    'contact_email' => $deal->contact_email,
+                    'stage' => $deal->stage,
+                    'rate' => $deal->rate,
+                    'currency' => $deal->currency,
+                    'deliverables' => $deal->deliverables,
+                    'selected_tier' => $deal->selected_tier,
+                    'add_ons' => $deal->add_ons,
+                    'payment_status' => $deal->payment_status,
+                    'signature_hash' => $deal->signature_hash,
+                    'signer_email' => $deal->signer_email,
+                    'signer_ip' => $deal->signer_ip,
+                    'accepted_at' => $deal->accepted_at?->toIso8601String(),
+                    'created_at' => $deal->created_at?->toIso8601String(),
+                    'files' => $deal->files->map(fn ($f) => [
+                        'id' => $f->id,
+                        'name' => $f->name,
+                        'file_type' => $f->file_type,
+                        'size' => $f->size,
+                        'created_at' => $f->created_at?->toIso8601String(),
+                    ]),
+                    'annotations' => $deal->annotations->map(fn ($a) => [
+                        'id' => $a->id,
+                        'file_id' => $a->file_id,
+                        'timestamp_seconds' => $a->timestamp_seconds,
+                        'slide_number' => $a->slide_number,
+                        'content' => $a->content,
+                        'is_resolved' => (bool) $a->is_resolved,
+                        'created_at' => $a->created_at?->toIso8601String(),
+                    ]),
+                    'messages' => $deal->messages->map(fn ($m) => [
+                        'id' => $m->id,
+                        'body' => $m->body,
+                        'created_at' => $m->created_at?->toIso8601String(),
+                    ]),
+                ];
+            }),
+            'audit_log' => AuditLog::where('user_id', $user->id)->latest('created_at')->limit(50)->get()->map->toRow(),
+        ];
+
+        Audit::log('gdpr_export', $user);
+
+        return response()->json($data, 200, [
+            'Content-Disposition' => 'attachment; filename="gdpr-data-export-user-'.$user->id.'.json"',
+        ]);
+    }
+
     private function confirmPassword(User $user, string $password): void
     {
         if ($password === '' || ! Hash::check($password, $user->password)) {

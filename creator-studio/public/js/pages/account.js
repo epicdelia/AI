@@ -92,9 +92,35 @@ export async function renderAccount(view) {
       } }, icon('trash', 15), 'Delete my account')];
     })()) : null;
 
+  const gdprCard = h('div', { class: 'card' },
+    h('div', { class: 'card-header' },
+      h('h2', {}, 'Data & EU GDPR Privacy Rights'),
+      h('span', { class: 'pill ok' }, 'GDPR Article 20')
+    ),
+    h('p', { class: 'muted' }, 'Under Article 20 of the EU General Data Protection Regulation (GDPR), you have the right to export a complete, machine-readable JSON copy of your personal data, deal contracts, Brand Vault assets, deliverable annotations, and audit logs.'),
+    h('div', { class: 'row', style: 'margin-top: 1rem; gap: 0.75rem; flex-wrap: wrap;' },
+      h('button', { class: 'btn', type: 'button', onclick: (e) => busy(e.currentTarget, 'Exporting…', async () => {
+        const data = await api('GET', 'account/export');
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gdpr-data-export-user-${user.id}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast('GDPR archive downloaded successfully.');
+      }) }, icon('download', 15), 'Export My Data (JSON)'),
+      h('a', { class: 'btn', href: '#/privacy', target: '_blank' }, icon('shield', 15), 'Privacy Policy'),
+      h('a', { class: 'btn', href: '#/terms', target: '_blank' }, icon('file-text', 15), 'Commercial Terms')
+    )
+  );
+
   view.append(
     pageHead('Account & security', user.role === 'admin' ? 'Your studio login.' : 'Your login for this client dashboard.'),
     h('div', { class: 'grid grid-2' }, h('div', {}, profile, email), h('div', {}, twoFactorSlot, password)),
+    gdprCard,
     danger);
 }
 

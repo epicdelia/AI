@@ -6,6 +6,7 @@ use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Deals\CallPrep;
 use App\Domains\Deals\ContractSigner;
 use App\Domains\Deals\PipelineInsights;
+use App\Domains\Deals\ProposalTiers;
 use App\Domains\Deals\ProposalWriter;
 use App\Domains\Workflows\Engine;
 use App\Http\Controllers\Controller;
@@ -52,9 +53,21 @@ class DealRoomController extends Controller
             'paid' => $deal->payment_status === 'paid',
             'can_pay' => StripePaymentController::configured() && (float) $deal->rate > 0,
             'meeting_at' => $deal->meeting_at?->toIso8601String(),
+            'tiers' => ProposalTiers::forDeal($deal)['tiers'],
+            'selected_tier' => $deal->selected_tier ?: 'growth',
             // Linked to a client account: the page offers their dashboard (messages, files, invoices).
             'has_account' => (bool) $deal->user_id,
         ]);
+    }
+
+    public function selectTier(Request $request, string $token): JsonResponse
+    {
+        $deal = self::byToken($token);
+        abort_if($deal->accepted_at, 409, 'This proposal has already been signed.');
+        $data = $request->validate(['tier' => 'required|string|in:essential,growth,enterprise']);
+
+        $res = ProposalTiers::selectTier($deal, $data['tier']);
+        return response()->json($res);
     }
 
     /** "I accept": their typed name and the time, and the deal moves to Contracted. */

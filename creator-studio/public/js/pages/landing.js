@@ -18,6 +18,8 @@ import { testimonialsSection, leadMagnetSection } from '../landing-proof.js';
 import { faqSection } from '../landing-faq.js';
 import { stackSection } from '../landing-stack.js';
 import { comparisonSection } from '../landing-compare.js';
+import { estimatorSection } from '../landing-estimator.js';
+import { buildsSection } from '../landing-builds.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -91,7 +93,7 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
         h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { slot = null; slotBox.hidden = true; whenRow.hidden = false; submitBtn.replaceChildren(icon('calendar', 14), ' Request 30-Min Call'); } }, 'None of these work? Suggest a time'));
       slotBox.hidden = false;
       whenRow.hidden = true;
-    }).catch(() => {});
+    }).catch(() => { });
 
     const form = h('form', {
       class: 'booking-form',
@@ -223,7 +225,7 @@ export function openStripeModal(pkgId = 'retainer') {
       if (p.stripe_configured || submitting) return;
       payLabel = ' Request an invoice';
       payBtn.replaceChildren(icon('file-text', 14), payLabel);
-    }).catch(() => {});
+    }).catch(() => { });
 
     const form = h('form', {
       onsubmit: async (e) => {
@@ -346,6 +348,8 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
             { label: 'AI Integration', desc: 'Practical LLM features and agents that earn their keep.', badge: 'Agents', icon: 'sparkle', href: '#services' },
             { label: 'Technical Consulting', desc: 'Architecture reviews and build-vs-buy calls.', badge: 'Ex-Google', icon: 'code', href: '#services' },
             { label: 'Tech Stack', desc: 'Production AI, modern APIs, and zero bloat.', badge: 'Stack', icon: 'sliders', href: '#stack' },
+            { label: 'Shipped Builds', desc: 'Real architectures shipped in 2–4 weeks.', badge: 'Case Studies', icon: 'rocket', href: '#builds' },
+            { label: 'Why Delia', desc: 'Ex-Google principal vs traditional agency.', badge: 'Compare', icon: 'star', href: '#why-delia' },
           ],
         },
         {
@@ -363,6 +367,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
         { label: 'Packages & Pricing', icon: 'tag', href: '#pricing' },
         { label: 'How it works', icon: 'flow', href: '#process' },
         { label: 'Tech Stack', icon: 'sliders', href: '#stack' },
+        { label: 'Project Estimator', icon: 'target', href: '#estimator' },
         { label: 'FAQ', icon: 'chat', href: '#faq' },
       ],
     },
@@ -391,6 +396,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
       feature: 'prices',
       actions: [
         { label: 'Pay with Stripe', icon: 'credit-card', onClick: () => onStripePay('retainer'), primary: true },
+        { label: 'Project Estimator', icon: 'target', href: '#estimator' },
         { label: isAuth ? 'Open Media Kit' : 'Request Media Kit', icon: 'file-text', onClick: () => (isAuth ? navigate('/mediakit') : onBookCall('brand_deal')) },
       ],
     },
@@ -450,9 +456,9 @@ function navRow(it, cls, close) {
     class: cls,
     onclick: (e) => followNavItem(it, e, close),
   },
-  h('span', { class: 'ln-ico' }, icon(it.icon, 15)),
-  h('span', { class: 'ln-text' }, h('strong', {}, it.label), it.desc ? h('span', {}, it.desc) : null),
-  it.badge ? h('span', { class: 'ln-badge' }, it.badge) : null);
+    h('span', { class: 'ln-ico' }, icon(it.icon, 15)),
+    h('span', { class: 'ln-text' }, h('strong', {}, it.label), it.desc ? h('span', {}, it.desc) : null),
+    it.badge ? h('span', { class: 'ln-badge' }, it.badge) : null);
 }
 
 /** The card beside each menu: build slots, live prices, or quick facts. */
@@ -1034,7 +1040,7 @@ export function renderLanding(view, options = {}) {
         class: 'landing-process-avail-btn',
         onclick: () => handleBookCall('mvp_build', a.status === 'open' ? 'Build slot' : 'Build waitlist'),
       }, a.status === 'open' ? 'Book your slot' : 'Join the waitlist', icon('arrow', 12)));
-  }).catch(() => {});
+  }).catch(() => { });
 
   const process = h('section', { class: 'landing-section tinted', id: 'process' },
     h('div', { class: 'landing-container' },
@@ -1137,8 +1143,10 @@ export function renderLanding(view, options = {}) {
           h('a', { href: '#services', class: 'landing-footer-link' }, 'AI Integration & Agents'),
           h('a', { href: '#services', class: 'landing-footer-link' }, 'Technical Consulting'),
           h('a', { href: '#stack', class: 'landing-footer-link' }, 'Tech Stack & Architecture'),
-          h('a', { href: '#why-delia', class: 'landing-footer-link' }, 'Why Tech Unicorn'),
+          h('a', { href: '#why-delia', class: 'landing-footer-link' }, 'Why Delia Lazarescu'),
+          h('a', { href: '#builds', class: 'landing-footer-link' }, 'Shipped Products & Case Studies'),
           h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Packages & Retainers'),
+          h('a', { href: '#estimator', class: 'landing-footer-link' }, 'Interactive Project Estimator'),
           h('a', { href: '#faq', class: 'landing-footer-link' }, 'Frequently Asked Questions (FAQ)'),
           h('a', { href: '#process', class: 'landing-footer-link' }, 'Delivery in 2-4 Weeks')),
 
@@ -1167,10 +1175,12 @@ export function renderLanding(view, options = {}) {
         h('div', { class: 'landing-footer-sub-right' },
           h('a', { href: '#top', class: 'landing-footer-sub-link' }, 'Back to top'),
           h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links'),
-  h('button', { type: 'button', class: 'landing-footer-link-btn landing-footer-sub-link', onclick: openMediaKit }, 'Media Kit')))));
+          h('button', { type: 'button', class: 'landing-footer-link-btn landing-footer-sub-link', onclick: openMediaKit }, 'Media Kit')))));
 
   const stack = stackSection({ onBookCall: handleBookCall });
   const comparison = comparisonSection({ onBookCall: handleBookCall });
+  const builds = buildsSection({ onBookCall: handleBookCall });
+  const estimator = estimatorSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
   const faq = faqSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
 
   const landingBox = h('div', { class: 'landing-box' },
@@ -1183,8 +1193,10 @@ export function renderLanding(view, options = {}) {
     process,
     stack,
     comparison,
+    builds,
     testimonialsSection(),
     pricing,
+    estimator,
     faq,
     platforms,
     speaking,

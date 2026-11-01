@@ -1,61 +1,62 @@
 // Landing page "04: Tech Stack & Architecture": Delia's production engineering ecosystem.
 // Highlighting her Ex-Google background, modern AI agent workflows, full-stack velocity,
 // and cloud infrastructure standards that enable 2-4 week production shipping.
+// Compact 4-card layout with horizontal swipe on mobile screens.
 import { h } from './core.js';
 import { icon } from './icons.js';
 
 export const TECH_PILLARS = [
   {
-    category: 'Autonomous AI & LLM Systems',
-    badge: 'Production GenAI',
+    category: 'AI & Autonomous Agents',
+    badge: 'GenAI & Agents',
     icon: 'sparkle',
-    desc: 'Practical, high-retention AI capabilities integrated directly into business workflows. Shipped with deterministic safety guardrails and evaluation benchmarks.',
+    desc: 'Autonomous tool-calling, custom subagent routing, streaming inference, and deterministic benchmarks.',
     technologies: [
-      { name: 'Gemini 1.5 & 2.0 API', role: 'Multimodal context & rapid reasoning' },
-      { name: 'Claude 3.5 Sonnet & Claude Code', role: 'Agent tool routing & complex reasoning' },
-      { name: 'Vector DBs (pgvector, Pinecone)', role: 'Low-latency semantic retrieval (RAG)' },
-      { name: 'Structured Outputs & Tool Calling', role: 'Deterministic JSON & automated tool execution' },
+      { name: 'Gemini 1.5 & 2.0 API', role: 'Multimodal reasoning' },
+      { name: 'Claude 3.5 Sonnet', role: 'Tool execution & coding' },
+      { name: 'Vector DBs (pgvector)', role: 'Low-latency RAG' },
+      { name: 'Guardrail Harnesses', role: 'Deterministic outputs' },
     ],
-    guarantee: 'Sub-second streaming responses & evaluated safety bounds.',
+    guarantee: 'Sub-second streaming & evaluated safety bounds.',
   },
   {
-    category: 'Full-Stack Architecture & APIs',
-    badge: 'High Throughput',
+    category: 'Full-Stack & High-Scale APIs',
+    badge: 'Production APIs',
     icon: 'code',
-    desc: 'Clean, modular, and maintainable application backends designed for speed, easy onboarding, and bulletproof security.',
+    desc: 'Modular, maintainable application backends built for high concurrency, clean migrations, and security.',
     technologies: [
-      { name: 'TypeScript & Node.js', role: 'Real-time WebSocket & microservice layers' },
-      { name: 'Laravel 11 / PHP 8.3 REST APIs', role: 'Robust authentication, queues, and database ORM' },
-      { name: 'Python AI Microservices', role: 'Data transformations, embeddings, and pipeline scripts' },
-      { name: 'PostgreSQL & Redis', role: 'ACID transactional integrity & sub-millisecond cache' },
+      { name: 'TypeScript & Node.js', role: 'Real-time WebSocket layers' },
+      { name: 'Laravel 11 / PHP 8.3', role: 'Queues, auth & robust ORM' },
+      { name: 'Python Microservices', role: 'Data transformations & ML' },
+      { name: 'PostgreSQL & Redis', role: 'Sub-ms caching & ACID data' },
     ],
-    guarantee: 'Strict schema validations and 100% test-backed API contracts.',
+    guarantee: 'Strict schema validations & 100% test-backed contracts.',
   },
   {
-    category: 'Frontend & Reactive Interface',
+    category: 'Frontend & Reactive Interfaces',
     badge: '95+ Lighthouse',
     icon: 'zap',
-    desc: 'Snappy, accessible, mobile-first interfaces with zero needless npm bloat. Delightful micro-interactions with immediate visual feedback.',
+    desc: 'Snappy, accessible, mobile-first interfaces with zero npm bloat. Instant 60fps micro-interactions.',
     technologies: [
-      { name: 'Reactive Vanilla JS & Web APIs', role: 'Zero-build-step speed and instant page loads' },
-      { name: 'Vue 3 & React Ecosystem', role: 'Component-driven interactive web applications' },
-      { name: 'Tailwind CSS & Token System', role: 'Adaptive dark/light themes & fluid responsive grids' },
-      { name: 'Accessible ARIA Standards', role: 'Screen-reader compliance & keyboard navigable UX' },
+      { name: 'Reactive Vanilla JS', role: 'Zero-build-step speed' },
+      { name: 'Vue 3 & React', role: 'Component-driven web apps' },
+      { name: 'Tailwind CSS Tokens', role: 'Fluid responsive dark/light' },
+      { name: 'Accessible ARIA', role: 'Keyboard & screen-reader UX' },
     ],
-    guarantee: 'Instant page transitions & 60fps responsive animation fidelity.',
+    guarantee: 'Instant page transitions & 60fps responsive fidelity.',
   },
   {
-    category: 'Cloud, DevOps & Production Reliability',
-    badge: 'Zero Vendor Lock-in',
+    category: 'Cloud, DevOps & Reliability',
+    badge: 'Zero Lock-in',
     icon: 'globe',
-    desc: 'Battle-tested cloud infrastructure configured in your own company accounts with automated deployments and secrets isolation.',
+    desc: 'Battle-tested cloud infrastructure in your own company accounts with automated CI/CD and secrets isolation.',
     technologies: [
-      { name: 'Google Cloud Platform (GCP)', role: 'Serverless Cloud Run, Cloud Tasks, and Secret Manager' },
-      { name: 'Docker & OCI Containers', role: 'Uniform local-to-production deployment parity' },
-      { name: 'GitHub Actions CI/CD', role: 'Automated static analysis, linting, and automated tests' },
-      { name: 'Stripe Billing & Webhooks', role: 'PCI-compliant checkout, subscriptions & automated invoices' },
+      { name: 'Google Cloud (GCP)', role: 'Serverless Cloud Run & Tasks' },
+      { name: 'Docker Containers', role: 'Local-to-production parity' },
+      { name: 'GitHub Actions CI/CD', role: 'Automated test pipelines' },
+      { name: 'Stripe Checkout API', role: 'PCI billing & subscriptions' },
     ],
-    guarantee: '100% infrastructure-as-code handover with zero proprietary traps.',
+    guarantee: '100% infrastructure-as-code handover in your name.',
   },
 ];
 
@@ -67,12 +68,18 @@ const ARCHITECTURE_STANDARDS = [
 ];
 
 export function stackSection({ onBookCall }) {
-  const grid = h('div', { class: 'landing-stack-grid' },
-    TECH_PILLARS.map((p, idx) => stackCard(p, idx)));
+  const grid = h('div', {
+    class: 'landing-stack-grid',
+    tabindex: '0',
+    'aria-label': 'Four engineering pillars, from AI agents to cloud deployment',
+  }, TECH_PILLARS.map((p, idx) => stackCard(p, idx)));
+
+  const swipeHint = h('p', { class: 'landing-swipe-hint muted', 'aria-hidden': 'true' },
+    icon('arrow', 13), ' Swipe through the 4 engineering pillars');
 
   const standardsRow = h('div', { class: 'landing-stack-standards' },
     ARCHITECTURE_STANDARDS.map((s) => h('div', { class: 'landing-stack-standard-item' },
-      h('span', { class: 'landing-stack-standard-icon', 'aria-hidden': 'true' }, icon(s.icon === 'shield' ? 'check' : s.icon, 16)),
+      h('span', { class: 'landing-stack-standard-icon', 'aria-hidden': 'true' }, icon(s.icon === 'shield' ? 'check' : s.icon, 15)),
       h('div', {},
         h('strong', {}, s.title),
         h('p', { class: 'muted small' }, s.desc)))));
@@ -85,6 +92,7 @@ export function stackSection({ onBookCall }) {
         h('p', { class: 'muted' },
           'Production systems engineering honed at Google and proven across 60+ shipped client projects. We build on open, maintainable standards that you control.')),
       grid,
+      swipeHint,
       standardsRow,
       h('div', { class: 'landing-stack-cta' },
         h('p', { class: 'muted' }, 'Have a specific stack or proprietary API integration in mind?'),
@@ -115,4 +123,3 @@ function stackCard(pillar, idx) {
 
   return card;
 }
-

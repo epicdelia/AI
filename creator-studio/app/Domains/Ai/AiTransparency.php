@@ -138,3 +138,4 @@ class AiTransparency
             || str_contains($lower, 'ai-assisted');
     }
 }
+

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Landing\Attribution;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
@@ -195,6 +196,13 @@ HTML;
         DB::table('bio_links')->where('id', $link)->increment('clicks');
         DB::table('bio_clicks')->upsert([['bio_link_id' => $link, 'day' => now()->toDateString(), 'count' => 1]], ['bio_link_id', 'day'], ['count' => DB::raw('count + 1')]);
 
-        return redirect()->away($row->url);
+        // A link to her own site says it came from the bio, so a lead from it is credited there.
+        $url = $row->url;
+        $host = fn (?string $u) => preg_replace('/^www\./', '', strtolower((string) parse_url((string) $u, PHP_URL_HOST)));
+        if ($host($url) !== '' && $host($url) === $host(PipelineController::siteUrl()) && ! preg_match('/[?&](ref|utm_source)=/', $url)) {
+            $url = Attribution::trackedUrl($url, 'bio');
+        }
+
+        return redirect()->away($url);
     }
 }

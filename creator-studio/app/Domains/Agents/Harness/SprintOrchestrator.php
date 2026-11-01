@@ -56,7 +56,7 @@ class SprintOrchestrator
         $focusTopic = (string) ($params['focus_topic'] ?? '');
 
         // 1. Check active deals and upcoming deliverables
-        $activeDeals = Deal::whereNotIn('stage', ['paid', 'lost'])
+        $activeDeals = Deal::whereNotIn('stage', ['paid', 'lost', 'prospect'])
             ->get(['brand_name', 'stage', 'deliverables', 'rate', 'coupon_code']);
 
         // 2. Check pending scripts

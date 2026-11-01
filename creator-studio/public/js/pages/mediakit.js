@@ -4,8 +4,8 @@ import {
 } from '../core.js';
 import { icon } from '../icons.js';
 
-export async function renderMediaKit(view) {
-  const data = await api('GET', 'deals/media-kit');
+/** The kit itself (hero, reach, audience, rates, standards), shared by her page and a brand's link. */
+function kitSections(data) {
   const c = data.creator;
   const a = data.audience;
 
@@ -66,6 +66,11 @@ export async function renderMediaKit(view) {
     h('ul', { class: 'checklist', style: { marginTop: '10px' } },
       data.guidelines.map((g) => h('li', { class: 'done' }, h('span', { class: 'check' }, icon('check', 14)), h('span', {}, g)))));
 
+  return [headerCard, totalReachCard, platformsGrid, demoRow, ratesTable, guidelinesCard];
+}
+
+export async function renderMediaKit(view) {
+  const data = await api('GET', 'deals/media-kit');
   view.append(
     pageHead('Media Kit', 'Official creator press kit, verified metrics, audience demographics and partnership options.',
       link('/deals', { class: 'btn' }, icon('briefcase', 15), 'Deals pipeline'),
@@ -77,12 +82,24 @@ export async function renderMediaKit(view) {
         },
       }, icon('copy', 15), 'Share media kit'),
       h('button', { class: 'btn', onclick: () => window.print() }, icon('arrow', 15), 'Print / PDF')),
-    headerCard,
-    totalReachCard,
-    platformsGrid,
-    demoRow,
-    ratesTable,
-    guidelinesCard,
+    h('p', { class: 'muted small' }, 'Sending it to a brand? Use “Kit link” on their deal: you’ll see when they open it.'),
+    kitSections(data),
   );
+}
+
+/**
+ * /kit/<token>: the media kit made for one brand (from their deal's "Kit link"). Public: it
+ * works signed out, and opening it tells her (a notification and a follow-up).
+ */
+export async function renderBrandKit(view, token) {
+  const data = await api('GET', `kit/${token}`);
+  view.append(
+    h('div', { class: 'page-head' },
+      h('div', {}, h('h1', {}, `Media kit for ${data.prepared_for}`), h('p', { class: 'desc' }, `${data.creator.name} · live audience numbers, partnership options and rates.`)),
+      h('div', { class: 'row' },
+        h('a', { class: 'btn primary', href: data.contact.book }, icon('calendar', 15), 'Book a call'),
+        h('a', { class: 'btn', href: `mailto:${data.creator.email}?subject=${encodeURIComponent(`${data.prepared_for} × ${data.creator.name}`)}` }, icon('mail', 15), 'Email'),
+        h('button', { class: 'btn ghost', onclick: () => window.print() }, icon('file-text', 15), 'Print / PDF'))),
+    kitSections(data));
 }
 

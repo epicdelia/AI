@@ -9,6 +9,7 @@ import { icon } from '../icons.js';
 import { carouselCard } from '../carousel.js';
 import { bioCard, importDialog, demoControl } from '../social-tools.js';
 import { scoreCard } from '../growth.js';
+import { algorithmCheckDialog, evergreenDialog } from '../ai-checks.js';
 
 export const PLATFORM_ICONS = { linkedin: 'brand:linkedin', instagram: 'brand:instagram', x: 'brand:x', tiktok: 'brand:tiktok', threads: 'brand:threads', youtube: 'brand:youtube' };
 const STATUS_PILL = { idea: 'new', draft: 'WARN', scheduled: 'picked', posted: 'ok' };
@@ -557,7 +558,19 @@ export async function renderPost(view, id) {
       h('aside', { class: 'sp-side' },
         h('div', { class: 'card' }, h('h3', {}, 'Preview'), preview, h('p', { class: 'muted small' }, 'Roughly how it shows in the feed. Cut-offs are typical phone values; check in the app before posting.')),
         score,
-        h('div', { class: 'card' }, h('h3', {}, 'Checks'), checksBox),
+        h('div', { class: 'card' },
+          h('div', { class: 'card-header' }, h('h3', {}, 'Checks'),
+            post.status === 'posted'
+              ? h('button', { class: 'btn ghost sm', title: 'Three fresh angles on this post, scheduled for your approval', onclick: () => evergreenDialog({ post_id: post.id, platform: post.platform }) }, icon('repeat', 13), 'Evergreen reboot')
+              : h('button', {
+                class: 'btn ghost sm', title: 'Links, hashtags and opening line that hurt reach on this network, with a safer version and your own post score',
+                onclick: async () => {
+                  await saveSoon.flush();
+                  if (!fullText().trim()) { toast('Write the post first.', 'err'); return; }
+                  algorithmCheckDialog({ platform: post.platform, content: fullText(), title: post.title || '', onUse: (text) => { bodyArea.value = text; change('body', text, true); drawCounter(); toast('Safer version in place.'); } });
+                },
+              }, icon('zap', 13), 'Reach check')),
+          checksBox),
         h('div', { class: 'card' }, h('h3', {}, 'Publishing'), statusBox),
         h('div', { class: 'card' },
           h('div', { class: 'row' }, dupBtn,

@@ -8,6 +8,8 @@ import { importDialog, demoControl } from '../social-tools.js';
 import { printMarkdown } from '../components.js';
 import { skLines } from '../skeleton.js';
 import { goalsCard } from '../growth.js';
+import { attributionCard } from '../revenue.js';
+import { evergreenDialog } from '../ai-checks.js';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const NS = 'http://www.w3.org/2000/svg';
@@ -19,7 +21,7 @@ const svg = (tag, attrs = {}) => {
 const plainText = (p) => String(p.body || (p.parts || []).join(' / ') || '').replace(/\s+/g, ' ').trim();
 
 /** One tooltip for the page, driven by [data-tip] on any mark (hover and keyboard focus). */
-function tooltipLayer(root) {
+export function tooltipLayer(root) {
   const tip = h('div', { class: 'chart-tip', role: 'tooltip', hidden: true });
   const show = (e) => {
     const t = e.target.closest?.('[data-tip]');
@@ -159,10 +161,11 @@ export async function renderAnalytics(view) {
             btn.replaceWith(link(`/posts/${r.post.id}`, { class: 'btn sm ghost' }, icon('check', 14), 'Open draft'));
           }),
         }, icon('repeat', 14), 'Fresh take');
+        const reboot = h('button', { class: 'btn sm ghost', title: 'Three new angles on it, scheduled for your approval', onclick: () => evergreenDialog({ post_id: t.post.id, platform: t.post.platform }) }, 'New angles');
         return h('li', {},
           h('span', { class: 'row' }, platformChip(t.post.platform, meta), h('span', { class: 'clamp-1' }, t.post.title || plainText(t.post).slice(0, 70)),
             h('span', { class: 'muted small' }, ` · ${t.vs_median}× · ${timeAgo(t.post.posted_at)}`)),
-          btn);
+          h('span', { class: 'row', style: { gap: '6px' } }, btn, reboot));
       })) : h('p', { class: 'muted small' }, 'Nothing yet: needs posts with numbers that are 45+ days old.')));
   }
 
@@ -268,6 +271,7 @@ export async function renderAnalytics(view) {
     askCard,
     dashBox,
     goalsCard(),
+    attributionCard(),
     h('div', { class: 'section-head' }, h('h2', { class: 'section-title' }, 'By network'), h('div', { class: 'row' }, periodBtns)),
     cardsBox,
     h('div', { class: 'grid grid-2', style: { marginTop: '18px' } }, timesBox, h('div', {}, topBox, recycleBox)),
@@ -374,7 +378,7 @@ function ticks(max) {
 const shortDate = (iso) => new Date(`${iso}T00:00`).toLocaleDateString([], { day: 'numeric', month: 'short' });
 
 /** One-series chart with a y axis and recessive grid: bars (counts) or a line (followers). */
-function seriesChart(dates, values, { kind = 'bar', unit = '' } = {}) {
+export function seriesChart(dates, values, { kind = 'bar', unit = '' } = {}) {
   const W = 520;
   const H = 220;
   const L = 40;

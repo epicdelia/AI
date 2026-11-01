@@ -3,16 +3,27 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Landing\Attribution;
+use App\Domains\Landing\BookingSlots;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
+use App\Models\Setting;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    /** Open intro-call times for the landing page (empty when she hasn't turned them on). */
+    public function slots(): JsonResponse
+    {
+        return response()->json(BookingSlots::open());
+    }
+
     /**
-     * Book an intro call with Delia (@Tech.Unicorn).
+     * Book an intro call with Delia (@Tech.Unicorn). With booking hours on, the visitor picks a
+     * real open `slot`; otherwise they suggest a preferred date and time.
      */
     public function store(Request $request): JsonResponse
     {
@@ -21,12 +32,21 @@ class BookingController extends Controller
             'email' => 'required|email|max:150',
             'company' => 'nullable|string|max:150',
             'project_type' => 'required|string|in:mvp_build,retainer,brand_deal,speaking,consulting,other',
-            'preferred_date' => 'required|string|max:50',
-            'preferred_time' => 'required|string|max:50',
+            'slot' => 'nullable|date',
+            'preferred_date' => 'required_without:slot|nullable|string|max:50',
+            'preferred_time' => 'required_without:slot|nullable|string|max:50',
             'notes' => 'nullable|string|max:2000',
             'service' => 'nullable|string|max:100', // the landing-page service card it came from
-        ]);
+        ] + Attribution::rules());
         $service = ($data['service'] ?? null) ?: null;
+
+        $meetingAt = null;
+        if (! empty($data['slot'])) {
+            $meetingAt = rescue(fn () => CarbonImmutable::parse($data['slot'])->utc(), null, false);
+            if (! $meetingAt || ! BookingSlots::isOpen($meetingAt)) {
+                return response()->json(['message' => 'That time was just taken. Please pick another one.', 'errors' => ['slot' => ['That time is no longer open.']]], 422);
+            }
+        }
 
         $projectRates = [
             'mvp_build' => 12000,
@@ -50,6 +70,12 @@ class BookingController extends Controller
         $label = $projectLabels[$data['project_type']] ?? 'Intro Call';
         $estRate = $projectRates[$data['project_type']] ?? 2000;
         $bookingRef = 'CAL-'.strtoupper(Str::random(6));
+        $from = Attribution::resolve($data['attribution'] ?? null, $request->getHost());
+
+        $tz = Setting::get('timezone') ?: 'UTC';
+        $when = $meetingAt
+            ? $meetingAt->setTimezone($tz)->format('D j M Y, H:i T').' ('.$meetingAt->format('H:i').' UTC)'
+            : "{$data['preferred_date']} at {$data['preferred_time']}";
 
         $deal = Deal::create([
             'brand_name' => $company,
@@ -60,28 +86,35 @@ class BookingController extends Controller
             'currency' => 'USD',
             'payment_status' => 'pending',
             'deliverables' => [
-                array_filter(['platform' => 'meeting', 'format' => 'Intro Call: '.$label, 'service' => $service]),
+                array_filter(['platform' => 'meeting', 'format' => 'Intro Call: '.$label, 'service' => $service, 'project_type' => $data['project_type']]),
             ],
-            'key_talking_points' => "Requested: {$data['preferred_date']} at {$data['preferred_time']}. Topic: {$label}",
-            'notes' => "Intro call requested via website (ref {$bookingRef}). Confirm the time by email. Notes from client: ".(($data['notes'] ?? null) ?: 'None provided.'),
+            'key_talking_points' => ($meetingAt ? 'Booked' : 'Requested').": {$when}. Topic: {$label}",
+            'notes' => "Intro call ".($meetingAt ? 'booked' : 'requested')." via website (ref {$bookingRef}). ".($meetingAt ? 'Send a calendar invite.' : 'Confirm the time by email.').' Notes from client: '.(($data['notes'] ?? null) ?: 'None provided.'),
+            'meeting_at' => $meetingAt,
+            'source' => $from['source'],
+            'attribution' => $from['attribution'],
         ]);
 
-        AgentEvent::log('lead', "Intro call request: {$data['name']} ({$data['email']}), ".($service ?: $label).", {$data['preferred_date']} at {$data['preferred_time']}.");
+        AgentEvent::log('lead', ($meetingAt ? 'Intro call booked' : 'Intro call request').": {$data['name']} ({$data['email']}), ".($service ?: $label).", {$when}.");
 
         // Nothing is sent from here: she confirms the slot herself, so the visitor is told exactly that.
         return response()->json([
             'success' => true,
-            'status' => 'requested',
+            'status' => $meetingAt ? 'booked' : 'requested',
             'name' => $data['name'],
             'project_type' => $data['project_type'],
             'booking_ref' => $bookingRef,
             'deal_id' => $deal->id,
             'appointment' => [
-                'date' => $data['preferred_date'],
-                'time' => $data['preferred_time'],
+                'date' => $meetingAt ? $meetingAt->setTimezone($tz)->toDateString() : $data['preferred_date'],
+                'time' => $meetingAt ? $meetingAt->setTimezone($tz)->format('H:i T') : $data['preferred_time'],
+                'start' => $meetingAt?->toIso8601ZuluString(),
+                'minutes' => $meetingAt ? BookingSlots::config()['minutes'] : null,
                 'service' => $label,
             ],
-            'message' => "Request received! Delia will confirm your time at {$data['email']}, usually within one business day.",
+            'message' => $meetingAt
+                ? "You're booked! Delia will send a calendar invite to {$data['email']}, usually within one business day."
+                : "Request received! Delia will confirm your time at {$data['email']}, usually within one business day.",
         ]);
     }
 }

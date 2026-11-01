@@ -427,7 +427,7 @@ class ApiController extends Controller
             'deals_summary' => [
                 'active_count' => $activeDeals->count(),
                 'confirmed_revenue' => $activeDeals->sum('rate'),
-                'pipeline_total' => Deal::whereNotIn('stage', ['paid'])->sum('rate'),
+                'pipeline_total' => Deal::whereNotIn('stage', Deal::NOT_PIPELINE)->sum('rate'),
             ],
             'reach' => rescue(fn () => \App\Http\Controllers\LandingPageController::reach(), null),
             'hero' => rescue(fn () => \App\Domains\Landing\Hero::dashboard(), null),
@@ -437,6 +437,8 @@ class ApiController extends Controller
             'about' => rescue(fn () => \App\Domains\Landing\About::publicSection(), null),
             'speaking' => rescue(fn () => \App\Http\Controllers\LandingPageController::speaking(), null),
             'journey' => \App\Domains\Landing\ClientJourney::summary(),
+            'revenue' => rescue(fn () => \App\Http\Controllers\Api\PipelineController::revenue(), null),
+            'follow_ups' => rescue(fn () => \App\Domains\Deals\FollowUps::list(5), []),
             'website' => rescue(fn () => \App\Http\Controllers\LandingPageController::summary(), null),
             'inbound' => [
                 'new_inquiries' => Deal::where('stage', 'inquiry')->count(),

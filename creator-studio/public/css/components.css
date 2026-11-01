@@ -14335,3 +14335,138 @@ a.landing-stat-box:hover .landing-stat-go, a.landing-stat-box:focus-visible .lan
 .hero-edit-stats b { color: var(--ink); }
 .hero-edit-grid { display: grid; gap: 10px; }
 .landing-footer-brand .landing-close-email { margin-top: 16px; font-size: 0.86rem; }
+
+/* ---------------------------------------------------------------- money loop
+   Website funnel, booking slots, follow-ups and proposals. Theme tokens only, so light and
+   dark both follow the studio palette. */
+
+.funnel-steps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.funnel-bar {
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 99px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.funnel-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+.funnel-bar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.slot-picker {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+
+.slot-picker .field-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.slot-days,
+.slot-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.slot-day,
+.slot-btn {
+  padding: 7px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.slot-day:hover,
+.slot-btn:hover {
+  border-color: var(--hover-line);
+}
+
+.slot-day.on,
+.slot-btn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.slot-picker > .btn.ghost {
+  justify-self: start;
+}
+
+.chip-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.follow-ups-card {
+  border-left: 3px solid var(--warn);
+}
+
+.proposal-preview {
+  max-height: 52vh;
+  overflow: auto;
+  background: var(--field);
+}
+
+.revenue-card .stat-box {
+  text-decoration: none;
+  color: inherit;
+}
+
+.ai-checks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ai-check {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.ai-check p {
+  margin: 0;
+}
+
+.basis-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.website-preview-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}

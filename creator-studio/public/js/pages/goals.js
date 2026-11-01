@@ -2,6 +2,7 @@
 import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, fmtDay, isoDay, daysUntil, compact, link, mdBlock } from '../core.js';
 import { icon } from '../icons.js';
 import { celebrate } from '../love.js';
+import { sprintCard } from '../ai-checks.js';
 
 /** The row of week squares, also used on the dashboard. */
 export function weekDots(weeks, currentId) {
@@ -83,7 +84,8 @@ function editWeek(week, scripts, onSaved) {
 
 export async function renderGoals(view) {
   const box = h('div');
-  view.append(box);
+  const sprint = sprintCard(); // built once, below the plan, so a redraw keeps the plan she asked for
+  view.append(box, h('div', { style: { marginTop: '18px' } }, sprint));
 
   async function draw() {
     const [g, s] = await Promise.all([api('GET', 'goals'), api('GET', 'scripts')]);

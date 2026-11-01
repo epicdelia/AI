@@ -62,6 +62,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 # Pull the PHP extension installer from the official image
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
+# GD: image uploads (portrait, stage photos, post media) and their tests need it
+RUN install-php-extensions gd
+
 # create document root, fix permissions for www-data user and change owner to www-data
 RUN mkdir -p $APP_HOME/public && \
     mkdir -p /home/$USERNAME && chown $USERNAME:$USERNAME /home/$USERNAME \

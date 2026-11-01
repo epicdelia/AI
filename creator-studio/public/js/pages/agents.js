@@ -232,6 +232,9 @@ function wizard(meta, existing = null) {
 
 // ---------------------------------------------------------------- one agent
 
+/** For the AI engines outside the Agents page: calls go to /api/agents/studio/<tool>. */
+export const STUDIO_AGENT = { id: 'studio', name: 'Studio', platforms: ['youtube', 'linkedin', 'x', 'instagram', 'tiktok', 'threads'] };
+
 async function repurposeModal(agent, onDone) {
   const d = await api('GET', 'scripts').catch(() => ({ scripts: { data: [] } }));
   const scripts = d.scripts?.data || [];
@@ -359,7 +362,7 @@ async function deliberateModal(agent, onDone) {
                           platform: r.post.platform,
                           body: r.post.body,
                           parts: r.post.parts,
-                          social_agent_id: agent.id,
+                          social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                         });
                         toast('Post added to drafts queue.');
                         close();
@@ -553,7 +556,7 @@ async function treeSearchModal(agent, onDone) {
                           platform: r.post.platform,
                           body: r.post.body,
                           parts: r.post.parts,
-                          social_agent_id: agent.id,
+                          social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                         });
                         toast('Winning trajectory saved to drafts queue.');
                         close();
@@ -641,7 +644,7 @@ async function debateModal(agent, onDone) {
                           platform: r.post.platform,
                           body: r.post.body,
                           parts: r.post.parts,
-                          social_agent_id: agent.id,
+                          social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                         });
                         toast('Armored post added to drafts queue.');
                         close();
@@ -961,13 +964,13 @@ async function cascadeModal(agent, onDone) {
   }, { wide: true });
 }
 
-async function hookMatrixModal(agent, onDone) {
+export async function hookMatrixModal(agent, onDone, prefill = {}) {
   return modal('Viral Hook Matrix & Predictive A/B Optimizer', (close) => {
     const topicInput = h('textarea', {
       rows: 2,
       style: { width: '100%', marginBottom: '10px' },
       placeholder: 'Enter a topic, proposition, or argument (e.g. "Distributed Locks vs Eventual Consistency in Microservices")',
-    });
+    }, prefill.topic || '');
 
     const netSelect = h('select', { style: { marginBottom: '12px' } },
       agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
@@ -1023,7 +1026,7 @@ async function hookMatrixModal(agent, onDone) {
                     platform: netSelect.value,
                     body: `${item.hook_text}\n\n${item.lead_in}\n\n[Continue draft here...]`,
                     parts: [],
-                    social_agent_id: agent.id,
+                    social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                   });
                   toast(`Saved "${item.name}" hook to drafts queue.`);
                   close();
@@ -1064,13 +1067,13 @@ async function hookMatrixModal(agent, onDone) {
   }, { wide: true });
 }
 
-async function factCheckModal(agent, onDone) {
+export async function factCheckModal(agent, onDone, prefill = {}) {
   return modal('Technical Grounding & Hallucination Shield', (close) => {
     const draftInput = h('textarea', {
       rows: 5,
       style: { width: '100%', marginBottom: '10px' },
       placeholder: 'Paste post draft, script paragraph, or technical assertions to audit for factual grounding, benchmark integrity, and hallucination risks…',
-    });
+    }, prefill.text || '');
 
     const netSelect = h('select', { style: { marginBottom: '12px' } },
       agent.platforms.map((p) => h('option', { value: p }, p.toUpperCase())));
@@ -1133,7 +1136,7 @@ async function factCheckModal(agent, onDone) {
                           platform: netSelect.value,
                           body: r.armored_text,
                           parts: [],
-                          social_agent_id: agent.id,
+                          social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                         });
                         toast('Armored draft saved to drafts queue.');
                         close();
@@ -1229,7 +1232,7 @@ async function outlierDeconstructModal(agent, onDone) {
                   platform: agent.platforms[0] || 'linkedin',
                   body: `${ang.hook_line}\n\n${ang.thesis}\n\n[Continue breakdown here...]`,
                   parts: [],
-                  social_agent_id: agent.id,
+                  social_agent_id: agent.id === 'studio' ? undefined : agent.id,
                 });
                 toast(`Saved "${ang.angle_name}" to drafts queue.`);
                 close();
@@ -1294,18 +1297,19 @@ async function outlierDeconstructModal(agent, onDone) {
   }, { wide: true });
 }
 
-async function banditTitlesModal(agent, onDone) {
+export async function banditTitlesModal(agent, onDone, prefill = {}) {
   return modal('Multi-Armed Bandit YouTube Title & Thumbnail Optimizer', (close) => {
     const topicInput = h('textarea', {
       rows: 2,
       style: { width: '100%', marginBottom: '10px' },
       placeholder: 'Enter a YouTube video topic or current working title (e.g. "Building Modular Monoliths with Append-Only Logs in Go")',
-    });
+    }, prefill.topic || '');
 
     const videoIdInput = h('input', {
       type: 'text',
       placeholder: 'YouTube Video ID (optional, for direct A/B testing)',
       style: { width: '220px', marginBottom: '12px' },
+      value: prefill.videoId || '',
     });
 
     const resultBox = h('div', { style: { marginTop: '16px' } });
@@ -1344,8 +1348,12 @@ async function banditTitlesModal(agent, onDone) {
                 h('span', { class: 'pill small' }, v.archetype),
                 h('div', { class: 'row', style: { gap: '4px' } },
                   h('span', { class: 'muted small' }, `${v.char_count} chars`),
-                  h('span', { class: `pill ${v.predicted_ctr_score >= 90 ? 'ok' : 'WARN'} small` }, `CTR: ${v.predicted_ctr_score}/100`))),
+                  h('span', { class: `pill ${v.predicted_ctr_score >= 90 ? 'ok' : 'WARN'} small`, title: 'The model’s guess, not a measurement' }, `AI est. ${v.predicted_ctr_score}/100`))),
               h('h3', { style: { fontSize: '14px', margin: '6px 0 8px' } }, v.title),
+              v.evidence?.predicted_vs_median != null
+                ? h('p', { class: 'small', style: { margin: '0 0 6px' }, title: (v.evidence.similar || []).map((x) => `${x.ratio}× · ${x.title}`).join('\n') },
+                  h('strong', {}, `${v.evidence.predicted_vs_median}× your median`), ` · ${v.evidence.label} (your ${v.evidence.videos} videos)`)
+                : h('p', { class: 'basis-note', style: { margin: '0 0 6px' } }, v.evidence ? `Your data: ${v.evidence.videos}/${v.evidence.needed} videos tracked` : ''),
               v.thumbnail ? h('div', { style: { padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '11px' } },
                 h('strong', {}, 'Thumbnail Direction: '),
                 h('p', { style: { margin: '2px 0' } }, v.thumbnail.focal_subject),
@@ -1358,11 +1366,13 @@ async function banditTitlesModal(agent, onDone) {
                 // Winning title banner
                 win.title ? h('div', { class: 'card', style: { padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid var(--ok)', marginBottom: '14px' } },
                   h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
-                    h('strong', { style: { color: 'var(--ok)' } }, 'Bandit Algorithmic Winner'),
-                    h('span', { class: 'pill ok small' }, `Predicted CTR: ${win.score}/100`)),
+                    h('strong', { style: { color: 'var(--ok)' } }, 'AI pick'),
+                    h('span', { class: 'pill ok small', title: 'The model’s guess, not a measurement' }, `AI est. ${win.score}/100`)),
                   h('h2', { style: { fontSize: '16px', margin: '6px 0 4px' } }, `“${win.title}”`),
                   h('p', { class: 'small muted', style: { margin: 0 } }, win.strategic_rationale)) : null,
 
+                res.data_winner ? h('p', { class: 'small', style: { margin: '0 0 10px' } }, icon('chart', 13), ` Your own videos favour “${res.data_winner.title}” (${res.data_winner.predicted_vs_median}× your median).`) : null,
+                res.evidence_note ? h('p', { class: 'basis-note', style: { margin: '0 0 10px' } }, res.evidence_note) : null,
                 h('h4', { style: { margin: '0 0 10px', fontSize: '13px' } }, '4 Algorithmic Title Variants & Thumbnails'),
                 h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px', marginBottom: '14px' } }, variantCards),
 
@@ -1487,18 +1497,19 @@ async function leadTriageModal(agent, onDone) {
   }, { wide: true });
 }
 
-async function retentionAuditModal(agent, onDone) {
+export async function retentionAuditModal(agent, onDone, prefill = {}) {
   return modal('YouTube Script Retention Curve & Pacing Auditor', (close) => {
     const textInput = h('textarea', {
       rows: 5,
       style: { width: '100%', marginBottom: '10px' },
       placeholder: 'Paste video script, outline, or talking points to simulate retention drop-off and inject 90-second pacing resets…',
-    });
+    }, prefill.body || '');
 
     const titleInput = h('input', {
       type: 'text',
       placeholder: 'Video Title (e.g. Building Sagas Without Distributed Deadlocks)',
       style: { flex: 2 },
+      value: prefill.title || '',
     });
 
     const durationInput = h('input', {
@@ -1536,8 +1547,8 @@ async function retentionAuditModal(agent, onDone) {
                     h('h3', { style: { margin: '0 0 4px' } }, res.title),
                     h('p', { class: 'muted small', style: { margin: 0 } }, `${res.pacing_rating} · ${res.target_duration_minutes} min duration`)),
                   h('div', { class: 'row', style: { gap: '6px' } },
-                    h('span', { class: 'pill ok small' }, `Retention: ${res.retention_score}/100`),
-                    h('span', { class: 'pill ok small' }, `Predicted AVD: ${res.predicted_avd_percent}%`))),
+                    h('span', { class: 'pill ok small', title: 'The model’s guess, not a measurement' }, `AI est. retention ${res.retention_score}/100`),
+                    h('span', { class: 'pill ok small', title: 'The model’s guess, not YouTube data' }, `AI est. AVD ${res.predicted_avd_percent}%`))),
 
                 // Hazards alert
                 hazards.length ? h('div', { style: { marginBottom: '14px' } },

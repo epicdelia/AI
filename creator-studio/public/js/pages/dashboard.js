@@ -16,6 +16,8 @@ import { pricingCard } from '../pricing-editor.js';
 import { partnersCard } from '../partners-editor.js';
 import { marqueeCard } from '../marquee-editor.js';
 import { siteHeroCard } from '../hero-editor.js';
+import { revenueCard } from '../revenue.js';
+import { followUpsCard } from '../deal-tools.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -99,7 +101,7 @@ function nextStepCard(step) {
 }
 
 /** Intro-call requests and checkouts from the public landing page, waiting in Deals. */
-function inboundCard(inb) {
+export function inboundCard(inb) {
   if (!inb || (!inb.new_inquiries && !inb.awaiting_payment && !inb.paid_this_month)) return null;
   const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString()}`;
   return h('div', { class: 'card' },
@@ -124,7 +126,7 @@ function inboundCard(inb) {
  * The landing page's "How it works" phases as her pipeline: deals per phase, and the build
  * capacity that decides the "build slot open / waitlist" pill visitors see.
  */
-function journeyCard(j) {
+export function journeyCard(j) {
   if (!j) return null;
   const capNum = h('strong', { class: 'journey-cap-num', 'aria-live': 'polite' }, j.capacity);
   const availLine = h('p', { class: 'muted small', style: { margin: 0 } });
@@ -258,20 +260,22 @@ export async function renderDashboard(view) {
     { id: 'hero', label: 'Week & greeting', node: heroCard(d) },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'agent-approvals', label: 'AI agent approvals', node: agentApprovalsCard(d.agent_approvals, () => redraw()) },
+    { id: 'revenue', label: 'Revenue', node: revenueCard(d.revenue) },
+    { id: 'follow-ups', label: 'Needs a follow-up', node: followUpsCard(d.follow_ups, { onChange: () => redraw(), compactView: true }) },
     { id: 'deliverables', label: 'Active brand deliverables', node: deliverablesCard(d.active_deliverables, d.deals_summary) },
     { id: 'brief', label: 'Your day', node: briefCard() },
     { id: 'due', label: 'Due now', node: dueStrip() },
     { id: 'composer', label: 'Composer', node: homeComposer() },
     { id: 'inbound', label: 'From your website', node: inboundCard(d.inbound) },
     { id: 'journey', label: 'Client journey', node: journeyCard(d.journey) },
-    { id: 'hero-site', label: 'Website hero', node: siteHeroCard(d.hero, () => redraw()) },
-    { id: 'marquee', label: 'Marquee', node: marqueeCard(d.marquee, () => redraw()) },
-    { id: 'partners', label: 'Brand partners & stages', node: partnersCard(d.partners, () => redraw()) },
-    { id: 'pricing', label: 'Packages & pricing', node: pricingCard(d.pricing, () => redraw()) },
-    { id: 'about', label: 'About you', node: aboutCard(d.about, () => redraw()) },
-    { id: 'speaking', label: 'Speaking', node: speakingCard(d.speaking, () => redraw()) },
-    { id: 'reach', label: 'Public reach', node: reachCard(d.reach, () => redraw()) },
-    { id: 'website', label: 'Your website feed', node: websiteCard(d.website, () => redraw()) },
+    { id: 'hero-site', label: 'Website hero', node: siteHeroCard(d.hero, () => redraw()), defaultHidden: true },
+    { id: 'marquee', label: 'Marquee', node: marqueeCard(d.marquee, () => redraw()), defaultHidden: true },
+    { id: 'partners', label: 'Brand partners & stages', node: partnersCard(d.partners, () => redraw()), defaultHidden: true },
+    { id: 'pricing', label: 'Packages & pricing', node: pricingCard(d.pricing, () => redraw()), defaultHidden: true },
+    { id: 'about', label: 'About you', node: aboutCard(d.about, () => redraw()), defaultHidden: true },
+    { id: 'speaking', label: 'Speaking', node: speakingCard(d.speaking, () => redraw()), defaultHidden: true },
+    { id: 'reach', label: 'Public reach', node: reachCard(d.reach, () => redraw()), defaultHidden: true },
+    { id: 'website', label: 'Your website feed', node: websiteCard(d.website, () => redraw()), defaultHidden: true },
     { id: 'social', label: 'Social this week', node: socialStrip(d.social) },
     { id: 'love', label: 'Today’s note', node: love },
     { id: 'setup', label: 'Setup checklist', node: setupCard(d.setup_checks) },

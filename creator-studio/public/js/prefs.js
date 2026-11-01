@@ -104,20 +104,24 @@ export function personaliseCard(nav) {
 
 // ---------------------------------------------------------------- dashboard layout
 
-/** Order and hide the dashboard's blocks. blocks: [{id, label, node}] in default order. */
+/**
+ * Order and hide the dashboard's blocks. blocks: [{id, label, node, defaultHidden?}] in default
+ * order. defaultHidden blocks (e.g. the website editors, which live on /website) start off but
+ * can be ticked back on in Customise.
+ */
 export function arrangeDashboard(blocks) {
   const layout = current.dashboard_layout;
-  if (!Array.isArray(layout)) return blocks.filter((b) => b.node);
+  if (!Array.isArray(layout)) return blocks.filter((b) => b.node && !b.defaultHidden);
   const byId = Object.fromEntries(blocks.map((b) => [b.id, b]));
   const ordered = layout.map((l) => byId[l.id] && { ...byId[l.id], hidden: l.hidden }).filter(Boolean);
-  for (const b of blocks) if (!layout.some((l) => l.id === b.id)) ordered.push(b); // new blocks show up
+  for (const b of blocks) if (!layout.some((l) => l.id === b.id)) ordered.push({ ...b, hidden: !!b.defaultHidden }); // new blocks show up
   return ordered.filter((b) => b.node && !b.hidden);
 }
 
 export async function customiseDashboard(blocks, onDone) {
   const layout = Array.isArray(current.dashboard_layout) ? current.dashboard_layout : [];
   let rows = layout.filter((l) => blocks.some((b) => b.id === l.id)).map((l) => ({ id: l.id, hidden: !!l.hidden }));
-  for (const b of blocks) if (!rows.some((r) => r.id === b.id)) rows.push({ id: b.id, hidden: false });
+  for (const b of blocks) if (!rows.some((r) => r.id === b.id)) rows.push({ id: b.id, hidden: !!b.defaultHidden });
   const label = (id) => blocks.find((b) => b.id === id)?.label || id;
   const saved = await modal('Customise your dashboard', (close) => {
     const list = h('ol', { class: 'dash-arrange' });

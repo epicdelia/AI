@@ -81,6 +81,7 @@ class YouTube
             'comments' => (int) ($v['statistics']['commentCount'] ?? 0),
             'likes' => (int) ($v['statistics']['likeCount'] ?? 0),
             'seconds' => self::parseDuration($v['contentDetails']['duration'] ?? ''),
+            'description' => mb_substr((string) ($v['snippet']['description'] ?? ''), 0, 5000),
         ], $data['items'] ?? []);
     }
 
@@ -135,6 +136,7 @@ class YouTube
         $minViews = (int) ($config['min_views'] ?? 20000);
         $results = [];
         $channels = [];
+        $sponsored = []; // every scanned upload with a description, for sponsor prospecting
         foreach ($handles as $handle) {
             try {
                 [$playlist, $title] = $this->channelUploads($handle);
@@ -144,7 +146,13 @@ class YouTube
                     continue;
                 }
                 $channels[$handle] = ['title' => $title, 'error' => null];
-                foreach (self::scoreChannel($this->recentVideos($playlist), $now, $lookback) as $v) {
+                $videos = $this->recentVideos($playlist);
+                foreach ($videos as $v) {
+                    if (($v['description'] ?? '') !== '') {
+                        $sponsored[] = $v + ['channel' => $title];
+                    }
+                }
+                foreach (self::scoreChannel($videos, $now, $lookback) as $v) {
                     if (in_array($v['id'], $seen, true) || $v['outlier_score'] < $minScore || $v['views'] < $minViews) {
                         continue;
                     }
@@ -156,7 +164,7 @@ class YouTube
         }
         usort($results, fn ($a, $b) => $b['outlier_score'] <=> $a['outlier_score']);
 
-        return ['results' => $results, 'channels' => $channels];
+        return ['results' => $results, 'channels' => $channels, 'videos' => $sponsored];
     }
 
     /**

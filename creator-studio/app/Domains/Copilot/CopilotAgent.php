@@ -138,8 +138,10 @@ class CopilotAgent
             $page .= "\nShe has selected this text (\"this\", \"it\" and \"the selection\" mean this):\n\"\"\"\n".mb_substr($c['selection'], 0, 6000)."\n\"\"\"";
         }
         $mode = $thread->mode === 'agent'
-            ? "AGENT mode: you may propose changes with the edit/create/add/save tools. Proposals only run when she presses Apply, so never say a change is done; say what you proposed. For edits to selected text use edit_script with operation replace_text and find = the exact selection."
+            ? "AGENT mode: you may propose changes with the edit/create/add/save tools. Proposals only run when she presses Apply, so never say a change is done; say what you proposed. For edits to selected text use edit_script with operation replace_text and find = the exact selection. Deals: update_deal, create_deal and write_proposal are proposals too."
             : 'ASK mode: answer and explain only. You cannot change anything; if a change would help, describe it.';
+        $mode .= "
+Her business: get_revenue_overview, list_follow_ups and draft_follow_up cover her website leads, pipeline and payments; nothing is ever emailed for her, she sends drafts herself. The AI check tools (retention, hooks, titles, reach, sponsor compliance, sprint, claims) return model estimates: present their scores as estimates, and prefer her own numbers when a tool includes them.";
         $love = Setting::get('love_notes', '1') === '1' ? " She's loved: be warm with her." : '';
 
         return <<<TXT

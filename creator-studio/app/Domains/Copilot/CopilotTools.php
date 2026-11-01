@@ -2,7 +2,22 @@
 
 namespace App\Domains\Copilot;
 
+use App\Domains\Agents\Deals\DealFulfillmentGuardian;
+use App\Domains\Agents\Guardrails\PlatformAlgorithmShield;
+use App\Domains\Agents\Harness\SprintOrchestrator;
+use App\Domains\Agents\Hooks\HookMatrixOptimizer;
+use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
+use App\Domains\Agents\Verification\FactCheckShield;
+use App\Domains\Agents\YouTube\TitleBanditOptimizer;
 use App\Domains\Audience\Models\AudienceInsight;
+use App\Domains\Deals\FollowUps;
+use App\Domains\Deals\ProposalWriter;
+use App\Domains\Deals\SponsorProspects;
+use App\Domains\Landing\LandingFunnel;
+use App\Domains\Landing\RevenueAttribution;
+use App\Http\Controllers\Api\PipelineController;
+use App\Models\Deal;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\Platforms;
 use App\Domains\Social\SocialAnalytics;
@@ -36,7 +51,11 @@ use Throwable;
  */
 class CopilotTools
 {
-    public const WRITE = ['edit_script', 'create_script', 'create_idea', 'update_idea', 'add_competitor_channels', 'add_news_feed', 'save_to_library', 'set_week_video', 'create_social_post'];
+    public const WRITE = ['edit_script', 'create_script', 'create_idea', 'update_idea', 'add_competitor_channels', 'add_news_feed', 'save_to_library', 'set_week_video', 'create_social_post',
+        'update_deal', 'create_deal', 'write_proposal'];
+
+    /** Read tools that run one of the AI engines (with the studio agent: her brand and voice). */
+    public const ENGINES = ['audit_script_retention', 'generate_hook_matrix', 'generate_title_variants', 'check_algorithm_reach', 'check_deal_compliance', 'plan_production_sprint', 'fact_check_claims'];
 
     public const CLIENT = ['open_page'];
 
@@ -64,7 +83,18 @@ class CopilotTools
             ['name' => 'search_library', 'description' => 'Search saved Library documents (titles, captions, uploaded briefs) by keyword.', 'parameters' => $s(['query' => $str('Keyword')], ['query'])],
             ['name' => 'check_ai_tells', 'description' => 'Run the AI-tell linter on text (em dashes, banned clichés, missing contractions). Free and instant: use it on anything you write for her.', 'parameters' => $s(['text' => $str('Text to check')], ['text'])],
             ['name' => 'run_writing_tool', 'description' => 'Run a Toolkit template: yt_titles, yt_thumbnail, yt_hooks, yt_description, yt_tags, yt_chapters, yt_community, yt_replies, shorts_script, ig_caption, hashtags, x_thread, linkedin, newsletter, rewrite, tldr, proofread, pros_cons, sponsor_pitch, sponsor_read, media_kit. Inputs are the template fields (usually "topic", "title", "text" or "script").', 'parameters' => $s(['tool' => $str('Template key'), 'inputs' => ['type' => 'object', 'description' => 'Field values', 'additionalProperties' => ['type' => 'string']]], ['tool', 'inputs'])],
-            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/calendar', '/analytics', '/deals', '/mediakit', '/snippets', '/repurpose', '/linkedin', '/instagram', '/x', '/tiktok', '/threads', '/posts/{id}', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
+            ['name' => 'get_revenue_overview', 'description' => 'Her money at a glance: paid this month, open and weighted pipeline, follow-ups due, the website funnel (visits, requests, paid over 30 days) and which channels and videos/posts brought leads and revenue (90 days). Use for "how is the business doing" or "what content pays".', 'parameters' => $s([])],
+            ['name' => 'list_follow_ups', 'description' => 'Deals that need a follow-up now (website leads with no reply, proposals with no answer, stalled negotiations, unpaid invoices, brands that opened her media kit), most urgent first.', 'parameters' => $s([])],
+            ['name' => 'draft_follow_up', 'description' => 'Draft a follow-up email for one deal, in her voice (subject + body). It is NOT sent: she copies it. Optional angle.', 'parameters' => $s(['deal_id' => $int('Deal id'), 'angle' => $str('Optional angle, e.g. offer a smaller pilot')], ['deal_id'])],
+            ['name' => 'list_sponsor_prospects', 'description' => 'Brands currently sponsoring videos in her niche (found in competitor video descriptions during breakout scans), with how many channels, an example, and whether they are already in her deals.', 'parameters' => $s([])],
+            ['name' => 'audit_script_retention', 'description' => 'AI retention audit of one of her scripts: where viewers are likely to drop, and pacing resets to add. Its scores are AI estimates: say so.', 'parameters' => $s(['script_id' => $int('Script id'), 'target_duration_minutes' => $int('Optional target length in minutes')], ['script_id'])],
+            ['name' => 'generate_hook_matrix', 'description' => 'Six opening hooks in different styles for a topic on one network. Its scores are AI estimates.', 'parameters' => $s(['topic' => $str('Topic or thesis'), 'platform' => $str('Network', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube'])], ['topic'])],
+            ['name' => 'generate_title_variants', 'description' => 'Four YouTube title variants with thumbnail directions for a topic or a script, each also scored against her own past videos once she has 8+ with numbers.', 'parameters' => $s(['topic' => $str('Topic or working title'), 'script_id' => $int('Optional script id to take the title from')])],
+            ['name' => 'check_algorithm_reach', 'description' => 'Check a draft post for reach problems on a network (outbound links, hashtag stuffing, weak first line) and get a safer version, plus her own post score when she has the history.', 'parameters' => $s(['platform' => $str('Network', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube']), 'content' => $str('The draft text')], ['platform', 'content'])],
+            ['name' => 'check_deal_compliance', 'description' => 'Check a sponsored script or post against a deal: talking points covered, ad disclosure, do-nots, coupon code and link. Give a script_id or the content (defaults to the deal script).', 'parameters' => $s(['deal_id' => $int('Deal id'), 'script_id' => $int('Optional script id'), 'content' => $str('Optional content to check')], ['deal_id'])],
+            ['name' => 'plan_production_sprint', 'description' => 'A production plan for the week across her brand deals, scripts in progress and social slots, with filming batches.', 'parameters' => $s(['hours_available' => $int('Hours she has this week'), 'focus_topic' => $str('Optional focus')])],
+            ['name' => 'fact_check_claims', 'description' => 'Quick AI check of the factual claims in a text (no web search: use search_web for live facts).', 'parameters' => $s(['text' => $str('Text to check')], ['text'])],
+            ['name' => 'open_page', 'description' => "Open a page in her studio: '/', '/ideas', '/scripts', '/scripts/{id}', '/breakouts', '/channel', '/calendar', '/analytics', '/deals', '/mediakit', '/website', '/snippets', '/repurpose', '/linkedin', '/instagram', '/x', '/tiktok', '/threads', '/posts/{id}', '/goals', '/tools', '/library', '/chat', '/settings'.", 'parameters' => $s(['path' => $str('App path')], ['path'])],
         ];
         if (WebSearch::available()) {
             $tools[] = ['name' => 'search_web', 'description' => 'Live web search. Use for facts, news, dates, prices or anything that may have changed. Cite the links.', 'parameters' => $s(['query' => $str('Search query')], ['query'])];
@@ -83,6 +113,12 @@ class CopilotTools
                 ['name' => 'set_week_video', 'description' => "Propose setting a week's planned video on her scoreboard.", 'parameters' => $s(['week_number' => $int('Week number'), 'video_title' => $str('Video title'), 'script_id' => $int('Optional script id')], ['week_number', 'video_title'])],
                 ['name' => 'create_social_post', 'description' => 'Propose a draft post (she approves it). Formats: linkedin post|carousel, instagram carousel|reel|post|story, x post|thread, tiktok video|photo, threads post|thread, youtube short|community. Put thread posts, carousel slides or Reel/Short beats in parts.',
                     'parameters' => $s(['platform' => $str('Platform', ['linkedin', 'instagram', 'x', 'tiktok', 'threads', 'youtube']), 'format' => $str('Format'), 'title' => $str('Short internal label'), 'body' => $str('Post text or caption'), 'parts' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Thread posts, slides or beats'], 'script_id' => $int('Optional source script id')], ['platform', 'format', 'body'])],
+                ['name' => 'update_deal', 'description' => 'Propose changing a deal: move its stage, set the fee, add a dated note, or mark that she followed up. She approves it.',
+                    'parameters' => $s(['deal_id' => $int('Deal id'), 'stage' => $str('New stage', Deal::STAGES), 'rate' => ['type' => 'number', 'description' => 'Agreed fee'], 'note' => $str('A note to add'), 'followed_up' => ['type' => 'boolean', 'description' => 'She has just followed up'], 'reason' => $str('One line: why')], ['deal_id'])],
+                ['name' => 'create_deal', 'description' => 'Propose adding a deal (a brand, client or lead) to her pipeline.',
+                    'parameters' => $s(['brand_name' => $str('Brand or client'), 'contact_name' => $str('Contact'), 'contact_email' => $str('Email'), 'stage' => $str('Stage', Deal::STAGES), 'rate' => ['type' => 'number', 'description' => 'Fee if known'], 'notes' => $str('Notes')], ['brand_name'])],
+                ['name' => 'write_proposal', 'description' => 'Propose writing (or rewriting) the client proposal for a deal: scope, timeline, investment from her packages, next steps. Saved on the deal for her to edit and send.',
+                    'parameters' => $s(['deal_id' => $int('Deal id'), 'notes' => $str('Optional notes for the proposal')], ['deal_id'])],
             ]);
         }
 
@@ -112,6 +148,17 @@ class CopilotTools
             'check_ai_tells' => 'Checking for AI tells',
             'run_writing_tool' => 'Running the '.str_replace('_', ' ', (string) ($args['tool'] ?? 'writing')).' tool',
             'open_page' => 'Opening '.($args['path'] ?? 'page'),
+            'get_revenue_overview' => 'Looking at your revenue and pipeline',
+            'list_follow_ups' => 'Checking who needs a follow-up',
+            'draft_follow_up' => 'Drafting a follow-up for deal #'.($args['deal_id'] ?? '?'),
+            'list_sponsor_prospects' => 'Looking at sponsors in your niche',
+            'audit_script_retention' => 'Auditing the retention of script #'.($args['script_id'] ?? '?'),
+            'generate_hook_matrix' => 'Writing hooks',
+            'generate_title_variants' => 'Writing title variants',
+            'check_algorithm_reach' => 'Checking the post for reach problems',
+            'check_deal_compliance' => 'Checking sponsor compliance for deal #'.($args['deal_id'] ?? '?'),
+            'plan_production_sprint' => 'Planning your production week',
+            'fact_check_claims' => 'Checking the claims',
             default => 'Preparing a change: '.str_replace('_', ' ', $tool),
         };
     }
@@ -163,7 +210,50 @@ class CopilotTools
             'search_web' => WebSearch::forPrompt(app(WebSearch::class)->search((string) ($a['query'] ?? ''), 6)),
             'check_ai_tells' => $json(AiTellsLinter::lint((string) ($a['text'] ?? ''))) ?: '[]',
             'run_writing_tool' => $this->writingTool((string) ($a['tool'] ?? ''), (array) ($a['inputs'] ?? [])),
-            default => throw new RuntimeException("Unknown tool: {$tool}"),
+            'get_revenue_overview' => $json([
+                'revenue' => PipelineController::revenue(),
+                'follow_ups' => FollowUps::list(10),
+                'funnel_30d' => array_diff_key(LandingFunnel::summary(30), ['series' => 1]),
+                'attribution_90d' => RevenueAttribution::summary(90),
+            ]),
+            'list_follow_ups' => $json(FollowUps::list(20)),
+            'draft_follow_up' => $json(FollowUps::draft(Deal::find((int) ($a['deal_id'] ?? 0)) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.'), $this->llm, $a['angle'] ?? null)),
+            'list_sponsor_prospects' => $json(SponsorProspects::list(180, 20)),
+            default => in_array($tool, self::ENGINES, true) ? $json($this->engine($tool, $a)) : throw new RuntimeException("Unknown tool: {$tool}"),
+        };
+    }
+
+    /** Run an AI engine as the studio agent (her brand and voice; nothing saved to an agent). */
+    private function engine(string $tool, array $a): array
+    {
+        $agent = SocialAgent::studio();
+        $platform = isset(Platforms::PLATFORMS[$a['platform'] ?? '']) ? $a['platform'] : 'linkedin';
+
+        return match ($tool) {
+            'audit_script_retention' => app(ScriptRetentionAuditor::class)->audit($agent, ['script_id' => (int) self::need($a, 'script_id')] + array_filter(['target_duration_minutes' => $a['target_duration_minutes'] ?? null])),
+            'generate_hook_matrix' => app(HookMatrixOptimizer::class)->generateMatrix($agent, ['topic' => (string) self::need($a, 'topic'), 'platform' => $platform]),
+            'generate_title_variants' => (function () use ($agent, $a) {
+                $script = ! empty($a['script_id']) ? Script::find((int) $a['script_id']) : null;
+                $topic = trim((string) ($a['topic'] ?? '')) ?: ($script?->title ?? '');
+                if ($topic === '') {
+                    throw new RuntimeException('Give a topic or a script_id.');
+                }
+
+                return app(TitleBanditOptimizer::class)->optimize($agent, ['topic' => $topic, 'current_title' => $script?->title]);
+            })(),
+            'check_algorithm_reach' => app(PlatformAlgorithmShield::class)->auditAndArmor($agent, ['platform' => $platform, 'content' => (string) self::need($a, 'content')]),
+            'check_deal_compliance' => (function () use ($agent, $a) {
+                $deal = Deal::find((int) self::need($a, 'deal_id')) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.');
+                $script = ! empty($a['script_id']) ? Script::find((int) $a['script_id']) : ($deal->script_id ? $deal->script : null);
+                $content = trim((string) ($a['content'] ?? '')) ?: (string) $script?->body;
+                if ($content === '') {
+                    throw new RuntimeException('Give the content or a script_id (the deal has no linked script).');
+                }
+
+                return app(DealFulfillmentGuardian::class)->auditDraft($agent, ['deal_id' => $deal->id, 'content' => $content, 'title' => $script?->title]);
+            })(),
+            'plan_production_sprint' => app(SprintOrchestrator::class)->planSprint($agent, array_filter(['hours_available' => $a['hours_available'] ?? null, 'focus_topic' => $a['focus_topic'] ?? null])),
+            'fact_check_claims' => app(FactCheckShield::class)->verify($agent, ['text' => (string) self::need($a, 'text')]),
         };
     }
 
@@ -224,6 +314,29 @@ class CopilotTools
             })(),
             'save_to_library' => ['Save to Library: “'.self::need($a, 'title').'”', ['words' => str_word_count((string) self::need($a, 'content'))]],
             'set_week_video' => $this->previewWeek($a),
+            'update_deal' => (function () use ($a) {
+                $d = Deal::find((int) self::need($a, 'deal_id')) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.');
+                if (! empty($a['stage']) && ! in_array($a['stage'], Deal::STAGES, true)) {
+                    throw new RuntimeException('Unknown stage. Use one of: '.implode(', ', Deal::STAGES));
+                }
+                $bits = array_filter([
+                    ! empty($a['stage']) && $a['stage'] !== $d->stage ? "stage {$d->stage} to {$a['stage']}" : null,
+                    isset($a['rate']) ? 'fee '.number_format((float) $a['rate']) : null,
+                    ! empty($a['note']) ? 'add a note' : null,
+                    ! empty($a['followed_up']) ? 'mark as followed up' : null,
+                ]);
+                if (! $bits) {
+                    throw new RuntimeException('Nothing to change: give a stage, rate, note or followed_up.');
+                }
+
+                return ["{$d->brand_name}: ".implode(', ', $bits), ['note' => $a['note'] ?? null, 'reason' => $a['reason'] ?? null]];
+            })(),
+            'create_deal' => ['New deal: '.self::need($a, 'brand_name').(! empty($a['stage']) ? " ({$a['stage']})" : ''), ['rate' => $a['rate'] ?? null, 'contact' => $a['contact_email'] ?? null]],
+            'write_proposal' => (function () use ($a) {
+                $d = Deal::find((int) self::need($a, 'deal_id')) ?? throw new RuntimeException('No deal with that id. Use list_brand_deals.');
+
+                return [($d->proposal ? 'Rewrite' : 'Write').' the proposal for '.$d->brand_name, ['amount' => (float) $d->rate, 'notes' => $a['notes'] ?? null]];
+            })(),
             default => throw new RuntimeException("Unknown tool: {$tool}"),
         };
 
@@ -360,6 +473,48 @@ class CopilotTools
 
                 return ['message' => "Week {$w->number} updated.", 'link' => '/goals', 'undo' => ['week_id' => $w->id, 'before' => $before]];
             })(),
+            'update_deal' => (function () use ($a) {
+                $d = Deal::findOrFail($a['deal_id']);
+                $before = self::dealSnapshot($d, ['stage', 'rate', 'notes', 'last_contacted_at', 'stage_changed_at', 'paid_at', 'payment_status', 'invoiced_at']);
+                $fields = [];
+                if (! empty($a['stage'])) {
+                    $fields['stage'] = $a['stage'];
+                    if ($a['stage'] === 'paid' && ! $d->paid_at) {
+                        $fields += ['paid_at' => now(), 'payment_status' => 'paid'];
+                    } elseif ($a['stage'] === 'invoiced' && ! $d->invoiced_at) {
+                        $fields += ['invoiced_at' => now(), 'payment_status' => 'invoiced'];
+                    }
+                }
+                if (isset($a['rate'])) {
+                    $fields['rate'] = max(0, (float) $a['rate']);
+                }
+                if (! empty($a['note'])) {
+                    $fields['notes'] = trim(($d->notes ? $d->notes."\n\n" : '').now()->format('j M').": {$a['note']}");
+                }
+                if (! empty($a['followed_up'])) {
+                    $fields['last_contacted_at'] = now();
+                }
+                $d->update($fields);
+
+                return ['message' => "{$d->brand_name} updated.", 'link' => '/deals', 'undo' => ['deal_id' => $d->id, 'before' => $before]];
+            })(),
+            'create_deal' => (function () use ($a) {
+                $d = Deal::create(array_filter([
+                    'brand_name' => mb_substr((string) $a['brand_name'], 0, 150), 'contact_name' => $a['contact_name'] ?? null,
+                    'contact_email' => filter_var($a['contact_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: null,
+                    'stage' => in_array($a['stage'] ?? '', Deal::STAGES, true) ? $a['stage'] : 'inquiry',
+                    'rate' => isset($a['rate']) ? max(0, (float) $a['rate']) : 0, 'notes' => $a['notes'] ?? null, 'currency' => 'USD', 'payment_status' => 'pending',
+                ], fn ($v) => $v !== null));
+
+                return ['message' => "{$d->brand_name} added to Deals.", 'link' => '/deals', 'undo' => ['deal_id' => $d->id]];
+            })(),
+            'write_proposal' => (function () use ($a) {
+                $d = Deal::findOrFail($a['deal_id']);
+                $before = self::dealSnapshot($d, ['proposal', 'proposal_at']);
+                $d->update(['proposal' => app(ProposalWriter::class)->write($d, null, $a['notes'] ?? null), 'proposal_at' => now()]);
+
+                return ['message' => "Proposal for {$d->brand_name} written. Review it in Deals, Proposal.", 'link' => "/deals?proposal={$d->id}", 'undo' => ['deal_id' => $d->id, 'before' => $before]];
+            })(),
             default => throw new RuntimeException('Unknown action.'),
         };
     }
@@ -399,6 +554,13 @@ class CopilotTools
             case 'set_week_video':
                 Week::find($u['week_id'])?->update($u['before']);
                 break;
+            case 'update_deal':
+            case 'write_proposal':
+                Deal::find($u['deal_id'])?->update($u['before']);
+                break;
+            case 'create_deal':
+                Deal::find($u['deal_id'])?->delete();
+                break;
             default:
                 throw new RuntimeException('This change can’t be undone.');
         }
@@ -418,6 +580,12 @@ class CopilotTools
             'append' => rtrim($body)."\n\n".ltrim($text),
             default => $body,
         };
+    }
+
+    /** Deal fields as plain JSON values, so Undo can put them back. */
+    private static function dealSnapshot(Deal $d, array $fields): array
+    {
+        return array_map(fn ($v) => $v instanceof \DateTimeInterface ? $v->format(DATE_ATOM) : $v, $d->only($fields));
     }
 
     private static function need(array $a, string $key): mixed

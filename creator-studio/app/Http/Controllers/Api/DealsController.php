@@ -30,7 +30,7 @@ class DealsController extends Controller
         $deals = $query->get();
 
         // Pipeline financials
-        $totalPipeline = Deal::whereNotIn('stage', ['paid'])->sum('rate');
+        $totalPipeline = Deal::whereNotIn('stage', Deal::NOT_PIPELINE)->sum('rate');
         $confirmed = Deal::whereIn('stage', ['contracted', 'production', 'in_review', 'scheduled', 'invoiced', 'paid'])->sum('rate');
         $received = Deal::where('stage', 'paid')->sum('rate');
         $pendingInvoice = Deal::where('stage', 'invoiced')->sum('rate');
@@ -48,7 +48,8 @@ class DealsController extends Controller
                 'confirmed_revenue' => round((float) $confirmed, 2),
                 'received_revenue' => round((float) $received, 2),
                 'pending_invoices' => round((float) $pendingInvoice, 2),
-                'active_count' => Deal::whereNotIn('stage', ['paid'])->count(),
+                'active_count' => Deal::whereNotIn('stage', Deal::NOT_PIPELINE)->count(),
+                'follow_ups' => \App\Domains\Deals\FollowUps::due()->count(),
                 'by_stage' => $byStage,
             ],
         ]);

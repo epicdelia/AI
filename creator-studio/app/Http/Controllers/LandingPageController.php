@@ -277,6 +277,26 @@ class LandingPageController extends Controller
         ];
     }
 
+    /**
+     * Her Website page: every editor card's data in one call (the same blocks the dashboard
+     * used to carry), plus where the public page lives.
+     */
+    public function workspace(): JsonResponse
+    {
+        return response()->json([
+            'hero' => rescue(fn () => Hero::dashboard(), null),
+            'marquee' => rescue(fn () => Marquee::dashboard(), null),
+            'partners' => rescue(fn () => Partners::dashboard(), null),
+            'pricing' => rescue(fn () => Pricing::dashboard(), null),
+            'about' => rescue(fn () => About::publicSection(), null),
+            'speaking' => rescue(fn () => self::speaking(), null),
+            'reach' => rescue(fn () => self::reach(), null),
+            'website' => rescue(fn () => self::summary(), null),
+            'journey' => ClientJourney::summary(),
+            'site_url' => \App\Http\Controllers\Api\PipelineController::siteUrl(),
+        ]);
+    }
+
     /** A visitor opened an item (sent with sendBeacon, so the link itself is never delayed). */
     public function click(Request $request): Response
     {

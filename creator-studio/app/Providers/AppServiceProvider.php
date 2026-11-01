@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Toolkit\Models\Document;
 use App\Jobs\IndexMemory;
 use App\Models\Idea;
@@ -10,6 +11,7 @@ use App\Models\Script;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -61,6 +63,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->migrateIfNeeded();
+
+        // agents/studio/<tool>: the AI engines from anywhere in the studio, with her brand and voice
+        // but no agent of their own (SocialAgent::studio()). Numbers still bind as usual.
+        Route::bind('agent', fn (string $value) => $value === 'studio' ? SocialAgent::studio() : SocialAgent::findOrFail((int) $value));
 
         Paginator::defaultView('partials.pagination');
         Paginator::defaultSimpleView('partials.pagination');

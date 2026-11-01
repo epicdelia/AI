@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domains\Deals\FollowUps;
 use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\Idea;
@@ -14,7 +15,7 @@ use Carbon\CarbonImmutable;
  * The one thing to do next for this week's video and high-priority studio tasks,
  * so the dashboard (and the Copilot) can say "fill the 2 [YOUR STORY] gaps" or
  * flag urgent brand deliverables. Walks the priority pipeline:
- * urgent brand deliverable → script pipeline → agent approvals.
+ * urgent brand deliverable → a lead or invoice gone quiet → script pipeline → agent approvals.
  */
 class NextStep
 {
@@ -25,6 +26,11 @@ class NextStep
         $urgentDeal = self::urgentDeal();
         if ($urgentDeal) {
             return $urgentDeal;
+        }
+
+        // 2. Money waiting on her: a website lead, proposal or invoice that's gone quiet.
+        if ($followUp = self::followUp()) {
+            return $followUp;
         }
 
         $week = Week::current()?->load('script');
@@ -135,6 +141,20 @@ class NextStep
         }
 
         return null;
+    }
+
+    private static function followUp(): ?array
+    {
+        $due = rescue(fn () => FollowUps::due(), collect(), false);
+        $top = $due->first();
+        if (! $top) {
+            return null;
+        }
+        $deal = $top['deal'];
+        $more = $due->count() > 1 ? ' '.($due->count() - 1).' more in Deals.' : '';
+        $quiet = $top['kind'] === 'kit_opened' ? "{$top['reason']}." : "{$top['reason']}: {$top['days']} days quiet.";
+
+        return self::step('follow_up', "Follow up with {$deal->brand_name}", trim("{$quiet} The studio drafts it, you send it.{$more}"), 'Draft the follow-up', "/deals?follow-up={$deal->id}");
     }
 
     private static function pendingAgentDraft(): ?array

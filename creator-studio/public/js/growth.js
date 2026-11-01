@@ -83,6 +83,7 @@ export function briefCard() {
       ['bot', b.approvals, 'to approve', '/agents'],
       ['inbox', b.inbox, b.leads ? `to answer · ${b.leads} lead${b.leads === 1 ? '' : 's'}` : 'to answer', '/inbox'],
       ['external', b.published_24h, 'published (24 h)', '/analytics'],
+      ['mail', b.follow_ups_total || 0, (b.follow_ups_total || 0) === 1 ? 'deal to follow up' : 'deals to follow up', '/deals'],
     ];
     clear(box).append(
       h('div', { class: 'card-header' },
@@ -94,6 +95,10 @@ export function briefCard() {
           h('h3', {}, 'Today'),
           b.due_today.length ? h('ul', { class: 'brief-list' }, b.due_today.map((p) => h('li', {}, icon(PLATFORM_ICONS[p.platform], 14),
             link(`/posts/${p.id}`, { class: 'clamp-1' }, p.title || 'Post'), h('span', { class: 'muted small nowrap' }, `${fmtTime(p.at)}${p.auto ? ' · auto' : ''}`)))) : h('p', { class: 'muted small' }, 'Nothing scheduled today.'),
+          b.meetings_today?.length ? h('ul', { class: 'brief-list' }, b.meetings_today.map((m) => h('li', {}, icon('calendar', 14),
+            link('/deals', { class: 'clamp-1' }, `Intro call: ${m.brand_name}`), h('span', { class: 'muted small nowrap' }, fmtTime(m.at))))) : null,
+          b.follow_ups?.length ? h('div', { class: 'brief-nudges' }, b.follow_ups.map((f) => h('p', { class: 'small' },
+            icon('mail', 13), ' ', link(`/deals?follow-up=${f.deal_id}`, {}, f.brand_name), ` · ${f.reason.toLowerCase()}${f.kind === 'kit_opened' ? '' : ` (${f.days_quiet}d)`}`))) : null,
           b.cadence.filter((c) => c.done < c.target).length ? h('div', { class: 'brief-nudges' }, b.cadence.filter((c) => c.done < c.target).map((c) => h('p', { class: 'small' },
             icon(PLATFORM_ICONS[c.platform], 13), ` ${c.label}: ${c.done}/${c.target} this week. Next good slot ${fmtDay(c.next_slot)} ${fmtTime(c.next_slot)} (${c.next_reason}).`))) : null),
         h('div', {},

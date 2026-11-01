@@ -109,6 +109,7 @@ const ROUTES = [
   [/^\/(scripts|posts)\/\d+$/, 'editor', 'the editor'],
   [/^\/calendar$/, 'calendar', 'your calendar'],
   [/^\/analytics$/, 'analytics', 'your analytics'],
+  [/^\/website$/, 'analytics', 'your website'],
   [/^\/(linkedin|instagram|x|tiktok|threads|tools)/, 'cards', 'posts'],
   [/^\/(connections|agents|workflows)$/, 'cards', 'this page'],
   [/^\/(agents|workflows)\/\d+$/, 'list', 'this page'],

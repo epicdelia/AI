@@ -15,6 +15,7 @@ import { openPrompter } from '../prompter.js';
 import { versionsDialog } from '../versions.js';
 import { feedPreview } from '../preview.js';
 import { skLines, skList } from '../skeleton.js';
+import { aiChecksPane } from '../ai-checks.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -576,9 +577,18 @@ export async function renderScript(view, id) {
     h('p', { class: 'muted small' }, 'Adding the link marks the script published. Link it to a week on the Goals page so it counts on the scoreboard (check-in also finds it automatically).'),
     h('div', { class: 'row' }, h('button', { type: 'submit', class: 'btn primary' }, 'Save')));
 
+    // Her website link tagged with this video: a lead that arrives through it is credited to it.
+    const vid = (script.youtube_url || '').match(/(?:youtu\.be\/|v=|\/shorts\/|\/live\/)([\w-]{11})/)?.[1];
+    const siteLink = h('div', { class: 'row small', style: { gap: '8px', marginTop: '10px' } });
+    api('POST', 'landing/tracked-link', { ref: vid ? `yt-${vid}` : 'yt' }).then((r) => siteLink.append(
+      h('span', { class: 'muted' }, 'Your site link for this video:'),
+      h('code', { class: 'clamp-1' }, r.url),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => copyText(r.url, 'Tracked link copied.') }, icon('copy', 13), 'Copy'),
+      vid ? null : h('span', { class: 'muted' }, '(add the YouTube link to tag it with this video)'))).catch(() => {});
+
     clear(publishPane).append(
       publishKitCard(),
-      h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form),
+      h('div', { class: 'card' }, h('h2', {}, 'Publishing'), form, siteLink),
       h('div', { class: 'card' },
         h('div', { class: 'card-header' }, h('h2', {}, 'Export everything'),
           exportMenu(`scripts/${script.id}?parts=outline,body,review,fact_check,transcript,substack,edit_brief,publish_kit`, {
@@ -600,12 +610,19 @@ export async function renderScript(view, id) {
         }, icon('trash', 15), 'Delete')));
   }
 
+  // ---- AI checks: the engines (retention, titles, hooks, claims, sponsor) on this script ----
+  const checks = aiChecksPane(script, {
+    before: () => saveSoon.flush(),
+    selection: () => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd),
+  });
+
   // ---- tabs ----
   const tabs = [
     { key: 'write', label: 'Write', pane: writePane },
     { key: 'preview', label: 'Preview', pane: previewPane, onShow: () => clear(previewPane).append(mdBlock(script.body, 'Nothing written yet.')) },
     { key: 'review', label: 'Review', pane: reviewPane, onShow: drawReview },
     { key: 'facts', label: 'Facts', pane: factsPane, onShow: drawFacts },
+    { key: 'checks', label: 'AI checks', pane: checks.pane, onShow: checks.draw },
     { key: 'package', label: 'Package', pane: packagePane, onShow: drawPackage },
     { key: 'transcript', label: 'Transcript', pane: transcriptPane, onShow: drawTranscript },
     { key: 'substack', label: 'Substack', pane: docTab('substack', { title: 'Substack post', generate: { path: `scripts/${script.id}/substack` }, empty: 'Generate a Substack post from the transcript (or the script, if there is no transcript yet).', help: 'Best after filming: paste the transcript first so the post reflects what you actually said.' }) },

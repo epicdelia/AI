@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Landing\Attribution;
 use App\Domains\Landing\Pricing;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
@@ -93,9 +94,10 @@ class StripePaymentController extends Controller
             'company' => 'nullable|string|max:150',
             'company_name' => 'nullable|string|max:150',
             'notes' => 'nullable|string|max:1000',
-        ]);
+        ] + Attribution::rules());
 
         $pkg = Pricing::package($data['package_id']);
+        $from = Attribution::resolve($data['attribution'] ?? null, $request->getHost());
         $secret = self::secret();
         $customerEmail = $data['customer_email'];
         $customerName = $data['customer_name'];
@@ -116,51 +118,21 @@ class StripePaymentController extends Controller
             ],
             'key_talking_points' => $pkg['description'],
             'notes' => 'Checkout started on the website for ' . $pkg['name'] . '. Notes: ' . (($data['notes'] ?? null) ?: 'None'),
+            'source' => $from['source'],
+            'attribution' => $from['attribution'],
         ]);
 
-        if ($secret !== null) {
-            try {
-                $resp = Http::withToken($secret)
-                    ->asForm()
-                    ->post('https://api.stripe.com/v1/checkout/sessions', [
-                        'payment_method_types' => ['card'],
-                        'line_items' => [[
-                            'price_data' => [
-                                'currency' => $pkg['currency'],
-                                'product_data' => [
-                                    'name' => 'Tech Unicorn: ' . $pkg['name'],
-                                    'description' => $pkg['description'],
-                                ],
-                                'unit_amount' => $pkg['amount'],
-                            ] + ($pkg['interval'] ? ['recurring' => ['interval' => $pkg['interval']]] : []),
-                            'quantity' => 1,
-                        ]],
-                        // The retainer bills monthly until cancelled; everything else is one payment.
-                        'mode' => $pkg['interval'] ? 'subscription' : 'payment',
-                        'customer_email' => $customerEmail,
-                        'success_url' => url('/?payment=success&deal=' . $deal->id),
-                        'cancel_url' => url('/?payment=cancelled&deal=' . $deal->id),
-                        'metadata' => [
-                            'deal_id' => $deal->id,
-                            'package_id' => $pkg['id'],
-                        ],
-                    ]);
+        $session = $secret !== null ? self::startCheckout($deal, $pkg, $customerEmail) : null;
+        if ($session) {
+            AgentEvent::log('lead', "Checkout started: {$companyName} ({$customerEmail}), {$pkg['name']}, {$price}.");
 
-                if ($resp->successful() && $resp->json('url')) {
-                    AgentEvent::log('lead', "Checkout started: {$companyName} ({$customerEmail}), {$pkg['name']}, {$price}.");
-
-                    return response()->json([
-                        'status' => 'redirect',
-                        'paid' => false,
-                        'checkout_url' => $resp->json('url'),
-                        'session_id' => $resp->json('id'),
-                        'deal_id' => $deal->id,
-                    ]);
-                }
-                Log::warning('Stripe checkout session failed', ['status' => $resp->status(), 'error' => $resp->json('error.message')]);
-            } catch (\Throwable $e) {
-                Log::warning('Stripe checkout session failed', ['error' => $e->getMessage()]);
-            }
+            return response()->json([
+                'status' => 'redirect',
+                'paid' => false,
+                'checkout_url' => $session['url'],
+                'session_id' => $session['id'],
+                'deal_id' => $deal->id,
+            ]);
         }
 
         AgentEvent::log('lead', "Invoice requested: {$companyName} ({$customerEmail}), {$pkg['name']}, {$price}.");
@@ -202,6 +174,59 @@ class StripePaymentController extends Controller
         }
 
         return response()->json(['received' => true]);
+    }
+
+    /**
+     * A Stripe Checkout Session for a deal: {url, id}, or null when Stripe isn't set up or says no.
+     * $pkg is {name, description, amount (cents), currency, interval}. The webhook marks it paid.
+     */
+    public static function startCheckout(Deal $deal, array $pkg, ?string $email = null, ?string $returnTo = null): ?array
+    {
+        $secret = self::secret();
+        if ($secret === null) {
+            return null;
+        }
+        try {
+            $resp = Http::withToken($secret)
+                ->asForm()
+                ->post('https://api.stripe.com/v1/checkout/sessions', array_filter([
+                    'payment_method_types' => ['card'],
+                    'line_items' => [[
+                        'price_data' => [
+                            'currency' => $pkg['currency'] ?? 'usd',
+                            'product_data' => array_filter([
+                                'name' => 'Tech Unicorn: ' . $pkg['name'],
+                                'description' => $pkg['description'] ?? null,
+                            ]),
+                            'unit_amount' => (int) $pkg['amount'],
+                        ] + (! empty($pkg['interval']) ? ['recurring' => ['interval' => $pkg['interval']]] : []),
+                        'quantity' => 1,
+                    ]],
+                    // The retainer bills monthly until cancelled; everything else is one payment.
+                    'mode' => ! empty($pkg['interval']) ? 'subscription' : 'payment',
+                    'customer_email' => $email,
+                    'success_url' => url(($returnTo ?? '/') . '?payment=success&deal=' . $deal->id),
+                    'cancel_url' => url(($returnTo ?? '/') . '?payment=cancelled&deal=' . $deal->id),
+                    'metadata' => [
+                        'deal_id' => $deal->id,
+                        'package_id' => $pkg['id'] ?? 'proposal',
+                    ],
+                ]));
+
+            if ($resp->successful() && $resp->json('url')) {
+                return ['url' => $resp->json('url'), 'id' => $resp->json('id')];
+            }
+            Log::warning('Stripe checkout session failed', ['status' => $resp->status(), 'error' => $resp->json('error.message')]);
+        } catch (\Throwable $e) {
+            Log::warning('Stripe checkout session failed', ['error' => $e->getMessage()]);
+        }
+
+        return null;
+    }
+
+    public static function configured(): bool
+    {
+        return self::secret() !== null;
     }
 
     private static function secret(): ?string

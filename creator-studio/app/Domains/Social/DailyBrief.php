@@ -3,9 +3,11 @@
 namespace App\Domains\Social;
 
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Deals\FollowUps;
 use App\Domains\Engagement\Models\EngagementItem;
 use App\Domains\Social\Models\SocialPost;
 use App\Domains\Workflows\Models\WorkflowRun;
+use App\Models\Deal;
 use App\Models\Setting;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +75,10 @@ class DailyBrief
             'cadence' => $cadence,
             'goals' => self::goals(),
             'failed_runs' => WorkflowRun::where('status', 'failed')->where('dry_run', false)->where('created_at', '>=', now()->subDay())->count(),
+            'follow_ups' => rescue(fn () => FollowUps::list(3), [], false),
+            'follow_ups_total' => rescue(fn () => FollowUps::due()->count(), 0, false),
+            'meetings_today' => Deal::whereNotNull('meeting_at')->whereBetween('meeting_at', [$dayStart->utc(), $dayStart->addDay()->utc()])->orderBy('meeting_at')
+                ->get(['id', 'brand_name', 'meeting_at'])->map(fn ($d) => ['id' => $d->id, 'brand_name' => $d->brand_name, 'at' => $d->meeting_at->toIso8601String()])->values(),
             'agent_news' => AgentEvent::whereNull('read_at')->whereIn('type', ['published', 'learned', 'failed'])->latest()->limit(3)->pluck('message'),
         ];
     }

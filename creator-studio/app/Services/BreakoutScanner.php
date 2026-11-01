@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domains\Deals\SponsorProspects;
 use App\Models\Channel;
 use App\Models\Outlier;
 use App\Models\Setting;
@@ -38,6 +39,9 @@ class BreakoutScanner
                 'last_scanned_at' => now(),
             ]);
         }
+
+        // Sponsors named in any scanned description (not only breakouts) feed Deals → Sponsor prospects.
+        rescue(fn () => SponsorProspects::record($out['videos'] ?? []), 0, false);
 
         $created = 0;
         foreach ($out['results'] as $v) {

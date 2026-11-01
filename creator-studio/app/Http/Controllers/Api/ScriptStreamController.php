@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Engine\Stream\StreamService;
+use App\Domains\Landing\Attribution;
+use App\Domains\Landing\LandingFeed;
 use App\Domains\Memory\Memory;
 use App\Domains\Search\FactChecker;
 use App\Domains\Search\WebSearch;
@@ -124,10 +126,15 @@ class ScriptStreamController extends Controller
         $report = $channel ? Cache::get(AudienceController::cacheKey($channel)) : null;
         $own = collect($report['videos'] ?? [])->where('early', false)->whereNotNull('score')->sortByDesc('score')->take(8)
             ->map(fn ($v) => "- \"{$v['title']}\" ({$v['url']}), {$v['score']}x her usual")->implode("\n");
+        // Her website, tagged with this video, so a lead from the description says which video sent it.
+        $site = PipelineController::publicSiteUrl();
+        $videoId = LandingFeed::youtubeId($script->youtube_url);
+        $tracked = $site ? Attribution::trackedUrl($site, $videoId ? "yt-{$videoId}" : 'yt') : null;
         $source = $script->transcript ? "What she said on camera:\n".mb_substr($script->transcript, 0, 12000) : "The script:\n".mb_substr((string) $script->body, 0, 12000);
         $user = "Title: {$script->title}\n\n"
             .($chapters['chapters'] ? 'Chapters ('.($chapters['source'] === 'transcript' ? 'times from the recording' : 'estimated from the script; tell her to check them').", paste exactly):\n{$chapters['chapters']}\n\n" : "No chapters (too few sections).\n\n")
             .($own ? "Her own videos that did well:\n{$own}\n\n" : '')
+            .($tracked ? "Her website link for this video (use exactly this link in the description wherever her site, working with her or booking her comes up):\n{$tracked}\n\n" : '')
             .$source;
 
         return $sse->respond(function (StreamService $sse) use ($script, $llm, $user) {

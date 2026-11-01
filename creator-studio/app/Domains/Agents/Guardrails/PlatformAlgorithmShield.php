@@ -3,6 +3,8 @@
 namespace App\Domains\Agents\Guardrails;
 
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Social\Platforms;
+use App\Domains\Social\PostScorer;
 use App\Services\Llm;
 use App\Services\Prompts;
 
@@ -114,10 +116,31 @@ TEXT;
         }
 
         if (!is_array($data) || !isset($data['algorithm_reach_score'])) {
-            return $this->fallbackArmor($platform, $content, $hasExternalUrl, $hashtagCount);
+            return self::withPostScore($this->fallbackArmor($platform, $content, $hasExternalUrl, $hashtagCount) + ['score_source' => 'rules'], $platform, $content);
         }
 
-        return $data;
+        return self::withPostScore($data + ['score_source' => 'ai_estimate'], $platform, $content);
+    }
+
+    /**
+     * The reach score above is the model's (or the rules') guess. Next to it, her own post score
+     * for the draft and the safer version: a prediction from her past posts once she has 8+ with
+     * numbers on that network, else a labelled rule-of-thumb score (PostScorer).
+     */
+    private static function withPostScore(array $result, string $platform, string $content): array
+    {
+        if (! isset(Platforms::PLATFORMS[$platform])) {
+            return $result + ['post_score' => null, 'armored_post_score' => null];
+        }
+        $scorer = app(PostScorer::class);
+        $pick = fn (array $s) => array_intersect_key($s, array_flip(['score', 'label', 'basis', 'history', 'needed', 'predicted', 'usual', 'metric']));
+        $result['post_score'] = rescue(fn () => $pick($scorer->score(['platform' => $platform, 'body' => $content])), null, false);
+        $armored = trim((string) ($result['armored_content'] ?? ''));
+        $result['armored_post_score'] = $armored !== '' && $armored !== $content
+            ? rescue(fn () => $pick($scorer->score(['platform' => $platform, 'body' => $armored])), null, false)
+            : $result['post_score'];
+
+        return $result;
     }
 
     private function fallbackArmor(string $platform, string $content, bool $hasLinks, int $hashtags): array

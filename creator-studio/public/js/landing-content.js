@@ -4,6 +4,7 @@
 // published posts shows a follow card. Clicks are counted with sendBeacon so links never wait.
 import { h, api, compact, timeAgo } from './core.js';
 import { icon } from './icons.js';
+import { rememberItem } from './landing-tracking.js';
 
 const TABS = [
   { id: 'youtube', icon: 'brand:youtube', label: 'YouTube', blurb: 'Deep dives on engineering, AI and tech careers.' },
@@ -18,6 +19,7 @@ const METRIC_LABELS = { views: 'views', likes: 'likes', comments: 'comments', sh
 
 /** Count a visitor opening an item; fire-and-forget, never blocks the link. */
 export function countClick(key, platform) {
+  rememberItem(key);
   try {
     const body = new Blob([JSON.stringify({ key, platform })], { type: 'application/json' });
     if (!navigator.sendBeacon?.('/api/landing/click', body)) {

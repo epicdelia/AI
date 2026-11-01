@@ -13,15 +13,18 @@ import { pricingSection } from '../landing-pricing.js';
 import { partnersSection } from '../landing-partners.js';
 import { marqueeSection } from '../landing-marquee.js';
 import { heroSection } from '../landing-hero.js';
+import { attribution, countEvent, icsFile, downloadIcs } from '../landing-tracking.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
  * Logs the lead into the Creator Studio deals pipeline; Delia confirms the time by email.
  */
 export function openBookingModal(initialType = 'mvp_build', service = '') {
+  countEvent('cta');
   return modal('Book an Intro Call with Delia', (close) => {
     let submitting = false;
     const today = new Date().toISOString().slice(0, 10);
+    let slot = null; // an open time from her booking hours, when she has them on
 
     const typeSelect = h('select', { class: 'input', name: 'project_type' },
       h('option', { value: 'mvp_build', selected: initialType === 'mvp_build' }, 'MVP Build (2 to 4 Weeks)'),
@@ -48,6 +51,44 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
     const submitBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('calendar', 14), ' Request 30-Min Call');
     const cancelBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel');
 
+    // Real open times (her working hours, minus booked calls), shown in the visitor's own time.
+    // Without them the form keeps "preferred date and time" and she confirms by email.
+    const whenRow = h('div', { class: 'grid grid-2', style: { gap: '14px' } },
+      field('Preferred Date', dateInput),
+      field('Preferred Time', timeSelect));
+    const slotBox = h('div', { class: 'slot-picker', hidden: true });
+    const localTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })();
+    api('GET', 'booking/slots').then((open) => {
+      if (!open.enabled || !open.days?.length || submitting) return;
+      let day = open.days[0];
+      const times = h('div', { class: 'slot-times', role: 'group', 'aria-label': 'Open times' });
+      const days = h('div', { class: 'slot-days', role: 'group', 'aria-label': 'Days' });
+      const drawTimes = () => {
+        times.replaceChildren(...day.slots.map((iso) => h('button', {
+          type: 'button',
+          class: `slot-btn${slot === iso ? ' on' : ''}`,
+          'aria-pressed': String(slot === iso),
+          onclick: () => { slot = iso; drawTimes(); submitBtn.replaceChildren(icon('calendar', 14), ` Book ${new Date(iso).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`); },
+        }, new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))));
+      };
+      const drawDays = () => {
+        days.replaceChildren(...open.days.map((d) => h('button', {
+          type: 'button',
+          class: `slot-day${d === day ? ' on' : ''}`,
+          'aria-pressed': String(d === day),
+          onclick: () => { day = d; drawDays(); drawTimes(); },
+        }, new Date(`${d.date}T12:00:00Z`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }))));
+      };
+      drawDays();
+      drawTimes();
+      slotBox.replaceChildren(
+        h('label', { class: 'field-label' }, 'Pick a time', h('span', { class: 'hint' }, ` ${open.minutes} min · times in your timezone${localTz ? ` (${localTz})` : ''}`)),
+        days, times,
+        h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { slot = null; slotBox.hidden = true; whenRow.hidden = false; submitBtn.replaceChildren(icon('calendar', 14), ' Request 30-Min Call'); } }, 'None of these work? Suggest a time'));
+      slotBox.hidden = false;
+      whenRow.hidden = true;
+    }).catch(() => {});
+
     const form = h('form', {
       class: 'booking-form',
       onsubmit: async (e) => {
@@ -58,15 +99,16 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
         submitBtn.replaceChildren(icon('sparkle', 14), ' Sending request...');
 
         try {
+          if (whenRow.hidden && !slot) throw new Error('Pick a time first.');
           const payload = {
             name: nameInput.value.trim(),
             email: emailInput.value.trim(),
             company: companyInput.value.trim(),
             project_type: typeSelect.value,
-            preferred_date: dateInput.value,
-            preferred_time: timeSelect.value,
             notes: notesInput.value.trim(),
             service: service || undefined,
+            attribution: attribution(),
+            ...(slot ? { slot } : { preferred_date: dateInput.value, preferred_time: timeSelect.value }),
           };
 
           const res = await api('POST', 'booking', payload);
@@ -85,13 +127,14 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Company or Brand', companyInput, 'Optional'),
         field('Project Type', typeSelect)),
-      h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-        field('Preferred Date', dateInput),
-        field('Preferred Time', timeSelect)),
+      slotBox,
+      whenRow,
       field('Project Notes or Goals', notesInput, 'Tell Delia what you need built'),
       h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '10px', marginTop: '16px' } },
         cancelBtn,
         submitBtn));
+
+    form.addEventListener('focusin', () => countEvent('form_start'), { once: true });
 
     const contentBox = h('div', { class: 'booking-modal-body' },
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center', marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid var(--line)' } },
@@ -113,12 +156,20 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
             h('span', { class: 'small muted' }, 'Booking Reference:'),
             h('strong', { class: 'small' }, data.booking_ref || '-')),
           h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '8px' } },
-            h('span', { class: 'small muted' }, 'Requested time:'),
-            h('strong', { class: 'small' }, `${appt.date} at ${appt.time}`)),
+            h('span', { class: 'small muted' }, appt.start ? 'Booked for:' : 'Requested time:'),
+            h('strong', { class: 'small' }, appt.start ? new Date(appt.start).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : `${appt.date} at ${appt.time}`)),
           h('div', { class: 'row', style: { justifyContent: 'space-between' } },
             h('span', { class: 'small muted' }, 'Service:'),
             h('strong', { class: 'small' }, appt.service || 'Intro Consultation'))),
         h('div', { class: 'row', style: { justifyContent: 'center', gap: '12px' } },
+          appt.start ? h('button', {
+            type: 'button',
+            class: 'btn',
+            onclick: () => downloadIcs('intro-call-delia.ics', icsFile({
+              start: appt.start, minutes: appt.minutes || 30, title: 'Intro call with Delia (Tech Unicorn)',
+              description: `${appt.service || 'Intro call'}. Delia will send the meeting link by email. Ref ${data.booking_ref || ''}`,
+            })),
+          }, icon('calendar', 14), 'Add to calendar') : null,
           h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Done')));
 
       contentBox.replaceChildren(successBox);
@@ -143,6 +194,7 @@ export function openStripeModal(pkgId = 'retainer') {
   };
 
   const selected = PACKAGES[pkgId] || PACKAGES.retainer;
+  countEvent('cta');
 
   return modal(`Stripe Secure Checkout: ${selected.name}`, (close) => {
     let submitting = false;
@@ -184,6 +236,7 @@ export function openStripeModal(pkgId = 'retainer') {
             customer_email: emailInput.value.trim(),
             company: companyInput.value.trim(),
             notes: notesInput.value.trim(),
+            attribution: attribution(),
           };
 
           const res = await api('POST', 'stripe/checkout-session', payload);
@@ -215,6 +268,8 @@ export function openStripeModal(pkgId = 'retainer') {
       h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' } },
         h('span', { class: 'small muted' }, icon('lock', 12), ' 256-bit encrypted Stripe checkout'),
         h('div', { class: 'row', style: { gap: '10px' } }, cancelBtn, payBtn)));
+
+    form.addEventListener('focusin', () => countEvent('form_start'), { once: true });
 
     const contentBox = h('div', { class: 'stripe-modal-body' },
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid var(--line)' } },
@@ -608,6 +663,8 @@ function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
 export function renderLanding(view, options = {}) {
   const onAuthClick = options.onAuthClick || (() => navigate('/login'));
   const isAuth = !!options.user;
+  // Count real visitors only: her own preview inside the studio isn't a visit.
+  if (!isAuth) { attribution(); countEvent('visit'); }
 
   const handleBookCall = (type = 'mvp_build', service = '') => openBookingModal(type, service);
   const handleStripePay = (pkg = 'retainer') => openStripeModal(pkg);

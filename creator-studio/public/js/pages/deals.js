@@ -1,10 +1,15 @@
 // Brand Deals & Sponsorships: pipeline, rate card, deliverables, sponsor script generator and pitch drafting.
 import {
-  h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, navigate, link, compact,
+  h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, navigate, link, compact, timeAgo,
 } from '../core.js';
 import { icon } from '../icons.js';
+import {
+  followUpsCard, followUpDialog, proposalDialog, kitLinkDialog, complianceDialog, wrapReportDialog,
+  outboundPitchDialog, prospectsDialog, sourceChip, meetingLine,
+} from '../deal-tools.js';
 
 const STAGE_LABELS = {
+  prospect: 'Prospect',
   inquiry: 'Inquiry',
   pitching: 'Pitching',
   negotiating: 'Negotiating',
@@ -17,6 +22,7 @@ const STAGE_LABELS = {
 };
 
 const STAGE_PILLS = {
+  prospect: '',
   inquiry: 'new',
   pitching: 'picked',
   negotiating: 'WARN',
@@ -30,7 +36,9 @@ const STAGE_PILLS = {
 
 export async function renderDeals(view) {
   let dealsData = await api('GET', 'deals');
+  let followUps = (await api('GET', 'deals/follow-ups').catch(() => ({ follow_ups: [] }))).follow_ups;
   let currentFilter = 'all';
+  const followBox = h('div', { style: { marginBottom: '18px' } });
 
   const statsRow = h('div', { class: 'grid grid-4', style: { marginBottom: '18px' } });
   const tabBar = h('div', { class: 'tabs', style: { marginBottom: '16px' } });
@@ -79,28 +87,39 @@ export async function renderDeals(view) {
       deal.coupon_code || deal.tracking_url ? h('div', { class: 'row small muted', style: { margin: '8px 0' } },
         deal.coupon_code ? h('span', {}, h('strong', {}, 'Code: '), deal.coupon_code) : null,
         deal.tracking_url ? h('a', { href: deal.tracking_url, target: '_blank', rel: 'noopener' }, 'Tracking Link ↗') : null) : null,
+      sourceChip(deal) || deal.proposal_at || deal.kit_views ? h('div', { class: 'row small', style: { gap: '6px', flexWrap: 'wrap', margin: '6px 0' } },
+        sourceChip(deal),
+        deal.proposal_at ? h('span', { class: 'pf-chip' }, icon('doc', 12), ` proposal ${timeAgo(deal.proposal_at)}`) : null,
+        deal.kit_views ? h('span', { class: 'pf-chip' }, icon('eye', 12), ` kit opened ${deal.kit_views}×`) : null) : null,
+      meetingLine(deal),
       deal.key_talking_points ? h('p', { class: 'clamp-2 muted small', style: { margin: '8px 0' } }, deal.key_talking_points) : null,
       h('div', { class: 'row', style: { marginTop: '12px', justifyContent: 'space-between' } },
         h('div', { class: 'row' },
           h('button', { class: 'btn sm ghost', onclick: () => editDealDialog(deal) }, icon('pen', 13), 'Edit'),
+          deal.stage !== 'paid' ? h('button', { class: 'btn sm ghost', onclick: () => followUpDialog(deal, reload) }, icon('mail', 13), 'Follow up') : null,
+          ['prospect', 'inquiry', 'pitching', 'negotiating'].includes(deal.stage) || deal.proposal ? h('button', { class: 'btn sm ghost', onclick: () => proposalDialog(deal, reload) }, icon('doc', 13), 'Proposal') : null,
+          h('button', { class: 'btn sm ghost', onclick: () => kitLinkDialog(deal) }, icon('link', 13), 'Kit link'),
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),
+          ['contracted', 'production', 'in_review', 'scheduled'].includes(deal.stage) || deal.script_id ? h('button', { class: 'btn sm ghost', onclick: () => complianceDialog(deal) }, icon('check', 13), 'Sponsor check') : null,
           h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice'),
-          h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report')),
+          h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report'),
+          ['scheduled', 'invoiced', 'paid'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => wrapReportDialog(deal) }, icon('file-text', 13), 'Wrap report') : null),
         h('div', { class: 'row' },
           deal.stage !== 'paid' ? h('button', {
             class: 'btn sm primary',
             onclick: async () => {
-              const next = deal.stage === 'invoiced' ? 'paid' : 'invoiced';
+              const next = deal.stage === 'prospect' ? 'pitching' : deal.stage === 'invoiced' ? 'paid' : 'invoiced';
               await api('PATCH', `deals/${deal.id}`, { stage: next });
               toast(`Deal marked as ${STAGE_LABELS[next]}.`);
               await reload();
             },
-          }, deal.stage === 'invoiced' ? 'Mark paid' : 'Mark invoiced') : h('span', { class: 'small' }, '✓ Paid'))));
+          }, deal.stage === 'prospect' ? 'Start pitching' : deal.stage === 'invoiced' ? 'Mark paid' : 'Mark invoiced') : h('span', { class: 'small' }, '✓ Paid'))));
   }
 
   function draw() {
     drawStats();
     drawTabs();
+    clear(followBox).append(followUpsCard(followUps, { onChange: reload }) || '');
     const filtered = dealsData.deals.filter((d) => currentFilter === 'all' || d.stage === currentFilter);
     clear(dealsContainer);
     if (!filtered.length) {
@@ -111,7 +130,10 @@ export async function renderDeals(view) {
   }
 
   async function reload() {
-    dealsData = await api('GET', 'deals');
+    [dealsData, followUps] = await Promise.all([
+      api('GET', 'deals'),
+      api('GET', 'deals/follow-ups').then((r) => r.follow_ups).catch(() => []),
+    ]);
     draw();
   }
 
@@ -456,12 +478,24 @@ Payment Terms: Net 30 days`;
       link('/mediakit', { class: 'btn' }, icon('file-text', 15), 'Media kit'),
       h('button', { class: 'btn', onclick: rateCardDialog }, icon('target', 15), 'Rate card'),
       h('button', { class: 'btn', onclick: pitchDialog }, icon('sparkle', 15), 'Draft pitch'),
+      h('button', { class: 'btn', onclick: () => prospectsDialog(() => reload()) }, icon('trend', 15), 'Sponsor prospects'),
+      h('button', { class: 'btn', onclick: () => outboundPitchDialog({ onSaved: () => reload() }) }, icon('megaphone', 15), 'Outbound pitch'),
       h('button', { class: 'btn primary', onclick: () => editDealDialog() }, icon('plus', 15), 'New deal')),
+    followBox,
     statsRow,
     tabBar,
     dealsContainer,
   );
 
   draw();
+
+  // ?follow-up=<id> (dashboard next step) or ?proposal=<id> (the Copilot) opens that dialog.
+  const params = new URLSearchParams(location.search);
+  const openId = Number(params.get('follow-up') || params.get('proposal'));
+  const target = openId && dealsData.deals.find((d) => d.id === openId);
+  if (target) {
+    history.replaceState({}, '', '/deals');
+    (params.has('proposal') ? proposalDialog : followUpDialog)(target, reload);
+  }
 }
 

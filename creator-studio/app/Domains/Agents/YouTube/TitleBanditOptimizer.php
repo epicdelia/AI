@@ -4,6 +4,7 @@ namespace App\Domains\Agents\YouTube;
 
 use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\YouTube\TitleEvidence;
 use App\Domains\YouTube\TitleTest;
 use App\Services\Llm;
 use App\Services\Prompts;
@@ -147,6 +148,12 @@ SYS;
 
         $userPrompt = "Video Topic: {$topic}\n"
             .($currentTitle ? "Current Working Title: \"{$currentTitle}\"\n" : '');
+        // Live title tests on her own videos: the wording her audience actually clicked.
+        if ($wins = TitleEvidence::testWinners()) {
+            $userPrompt .= "\nHer finished live title tests (winner first, views per hour):\n".implode("\n", array_map(
+                fn ($w) => "- WON {$w['winner_views_per_hour']}/h: \"{$w['winner']}\" | beat: ".implode('; ', array_map(fn ($b) => "\"{$b['title']}\" {$b['views_per_hour']}/h", $w['beat'])),
+                $wins))."\nLean towards the patterns that won for her.\n";
+        }
 
         $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 700);
 
@@ -157,15 +164,43 @@ SYS;
                 throw new \RuntimeException('Invalid title optimization response.');
             }
 
-            return [
+            return self::withEvidence([
                 'topic' => $topic,
                 'video_id' => $videoId,
                 'variants' => $data['variants'],
                 'bandit_winner' => $data['bandit_winner'],
-            ];
+            ]);
         } catch (Throwable $e) {
-            return $this->fallbackOptimization($topic, $videoId);
+            return self::withEvidence($this->fallbackOptimization($topic, $videoId));
         }
+    }
+
+    /**
+     * Label the model's CTR numbers as estimates and add what her own channel says about each
+     * title (TitleEvidence); with enough videos, `data_winner` is the title her history favours.
+     */
+    public static function withEvidence(array $result): array
+    {
+        $history = TitleEvidence::history();
+        foreach ($result['variants'] as &$v) {
+            $v['score_source'] = 'ai_estimate';
+            $v['evidence'] = TitleEvidence::score((string) ($v['title'] ?? ''), $history);
+        }
+        unset($v);
+        $result['bandit_winner']['score_source'] = 'ai_estimate';
+        $withData = array_values(array_filter($result['variants'], fn ($v) => $v['evidence']['predicted_vs_median'] !== null));
+        if ($withData) {
+            usort($withData, fn ($a, $b) => $b['evidence']['predicted_vs_median'] <=> $a['evidence']['predicted_vs_median']);
+            $result['data_winner'] = ['title' => $withData[0]['title'], 'predicted_vs_median' => $withData[0]['evidence']['predicted_vs_median'], 'videos' => $withData[0]['evidence']['videos']];
+        } else {
+            $result['data_winner'] = null;
+        }
+        $result['evidence_note'] = $history->count() >= TitleEvidence::MIN_VIDEOS
+            ? "Compared with {$history->count()} of your videos (views vs your median, most similar titles)."
+            : 'CTR scores are AI estimates. Once '.TitleEvidence::MIN_VIDEOS.'+ of your videos have daily numbers, each title is also compared with your own.';
+        $result['test_winners'] = TitleEvidence::testWinners(3);
+
+        return $result;
     }
 
     /**

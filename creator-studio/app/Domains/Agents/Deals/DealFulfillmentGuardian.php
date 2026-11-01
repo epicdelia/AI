@@ -58,7 +58,7 @@ class DealFulfillmentGuardian
         $trackingUrl = $deal?->tracking_url ?? ($params['tracking_url'] ?? null);
         $talkingPoints = $deal?->key_talking_points ?? ($params['key_talking_points'] ?? 'Highlight performance, reliability, and modern developer workflow.');
         $doNots = $deal?->do_nots ?? ($params['do_nots'] ?? 'Do not claim 100% uptime, do not disparage enterprise customers.');
-        $deliverables = $deal?->deliverables ? (is_array($deal->deliverables) ? implode(', ', $deal->deliverables) : $deal->deliverables) : 'Dedicated integration / Sponsored segment';
+        $deliverables = self::deliverablesText($deal) ?: 'Dedicated integration / Sponsored segment';
 
         // Retrieve other active deals to detect non-compete/exclusivity conflicts
         $otherActiveSponsors = Deal::where('id', '!=', $deal?->id ?? 0)
@@ -179,26 +179,27 @@ TEXT;
 
         $brandName = $deal?->brand_name ?? ($params['brand_name'] ?? 'Partner Brand');
         $rate = (int) ($deal?->rate ?? ($params['rate'] ?? 3500));
-        $deliverables = $deal?->deliverables ? (is_array($deal->deliverables) ? implode(', ', $deal->deliverables) : $deal->deliverables) : 'YouTube Integration + Social Cascade';
-        $impressions = (int) ($params['impressions'] ?? 42000);
-        $clicks = (int) ($params['clicks'] ?? 1850);
-        $liveUrl = (string) ($params['live_url'] ?? 'https://youtube.com/watch?v=tech_video');
-        $comments = $params['positive_comments'] ?? [
-            'Loved the live database migration demo with Neon!',
-            'Already switched our staging environment using the code in description.',
-            'Best technical explanation of serverless branching I have seen.',
-        ];
+        $deliverables = self::deliverablesText($deal) ?: 'YouTube Integration + Social Cascade';
+        // Only real numbers: what she typed, else the linked post's logged numbers, else 0 ("not measured").
+        $metrics = (array) ($deal?->socialPost?->metrics ?? []);
+        $impressions = (int) ($params['impressions'] ?? ($metrics['impressions'] ?? 0));
+        $clicks = (int) ($params['clicks'] ?? ($metrics['clicks'] ?? 0));
+        $liveUrl = (string) ($params['live_url'] ?? ($deal?->socialPost?->url ?: ($deal?->script?->youtube_url ?: '')));
+        $comments = array_values(array_filter((array) ($params['positive_comments'] ?? []), 'is_string'));
 
         $system = <<<'PROMPT'
 You are the Executive Vice President of Partnerships for Delia Lazarescu (@Tech.Unicorn).
-Draft a high-impact, professional Sponsor Wrap Report for a completed technical sponsorship campaign.
-The report must demonstrate high developer engagement, highlight positive audience sentiment, confirm 100% deliverable fulfillment, and state that the campaign is ready for immediate invoice disbursement.
+Draft a clear, professional Sponsor Wrap Report for a completed technical sponsorship campaign.
+Use ONLY the numbers, link and comments given below: never invent figures, comparisons with targets, percentages or quotes.
+key_metrics.impressions must equal RECORDED IMPRESSIONS. A number of 0 means it was not measured: say "not measured yet" in the summary instead of guessing.
+highlighted_quotes may only contain AUDIENCE COMMENTS given below (an empty list if there are none); sentiment_score only if there are comments, else 0.
+ready_for_invoicing is true only when the deliverables are published (a LIVE URL is given).
 
 Return ONLY a valid JSON object matching:
 {
   "brand_name": "Brand",
   "campaign_status": "Complete & Verified",
-  "executive_summary": "The campaign exceeded target impressions by 18% with exceptional senior developer sentiment...",
+  "executive_summary": "Two to three sentences on what was delivered and what was measured.",
   "key_metrics": {
     "impressions": 42000,
     "engagement_rate": "4.8%",
@@ -234,25 +235,32 @@ TEXT;
         }
 
         if (!is_array($data) || !isset($data['ready_for_invoicing'])) {
+            $measured = $impressions > 0
+                ? number_format($impressions).' impressions'.($clicks > 0 ? ' and '.number_format($clicks).' clicks' : '').' recorded'
+                : 'numbers not measured yet';
+
             return [
                 'brand_name' => $brandName,
-                'campaign_status' => 'Complete & Verified',
-                'executive_summary' => "The campaign for {$brandName} delivered {$impressions} impressions and {$clicks} verified clicks with high senior developer conversion.",
+                'campaign_status' => $liveUrl !== '' ? 'Delivered' : 'In progress',
+                'executive_summary' => "The {$brandName} campaign ({$deliverables}): {$measured}.".($liveUrl !== '' ? " Live at {$liveUrl}." : ''),
                 'key_metrics' => [
                     'impressions' => $impressions,
-                    'engagement_rate' => '4.4%',
-                    'ctr' => '4.4%',
-                    'estimated_cpm' => (int) round(($rate / max(1, $impressions)) * 1000),
+                    'engagement_rate' => 'not measured',
+                    'ctr' => $impressions > 0 && $clicks > 0 ? round($clicks / $impressions * 100, 2).'%' : 'not measured',
+                    'estimated_cpm' => $impressions > 0 ? (int) round(($rate / $impressions) * 1000) : 0,
                 ],
                 'audience_sentiment' => [
-                    'overall' => 'Extremely Positive',
-                    'sentiment_score' => 94,
+                    'overall' => $comments ? 'From the comments below' : 'No comments added',
+                    'sentiment_score' => 0,
                     'highlighted_quotes' => $comments,
                 ],
-                'contractual_fulfillment_statement' => 'All agreed deliverables and disclosures verified. Invoicing approved.',
-                'ready_for_invoicing' => true,
+                'contractual_fulfillment_statement' => $liveUrl !== '' ? 'Deliverables published as listed above.' : 'Not published yet.',
+                'ready_for_invoicing' => $liveUrl !== '',
             ];
         }
+
+        // The model may not change the recorded number.
+        $data['key_metrics']['impressions'] = $impressions;
 
         return $data;
     }
@@ -282,5 +290,13 @@ TEXT;
     private function formatArray(array $arr): string
     {
         return empty($arr) ? 'None' : implode("\n- ", $arr);
+    }
+
+    /** A deal's deliverables as one line, whether stored as strings or {platform, format, …}. */
+    public static function deliverablesText(?Deal $deal): string
+    {
+        return collect(is_array($deal?->deliverables) ? $deal->deliverables : [])
+            ->map(fn ($d) => is_string($d) ? $d : trim(($d['platform'] ?? '').' '.($d['format'] ?? '')))
+            ->filter()->implode(', ');
     }
 }

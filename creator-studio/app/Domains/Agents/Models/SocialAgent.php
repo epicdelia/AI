@@ -61,4 +61,29 @@ class SocialAgent extends Model
     {
         return $this->options[$key] ?? $default;
     }
+
+    /**
+     * The "studio" agent behind the AI checks outside the Agents page (script editor, Deals,
+     * post composer, Weekly goals, the Copilot): her first agent's brand, audience, voice and
+     * lessons, but never saved, so nothing it drafts is credited to or learned by that agent.
+     * Without any agent it's a plain one in review mode on every network.
+     */
+    public static function studio(): self
+    {
+        $base = self::where('active', true)->orderBy('id')->first() ?? self::orderBy('id')->first();
+        $agent = $base ? $base->replicate(['last_run_at', 'next_run_at', 'learned_at']) : new self([
+            'name' => 'Studio',
+            'platforms' => array_keys(\App\Domains\Social\Platforms::PLATFORMS),
+            'post_types' => array_keys(self::POST_TYPES),
+            'posts_per_week' => 5,
+            'approval' => 'review',
+            'active' => false,
+            'options' => [],
+            'lessons' => [],
+        ]);
+        $agent->approval = 'review'; // studio drafts always wait for her
+        $agent->exists = false;
+
+        return $agent;
+    }
 }

@@ -2,6 +2,7 @@ services:
 
     nginx:
         image: ${COMPOSE_PROJECT_NAME}-nginx:latest
+        pull_policy: build
         build:
             context: ./docker/
             args:
@@ -22,6 +23,7 @@ services:
 
     laravel: &laravel-template
         image: ${COMPOSE_PROJECT_NAME}-laravel:latest
+        pull_policy: build
         build:
             context: .
             args:

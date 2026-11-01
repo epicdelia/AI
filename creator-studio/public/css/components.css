@@ -17639,6 +17639,124 @@ a.landing-stat-box:focus-visible .landing-stat-go {
   font-size: 0.86rem;
 }
 
+/* ---- Social Networks Bar (Below hello@thetechunicorn.com) ---- */
+.landing-social-wrap {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.landing-social-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.landing-social-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.landing-social-eyebrow .icon {
+  color: var(--accent);
+}
+
+.landing-social-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.landing-social-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+}
+
+.landing-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.landing-social-btn:hover {
+  transform: translateY(-3px);
+}
+
+.landing-social-btn.landing-social-youtube:hover {
+  border-color: #FF0000;
+  background: color-mix(in srgb, #FF0000 10%, var(--panel-2));
+  box-shadow: 0 6px 18px rgba(255, 0, 0, 0.22);
+}
+
+.landing-social-btn.landing-social-instagram:hover {
+  border-color: #E4405F;
+  background: color-mix(in srgb, #E4405F 10%, var(--panel-2));
+  box-shadow: 0 6px 18px rgba(228, 64, 95, 0.22);
+}
+
+.landing-social-btn.landing-social-linkedin:hover {
+  border-color: #0A66C2;
+  background: color-mix(in srgb, #0A66C2 10%, var(--panel-2));
+  box-shadow: 0 6px 18px rgba(10, 102, 194, 0.22);
+}
+
+.landing-social-btn.landing-social-x:hover {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, var(--panel-2));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.landing-social-btn.landing-social-tiktok:hover {
+  border-color: #00F2FE;
+  background: color-mix(in srgb, #00F2FE 10%, var(--panel-2));
+  box-shadow: 0 6px 18px rgba(0, 242, 254, 0.22);
+}
+
+.landing-social-btn.landing-social-threads:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-2));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.landing-social-btn.landing-social-github:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-2));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.landing-social-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .landing-social-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 /* ---------------------------------------------------------------- money loop
    Website funnel, booking slots, follow-ups and proposals. Theme tokens only, so light and
    dark both follow the studio palette. */

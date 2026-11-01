@@ -7,7 +7,7 @@ import { themeSwitch } from '../theme.js';
 import { contentSection, loadFeed } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
-import { ctaSection, emailPill } from '../landing-cta.js';
+import { ctaSection, emailPill, socialIconsBar } from '../landing-cta.js';
 import { aboutSection } from '../landing-about.js';
 import { pricingSection } from '../landing-pricing.js';
 import { partnersSection } from '../landing-partners.js';
@@ -1147,7 +1147,8 @@ export function renderLanding(view, options = {}) {
             h('span', {}, '69 Countries'),
             h('span', { class: 'muted' }, '·'),
             h('span', {}, 'Ex-Google')),
-          emailPill()),
+          emailPill(),
+          socialIconsBar()),
 
         // Column 1: Core Engineering
         h('div', { class: 'landing-footer-col' },

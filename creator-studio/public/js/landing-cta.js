@@ -15,6 +15,35 @@ const INTENTS = [
   { type: 'speaking', icon: 'mic', label: 'A keynote or workshop', hint: 'In person or virtual' },
 ];
 
+export const SOCIAL_NETWORKS = [
+  { id: 'youtube', label: 'YouTube', handle: '@Tech.Unicorn', url: 'https://youtube.com/@Tech.Unicorn' },
+  { id: 'instagram', label: 'Instagram', handle: '@tech.unicorn', url: 'https://instagram.com/tech.unicorn' },
+  { id: 'linkedin', label: 'LinkedIn', handle: 'delialazarescu', url: 'https://linkedin.com/in/delialazarescu' },
+  { id: 'x', label: 'X', handle: '@tech_unicorn', url: 'https://x.com/tech_unicorn' },
+  { id: 'tiktok', label: 'TikTok', handle: '@tech.unicorn', url: 'https://tiktok.com/@tech.unicorn' },
+  { id: 'threads', label: 'Threads', handle: '@tech.unicorn', url: 'https://threads.net/@tech.unicorn' },
+  { id: 'github', label: 'GitHub', handle: 'thetechunicorn', url: 'https://github.com/thetechunicorn' },
+];
+
+/** All her social network links with official brand icons, accessible labels and responsive fill */
+export function socialIconsBar() {
+  const links = SOCIAL_NETWORKS.map((net) =>
+    h('a', {
+      href: net.url,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      class: `landing-social-btn landing-social-${net.id}`,
+      title: `${net.label}: ${net.handle}`,
+      'aria-label': `${net.label} profile (${net.handle})`,
+    }, icon(`brand:${net.id}`, 18)));
+
+  return h('div', { class: 'landing-social-wrap' },
+    h('div', { class: 'landing-social-head' },
+      h('span', { class: 'landing-social-eyebrow' }, icon('sparkle', 12), 'Follow & Connect'),
+      h('span', { class: 'landing-social-badge' }, '519K+ Audience')),
+    h('div', { class: 'landing-social-grid', role: 'navigation', 'aria-label': 'Social Networks' }, links));
+}
+
 /** Her email with a one-click copy button (shown in the footer, under the brand description). */
 export function emailPill() {
   const copyBtn = h('button', {
@@ -59,7 +88,9 @@ export function ctaSection({ onBookCall, onStripePay }) {
         h('p', { class: 'landing-close-lede' }, 'App, campaign, keynote, or something bolder. If it makes tech less scary, let us talk.'),
         h('div', { class: 'landing-close-actions' },
           h('button', { type: 'button', class: 'btn primary lg', onclick: () => onBookCall('mvp_build', 'Let us build: Intro call') }, icon('calendar', 16), 'Book an Intro Call'),
-          payBtn)),
+          payBtn),
+        emailPill(),
+        socialIconsBar()),
       h('div', { class: 'landing-close-intents' },
         h('p', { class: 'landing-close-intents-title' }, 'What are we building?'),
         h('div', { class: 'landing-close-tiles' }, tiles))));

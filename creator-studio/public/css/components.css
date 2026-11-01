@@ -15014,3 +15014,198 @@ a.tu-shot:hover img { transform: scale(1.05); }
   .tu-hero-ghost { padding: 5px 11px 5px 5px; font-size: 0.82rem; }
   .tu-or::before, .tu-or::after { display: none; }
 }
+
+/* ---------------------------------------------------------------- landing: section backgrounds
+   The page reads as one continuous surface: every section sits on the same base (no tinted
+   bands, no dividing borders), and each gets its own layer of light behind everything, in the
+   hero's spirit but never the same twice. ::before carries a pattern, ::after a slow glow; both
+   fade out towards the section's top and bottom edges, so no seam ever shows between sections.
+   They sit at z-index -1 inside an isolated section: over its background, under all its content.
+   Colours come from the theme tokens (patterns are masks filled with a token), light mode tones
+   them down, and reduced motion stops the drift.
+   Per layer: --fx-m (the pattern's mask layers), --fx-ms (their sizes), --fx-mr (their repeat). */
+
+.landing-page .landing-section,
+.landing-page .landing-close,
+.landing-page .landing-trusted {
+  position: relative;
+  isolation: isolate;
+}
+/* One surface: the tinted bands and section dividers go. */
+.landing-page .landing-section.tinted { background: transparent; border-block: 0; }
+.landing-page .landing-close { background: transparent; border-top: 0; margin-top: 0; }
+.landing-page .landing-trusted { border-bottom: 0; }
+:root[data-theme="light"] .landing-page { --fx-light: 0.55; }
+
+.landing-page :is(.landing-section, .landing-close)::before,
+.landing-page :is(.landing-section, .landing-close)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-mask-image: var(--fx-m, linear-gradient(#000, #000)), linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-size: var(--fx-ms, 100% 100%), 100% 100%;
+  -webkit-mask-repeat: var(--fx-mr, no-repeat), no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fx-m, linear-gradient(#000, #000)), linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-size: var(--fx-ms, 100% 100%), 100% 100%;
+  mask-repeat: var(--fx-mr, no-repeat), no-repeat;
+  mask-composite: intersect;
+}
+.landing-page .landing-section::before { opacity: calc(var(--fx-o1, 0.5) * var(--fx-light, 1)); }
+.landing-page .landing-section::after { opacity: calc(var(--fx-o2, 0.5) * var(--fx-light, 1)); }
+
+@keyframes fx-drift { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(2%, -2%, 0) scale(1.05); } 100% { transform: translate3d(-2%, 1.5%, 0) scale(0.98); } }
+@keyframes fx-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes fx-pan { to { background-position: 200% 0, 0 0; } }
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+@keyframes fx-mesh { 0% { background-position: 0% 0%, 100% 100%, 50% 50%; } 50% { background-position: 30% 20%, 70% 80%, 60% 40%; } 100% { background-position: 0% 0%, 100% 100%, 50% 50%; } }
+
+/* About: soft light beams, and a dot field fading out from the portrait side */
+#about { --fx-o1: 0.35; --fx-o2: 0.6; }
+#about::before {
+  background: var(--accent);
+  --fx-m: radial-gradient(circle, #000 1px, transparent 1.6px), radial-gradient(60% 70% at 85% 45%, #000, transparent 75%);
+  --fx-ms: 22px 22px, 100% 100%;
+  --fx-mr: repeat, no-repeat;
+}
+#about::after {
+  background:
+    linear-gradient(115deg, transparent 20%, color-mix(in srgb, var(--accent) 22%, transparent) 32%, transparent 44%),
+    linear-gradient(115deg, transparent 38%, color-mix(in srgb, var(--violet) 18%, transparent) 48%, transparent 58%);
+  transform-origin: 0 0;
+  animation: fx-sway 18s ease-in-out infinite;
+}
+
+/* Services: a blueprint grid, brightest in the middle, with a drifting glow */
+#services { --fx-o1: 0.5; --fx-o2: 0.55; }
+#services::before {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 48px 48px;
+  --fx-m: radial-gradient(70% 60% at 50% 50%, #000, transparent 80%);
+}
+#services::after {
+  background: radial-gradient(40% 45% at 85% 30%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 70%),
+    radial-gradient(35% 40% at 12% 70%, color-mix(in srgb, var(--violet) 32%, transparent), transparent 70%);
+  animation: fx-drift 22s ease-in-out infinite alternate;
+}
+
+/* YouTube: film-strip scanlines and an "on air" glow */
+#youtube { --fx-o1: 0.4; --fx-o2: 0.6; }
+#youtube::before {
+  background: repeating-linear-gradient(180deg, var(--line) 0 1px, transparent 1px 6px);
+  --fx-m: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+}
+#youtube::after {
+  background: radial-gradient(45% 50% at 8% 70%, color-mix(in srgb, var(--bad, #d84545) 28%, transparent), transparent 70%),
+    radial-gradient(40% 45% at 92% 30%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%);
+  animation: fx-drift 26s ease-in-out infinite alternate-reverse;
+}
+
+/* How it works: flowing contour lines, a route from first call to launch */
+#process { --fx-o1: 0.45; --fx-o2: 0.5; }
+#process::before {
+  background: var(--accent);
+  --fx-m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 400' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.2'%3E%3Cpath d='M0 300 C 200 220 400 340 600 260 S 1000 160 1200 220'/%3E%3Cpath d='M0 320 C 220 250 420 360 620 285 S 1010 190 1200 250' opacity='.7'/%3E%3Cpath d='M0 340 C 240 280 440 380 640 310 S 1020 220 1200 280' opacity='.5'/%3E%3Cpath d='M0 120 C 260 60 460 170 700 100 S 1040 40 1200 90' opacity='.6'/%3E%3Cpath d='M0 140 C 280 90 480 190 720 125 S 1050 70 1200 120' opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
+}
+#process::after {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--violet) 22%, transparent), transparent) 0 0 / 50% 100% no-repeat,
+    radial-gradient(50% 50% at 50% 70%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%);
+  animation: fx-pan 14s linear infinite;
+}
+
+/* Testimonials: concentric rings spreading from behind the quotes */
+#testimonials { --fx-o1: 0.45; --fx-o2: 0.55; }
+#testimonials::before {
+  background: repeating-radial-gradient(circle at 12% 45%, transparent 0 38px, var(--line) 38px 39px);
+  --fx-m: radial-gradient(45% 60% at 12% 45%, #000, transparent 75%);
+}
+#testimonials::after {
+  background: radial-gradient(35% 45% at 12% 45%, color-mix(in srgb, var(--warn) 22%, transparent), transparent 70%),
+    radial-gradient(35% 45% at 88% 60%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+  animation: fx-drift 20s ease-in-out infinite alternate;
+}
+
+/* Pricing: a slow rotating spotlight behind the cards, over a fine dot grid */
+#pricing { --fx-o1: 0.9; --fx-o2: 0.5; overflow: clip; }
+#pricing::before {
+  background: radial-gradient(circle, var(--line) 1.2px, transparent 1.6px) 0 0 / 26px 26px;
+  --fx-m: radial-gradient(60% 55% at 50% 55%, #000, transparent 78%);
+}
+#pricing::after {
+  inset: -30%;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, color-mix(in srgb, var(--accent) 16%, transparent) 50deg, transparent 110deg,
+    color-mix(in srgb, var(--violet) 14%, transparent) 200deg, transparent 260deg);
+  --fx-m: radial-gradient(closest-side, #000, transparent);
+  animation: fx-spin 60s linear infinite;
+}
+
+/* Reach: a star field (her audience across the world) with an orbit ring */
+#reach { --fx-o1: 0.4; --fx-o2: 0.55; }
+#reach::before {
+  background:
+    radial-gradient(circle, var(--ink) 0.8px, transparent 1.3px) 0 0 / 34px 34px,
+    radial-gradient(circle, var(--accent) 1.2px, transparent 1.8px) 17px 11px / 71px 71px,
+    radial-gradient(circle, var(--violet) 1px, transparent 1.6px) 40px 30px / 97px 97px;
+  --fx-m: radial-gradient(80% 70% at 50% 50%, #000 20%, transparent 80%);
+}
+#reach::after {
+  background:
+    radial-gradient(circle at 90% 40%, transparent 0 180px, color-mix(in srgb, var(--violet) 40%, transparent) 180px 181px, transparent 182px 260px, color-mix(in srgb, var(--accent) 30%, transparent) 260px 261px, transparent 262px),
+    radial-gradient(40% 45% at 90% 40%, color-mix(in srgb, var(--violet) 26%, transparent), transparent 70%);
+}
+
+/* Speaking: two stage spotlights sweeping from above */
+#speaking { --fx-o1: 0.6; --fx-o2: 0.6; overflow: clip; }
+#speaking::before {
+  background: conic-gradient(from 160deg at 22% -10%, transparent 0deg, color-mix(in srgb, var(--accent) 20%, transparent) 14deg, transparent 30deg);
+  transform-origin: 22% 0;
+  animation: fx-sway 12s ease-in-out infinite;
+}
+#speaking::after {
+  background: conic-gradient(from 170deg at 78% -10%, transparent 0deg, color-mix(in srgb, var(--violet) 20%, transparent) 14deg, transparent 30deg);
+  transform-origin: 78% 0;
+  animation: fx-sway 14s ease-in-out infinite reverse;
+}
+
+/* Free download: diagonal ribbon stripes and a warm glow */
+#download { --fx-o1: 0.4; --fx-o2: 0.55; }
+#download::before {
+  background: repeating-linear-gradient(135deg, var(--line) 0 1px, transparent 1px 14px);
+  --fx-m: linear-gradient(90deg, #000, transparent 55%);
+}
+#download::after {
+  background: radial-gradient(45% 60% at 92% 50%, color-mix(in srgb, var(--warn) 26%, transparent), transparent 70%),
+    radial-gradient(30% 45% at 10% 60%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+  animation: fx-drift 24s ease-in-out infinite alternate;
+}
+
+/* Contact: a moving gradient mesh with grain, the closing note */
+.landing-page .landing-close::before {
+  background:
+    radial-gradient(40% 55% at 20% 40%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%),
+    radial-gradient(40% 55% at 80% 60%, color-mix(in srgb, var(--violet) 28%, transparent), transparent 70%),
+    radial-gradient(30% 40% at 60% 35%, color-mix(in srgb, var(--warn) 18%, transparent), transparent 70%);
+  background-size: 140% 140%;
+  opacity: calc(0.7 * var(--fx-light, 1));
+  animation: fx-mesh 20s ease-in-out infinite;
+}
+.landing-page .landing-close::after {
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* The hero's fade and wave end in the page's own colour, so it flows straight into the next section. */
+.tu-hero-wave { color: var(--bg); opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page :is(.landing-section, .landing-close)::before,
+  .landing-page :is(.landing-section, .landing-close)::after { animation: none; }
+}
+/* The marquee strip blends into the page too: a soft glow instead of its own panel and border. */
+.landing-page .landing-marquee {
+  border-top: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 7%, transparent) 30%, color-mix(in srgb, var(--violet) 7%, transparent) 70%, transparent);
+}

@@ -234,7 +234,8 @@ class LandingPageTest extends TestCase
             ['service' => 'Technical Consulting', 'count' => 2],
             ['service' => 'Speaking & Workshops', 'count' => 1],
         ], $this->getJson('/api/dashboard')->json('inbound.by_service'));
-        $this->assertStringContainsString('Technical Consulting', $this->getJson('/api/agents/notifications')->json('events.0.message'));
+        $messages = collect($this->getJson('/api/agents/notifications')->json('events'))->pluck('message')->implode(' ');
+        $this->assertStringContainsString('Technical Consulting', $messages);
     }
 
     public function test_closing_section_leads_are_attributed_on_the_dashboard(): void

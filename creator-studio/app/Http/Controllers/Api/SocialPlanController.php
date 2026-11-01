@@ -107,7 +107,7 @@ class SocialPlanController extends Controller
 
     public function uploadMedia(Request $request, SocialPost $post): JsonResponse
     {
-        $request->validate(['file' => 'required|file|max:'.(self::VIDEO_MAX_MB * 1024)]);
+        $request->validate(['file' => 'required|file|extensions:jpg,jpeg,png,webp,gif,mp4,mov,m4v,webm|max:'.(self::VIDEO_MAX_MB * 1024)]);
         if (count($post->media ?? []) >= self::MEDIA_MAX) {
             return response()->json(['error' => 'Up to '.self::MEDIA_MAX.' files per post.'], 422);
         }

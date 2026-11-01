@@ -2,8 +2,10 @@
 // footer. Every way in feeds her dashboard: the intent tiles book with a type and a source
 // ("Let us build: …") that shows up in "From your website", and the payment button says "Request an
 // invoice" until Stripe is set up. Her email (with one-click copy) lives in the footer: emailPill().
-import { h, api, toast } from './core.js';
+import { h, api, toast, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const EMAIL = 'hello@thetechunicorn.com';
 

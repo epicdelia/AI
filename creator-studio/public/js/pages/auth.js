@@ -1,6 +1,6 @@
 // Sign in (her and her clients), client sign-up, first-run setup, two-factor and password reset.
 // Clients use this page too, so it stays neutral: her love notes live in her dashboard.
-import { h, api, clear, field, formData } from '../core.js';
+import { h, api, clear, field, formData, botTrap } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { setLove } from '../love.js';
@@ -317,7 +317,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
         field('Company', h('input', { type: 'text', name: 'company', maxlength: 150, autocomplete: 'organization' }), 'optional'),
         field('Email address', h('input', { type: 'email', name: 'email', required: true, value: invitedEmail, autocomplete: 'email', placeholder: 'you@company.com' }), 'the one you used on the website, so your requests show up'));
       newPassword();
-      formFields.push(h('label', { class: 'auth-remember' }, h('input', { type: 'checkbox', name: 'terms', required: true }), ' I agree that my details are stored to manage my projects.'));
+      formFields.push(h('label', { class: 'auth-remember' }, h('input', { type: 'checkbox', name: 'terms', required: true }), ' I agree that my details are stored to manage my projects.'), botTrap());
     } else {
       formFields.push(
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })),

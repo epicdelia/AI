@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
  * `role` is never mass assignable: sign-up always makes a client (Role::forSignUp), the first
  * install makes her the admin, and nothing a request sends can change that.
  */
-#[Fillable(['name', 'email', 'password', 'company', 'phone'])]
+#[Fillable(['name', 'email', 'password', 'company', 'phone', 'notify_email'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_last_step'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -39,12 +39,27 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
+            'notify_email' => 'boolean',
         ];
     }
 
     public function deals(): HasMany
     {
         return $this->hasMany(Deal::class);
+    }
+
+    /** The client whose requests this account shares (themselves, or the teammate who invited them). */
+    public function teamOwnerId(): int
+    {
+        return (int) ($this->team_owner_id ?: $this->id);
+    }
+
+    /** Everyone sharing these requests: the team owner and their teammates. */
+    public function teamIds(): array
+    {
+        $owner = $this->teamOwnerId();
+
+        return self::where(fn ($q) => $q->whereKey($owner)->orWhere('team_owner_id', $owner))->pluck('id')->all();
     }
 
     public function role(): Role
@@ -89,6 +104,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'role' => $this->role()->value,
             'abilities' => $this->role()->abilities(),
             'email_verified' => ! $this->needsEmailVerification(),
+            'notify_email' => (bool) ($this->notify_email ?? true),
+            'team_owner' => $this->role() === Role::Client && ! $this->team_owner_id,
             'two_factor' => [
                 'enabled' => (bool) $this->hasTwoFactor(),
                 'required' => $this->role()->requiresTwoFactor(),

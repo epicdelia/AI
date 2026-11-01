@@ -48,7 +48,8 @@ class PipelineController extends Controller
     /** A brand's own media kit link: the kit, and she's told they opened it. */
     public function kit(string $token): JsonResponse
     {
-        $deal = Deal::where('kit_token', $token)->first();
+        // An expired link (60 days, or switched off by her) is simply gone.
+        $deal = Deal::where('kit_token', $token)->where(fn ($q) => $q->whereNull('kit_expires_at')->orWhere('kit_expires_at', '>', now()))->first();
         abort_unless($deal && strlen($token) >= 20, 404);
         $first = ! $deal->kit_viewed_at || $deal->kit_viewed_at->lt(now()->subHour());
         $deal->forceFill(['kit_views' => $deal->kit_views + 1, 'kit_viewed_at' => now()])->saveQuietly();
@@ -295,8 +296,10 @@ class PipelineController extends Controller
     /** A private media kit link for one brand; opening it shows up as a follow-up. */
     public function kitLink(Deal $deal): JsonResponse
     {
-        if (! $deal->kit_token) {
-            $deal->forceFill(['kit_token' => Str::random(32)])->saveQuietly();
+        if (! $deal->kit_token || ($deal->kit_expires_at && $deal->kit_expires_at->isPast())) {
+            $deal->forceFill(['kit_token' => Str::random(32), 'kit_expires_at' => now()->addDays(DealRoomController::LINK_DAYS)])->saveQuietly();
+        } elseif (! $deal->kit_expires_at) {
+            $deal->forceFill(['kit_expires_at' => now()->addDays(DealRoomController::LINK_DAYS)])->saveQuietly();
         }
 
         return response()->json(['url' => url('/kit/'.$deal->kit_token), 'views' => $deal->kit_views, 'viewed_at' => $deal->kit_viewed_at?->toIso8601String()]);

@@ -87,7 +87,7 @@ class MediaController extends Controller
     public function cleanAudio(Request $request, AudioCleaner $cleaner): JsonResponse
     {
         $data = $request->validate([
-            'file' => 'required|file|max:'.(AudioCleaner::uploadLimitMb() * 1024),
+            'file' => 'required|file|extensions:mp3,mpga,mpeg,wav,m4a,aac,ogg,oga,opus,flac,webm,mp4,m4v,mov,mkv|max:'.(AudioCleaner::uploadLimitMb() * 1024),
             'script_id' => 'nullable|exists:scripts,id',
         ]);
         try {
@@ -134,7 +134,7 @@ class MediaController extends Controller
 
     public function uploadPhoto(Request $request): JsonResponse
     {
-        $request->validate(['photo' => 'required|file|max:10240']);
+        $request->validate(['photo' => 'required|file|extensions:jpg,jpeg,png,webp,gif,heic,heif|max:10240']);
         $bytes = (string) file_get_contents($request->file('photo')->getRealPath());
         try {
             [$ext, $mime] = ThumbnailGenerator::sniff($bytes);

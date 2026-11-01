@@ -2,9 +2,11 @@
 // on Instagram, TikTok, X and Threads, from /api/landing/social-feed (rebuilt hourly by
 // studio:landing, curated on her dashboard). Nothing here is sample data: a network without
 // published posts shows a follow card. Clicks are counted with sendBeacon so links never wait.
-import { h, api, compact, timeAgo } from './core.js';
+import { h, api, compact, timeAgo, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
 import { rememberItem } from './landing-tracking.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const TABS = [
   { id: 'youtube', icon: 'brand:youtube', label: 'YouTube', blurb: 'Deep dives on engineering, AI and tech careers.' },

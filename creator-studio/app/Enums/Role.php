@@ -29,6 +29,9 @@ enum Role: string
     /** A client's own payments and invoices. */
     public const PORTAL_BILLING = 'portal.billing';
 
+    /** A client's colleagues sharing their requests (only the team's owner adds or removes). */
+    public const PORTAL_TEAM = 'portal.team';
+
     /** Their own profile, password, two-factor sign-in (everyone signed in). */
     public const ACCOUNT = 'account';
 
@@ -37,7 +40,7 @@ enum Role: string
     {
         return match ($this) {
             self::Admin => [self::STUDIO, self::CLIENTS_MANAGE, self::ACCOUNT],
-            self::Client => [self::PORTAL_REQUESTS, self::PORTAL_BILLING, self::ACCOUNT],
+            self::Client => [self::PORTAL_REQUESTS, self::PORTAL_BILLING, self::PORTAL_TEAM, self::ACCOUNT],
         };
     }
 

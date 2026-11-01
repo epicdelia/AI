@@ -2,8 +2,10 @@
 // Highlighting her Ex-Google background, modern AI agent workflows, full-stack velocity,
 // and cloud infrastructure standards that enable 2-4 week production shipping.
 // Compact 4-card layout with horizontal swipe on mobile screens.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 export const TECH_PILLARS = [
   {

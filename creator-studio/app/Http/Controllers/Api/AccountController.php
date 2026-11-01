@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Auth\TwoFactor;
+use App\Domains\Security\Audit;
+use App\Domains\Security\Models\AuditLog;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureFreshPassword;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -31,12 +35,27 @@ class AccountController extends Controller
         ]]);
     }
 
+    /** Whether the password was typed in the last few minutes (sensitive actions need that). */
+    public function passwordFresh(Request $request): JsonResponse
+    {
+        return response()->json(['fresh' => EnsureFreshPassword::fresh($request)]);
+    }
+
+    public function confirmPasswordNow(Request $request): JsonResponse
+    {
+        $this->confirmPassword($request->user(), (string) $request->input('password'));
+        $request->session()->put('auth.password_confirmed_at', time());
+
+        return response()->json(['ok' => true]);
+    }
+
     public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'company' => 'nullable|string|max:150',
             'phone' => 'nullable|string|max:40',
+            'notify_email' => 'sometimes|boolean',
         ]);
         $request->user()->update($data);
 
@@ -55,6 +74,7 @@ class AccountController extends Controller
 
         $user->forceFill(['password' => Hash::make($data['password'])])->save();
         AuthController::endSessions($user, $request->session()->getId());
+        Audit::log('password_changed', $user);
 
         return response()->json(['message' => 'Password changed. Other devices have been signed out.']);
     }
@@ -73,6 +93,7 @@ class AccountController extends Controller
         if (! $user->isAdmin()) {
             rescue(fn () => $user->sendEmailVerificationNotification(), null, true);
         }
+        Audit::log('email_changed', $user);
 
         return response()->json([
             'message' => $user->isAdmin() ? 'Email changed.' : "Email changed. Open the confirmation link we sent to {$user->email} to keep going.",
@@ -106,6 +127,8 @@ class AccountController extends Controller
             throw ValidationException::withMessages(['code' => 'That code didn’t work. Check the time on your phone and try the newest code.']);
         }
 
+        Audit::log('two_factor_on', $user);
+
         return response()->json([
             'message' => 'Two-factor sign-in is on.',
             'recovery_codes' => $codes,
@@ -119,6 +142,8 @@ class AccountController extends Controller
         abort_unless($user->hasTwoFactor(), 409, 'Turn on two-factor sign-in first.');
         $this->confirmPassword($user, (string) $request->input('current_password'));
 
+        Audit::log('recovery_codes', $user);
+
         return response()->json(['recovery_codes' => TwoFactor::newRecoveryCodes($user)]);
     }
 
@@ -131,6 +156,7 @@ class AccountController extends Controller
         }
         $this->confirmPassword($user, (string) $request->input('current_password'));
         TwoFactor::disable($user);
+        Audit::log('two_factor_off', $user);
 
         return response()->json(['message' => 'Two-factor sign-in is off.', 'user' => $user->toSession()]);
     }
@@ -145,12 +171,41 @@ class AccountController extends Controller
         $this->confirmPassword($user, (string) $request->input('current_password'));
 
         AgentEvent::log('lead', "{$user->name} ({$user->email}) deleted their client account.");
+        Audit::log('account_deleted', $user, null, ['email' => $user->email]);
         Auth::logout();
         $user->delete();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return response()->json(['message' => 'Your account has been deleted.']);
+    }
+
+    /** Where this account is signed in (with the database session driver), and its recent security events. */
+    public function sessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $current = $request->session()->getId();
+        $sessions = config('session.driver') === 'database'
+            ? DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->orderByDesc('last_activity')->limit(20)->get()
+                ->map(fn ($s) => ['current' => $s->id === $current, 'browser' => Audit::browser((string) $s->user_agent), 'ip' => $s->ip_address,
+                    'last_active' => date(DATE_ATOM, (int) $s->last_activity)])->values()
+            : [];
+
+        return response()->json([
+            'sessions' => $sessions,
+            'events' => AuditLog::where('user_id', $user->id)->latest('created_at')->latest('id')->limit(15)->get()->map->toRow()->values(),
+        ]);
+    }
+
+    /** Sign out everywhere else (a lost laptop, a shared computer). */
+    public function endOtherSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->confirmPassword($user, (string) $request->input('current_password'));
+        AuthController::endSessions($user, $request->session()->getId());
+        Audit::log('sessions_ended', $user);
+
+        return response()->json(['message' => 'Signed out on every other device.']);
     }
 
     private function confirmPassword(User $user, string $password): void

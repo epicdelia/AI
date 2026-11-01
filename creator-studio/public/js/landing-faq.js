@@ -2,8 +2,10 @@
 // Detailed, authentic answers based on her Creator Studio business model,
 // engineering background, 2-4 week sprints, IP ownership, and nomad logistics.
 // Includes interactive category filters and accessible accordion items.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 export const FAQ_ITEMS = [
   {

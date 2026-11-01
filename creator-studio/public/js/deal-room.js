@@ -61,6 +61,8 @@ export async function renderDealRoom(view, token) {
     h('div', { class: 'row', style: { gap: '12px', alignItems: 'center', marginBottom: '16px' } }, brandMark(32),
       h('div', {}, h('h1', { style: { margin: 0, fontSize: '1.4rem' } }, d.proposal?.title || `Proposal for ${d.client}`),
         h('p', { class: 'muted small', style: { margin: 0 } }, `From ${d.creator} for ${d.client}${d.proposal?.valid_until ? ` · valid until ${d.proposal.valid_until}` : ''}`))),
+    d.has_account ? h('div', { class: 'card callout' }, icon('user', 15), ' This is on your client dashboard too, with messages, files and invoices. ',
+      h('a', { href: '/login' }, 'Sign in')) : null,
     d.markdown ? h('div', { class: 'card' }, mdBlock(d.markdown)) : h('div', { class: 'card' }, h('p', { class: 'muted' }, `${first} is finishing your proposal. Check back soon.`)),
     h('div', { class: 'card deal-room-actions' },
       h('div', { class: 'row-between', style: { flexWrap: 'wrap', gap: '8px' } }, h('strong', {}, 'Investment'), h('strong', { class: 'deal-rate' }, money)),

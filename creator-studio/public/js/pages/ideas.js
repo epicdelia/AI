@@ -1,5 +1,5 @@
 // Ideas: AI-generated briefs from breakout signals, plus her own. Pick, drop, edit, or turn into a script.
-import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo } from '../core.js';
+import { h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, formData, navigate, timeAgo, runTask } from '../core.js';
 import { icon } from '../icons.js';
 import { memoryDialog } from '../components.js';
 import { scriptWizard } from '../wizard.js';
@@ -183,7 +183,7 @@ export async function renderIdeas(view) {
   const genBtn = h('button', {
     class: 'btn primary',
     onclick: () => busy(genBtn, 'Thinking up ideas… (up to a minute)', async () => {
-      const res = await api('POST', 'ideas/generate', { extra: extra.value });
+      const res = await runTask('ideas.generate', { extra: extra.value });
       extra.value = '';
       clear(summaryBox);
       if (res.summary) summaryBox.append(h('div', { class: 'callout' }, h('strong', {}, 'Today’s signal: '), res.summary));

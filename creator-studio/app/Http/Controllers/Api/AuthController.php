@@ -6,6 +6,7 @@ use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Auth\TwoFactor;
 use App\Domains\Clients\ClientLink;
 use App\Domains\Clients\DemoClient;
+use App\Domains\Security\Audit;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
@@ -139,6 +140,9 @@ class AuthController extends Controller
         $user = User::whereRaw('lower(email) = ?', [strtolower(trim($creds['email']))])->first();
         if (! $user || ! Hash::check($creds['password'], $user->password)) {
             RateLimiter::hit($key, 15 * 60);
+            if ($user) {
+                Audit::log('login_failed', $user);
+            }
 
             return response()->json(['error' => 'Incorrect email or password.'], 401);
         }
@@ -179,6 +183,7 @@ class AuthController extends Controller
         }
         if (! TwoFactor::check($user, $data['code'])) {
             RateLimiter::hit($key, 15 * 60);
+            Audit::log('two_factor_failed', $user);
 
             return response()->json(['error' => 'That code didn’t work. Check the time on your phone and try the newest code.'], 422);
         }
@@ -279,6 +284,7 @@ class AuthController extends Controller
         $user->forceFill(['password' => Hash::make($data['password']), 'remember_token' => null])->save();
         DB::table('password_reset_tokens')->where('email', $email)->delete();
         self::endSessions($user);
+        Audit::log('password_reset', $user);
 
         return response()->json(['ok' => true, 'message' => 'Password changed. Sign in with your new password.']);
     }
@@ -320,5 +326,9 @@ class AuthController extends Controller
         Auth::login($user, $remember);
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
+        // The security log, and an email when this account signs in from a new device.
+        if ($user->email !== DemoClient::EMAIL) {
+            Audit::signedIn($user, $request);
+        }
     }
 }

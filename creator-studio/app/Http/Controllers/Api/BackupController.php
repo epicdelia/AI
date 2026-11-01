@@ -43,6 +43,7 @@ class BackupController extends Controller
         if (! Backup::path($name)) {
             return response()->json(['error' => 'No such backup.'], 404);
         }
+        \App\Domains\Security\Audit::log('backup_downloaded', null, null, ['file' => $name, 'media' => $request->boolean('media')]);
         if ($request->boolean('media') && ($zip = Backup::zip($name))) {
             return response()->download($zip, str_replace('.sqlite', '.zip', $name))->deleteFileAfterSend();
         }

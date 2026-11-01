@@ -169,6 +169,53 @@ the signed-in user has (`public/js/nav.js`, `app.js` routes).
 
 **Before going live on a VPS:** set your SMTP server in `.env` (`MAIL_*`, see `.env.prod`), `APP_URL=https://…`, `SESSION_SECURE_COOKIE=true`, and keep `DEMO_CLIENT_LOGIN=false`. On first sign-in she sets up two-factor and stores her recovery codes.
 
+### VPS Security Checklist (Production)
+
+Before opening ports to the public internet, verify every item on this checklist:
+
+1. **Firewall (UFW / Cloud Security Groups):**
+   - Allow incoming traffic ONLY on `22` (SSH), `80` (HTTP → redirected to HTTPS), and `443` (HTTPS).
+   ```sh
+   ufw default deny incoming
+   ufw default allow outgoing
+   ufw allow 22/tcp
+   ufw allow 80/tcp
+   ufw allow 443/tcp
+   ufw enable
+   ```
+2. **SSH Hardening:**
+   - Use SSH public keys only. Disable password authentication and root login in `/etc/ssh/sshd_config`:
+     ```text
+     PasswordAuthentication no
+     PermitRootLogin no
+     ```
+3. **Fail2ban:**
+   - Install and enable `fail2ban` to guard against SSH and web brute force:
+     ```sh
+     apt install -y fail2ban
+     systemctl enable --now fail2ban
+     ```
+4. **Automatic Security Updates:**
+   - Enable `unattended-upgrades` so critical OS and kernel security patches apply automatically:
+     ```sh
+     apt install -y unattended-upgrades
+     dpkg-reconfigure --priority=low unattended-upgrades
+     ```
+5. **Database Protection:**
+   - Keep the database completely off the public network. In `compose-prod.yaml`, MySQL is only on the internal `laravel` docker network and has no port exposed to the host (`ports` block is omitted).
+6. **No Mailpit in Production:**
+   - Mailpit / fake mail drivers are for development only (`compose.yaml`). In production (`compose-prod.yaml`), real SMTP is required (`MAIL_MAILER=smtp`).
+7. **Production Caching & Environment:**
+   - Run production optimizations on deployment:
+     ```sh
+     php artisan config:cache
+     php artisan route:cache
+     php artisan view:cache
+     ```
+   - Ensure `.env` has `APP_ENV=production`, `APP_DEBUG=false`, `FORCE_HTTPS=true`, and `SESSION_SECURE_COOKIE=true`.
+8. **Off-Server Encrypted Backups:**
+   - Configure `BACKUP_DISK` (e.g. `sftp` or S3) and set `BACKUP_PASSPHRASE` in `.env` so daily automated backups are AES-256-GCM encrypted and sent off the VPS.
+
 **Testing:** with `DEMO_CLIENT_LOGIN=true` (on in `.env.dev`), the sign-in page shows **Sign in as demo client**: a client account with sample requests (a proposal to accept, work in progress, a paid one). Never turn it on for a public server.
 
 ## Automation

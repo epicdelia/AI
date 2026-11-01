@@ -1,8 +1,10 @@
 // Landing page "The 6-Point Client Guarantee & Code Quality Manifesto".
 // Concrete, binding commitments ensuring 100% peace of mind for prospective clients:
 // IP ownership, zero junior handoffs, weekly Friday Loom demos, fixed prices, 30-day warranty, and complete runbooks.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 export const GUARANTEES = [
   {

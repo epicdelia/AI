@@ -114,6 +114,9 @@ class Deal extends Model
             'accepted_at' => 'datetime',
             'prep' => 'array',
             'prep_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'room_expires_at' => 'datetime',
+            'kit_expires_at' => 'datetime',
         ];
     }
 
@@ -132,6 +135,10 @@ class Deal extends Model
                 $deal->user_id = rescue(fn () => \App\Domains\Clients\ClientLink::ownerFor($deal->contact_email), null, false);
             }
         });
+
+        // The client's timeline and emails (proposal ready, new status, invoice, delivery).
+        static::created(fn (Deal $deal) => rescue(fn () => \App\Domains\Clients\ClientNotifier::created($deal), null, true));
+        static::updated(fn (Deal $deal) => rescue(fn () => \App\Domains\Clients\ClientNotifier::updated($deal), null, true));
 
         // Business events for Workflows (each fires once per deal and stage; never blocks the save).
         static::created(function (Deal $deal) {
@@ -160,6 +167,11 @@ class Deal extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function files(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DealFile::class);
     }
 
     public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany

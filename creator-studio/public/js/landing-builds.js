@@ -1,8 +1,10 @@
 // Landing page "06: Shipped Products": Real production architectures shipped by Delia.
 // Concrete case studies delivered in 2 to 4 weeks while working across 60+ countries.
 // Includes metrics, tech stack tags, and architecture blueprints.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 export const SHIPPED_BUILDS = [
   {

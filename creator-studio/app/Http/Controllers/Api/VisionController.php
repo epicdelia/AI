@@ -28,7 +28,7 @@ class VisionController extends Controller
     public function thumbnailReview(Request $request, Llm $llm): JsonResponse
     {
         $data = $request->validate([
-            'image' => 'nullable|file|max:10240',
+            'image' => 'nullable|file|extensions:jpg,jpeg,png,webp,gif|max:10240',
             'media_id' => 'nullable|exists:media_files,id',
             'youtube_url' => 'nullable|string|max:500',
             'title' => 'nullable|string|max:200',

@@ -2,8 +2,10 @@
 // Explains Delia's authentic digital nomad lifestyle, ultra-mobile engineering rig,
 // redundant connectivity, and async-first protocols that guarantee 99.9% project velocity.
 // Balanced 2-column layout engineered to have exact matching heights and alignment.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const RIG_ITEMS = [
   { icon: 'monitor', title: 'Ultra-Mobile M3 Max Rig', desc: '16" M3 Max workstation, Roost ergonomic stand, NuPhy low-profile mechanical keyboard, and dual 65W GaN travel chargers.' },

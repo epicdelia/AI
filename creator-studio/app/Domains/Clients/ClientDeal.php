@@ -2,6 +2,7 @@
 
 namespace App\Domains\Clients;
 
+use App\Domains\Clients\Models\DealEvent;
 use App\Domains\Deals\ProposalWriter;
 use App\Http\Controllers\Api\StripePaymentController;
 use App\Models\Deal;
@@ -119,6 +120,10 @@ class ClientDeal
             'can_pay' => self::canPay($deal),
             'retainer' => $deal->subscription_status,
             'review_url' => $review ? url('/review/'.$review) : null,
+            'can_review_work' => self::canReviewWork($deal),
+            'approved_at' => $deal->approved_at?->toIso8601String(),
+            'timeline' => self::timeline($deal),
+            'files' => $deal->files()->with('user:id,name')->latest()->get()->map->toRow()->values(),
         ];
     }
 
@@ -131,11 +136,31 @@ class ClientDeal
         if ($deal->proposal && ! $deal->accepted_at) {
             return 'Review and accept the proposal';
         }
+        if (self::canReviewWork($deal)) {
+            return 'Review the work: approve it or ask for changes';
+        }
         if (self::canPay($deal)) {
             return 'Payment due';
         }
+        if (Testimonial::where('deal_id', $deal->id)->where('status', 'requested')->whereNotNull('token')->exists()) {
+            return 'Leave a review';
+        }
 
         return null;
+    }
+
+    /** Work waiting for the client's sign-off (her "In review" stage). */
+    public static function canReviewWork(Deal $deal): bool
+    {
+        return $deal->stage === 'in_review';
+    }
+
+    /** What happened when, worded for the client (the request date if nothing else was logged). */
+    public static function timeline(Deal $deal): array
+    {
+        $events = DealEvent::where('deal_id', $deal->id)->oldest()->get()->map->toRow()->all();
+
+        return $events ?: [['kind' => 'requested', 'label' => 'Request received', 'at' => $deal->created_at?->toIso8601String()]];
     }
 
     private static function deliverables(Deal $deal): array

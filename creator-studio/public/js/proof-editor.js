@@ -1,6 +1,6 @@
 // Website page: testimonials (approve what clients sent, add ones she already has, order them)
 // and the email list (the landing page's free-download opt-in, subscribers, CSV export).
-import { h, api, busy, toast, clear, modal, field, copyText, pill, timeAgo, confirmDialog, compact } from './core.js';
+import { h, api, busy, toast, clear, modal, field, copyText, pill, timeAgo, confirmDialog, compact, guardDownload } from './core.js';
 import { icon } from './icons.js';
 import { skLines } from './skeleton.js';
 import { SOURCE_ICONS } from './deal-tools.js';
@@ -75,7 +75,7 @@ export function emailListCard() {
     clear(box).append(
       h('div', { class: 'card-header' },
         h('div', {}, h('h2', {}, 'Email list'), h('p', { class: 'muted small', style: { margin: '2px 0 0' } }, `${compact(d.total)} subscriber${d.total === 1 ? '' : 's'} · ${d.last_30} in 30 days`)),
-        d.total ? h('a', { class: 'btn sm', href: '/api/subscribers/export' }, icon('download', 14), 'Export CSV') : null),
+        d.total ? h('a', { class: 'btn sm', href: '/api/subscribers/export', onclick: guardDownload }, icon('download', 14), 'Export CSV') : null),
       h('p', { class: 'muted small' }, 'A free download on your landing page in exchange for an email: an audience you own. The download link shows right after they sign up; nothing is emailed from the studio. Import the CSV into your newsletter tool.'),
       h('label', { class: 'row small', style: { gap: '8px', margin: '8px 0' } }, enabled, 'Show the opt-in on my landing page'),
       h('div', { class: 'grid grid-2' }, field('Headline', title), field('Button', button)),

@@ -1,9 +1,11 @@
 // Landing page social proof and owned audience: "What clients say" (testimonials she approved,
 // hidden until there's at least one) and the free-download opt-in (only when she's turned it on
 // in Website → Email list). Also the private review form a client opens from her link.
-import { h, api, toast } from './core.js';
+import { h, api, toast, botTrap, ensureLandingCss } from './core.js';
 import { icon, brandMark } from './icons.js';
 import { attribution } from './landing-tracking.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const stars = (n) => (n ? h('span', { class: 'landing-quote-stars', 'aria-label': `${n} out of 5` }, '★'.repeat(n), h('span', { class: 'off' }, '★'.repeat(5 - n))) : null);
 
@@ -63,6 +65,7 @@ export function leadMagnetSection() {
 export async function renderReview(view, token) {
   const d = await api('GET', `review/${token}`);
   const name = h('input', { type: 'text', required: true, value: d.name || '', autocomplete: 'name' });
+  const reviewTrap = botTrap();
   const role = h('input', { type: 'text', value: d.role || '', placeholder: 'e.g. CTO' });
   const company = h('input', { type: 'text', value: d.company || '' });
   const quote = h('textarea', { rows: 5, required: true, minlength: 10, placeholder: `What was it like working with ${d.creator.split(' ')[0]}? What changed for you?` }, d.quote || '');
@@ -77,7 +80,7 @@ export async function renderReview(view, token) {
       e.preventDefault();
       btn.disabled = true;
       try {
-        const r = await api('POST', `review/${token}`, { name: name.value.trim(), role: role.value.trim() || null, company: company.value.trim() || null, quote: quote.value.trim(), rating, permission: permission.checked });
+        const r = await api('POST', `review/${token}`, { website: reviewTrap.value || undefined, name: name.value.trim(), role: role.value.trim() || null, company: company.value.trim() || null, quote: quote.value.trim(), rating, permission: permission.checked });
         form.replaceChildren(h('div', { class: 'review-done' }, icon('heart', 28), h('h2', {}, r.message)));
       } catch (err) {
         btn.disabled = false;
@@ -89,7 +92,7 @@ export async function renderReview(view, token) {
   d.submitted ? h('p', { class: 'muted small' }, 'You already sent this: you can update it below.') : null,
   field('Your review', quote),
   h('div', { class: 'review-stars', role: 'group', 'aria-label': 'Rating' }, starBtns),
-  h('div', { class: 'grid grid-3' }, field('Name', name), field('Role', role), field('Company', company)),
+  h('div', { class: 'grid grid-3' }, field('Name', name), field('Role', role), field('Company', company)), reviewTrap,
   h('label', { class: 'row small', style: { gap: '8px', margin: '10px 0' } }, permission, `${d.creator.split(' ')[0]} may show this on her website`),
   h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
   view.append(h('div', { class: 'review-page' }, form));

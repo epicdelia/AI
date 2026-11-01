@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Clients\ClientDeal;
 use App\Domains\Clients\ClientLink;
+use App\Domains\Clients\ClientNotifier;
+use App\Domains\Clients\DealFiles;
 use App\Domains\Clients\Models\DealMessage;
+use App\Domains\Security\Audit;
+use App\Domains\Security\Models\AuditLog;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
@@ -12,6 +16,7 @@ use App\Models\User;
 use App\Services\Prompts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Her Clients page (Role ability `clients.manage`): every client account, the deals linked to
@@ -72,10 +77,12 @@ class ClientsController extends Controller
             if ($data['disabled']) {
                 AuthController::endSessions($user);
             }
+            Audit::log($data['disabled'] ? 'client_disabled' : 'client_enabled', null, $user);
         }
         if (! empty($data['verified']) && ! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
             ClientLink::claim($user);
+            Audit::log('client_verified', null, $user);
         }
         $user->update(array_intersect_key($data, array_flip(['name', 'company'])));
 
@@ -96,6 +103,7 @@ class ClientsController extends Controller
         $user = $this->client($client);
         $deal = Deal::findOrFail($request->validate(['deal_id' => 'required|integer'])['deal_id']);
         $deal->forceFill(['user_id' => $user->id])->save();
+        Audit::log('deal_linked', null, $deal, ['client' => $user->id]);
 
         return response()->json(['message' => "Linked to {$user->name}."]);
     }
@@ -105,6 +113,7 @@ class ClientsController extends Controller
         $user = $this->client($client);
         abort_unless($deal->user_id === $user->id, 404);
         $deal->forceFill(['user_id' => null])->save();
+        Audit::log('deal_unlinked', null, $deal, ['client' => $user->id]);
 
         return response()->json(['message' => 'Unlinked.']);
     }
@@ -126,6 +135,7 @@ class ClientsController extends Controller
             $body = "Hi {$deal->contact_name},\n\n{$from} invited you to your own client dashboard: follow \"{$deal->brand_name}\", accept proposals, pay invoices and message {$from} in one place.\n\nCreate your account with this email ({$email}):\n\n".url('/login?'.http_build_query(['signup' => 1, 'email' => $email]));
         }
         $sent = AuthController::mail($email, "Your client dashboard with {$from}", $body);
+        Audit::log('client_invited', null, $deal, ['email' => $email]);
 
         return response()->json(['message' => $sent ? "Invite sent to {$email}." : 'The email couldn’t be sent: check the SMTP settings in .env.'], $sent ? 200 : 502);
     }
@@ -152,6 +162,62 @@ class ClientsController extends Controller
         }
 
         return response()->json(['message' => $message->load('user:id,name')->toThread()], 201);
+    }
+
+    /** The Clients link's badge: unread client messages (cheap, polled). */
+    public function unread(): JsonResponse
+    {
+        return response()->json(['unread' => DealMessage::where('from_admin', false)->whereNull('read_at')->count()]);
+    }
+
+    public function files(Deal $deal): JsonResponse
+    {
+        return response()->json(['files' => $deal->files()->with('user:id,name')->latest()->get()->map->toRow()->values(), 'max_mb' => DealFiles::maxMb()]);
+    }
+
+    /** Her deliverables (or anything) on a request; the client gets an email when it's linked. */
+    public function uploadFile(Request $request, Deal $deal): JsonResponse
+    {
+        $request->validate(DealFiles::rules());
+        $file = DealFiles::store($deal, $request->file('file'), $request->user(), true);
+        if ($deal->user_id) {
+            ClientNotifier::event($deal, 'file', "File added: {$file->name}");
+            ClientNotifier::email($deal, "New file: {$file->name}", "A new file, \"{$file->name}\", was added to \"".ClientDeal::summary($deal)['title'].'". Download it from your dashboard.');
+        }
+
+        return response()->json(['file' => $file->load('user:id,name')->toRow()], 201);
+    }
+
+    public function downloadFile(Deal $deal, int $file): StreamedResponse
+    {
+        return DealFiles::download($deal->files()->findOrFail($file));
+    }
+
+    public function deleteFile(Deal $deal, int $file): JsonResponse
+    {
+        $deal->files()->findOrFail($file)->delete();
+
+        return response()->json(['message' => 'Removed.']);
+    }
+
+    /** Stop a deal's public links (proposal page, media kit) working; a new one can be made. */
+    public function revokeLinks(Deal $deal): JsonResponse
+    {
+        $deal->forceFill(['room_token' => null, 'room_expires_at' => null, 'kit_token' => null, 'kit_expires_at' => null])->saveQuietly();
+        Audit::log('share_link_revoked', null, $deal);
+
+        return response()->json(['message' => 'Links switched off. Make a new one when you need it.']);
+    }
+
+    /** The security log: sign-ins, two-factor and password changes, client access, downloads. */
+    public function audit(Request $request): JsonResponse
+    {
+        $q = AuditLog::with('user:id,name')->latest('created_at')->latest('id');
+        if ($action = $request->query('action')) {
+            $q->where('action', $action);
+        }
+
+        return response()->json(['events' => $q->limit(200)->get()->map->toRow()->values(), 'actions' => Audit::LABELS]);
     }
 
     private function client(int $id): User

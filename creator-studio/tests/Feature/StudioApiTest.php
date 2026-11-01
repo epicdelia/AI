@@ -204,7 +204,8 @@ class StudioApiTest extends TestCase
             'generativelanguage.googleapis.com/*' => Http::response(['choices' => [['message' => ['content' => 'hi from gemini']]], 'usage' => ['prompt_tokens' => 4, 'completion_tokens' => 2]]),
         ]);
 
-        $this->putJson('/api/settings', ['llm_engine' => 'anthropic', 'llm_api_key' => 'sk-ant-test'])->assertOk();
+        $this->putJson('/api/settings', ['llm_engine' => 'anthropic', 'llm_api_key' => 'sk-ant-test'])->assertStatus(423); // keys need the password again
+        $this->withSession(['auth.password_confirmed_at' => time()])->putJson('/api/settings', ['llm_engine' => 'anthropic', 'llm_api_key' => 'sk-ant-test'])->assertOk();
         $this->assertSame(EngineEnum::ANTHROPIC, app(EngineManager::class)->current());
         $this->assertSame('hi from claude', app(Llm::class)->as('test')->chat('sys', 'hello'));
         Http::assertSent(fn ($r) => $r->url() === 'https://api.anthropic.com/v1/messages' && $r->hasHeader('x-api-key', 'sk-ant-test') && $r['model'] === 'claude-sonnet-5-5');

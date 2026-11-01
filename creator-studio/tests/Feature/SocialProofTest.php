@@ -97,7 +97,8 @@ class SocialProofTest extends TestCase
 
         $this->signIn();
         $this->getJson('/api/subscribers')->assertOk()->assertJson(['total' => 1, 'last_30' => 1])->assertJsonPath('by_source.0.source', 'youtube');
-        $csv = $this->get('/api/subscribers/export')->assertOk()->streamedContent();
+        $this->get('/api/subscribers/export')->assertStatus(423); // personal data: password again first
+        $csv = $this->withSession(['auth.password_confirmed_at' => time()])->get('/api/subscribers/export')->assertOk()->streamedContent();
         $this->assertStringContainsString("email,name,source,signed_up_for,signed_up_at\n", $csv);
         $this->assertStringContainsString('dev@corp.io,Dev,youtube,"AI toolkit"', $csv);
         $this->assertSame(1, $this->getJson('/api/dashboard')->json('revenue.subscribers_30d'));

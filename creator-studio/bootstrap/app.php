@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Security headers everywhere, and a Content Security Policy on HTML pages.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        // FORCE_HTTPS=true (public server): plain http is redirected before anything else runs.
+        $middleware->prepend(\App\Http\Middleware\EnforceHttps::class);
+        // Behind a load balancer or Cloudflare: TRUSTED_PROXIES=* (or their IPs) so https is detected.
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : explode(',', $proxies));
+        }
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
@@ -27,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => \App\Http\Middleware\EnsureAbility::class,
             'active' => \App\Http\Middleware\EnsureActive::class,
             'two-factor' => \App\Http\Middleware\EnsureTwoFactor::class,
+            'bots' => \App\Http\Middleware\BlockBots::class,
+            'fresh-password' => \App\Http\Middleware\EnsureFreshPassword::class,
         ]);
         $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureAbility::class);
         $middleware->prependToPriorityList(\App\Http\Middleware\EnsureAbility::class, \App\Http\Middleware\EnsureTwoFactor::class);

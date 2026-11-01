@@ -48,7 +48,8 @@ class BackupTest extends TestCase
         $this->assertSame('Keep me safe', $copy->query('select title from scripts')->fetchColumn());
         $copy = null;
 
-        $this->get("/api/backups/{$name}")->assertOk()->assertDownload($name);
+        $this->get("/api/backups/{$name}")->assertStatus(423); // the whole database: password again first
+        $this->withSession(['auth.password_confirmed_at' => time()])->get("/api/backups/{$name}")->assertOk()->assertDownload($name);
         // A path trick never reaches a file (it falls through to the app page, not a download).
         $this->get('/api/backups/..%2F.env')->assertHeaderMissing('content-disposition');
         $this->get('/api/backups/nope.sqlite')->assertNotFound();

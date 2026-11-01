@@ -1,5 +1,5 @@
 // Settings: profile & brand voice, AI engine, API keys, research thresholds, diagnostics, usage.
-import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link, copyText } from '../core.js';
+import { h, api, busy, toast, pageHead, clear, field, compact, timeAgo, link, copyText, guardDownload } from '../core.js';
 import { icon } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { personaliseCard } from '../prefs.js';
@@ -190,11 +190,13 @@ export async function renderSettings(view) {
       secretField('fal_api_key', 'fal.ai key', 'optional alternative image provider', 'https://fal.ai/dashboard/keys'),
       secretField('vizard_api_key', 'Vizard key', 'cuts Shorts from your published videos', 'https://vizard.ai/workspace?setting=api'))),
 
-  section('Automation', 'Daily breakout scan, feed refresh every 3 hours and a Monday check-in, in your timezone.',
-    h('div', { class: 'grid grid-2 tight' },
-      field('Scheduled jobs', (inputs.schedule_enabled = h('select', { name: 'schedule_enabled' },
-        [['1', 'On'], ['0', 'Paused']].map(([v, l]) => h('option', { value: v, selected: v === (s.schedule_enabled ?? '1') }, l)))),
-      'runs while `php artisan schedule:work` is running'))),
+  section('Automation', 'Scans, agents, auto-posting, comment replies and workflows, in your timezone. Pausing stops everything that acts or spends AI on its own; backups keep running.',
+    [h('div', { class: 'grid grid-2 tight' },
+      field('Automations', (inputs.schedule_enabled = h('select', { name: 'schedule_enabled' },
+        [['1', 'On'], ['0', 'Paused (nothing posts, replies or spends AI by itself)']].map(([v, l]) => h('option', { value: v, selected: v === (s.schedule_enabled ?? '1') }, l)))),
+      'runs while `php artisan schedule:work` is running'),
+      field('Daily AI budget for automations', num('automation_daily_tokens', { min: 0, step: 10000 }), 'tokens; empty = no cap. Your own requests never count')),
+    automationsToday()]),
 
   section('Breakout research', 'What counts as a breakout when scanning competitor channels.',
     h('div', { class: 'grid grid-3 tight' },
@@ -270,8 +272,8 @@ async function backupCard() {
       st.backups.length ? h('ul', { class: 'mini-list' }, st.backups.slice(0, 5).map((b) => h('li', {},
         h('span', {}, new Date(b.created_at).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })),
         h('span', { class: 'row' },
-          h('a', { href: `/api/backups/${encodeURIComponent(b.name)}`, download: b.name, title: 'The database only' }, 'database'),
-          st.zip ? h('a', { href: `/api/backups/${encodeURIComponent(b.name)}?media=1`, title: 'Database plus your thumbnails, audio and clips' }, '+ media (.zip)') : null)))) : null,
+          h('a', { href: `/api/backups/${encodeURIComponent(b.name)}`, download: b.name, title: 'The database only', onclick: guardDownload }, 'database'),
+          st.zip ? h('a', { href: `/api/backups/${encodeURIComponent(b.name)}?media=1`, title: 'Database plus your thumbnails, audio and clips', onclick: guardDownload }, '+ media (.zip)') : null)))) : null,
       h('p', { class: 'muted small' }, 'Saved keys are encrypted with APP_KEY in .env: keep a copy of .env too, or re-enter your keys after restoring.'),
       btn);
   }
@@ -355,6 +357,22 @@ function limitHint(limits, unit) {
   const u = limits?.units?.[unit];
   if (!u) return '';
   return u.limit ? `${u.used.toLocaleString()} of ${u.limit.toLocaleString()} used this month` : `${u.used.toLocaleString()} used this month`;
+}
+
+/** Today's automation spend against the cap, per job, and what they did in the last 24 hours. */
+function automationsToday() {
+  const box = h('div', { class: 'stack', style: { marginTop: '12px' } }, h('p', { class: 'muted small' }, 'Loading today’s activity…'));
+  api('GET', 'automations').then((a) => {
+    const pct = a.cap ? Math.min(100, Math.round((a.used_today / a.cap) * 100)) : null;
+    clear(box).append(
+      h('p', {}, h('strong', {}, compact(a.used_today)), ' tokens used by automations today', a.cap ? ` of ${compact(a.cap)} (${pct}%)` : ' (no cap)',
+        a.paused ? h('span', { class: 'pill late', style: { marginLeft: '8px' } }, 'Paused') : null),
+      a.by_job.length ? h('p', { class: 'muted small' }, a.by_job.map((j) => `${j.job}: ${compact(j.tokens)} tokens in ${j.calls} call${j.calls === 1 ? '' : 's'}`).join(' · ')) : null,
+      h('details', {}, h('summary', {}, `Last 24 hours (${a.events.length})`),
+        a.events.length ? h('ul', { class: 'stack small' }, a.events.map((e) => h('li', {}, h('span', { class: 'muted' }, timeAgo(e.created_at), ' · '), e.message)))
+          : h('p', { class: 'muted small' }, 'Nothing ran.')));
+  }).catch(() => clear(box));
+  return box;
 }
 
 function section(title, desc, body) {

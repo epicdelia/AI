@@ -2,8 +2,10 @@
 // jumping to its section, mixed with live facts from her studio (audience, open build slots, talks,
 // latest video, countries). It pauses on hover or focus, screen readers get the list once (the
 // copy that makes the loop seamless is hidden), and with reduced motion it becomes a static row.
-import { h, api } from './core.js';
+import { h, api, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const FALLBACK = ['Vibecoded Apps', 'Content Creation', 'Speaking & Keynotes', 'AI Integration', 'Brand Partnerships', 'Technical Advisory']
   .map((label, i) => ({ label, target: ['services', 'youtube', 'speaking', 'services', 'pricing', 'pricing'][i], kind: 'phrase' }));

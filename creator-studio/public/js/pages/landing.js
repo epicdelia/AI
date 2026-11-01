@@ -1,7 +1,7 @@
 // Delia Lazarescu (Tech Unicorn) Public Landing Page
 // Fully implemented in pure JavaScript using the Creator Studio dashboard design system.
 // Zero build step, reactive DOM helper h(), native SVG icons, dark/light theme tokens.
-import { h, link, navigate, api, modal, toast, field } from '../core.js';
+import { h, link, navigate, api, modal, toast, field, botTrap, ensureLandingCss } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { contentSection, loadFeed } from '../landing-content.js';
@@ -22,6 +22,8 @@ import { estimatorSection } from '../landing-estimator.js';
 import { buildsSection } from '../landing-builds.js';
 import { guaranteesSection } from '../landing-guarantees.js';
 import { nomadSection } from '../landing-nomad.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -110,6 +112,7 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
           if (whenRow.hidden && !slot) throw new Error('Pick a time first.');
           const payload = {
             name: nameInput.value.trim(),
+            website: form.querySelector('.hp-field')?.value || undefined,
             email: emailInput.value.trim(),
             company: companyInput.value.trim(),
             project_type: typeSelect.value,
@@ -130,7 +133,7 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
       },
     },
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-        field('Your Name', nameInput, 'Required'),
+        field('Your Name', nameInput, 'Required'), botTrap(),
         field('Work Email', emailInput, 'Delia confirms the time here')),
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Company or Brand', companyInput, 'Optional'),
@@ -241,6 +244,7 @@ export function openStripeModal(pkgId = 'retainer') {
           const payload = {
             package_id: selected.id,
             customer_name: nameInput.value.trim(),
+            website: form.querySelector('.hp-field')?.value || undefined,
             customer_email: emailInput.value.trim(),
             company: companyInput.value.trim(),
             notes: notesInput.value.trim(),
@@ -269,7 +273,7 @@ export function openStripeModal(pkgId = 'retainer') {
           priceEl),
         h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, selected.desc)),
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
-        field('Cardholder or Client Name', nameInput, 'Required'),
+        field('Cardholder or Client Name', nameInput, 'Required'), botTrap(),
         field('Billing Email', emailInput, 'Receipt or invoice sent here')),
       field('Company or Brand Name', companyInput, 'For invoice heading'),
       field('Notes & Project Requirements', notesInput, 'Optional details'),

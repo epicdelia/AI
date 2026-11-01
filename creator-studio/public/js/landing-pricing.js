@@ -2,8 +2,10 @@
 // which plans show and "Most popular" follow her dashboard ("Packages & pricing"), checkout charges
 // the same price, the Brand Deal numbers come from Public reach and the MVP card shows live build-slot
 // availability. Every card can also start with a free call, recorded as "Pricing: <plan>".
-import { h, api } from './core.js';
+import { h, api, ensureLandingCss } from './core.js';
 import { icon, brandMark } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const BENEFITS_SHOWN = 4;
 const money = (n) => Math.round(n).toLocaleString('en-US');

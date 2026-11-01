@@ -8,9 +8,11 @@
 //    a sparkline only from synced history, never invented), and her four hero stats, which count up
 //    and link to the section that backs them.
 // Renders at once with her current copy, then fills from /api/landing/hero, the feed and partners.
-import { h, api, compact } from './core.js';
+import { h, api, compact, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
 import { loadFeed, countClick } from './landing-content.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const DEFAULTS = {
   headline: 'Making tech *less scary*: built from beach cafés in 69 countries.',

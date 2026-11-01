@@ -38,6 +38,8 @@ use Illuminate\Support\Facades\Schedule;
 
 /** Run a job, remember when it last ran (or why it failed) for the Settings page. Returns the exit code. */
 $track = function ($command, string $name, callable $work): int {
+    // AI calls made by this job count against the daily automation budget (Settings → Automation).
+    \App\Services\Llm::$automation = $name;
     try {
         $command->info($work());
         Setting::put("last_run_{$name}", now()->toIso8601String());
@@ -49,6 +51,8 @@ $track = function ($command, string $name, callable $work): int {
         $command->error($e->getMessage());
 
         return 1;
+    } finally {
+        \App\Services\Llm::$automation = null;
     }
 };
 
@@ -136,9 +140,24 @@ Artisan::command('studio:backup', function () use ($track) {
     return $track($this, 'backup', function () {
         $b = Backup::run();
 
-        return "Backed up to storage/app/backups/{$b['name']} (".round($b['bytes'] / 1024).' KB). Keeping the newest '.Backup::KEEP.'.';
+        return "Backed up to storage/app/backups/{$b['name']} (".round($b['bytes'] / 1024).' KB). Keeping the newest '.Backup::KEEP.'.'
+            .($b['offsite'] ? " Encrypted copy: {$b['offsite']}." : ' No off-server copy (set BACKUP_DISK).');
     });
-})->purpose('Copy the studio database to storage/app/backups (keeps the newest 14)');
+})->purpose('Back up the studio database to storage/app/backups (keeps the newest 14), plus an encrypted copy on BACKUP_DISK');
+
+Artisan::command('studio:backup-decrypt {file : an encrypted .enc backup} {out? : where to write it (default: the same name without .enc)}', function () {
+    $in = (string) $this->argument('file');
+    if (! is_file($in)) {
+        $this->error("No such file: {$in}");
+
+        return 1;
+    }
+    $out = (string) ($this->argument('out') ?: preg_replace('/\.enc$/', '', $in));
+    file_put_contents($out, Backup::decrypt((string) file_get_contents($in)));
+    $this->info("Decrypted to {$out}.");
+
+    return 0;
+})->purpose('Decrypt an off-server backup (needs the same BACKUP_PASSPHRASE or APP_KEY)');
 
 Artisan::command('studio:stats', function (VideoStats $stats) use ($track) {
     return $track($this, 'stats', fn () => 'Recorded today’s numbers for '.$stats->snapshot().' of your videos.');
@@ -262,7 +281,8 @@ Artisan::command('studio:youtube', function () use ($track) {
     });
 })->purpose('Send queued uploads to YouTube and rotate title tests');
 
-// ---- Schedule (her timezone; the whole schedule can be paused in Settings) ----
+// ---- Schedule (her timezone). Settings → Automation pauses every job that posts, replies,
+// runs workflows or spends AI on its own; backups, clean-up and her own clip/b-roll jobs keep going. ----
 
 try {
     $tz = Setting::get('timezone', 'Europe/London') ?: 'Europe/London';
@@ -292,9 +312,9 @@ Schedule::command('studio:stats')->dailyAt('06:30')->timezone($tz)->when($enable
 Schedule::command('studio:landing')->hourlyAt(20)->when($enabled)->withoutOverlapping(); // after social-sync, so new posts and followers show up
 Schedule::command('studio:social-sync')->hourlyAt(15)->when(fn () => $enabled() && rescue(fn () => SocialAccount::exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:agents')->hourlyAt(5)->when(fn () => $enabled() && rescue(fn () => SocialAgent::where('active', true)->exists(), false, false))->withoutOverlapping();
-Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => rescue(fn () => \App\Domains\Social\Models\SocialPost::where('approval', 'approved')->where('status', 'scheduled')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:publish')->everyFiveMinutes()->when(fn () => $enabled() && rescue(fn () => \App\Domains\Social\Models\SocialPost::where('approval', 'approved')->where('status', 'scheduled')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->when(fn () => $enabled() && rescue(fn () => SocialAgent::exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
-Schedule::command('studio:workflows')->everyMinute()->when(fn () => rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
-Schedule::command('studio:youtube')->everyMinute()->when(fn () => rescue(fn () => \App\Domains\YouTube\VideoUpload::whereIn('status', ['queued', 'uploading'])->exists() || \App\Domains\YouTube\TitleTest::where('status', 'running')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:workflows')->everyMinute()->when(fn () => $enabled() && rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:youtube')->everyMinute()->when(fn () => $enabled() && rescue(fn () => \App\Domains\YouTube\VideoUpload::whereIn('status', ['queued', 'uploading'])->exists() || \App\Domains\YouTube\TitleTest::where('status', 'running')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

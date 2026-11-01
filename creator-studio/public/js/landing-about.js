@@ -2,8 +2,10 @@
 // already keeps (audience from Public reach, latest talk from Speaking, build-slot availability
 // from Client journey), so this section always agrees with the rest of the page. It renders at once
 // with her current copy, then updates from /api/landing/about.
-import { h, api } from './core.js';
+import { h, api, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const DEFAULTS = {
   headline: 'Engineer first. Storyteller always.',

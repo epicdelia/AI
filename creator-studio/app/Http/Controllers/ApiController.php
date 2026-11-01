@@ -892,8 +892,37 @@ class ApiController extends Controller
         return response()->json(AiUsage::summary($days));
     }
 
+    /** Settings → Automation: paused or not, today's AI spend per job against the cap, and what ran in the last 24 h. */
+    public function automations(): JsonResponse
+    {
+        $byJob = AiUsage::where('feature', 'like', 'auto:%')->where('created_at', '>=', now()->startOfDay())
+            ->selectRaw("feature, count(*) as calls, coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) as tokens")
+            ->groupBy('feature')->get()
+            ->groupBy(fn ($r) => explode(':', $r->feature)[1] ?? 'other')
+            ->map(fn ($rows, $job) => ['job' => $job, 'calls' => (int) $rows->sum('calls'), 'tokens' => (int) $rows->sum('tokens')])->values();
+
+        return response()->json([
+            'paused' => Setting::get('schedule_enabled', '1') !== '1',
+            'cap' => (int) Setting::get('automation_daily_tokens', '') ?: null,
+            'used_today' => Llm::automationTokensToday(),
+            'by_job' => $byJob,
+            'events' => \App\Domains\Agents\Models\AgentEvent::where('created_at', '>=', now()->subDay())->latest()->limit(50)
+                ->get(['type', 'message', 'platform', 'created_at']),
+        ]);
+    }
+
     public function updateSettings(Request $request): JsonResponse
     {
+        $wasRunning = Setting::get('schedule_enabled', '1') === '1';
+        // Setting or clearing an API key (or app secret) needs the password from the last few minutes.
+        $touchesSecrets = collect(Setting::SECRET)->contains(fn ($k) => $request->filled($k) || $request->boolean('clear_'.$k));
+        if ($touchesSecrets && ! \App\Http\Middleware\EnsureFreshPassword::fresh($request)) {
+            return response()->json(['error' => 'Please enter your password again to change keys.', 'password_confirm_required' => true], 423);
+        }
+        if ($touchesSecrets) {
+            \App\Domains\Security\Audit::log('keys_changed', null, null, ['keys' => collect(Setting::SECRET)->filter(fn ($k) => $request->filled($k) || $request->boolean('clear_'.$k))->values()->all()]);
+        }
+
         $data = $request->all();
 
         foreach (array_keys(Setting::DEFAULTS) as $k) {
@@ -912,6 +941,10 @@ class ApiController extends Controller
             } elseif (! empty($data[$k])) {
                 Setting::put($k, trim((string) $data[$k]));
             }
+        }
+
+        if ($request->has('schedule_enabled') && $wasRunning !== (Setting::get('schedule_enabled', '1') === '1')) {
+            \App\Domains\Security\Audit::log($wasRunning ? 'automations_paused' : 'automations_resumed');
         }
 
         return response()->json(['message' => 'Settings saved successfully.']);

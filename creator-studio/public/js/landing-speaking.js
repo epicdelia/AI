@@ -1,8 +1,10 @@
 // Landing page "On Stage": her talks from the dashboard (Speaking card → Manage talks). Talks with a
 // stage photo form a slider (featured first), upcoming talks count down, the rest follow newest first, and the
 // stats only count what's in her list. "Book Delia to speak" opens the booking form as a speaking request.
-import { h, api } from './core.js';
+import { h, api, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 // One talk beside the photo; the rest behind "Show more" so both columns end level.
 const SHOWN = 1;

@@ -1,5 +1,5 @@
 // Breakouts: the competitor watchlist and the videos doing far better than their channel's median.
-import { h, api, busy, toast, pageHead, emptyState, compact, timeAgo, fmtDay, link, confirmDialog, clear, pill } from '../core.js';
+import { h, api, busy, toast, pageHead, emptyState, compact, timeAgo, fmtDay, link, confirmDialog, clear, pill, runTask } from '../core.js';
 import { icon } from '../icons.js';
 import { youtubeDialog } from '../components.js';
 import { commentsDialog } from './audience.js';
@@ -115,7 +115,7 @@ export async function renderBreakouts(view) {
   const scanBtn = h('button', {
     class: 'btn primary',
     onclick: () => busy(scanBtn, 'Scanning channels… (about 3 quota units each)', async () => {
-      const res = await api('POST', 'breakouts/scan');
+      const res = await runTask('breakouts.scan');
       data = { ...data, channels: res.channels, outliers: res.outliers };
       const fresh = await api('GET', 'channels');
       data.fresh_count = fresh.fresh_count;

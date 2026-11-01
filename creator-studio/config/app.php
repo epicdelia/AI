@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // A public server: redirect http to https (EnforceHttps). Off for local development.
+    'force_https' => (bool) env('FORCE_HTTPS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

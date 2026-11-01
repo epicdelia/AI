@@ -26,6 +26,10 @@ class SecurityHeaders
         $h = $response->headers;
 
         $h->set('X-Content-Type-Options', 'nosniff', false);
+        // Over https, browsers must never fall back to http for a year (subdomains included).
+        if ($request->secure()) {
+            $h->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains', false);
+        }
         $h->set('Referrer-Policy', 'strict-origin-when-cross-origin', false);
         // Dictation and voice input need the microphone; nothing here needs location or payments APIs.
         $h->set('Permissions-Policy', 'microphone=(self), camera=(self), geolocation=(), payment=(), usb=()', false);

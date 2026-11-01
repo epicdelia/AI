@@ -188,6 +188,8 @@ class SocialProofController extends Controller
     /** CSV for her email tool (Kit, Beehiiv, Substack import…). */
     public function exportSubscribers(): StreamedResponse
     {
+        \App\Domains\Security\Audit::log('subscribers_exported');
+
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['email', 'name', 'source', 'signed_up_for', 'signed_up_at']);

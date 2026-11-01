@@ -2,8 +2,10 @@
 // Demonstrates the concrete advantages of partnering directly with an Ex-Google Principal Engineer
 // versus bloated traditional software agencies or high-variance freelance marketplaces.
 // Compact, polished layout designed for quick scanning with natural lowercase / sentence-case typography.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon, brandMark } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const COMPARISON_ROWS = [
   {

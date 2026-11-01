@@ -43,6 +43,28 @@ class Llm
         return Setting::has('llm_api_key') || $engine->canUseAssemblyKey() && Setting::has('assemblyai_api_key');
     }
 
+    /** Set while a scheduled job runs (routes/console.php): its AI calls count against the daily automation budget. */
+    public static ?string $automation = null;
+
+    /** Today's AI tokens spent by scheduled jobs (agents, workflows, scans…). */
+    public static function automationTokensToday(): int
+    {
+        return (int) AiUsage::where('feature', 'like', 'auto:%')->where('created_at', '>=', now()->startOfDay())
+            ->selectRaw('coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) as t')->value('t');
+    }
+
+    /** Automations stop for the day at her cap (Settings → Automation); her own requests never do. */
+    private static function ensureAutomationBudget(): void
+    {
+        if (self::$automation === null) {
+            return;
+        }
+        $cap = (int) Setting::get('automation_daily_tokens', '');
+        if ($cap > 0 && self::automationTokensToday() >= $cap) {
+            throw new RuntimeException('Today’s AI budget for automations ('.number_format($cap).' tokens) is used up. They resume tomorrow, or raise it in Settings → Automation.');
+        }
+    }
+
     /** Label the next calls for usage stats: $llm->as('ideas')->json(...). */
     public function as(string $feature): static
     {
@@ -86,6 +108,7 @@ class Llm
     public function converse(string $system, array $messages, int $timeout = 180): string
     {
         UsageLimit::ensure('token');
+        self::ensureAutomationBudget();
         if (self::$fake) {
             $last = end($messages);
 
@@ -119,6 +142,7 @@ class Llm
     public function stream(string $system, array $messages, callable $onDelta, int $timeout = 180): string
     {
         UsageLimit::ensure('token');
+        self::ensureAutomationBudget();
         if (self::$fake) {
             $last = end($messages);
             $text = (self::$fake)($system, $last['content'] ?? '');
@@ -166,6 +190,7 @@ class Llm
     public function agentTurn(string $system, array $messages, array $tools, int $timeout = 180, ?callable $onDelta = null): ToolTurn
     {
         UsageLimit::ensure('token');
+        self::ensureAutomationBudget();
         if (self::$toolFake) {
             $turn = (self::$toolFake)($system, $messages, $tools);
             if ($onDelta && $turn->text !== '') {
@@ -220,7 +245,7 @@ class Llm
     {
         try {
             AiUsage::create([
-                'feature' => $this->feature,
+                'feature' => self::$automation ? mb_substr('auto:'.self::$automation.($this->feature ? ':'.$this->feature : ''), 0, 60) : $this->feature,
                 'engine' => $engine->value,
                 'model' => $model ?? (Setting::get('llm_model') ?: $engine->defaultModel()),
                 'input_tokens' => $in,

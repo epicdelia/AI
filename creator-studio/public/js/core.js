@@ -69,7 +69,24 @@ export class ApiError extends Error {
 }
 
 /** Call the JSON API. Throws ApiError with the server's message on failure. */
+/** The landing page's stylesheet, added the first time a landing module loads (the studio skips it). */
+export function ensureLandingCss() {
+  if (document.querySelector('link[data-landing-css]')) return;
+  document.head.append(h('link', { rel: 'stylesheet', href: '/css/landing.css?v=1', 'data-landing-css': '' }));
+}
+
+/** Public forms bots like: `_t` (ms the page was open) goes with them (BlockBots). */
+const BOT_GUARDED = /^(auth\/register|booking|stripe\/checkout-session|review\/)/;
+
+/** A field people never see (bots fill it in): send its value as `website` (BlockBots). */
+export function botTrap() {
+  return h('input', { type: 'text', name: 'website', tabindex: '-1', autocomplete: 'off', class: 'hp-field', 'aria-hidden': 'true' });
+}
+
 export async function api(method, path, body) {
+  if (method === 'POST' && body && typeof body === 'object' && BOT_GUARDED.test(path) && body._t === undefined) {
+    body = { ...body, _t: Math.round(performance.now()) };
+  }
   const opts = {
     method,
     credentials: 'same-origin',
@@ -93,10 +110,69 @@ export async function api(method, path, body) {
   if (res.status === 401 && !path.startsWith('auth/')) {
     onUnauthorized();
   }
+  // A sensitive action wants the password again (EnsureFreshPassword): ask, then retry once.
+  if (res.status === 423 && data.password_confirm_required && !path.startsWith('auth/')) {
+    if (await askPassword()) return api(method, path, body);
+  }
   if (!res.ok) {
     throw new ApiError(errorMessage(data, res.status), res.status, data);
   }
   return data;
+}
+
+/** Ask for the password and confirm it with the server; true once confirmed. */
+function askPassword() {
+  return modal('Confirm it’s you', (close) => {
+    const input = h('input', { type: 'password', autocomplete: 'current-password', required: true });
+    const err = h('p', { class: 'form-error', role: 'alert', hidden: true });
+    const ok = h('button', { class: 'btn primary', type: 'submit' }, 'Continue');
+    return h('form', { onsubmit: async (e) => {
+      e.preventDefault();
+      ok.disabled = true;
+      try {
+        await api('POST', 'auth/confirm-password', { password: input.value });
+        close(true);
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.hidden = false;
+        ok.disabled = false;
+      }
+    } },
+    h('p', { class: 'muted' }, 'This needs your password again (it’s remembered for 15 minutes).'),
+    field('Password', input), err,
+    h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, ok));
+  }).then(Boolean);
+}
+
+/** onclick for a download link to a sensitive file: password first (if needed), then the download. */
+export async function guardDownload(e) {
+  const a = e.currentTarget;
+  if (a.dataset.confirmed) { delete a.dataset.confirmed; return; }
+  e.preventDefault();
+  if (await freshPassword()) { a.dataset.confirmed = '1'; a.click(); }
+}
+
+/**
+ * Run slow AI work in the background (RunAiTask) and wait for its answer, checking every 2 s:
+ * the request never hangs, and a server time limit can't cut it off. Same result (or error) as
+ * calling the endpoint directly.
+ */
+export async function runTask(kind, payload = {}) {
+  let t = await api('POST', 'tasks', { kind, payload });
+  const started = Date.now();
+  while (t.status === 'queued' || t.status === 'running') {
+    if (Date.now() - started > 15 * 60 * 1000) throw new ApiError('This is taking too long. Is the queue worker running?', 504, {});
+    await new Promise((r) => setTimeout(r, 2000));
+    t = await api('GET', `tasks/${t.id}`);
+  }
+  if (t.status === 'failed') throw new ApiError(errorMessage(t.result || {}, t.http_status || 500), t.http_status || 500, t.result || {});
+  return t.result;
+}
+
+/** Before a download link to a sensitive file: make sure the password was typed recently. */
+export async function freshPassword() {
+  const { fresh } = await api('GET', 'auth/password-fresh');
+  return fresh || askPassword();
 }
 
 /**

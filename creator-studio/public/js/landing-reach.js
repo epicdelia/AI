@@ -2,9 +2,11 @@
 // (synced ones once she connects or types them on her dashboard, else her public figures), the
 // real 30-day change and trend, posts this month and engagement from her own published posts, and
 // each network's share of her audience. Networks she hides on the dashboard aren't sent at all.
-import { h, compact, timeAgo } from './core.js';
+import { h, compact, timeAgo, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
 import { loadFeed, countClick } from './landing-content.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 /** Brand colour per network for the audience-mix bar (X and Threads follow the text colour). */
 const MIX_COLORS = {

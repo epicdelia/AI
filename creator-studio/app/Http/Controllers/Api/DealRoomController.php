@@ -22,6 +22,9 @@ use Illuminate\Validation\Rule;
  */
 class DealRoomController extends Controller
 {
+    /** Share links (proposal page, media kit) work this many days, then a fresh one is made. */
+    public const LINK_DAYS = 60;
+
     // ------------------------------------------------------------ public (the client)
 
     public function show(string $token): JsonResponse
@@ -48,6 +51,8 @@ class DealRoomController extends Controller
             'paid' => $deal->payment_status === 'paid',
             'can_pay' => StripePaymentController::configured() && (float) $deal->rate > 0,
             'meeting_at' => $deal->meeting_at?->toIso8601String(),
+            // Linked to a client account: the page offers their dashboard (messages, files, invoices).
+            'has_account' => (bool) $deal->user_id,
         ]);
     }
 
@@ -113,11 +118,13 @@ class DealRoomController extends Controller
 
     public function link(Deal $deal): JsonResponse
     {
-        if (! $deal->room_token) {
-            $deal->forceFill(['room_token' => Str::random(32)])->saveQuietly();
+        if (! $deal->room_token || ($deal->room_expires_at && $deal->room_expires_at->isPast())) {
+            $deal->forceFill(['room_token' => Str::random(32), 'room_expires_at' => now()->addDays(self::LINK_DAYS)])->saveQuietly();
+        } elseif (! $deal->room_expires_at) {
+            $deal->forceFill(['room_expires_at' => now()->addDays(self::LINK_DAYS)])->saveQuietly();
         }
 
-        return response()->json(['url' => url('/deal/'.$deal->room_token), 'views' => $deal->room_views, 'viewed_at' => $deal->room_viewed_at?->toIso8601String(),
+        return response()->json(['url' => url('/deal/'.$deal->room_token), 'expires_at' => $deal->room_expires_at?->toIso8601String(), 'views' => $deal->room_views, 'viewed_at' => $deal->room_viewed_at?->toIso8601String(),
             'accepted_at' => $deal->accepted_at?->toIso8601String(), 'accepted_by' => $deal->accepted_by, 'has_proposal' => (bool) $deal->proposal]);
     }
 
@@ -148,6 +155,6 @@ class DealRoomController extends Controller
     {
         abort_unless(strlen($token) >= 20, 404);
 
-        return Deal::where('room_token', $token)->firstOrFail();
+        return Deal::where('room_token', $token)->where(fn ($q) => $q->whereNull('room_expires_at')->orWhere('room_expires_at', '>', now()))->firstOrFail();
     }
 }

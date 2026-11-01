@@ -53,7 +53,7 @@ Route::prefix('api')->group(function () {
     // Auth (every public write is rate limited per IP). Roles live in App\Enums\Role.
     Route::get('auth/status', [ApiController::class, 'authStatus']);
     Route::post('auth/setup', [AuthController::class, 'setup'])->middleware('throttle:5,1');
-    Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,10'); // clients only
+    Route::post('auth/register', [AuthController::class, 'register'])->middleware(['bots', 'throttle:5,10']); // clients only
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
     Route::post('auth/two-factor', [AuthController::class, 'twoFactorChallenge'])->middleware('throttle:10,1');
     Route::post('auth/demo-client', [AuthController::class, 'demoClient'])->middleware('throttle:10,1'); // 404 unless DEMO_CLIENT_LOGIN=true
@@ -70,18 +70,18 @@ Route::prefix('api')->group(function () {
     // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
     Route::get('stripe/packages', [StripePaymentController::class, 'packages']);
     // Visitors write to her CRM, so cap it per IP (Stripe's webhook is signed instead).
-    Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession'])->middleware('throttle:5,1');
+    Route::post('stripe/checkout-session', [StripePaymentController::class, 'createCheckoutSession'])->middleware(['bots', 'throttle:5,1']);
     Route::post('stripe/webhook', [StripePaymentController::class, 'webhook']);
-    Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:5,1');
+    Route::post('booking', [BookingController::class, 'store'])->middleware(['bots', 'throttle:5,1']);
     Route::get('booking/slots', [BookingController::class, 'slots']);
     // Website funnel (visits, CTA clicks, form starts: counts only) and a brand's own media kit link.
     Route::post('landing/event', [PipelineController::class, 'event'])->middleware('throttle:120,1');
     // Testimonials (approved ones on the page, and a client's private review form) and the email opt-in.
     Route::get('landing/testimonials', [SocialProofController::class, 'publicTestimonials']);
     Route::get('review/{token}', [SocialProofController::class, 'review'])->where('token', '[A-Za-z0-9]{20,64}');
-    Route::post('review/{token}', [SocialProofController::class, 'submitReview'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
+    Route::post('review/{token}', [SocialProofController::class, 'submitReview'])->where('token', '[A-Za-z0-9]{20,64}')->middleware(['bots', 'throttle:10,1']);
     Route::get('landing/lead-magnet', [SocialProofController::class, 'magnet']);
-    Route::post('subscribe', [SocialProofController::class, 'subscribe'])->middleware('throttle:10,1');
+    Route::post('subscribe', [SocialProofController::class, 'subscribe'])->middleware('throttle:10,1'); // its own honeypot
     // A client's deal page: their proposal, Accept, Pay.
     Route::get('room/{token}', [DealRoomController::class, 'show'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:60,1');
     Route::post('room/{token}/accept', [DealRoomController::class, 'accept'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
@@ -102,6 +102,8 @@ Route::prefix('api')->group(function () {
     Route::middleware(['auth', 'active', 'ability:account'])->group(function () {
         Route::post('auth/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,10');
         Route::get('account', [AccountController::class, 'show']);
+        Route::get('auth/password-fresh', [AccountController::class, 'passwordFresh']);
+        Route::post('auth/confirm-password', [AccountController::class, 'confirmPasswordNow'])->middleware('throttle:6,1');
         // Two-factor setup stays open to an admin who hasn't turned it on yet (everything else waits).
         Route::post('account/two-factor/start', [AccountController::class, 'twoFactorStart'])->middleware('throttle:10,1');
         Route::post('account/two-factor/confirm', [AccountController::class, 'twoFactorConfirm'])->middleware('throttle:10,1');
@@ -112,6 +114,8 @@ Route::prefix('api')->group(function () {
             Route::post('account/two-factor/recovery-codes', [AccountController::class, 'recoveryCodes'])->middleware('throttle:5,1');
             Route::delete('account/two-factor', [AccountController::class, 'twoFactorDisable'])->middleware('throttle:5,1');
             Route::delete('account', [AccountController::class, 'destroy'])->middleware('throttle:5,1');
+            Route::get('account/sessions', [AccountController::class, 'sessions']);
+            Route::delete('account/sessions', [AccountController::class, 'endOtherSessions'])->middleware('throttle:5,1');
         });
     });
 
@@ -125,7 +129,28 @@ Route::prefix('api')->group(function () {
         Route::post('requests/{deal}/pay', [PortalController::class, 'pay'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::get('requests/{deal}/messages', [PortalController::class, 'messages'])->whereNumber('deal');
         Route::post('requests/{deal}/messages', [PortalController::class, 'sendMessage'])->whereNumber('deal')->middleware('throttle:20,1');
-        Route::get('billing', [PortalController::class, 'billing'])->middleware('ability:portal.billing');
+        Route::get('unread', [PortalController::class, 'unread']);
+        Route::post('requests/{deal}/approve', [PortalController::class, 'approve'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::post('requests/{deal}/changes', [PortalController::class, 'requestChanges'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::get('requests/{deal}/files', [PortalController::class, 'files'])->whereNumber('deal');
+        Route::post('requests/{deal}/files', [PortalController::class, 'uploadFile'])->whereNumber('deal')->middleware('throttle:30,10');
+        Route::get('requests/{deal}/files/{file}', [PortalController::class, 'downloadFile'])->whereNumber(['deal', 'file']);
+        Route::delete('requests/{deal}/files/{file}', [PortalController::class, 'deleteFile'])->whereNumber(['deal', 'file']);
+        Route::get('calls/slots', [PortalController::class, 'slots']);
+        Route::post('calls', [PortalController::class, 'bookCall'])->middleware('throttle:5,10');
+        Route::middleware('ability:portal.billing')->group(function () {
+            Route::get('billing', [PortalController::class, 'billing']);
+            Route::get('payments/{payment}/receipt', [PortalController::class, 'receipt'])->whereNumber('payment');
+            Route::get('requests/{deal}/invoice', [PortalController::class, 'invoice'])->whereNumber('deal');
+            Route::post('checkout', [PortalController::class, 'checkout'])->middleware('throttle:5,10');
+        });
+        Route::middleware('ability:portal.team')->group(function () {
+            Route::get('team', [PortalController::class, 'team']);
+            Route::post('team', [PortalController::class, 'invite'])->middleware('throttle:10,60');
+            Route::post('team/join', [PortalController::class, 'join'])->middleware('throttle:10,1');
+            Route::delete('team/members/{member}', [PortalController::class, 'removeMember'])->whereNumber('member');
+            Route::delete('team/invites/{invite}', [PortalController::class, 'withdrawInvite'])->whereNumber('invite');
+        });
     });
 
     // Her: the Clients page (client accounts, linking deals, invites, messages).
@@ -138,6 +163,13 @@ Route::prefix('api')->group(function () {
         Route::delete('clients/{client}/deals/{deal}', [ClientsController::class, 'unlinkDeal'])->whereNumber('client');
         Route::post('deals/{deal}/invite', [ClientsController::class, 'invite'])->middleware('throttle:10,10');
         Route::get('deals/{deal}/messages', [ClientsController::class, 'messages']);
+        Route::get('clients/unread', [ClientsController::class, 'unread']);
+        Route::get('deals/{deal}/files', [ClientsController::class, 'files']);
+        Route::post('deals/{deal}/files', [ClientsController::class, 'uploadFile']);
+        Route::get('deals/{deal}/files/{file}', [ClientsController::class, 'downloadFile'])->whereNumber('file');
+        Route::delete('deals/{deal}/files/{file}', [ClientsController::class, 'deleteFile'])->whereNumber('file');
+        Route::delete('deals/{deal}/share-links', [ClientsController::class, 'revokeLinks']);
+        Route::get('security/audit', [ClientsController::class, 'audit']);
         Route::post('deals/{deal}/messages', [ClientsController::class, 'sendMessage']);
     });
 
@@ -250,7 +282,7 @@ Route::prefix('api')->group(function () {
         Route::delete('testimonials/{testimonial}', [SocialProofController::class, 'destroyTestimonial']);
         Route::post('deals/{deal}/testimonial-request', [SocialProofController::class, 'requestTestimonial']);
         Route::get('subscribers', [SocialProofController::class, 'subscribers']);
-        Route::get('subscribers/export', [SocialProofController::class, 'exportSubscribers']);
+        Route::get('subscribers/export', [SocialProofController::class, 'exportSubscribers'])->middleware('fresh-password');
         Route::delete('subscribers/{subscriber}', [SocialProofController::class, 'destroySubscriber']);
         Route::put('landing/lead-magnet', [SocialProofController::class, 'saveMagnet']);
         Route::post('engage/items/{item}/to-deal', [SocialProofController::class, 'inboxToDeal']);
@@ -447,7 +479,7 @@ Route::prefix('api')->group(function () {
         // Backups of the studio database
         Route::get('backups', [BackupController::class, 'index']);
         Route::post('backups', [BackupController::class, 'store']);
-        Route::get('backups/{name}', [BackupController::class, 'download'])->where('name', '[\w.-]+');
+        Route::get('backups/{name}', [BackupController::class, 'download'])->where('name', '[\w.-]+')->middleware('fresh-password');
         Route::delete('audience/insights/{insight}', [AudienceController::class, 'destroy']);
 
         // Goals & Weekly Mentor
@@ -468,6 +500,10 @@ Route::prefix('api')->group(function () {
         Route::get('settings', [ApiController::class, 'getSettings']);
         Route::put('settings', [ApiController::class, 'updateSettings']);
         Route::post('settings/test', [ApiController::class, 'testConnections']);
+        Route::get('automations', [ApiController::class, 'automations']);
+        // Slow AI work in the background (the dashboard polls; see RunAiTask).
+        Route::post('tasks', [\App\Http\Controllers\Api\TasksController::class, 'store'])->middleware('throttle:20,1');
+        Route::get('tasks/{task}', [\App\Http\Controllers\Api\TasksController::class, 'show']);
         Route::get('usage', [ApiController::class, 'usage']);
 
         // Toolkit (writing templates) & her own templates

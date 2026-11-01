@@ -34,7 +34,8 @@ class Setting extends Model
         'transcription_engine' => 'auto', // auto | assemblyai | openai
         'search_provider' => 'auto',      // auto | serper | perplexity | off (web search for fact-checks and chat)
         'embedding_model' => '',          // empty = provider default; used for Memory search
-        'schedule_enabled' => '1',        // daily scan, feed refresh, Monday check-in (needs schedule:work)
+        'schedule_enabled' => '1',        // every automation (scans, agents, auto-posting, replies, workflows); needs schedule:work
+        'automation_daily_tokens' => '200000', // AI tokens automations may spend per day ('' = no cap)
         'reasoning_effort' => '',         // '' = model default; none|minimal|low|medium|high|xhigh (resolved per model)
         'monthly_token_limit' => '',      // '' = no limit (UsageLimit, after MagicAI's HasCreditLimit)
         'monthly_image_limit' => '',

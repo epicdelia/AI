@@ -1,8 +1,10 @@
 // Landing page "08: Project Estimator": Interactive MVP Scope & Timeline Estimator.
 // Allows founders to toggle project type, feature capabilities, and cloud targets
 // to calculate an immediate, honest scope, timeline, and pricing breakdown.
-import { h } from './core.js';
+import { h, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const PROJECT_TYPES = [
   { id: 'mvp', label: 'Greenfield MVP', badge: '2–4 Weeks', desc: 'From zero to production launch. Weekly Friday Loom walkthroughs.', baseDays: 14, basePrice: 12000, depositPrice: 6000 },

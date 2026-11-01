@@ -95,6 +95,7 @@ class GoogleLoginController extends Controller
         Auth::login($user, (bool) ($saved['remember'] ?? true));
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
+        \App\Domains\Security\Audit::signedIn($user, $request);
 
         return redirect('/');
     }

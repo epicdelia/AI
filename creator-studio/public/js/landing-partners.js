@@ -2,8 +2,10 @@
 // list. On wide screens they sit in one row; when they don't fit (smaller screens, or a long list)
 // the row becomes a slider: snap scrolling, faded edges, arrows and a slow auto-advance that pauses
 // on hover/focus and stays off with reduced motion.
-import { h, api } from './core.js';
+import { h, api, ensureLandingCss } from './core.js';
 import { icon } from './icons.js';
+
+ensureLandingCss(); // its styles live in landing.css
 
 const FALLBACK = [
   ...['IBM', 'Adobe', 'Airalo', 'Temporal'].map((name) => ({ name, kind: 'brand', url: null })),

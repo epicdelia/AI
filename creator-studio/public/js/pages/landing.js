@@ -15,6 +15,9 @@ import { marqueeSection } from '../landing-marquee.js';
 import { heroSection } from '../landing-hero.js';
 import { attribution, countEvent, icsFile, downloadIcs } from '../landing-tracking.js';
 import { testimonialsSection, leadMagnetSection } from '../landing-proof.js';
+import { faqSection } from '../landing-faq.js';
+import { stackSection } from '../landing-stack.js';
+import { comparisonSection } from '../landing-compare.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -342,6 +345,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
             { label: 'Vibecoded Apps', desc: 'AI-powered MVPs designed, built and shipped.', badge: '2–4 wks', icon: 'zap', href: '#services' },
             { label: 'AI Integration', desc: 'Practical LLM features and agents that earn their keep.', badge: 'Agents', icon: 'sparkle', href: '#services' },
             { label: 'Technical Consulting', desc: 'Architecture reviews and build-vs-buy calls.', badge: 'Ex-Google', icon: 'code', href: '#services' },
+            { label: 'Tech Stack', desc: 'Production AI, modern APIs, and zero bloat.', badge: 'Stack', icon: 'sliders', href: '#stack' },
           ],
         },
         {
@@ -358,6 +362,8 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
         { label: 'Book an Intro Call', icon: 'calendar', onClick: () => onBookCall('mvp_build'), primary: true },
         { label: 'Packages & Pricing', icon: 'tag', href: '#pricing' },
         { label: 'How it works', icon: 'flow', href: '#process' },
+        { label: 'Tech Stack', icon: 'sliders', href: '#stack' },
+        { label: 'FAQ', icon: 'chat', href: '#faq' },
       ],
     },
     {
@@ -413,6 +419,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
       feature: 'facts',
       actions: [
         { label: 'Link in bio', icon: 'link', href: '/links', primary: true },
+        { label: 'FAQ', icon: 'chat', href: '#faq' },
         { label: 'Instagram @tech.unicorn', icon: 'brand:instagram', href: live?.urls?.instagram || 'https://instagram.com/tech.unicorn', external: true },
       ],
     },
@@ -1129,7 +1136,10 @@ export function renderLanding(view, options = {}) {
           h('a', { href: '#services', class: 'landing-footer-link' }, 'Vibecoded Apps (MVPs)'),
           h('a', { href: '#services', class: 'landing-footer-link' }, 'AI Integration & Agents'),
           h('a', { href: '#services', class: 'landing-footer-link' }, 'Technical Consulting'),
+          h('a', { href: '#stack', class: 'landing-footer-link' }, 'Tech Stack & Architecture'),
+          h('a', { href: '#why-delia', class: 'landing-footer-link' }, 'Why Tech Unicorn'),
           h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Packages & Retainers'),
+          h('a', { href: '#faq', class: 'landing-footer-link' }, 'Frequently Asked Questions (FAQ)'),
           h('a', { href: '#process', class: 'landing-footer-link' }, 'Delivery in 2-4 Weeks')),
 
         // Column 2: Content & Media
@@ -1159,6 +1169,10 @@ export function renderLanding(view, options = {}) {
           h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links'),
   h('button', { type: 'button', class: 'landing-footer-link-btn landing-footer-sub-link', onclick: openMediaKit }, 'Media Kit')))));
 
+  const stack = stackSection({ onBookCall: handleBookCall });
+  const comparison = comparisonSection({ onBookCall: handleBookCall });
+  const faq = faqSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
+
   const landingBox = h('div', { class: 'landing-box' },
     nav,
     hero,
@@ -1167,8 +1181,11 @@ export function renderLanding(view, options = {}) {
     services,
     ytSection,
     process,
+    stack,
+    comparison,
     testimonialsSection(),
     pricing,
+    faq,
     platforms,
     speaking,
     leadMagnetSection(),

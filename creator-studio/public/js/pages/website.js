@@ -13,6 +13,7 @@ import { siteHeroCard } from '../hero-editor.js';
 import { funnelCard, attributionCard, trackedLinkCard, bookingHoursCard } from '../revenue.js';
 import { journeyCard } from './dashboard.js';
 import { testimonialsCard, emailListCard } from '../proof-editor.js';
+import { faqCard } from '../landing-faq.js';
 
 export async function renderWebsite(view) {
   const d = await api('GET', 'website');
@@ -27,6 +28,7 @@ export async function renderWebsite(view) {
     journeyCard(d.journey),
     h('div', { class: 'grid grid-2', style: { marginTop: '18px' } }, bookingHoursCard(), trackedLinkCard()),
     h('div', { class: 'grid grid-2', style: { marginTop: '18px' } }, testimonialsCard(), emailListCard()),
+    h('div', { style: { marginTop: '18px' } }, faqCard()),
     section('Page sections', 'Each card edits one section of the page, top to bottom.'),
     [
       siteHeroCard(d.hero, redraw),

@@ -30,7 +30,7 @@ class StudioExtrasTest extends TestCase
         Setting::put('youtube_client_secret', 's');
         Storage::fake('local');
         $this->travelTo(CarbonImmutable::parse('2026-11-04 08:00', 'UTC'));
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

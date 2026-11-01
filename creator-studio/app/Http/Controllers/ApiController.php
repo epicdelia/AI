@@ -35,11 +35,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 class ApiController extends Controller
@@ -59,6 +54,7 @@ class ApiController extends Controller
             $hasUsers = false;
         }
         $user = $dbConnected ? Auth::user() : null;
+        $admin = $user?->isAdmin() ?? false;
 
         $rawName = Setting::get('nickname') ?: trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]);
         if (empty($rawName) || strcasecmp($rawName, 'Dempsey') === 0) {
@@ -69,21 +65,23 @@ class ApiController extends Controller
             'initialized' => $hasUsers,
             'authenticated' => (bool) $user,
             'db_connected' => $dbConnected,
-            'tour_done' => $user ? Setting::has('tour_done') : null,
+            // Her studio's own settings (love notes, layout, tour) are only ever sent to her.
+            'tour_done' => $admin ? Setting::has('tour_done') : null,
             // Login screen: her first name and whether love notes are on (nothing else before sign-in).
             'welcome' => $hasUsers && ! $user ? [
                 'name' => $rawName,
                 'accent' => Setting::get('accent', 'rose'),
                 'love' => Setting::get('love_notes', '1') === '1',
                 'google' => \App\Http\Controllers\GoogleLoginController::available(),
+                'demo_client' => \App\Domains\Clients\DemoClient::enabled(),
             ] : null,
-            'love' => $user ? [
+            'love' => $admin ? [
                 'enabled' => Setting::get('love_notes', '1') === '1',
                 'name' => $rawName,
                 'from' => Setting::get('love_from', 'Dempsey'),
                 'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) Setting::get('love_custom', ''))))),
             ] : null,
-            'prefs' => $user ? [
+            'prefs' => $admin ? [
                 'nickname' => Setting::get('nickname', ''),
                 'accent' => Setting::get('accent', 'rose'),
                 'text_size' => Setting::get('text_size', 'default'),
@@ -95,200 +93,7 @@ class ApiController extends Controller
                 'nav_mode' => Setting::get('nav_mode', 'top'),
                 'avatar' => (bool) Setting::get('avatar'),
             ] : null,
-            'user' => $user ? [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ] : null,
-        ]);
-    }
-
-    public function setup(Request $request): JsonResponse
-    {
-        if (User::count() > 0) {
-            return response()->json(['error' => 'Application is already initialized.'], 403);
-        }
-
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|max:200',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        if (! Setting::has('creator_name')) {
-            Setting::put('creator_name', $data['name']);
-        }
-
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return response()->json([
-            'message' => "Welcome, {$user->name}!",
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
-        ]);
-    }
-
-    public function register(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|max:200|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $isFirst = User::count() === 0;
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        if ($isFirst || ! Setting::has('creator_name')) {
-            Setting::put('creator_name', $data['name']);
-        }
-
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return response()->json([
-            'message' => "Welcome to Creator Studio, {$user->name}!",
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
-        ], 201);
-    }
-
-    public function login(Request $request): JsonResponse
-    {
-        $creds = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-        $remember = $request->boolean('remember', true);
-
-        // Brute-force guard, after MagicAI's Helpers\RateLimiter (attempts per identifier,
-        // cached with a decay window): 5 wrong passwords per email+IP locks login for 15 minutes.
-        $key = 'login:'.strtolower($creds['email']).'|'.$request->ip();
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
-
-            return response()->json(['error' => "Too many attempts. Try again in {$minutes} minute(s)."], 429);
-        }
-
-        if (! Auth::attempt($creds, $remember)) {
-            RateLimiter::hit($key, 15 * 60);
-
-            return response()->json(['error' => 'Incorrect email or password.'], 401);
-        }
-        RateLimiter::clear($key);
-
-        $request->session()->regenerate();
-        $user = Auth::user();
-
-        return response()->json([
-            'message' => 'Logged in successfully.',
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
-        ]);
-    }
-
-    public function logout(Request $request): JsonResponse
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return response()->json(['message' => 'Logged out.']);
-    }
-
-    public function forgotPassword(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        // The code only ever leaves the server by email (or the server log when mail isn't set
-        // up), and the answer is the same whether or not the account exists.
-        $email = strtolower(trim($data['email']));
-        $user = User::whereRaw('lower(email) = ?', [$email])->first();
-        if ($user) {
-            $code = (string) random_int(100000, 999999);
-
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $user->email],
-                ['token' => Hash::make($code), 'created_at' => now()]
-            );
-            RateLimiter::clear('reset:'.strtolower($user->email));
-
-            try {
-                Mail::raw("Your Creator Studio reset code is {$code}. It expires in 60 minutes.\n\nIf you didn't ask for this, ignore this email.",
-                    fn ($m) => $m->to($user->email)->subject('Your Creator Studio reset code'));
-            } catch (Throwable $e) {
-                Log::warning("Password reset email failed ({$e->getMessage()}). Reset code for {$user->email}: {$code}");
-            }
-        }
-
-        return response()->json([
-            'ok' => true,
-            'message' => 'If that email has an account, a 6-digit code is on its way. No email set up? Run "php artisan studio:password" on the server.',
-        ]);
-    }
-
-    public function resetPassword(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'email' => 'required|email',
-            'code' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::whereRaw('lower(email) = ?', [strtolower(trim($data['email']))])->first();
-        $record = $user ? DB::table('password_reset_tokens')->where('email', $user->email)->first() : null;
-        $email = $user?->email;
-
-        if (! $record) {
-            return response()->json(['error' => 'No password reset requested for this account.'], 400);
-        }
-
-        if (CarbonImmutable::parse($record->created_at)->addMinutes(60)->isPast()) {
-            return response()->json(['error' => 'The reset code has expired. Please request a new one.'], 400);
-        }
-
-        // A 6-digit code can't survive guessing: 5 wrong tries burn it.
-        $limiterKey = 'reset:'.strtolower($email);
-        if (! Hash::check(trim($data['code']), $record->token)) {
-            RateLimiter::hit($limiterKey, 60 * 60);
-            if (RateLimiter::tooManyAttempts($limiterKey, 5)) {
-                DB::table('password_reset_tokens')->where('email', $email)->delete();
-
-                return response()->json(['error' => 'Too many wrong codes. Please request a new one.'], 429);
-            }
-
-            return response()->json(['error' => 'Invalid verification code. Please check and try again.'], 422);
-        }
-        RateLimiter::clear($limiterKey);
-        if (! $user) {
-            return response()->json(['error' => 'User account not found.'], 404);
-        }
-
-        $user->forceFill([
-            'password' => Hash::make($data['password']),
-            'remember_token' => null,
-        ])->save();
-
-        DB::table('password_reset_tokens')->where('email', $email)->delete();
-
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return response()->json([
-            'ok' => true,
-            'message' => "Password reset successfully! Welcome back, {$user->name}.",
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+            'user' => $user?->toSession(),
         ]);
     }
 

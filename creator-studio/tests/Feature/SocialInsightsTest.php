@@ -23,7 +23,7 @@ class SocialInsightsTest extends TestCase
         Setting::flush();
         Setting::put('timezone', 'UTC');
         $this->travelTo(CarbonImmutable::parse('2026-10-28 12:00', 'UTC')); // a Wednesday
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

@@ -1,93 +1,119 @@
 // Creator Studio entry point: auth gate, app shell and routing.
+// One dashboard for everyone, shaped by role (app/Enums/Role.php): she gets the studio, a client
+// gets their own projects. Pages load only when opened, so a client never downloads studio code.
 import { h, api, clear, link, navigate, setUnauthorizedHandler, toast, loading } from './core.js';
 import { icon, brandMark } from './icons.js';
 import { installPalette, openPalette } from './palette.js';
 import { startTour } from './tour.js';
 import { themeSwitch } from './theme.js';
-import { setLove, dailyHello, heartButton } from './love.js';
+import { setLove, dailyHello, heartButton, loveOn } from './love.js';
 import { pageSkeleton } from './skeleton.js';
 import { startReminders, stopReminders } from './queue.js';
 import { mountCopilot, unmountCopilot, resetCopilotContext, pageRendered, toggleCopilot, COPILOT_MARK } from './copilot.js';
-import { renderAuth } from './pages/auth.js';
-import { renderDashboard } from './pages/dashboard.js';
-import { renderBreakouts } from './pages/breakouts.js';
-import { renderAudience } from './pages/audience.js';
-import { renderIdeas } from './pages/ideas.js';
-import { renderScripts, renderScript } from './pages/scripts.js';
-import { renderGoals } from './pages/goals.js';
-import { renderFlow } from './pages/flow.js';
-import { renderSettings } from './pages/settings.js';
-import { renderTools } from './pages/tools.js';
-import { renderLibrary } from './pages/library.js';
-import { renderChat } from './pages/chat.js';
-import { renderRepurpose, renderPlatform, renderPost } from './pages/social.js';
-import { renderCalendar } from './pages/calendar.js';
-import { renderAnalytics } from './pages/analytics.js';
-import { renderConnections } from './pages/connections.js';
-import { renderAgents, renderAgent } from './pages/agents.js';
-import { renderInbox } from './pages/inbox.js';
-import { renderWorkflows, renderWorkflow } from './pages/workflows.js';
+import { renderAuth, renderVerifyEmail, renderTwoFactorSetup } from './pages/auth.js';
 import { notificationsButton, stopNotifications } from './notifications.js';
 import { registerServiceWorker, installButton, installShortcutsHelp } from './pwa.js';
 import { applyPrefs, prefs } from './prefs.js';
-import { renderLove, checkLove } from './pages/love.js';
-import { renderYouTubeStudio } from './pages/ytstudio.js';
-import { renderMediaLibrary } from './pages/mediapage.js';
-import { renderBrand } from './pages/brand.js';
-import { renderBio } from './pages/bio.js';
-import { renderDeals } from './pages/deals.js';
-import { renderMediaKit } from './pages/mediakit.js';
-import { renderSnippets } from './pages/snippets.js';
-import { renderLanding } from './pages/landing.js';
-import { renderWebsite } from './pages/website.js';
-import { renderBrandKit } from './pages/mediakit.js';
-import { renderReview } from './landing-proof.js';
-import { renderDealRoom } from './deal-room.js';
-import { loveOn } from './love.js';
-import { NAV_ITEMS, MEGA } from './nav.js';
+import { navFor, can } from './nav.js';
 
+/** A page module, fetched the first time its page opens. */
+const lazy = (load, name) => async (...args) => (await load())[name](...args);
+const page = {
+  dashboard: () => import('./pages/dashboard.js'),
+  breakouts: () => import('./pages/breakouts.js'),
+  audience: () => import('./pages/audience.js'),
+  ideas: () => import('./pages/ideas.js'),
+  scripts: () => import('./pages/scripts.js'),
+  goals: () => import('./pages/goals.js'),
+  flow: () => import('./pages/flow.js'),
+  settings: () => import('./pages/settings.js'),
+  tools: () => import('./pages/tools.js'),
+  library: () => import('./pages/library.js'),
+  chat: () => import('./pages/chat.js'),
+  social: () => import('./pages/social.js'),
+  calendar: () => import('./pages/calendar.js'),
+  analytics: () => import('./pages/analytics.js'),
+  connections: () => import('./pages/connections.js'),
+  agents: () => import('./pages/agents.js'),
+  inbox: () => import('./pages/inbox.js'),
+  workflows: () => import('./pages/workflows.js'),
+  love: () => import('./pages/love.js'),
+  ytstudio: () => import('./pages/ytstudio.js'),
+  mediapage: () => import('./pages/mediapage.js'),
+  brand: () => import('./pages/brand.js'),
+  bio: () => import('./pages/bio.js'),
+  deals: () => import('./pages/deals.js'),
+  mediakit: () => import('./pages/mediakit.js'),
+  snippets: () => import('./pages/snippets.js'),
+  landing: () => import('./pages/landing.js'),
+  website: () => import('./pages/website.js'),
+  review: () => import('./landing-proof.js'),
+  dealRoom: () => import('./deal-room.js'),
+  client: () => import('./pages/client.js'),
+  account: () => import('./pages/account.js'),
+  clients: () => import('./pages/clients.js'),
+};
+const renderBrandKit = lazy(page.mediakit, 'renderBrandKit');
+const renderReview = lazy(page.review, 'renderReview');
+const renderDealRoom = lazy(page.dealRoom, 'renderDealRoom');
+const renderLanding = lazy(page.landing, 'renderLanding');
+
+// `ability`: the Role ability needed (none = 'studio'; 'any' = everyone signed in). The API checks
+// the same abilities; this only decides what the dashboard offers.
 const ROUTES = [
-  { path: /^\/$/, render: renderDashboard, nav: '/' },
-  { path: /^\/breakouts$/, render: renderBreakouts, nav: '/breakouts' },
-  { path: /^\/channel$/, render: renderAudience, nav: '/channel' },
-  { path: /^\/ideas$/, render: renderIdeas, nav: '/ideas' },
-  { path: /^\/scripts$/, render: renderScripts, nav: '/scripts' },
-  { path: /^\/scripts\/(\d+)$/, render: renderScript, nav: '/scripts' },
-  { path: /^\/goals$/, render: renderGoals, nav: '/goals' },
-  { path: /^\/flow$/, render: renderFlow, nav: '/flow' },
-  { path: /^\/settings$/, render: renderSettings, nav: '/settings' },
-  { path: /^\/tools$/, render: renderTools, nav: '/tools' },
-  { path: /^\/tools\/([\w-]+)$/, render: renderTools, nav: '/tools' },
-  { path: /^\/library$/, render: renderLibrary, nav: '/library' },
-  { path: /^\/chat$/, render: renderChat, nav: '/chat' },
-  { path: /^\/chat\/(\d+)$/, render: renderChat, nav: '/chat' },
-  { path: /^\/calendar$/, render: renderCalendar, nav: '/calendar' },
-  { path: /^\/analytics$/, render: renderAnalytics, nav: '/analytics' },
-  { path: /^\/deals$/, render: renderDeals, nav: '/deals' },
-  { path: /^\/mediakit$/, render: renderMediaKit, nav: '/mediakit' },
-  { path: /^\/snippets$/, render: renderSnippets, nav: '/snippets' },
-  { path: /^\/website$/, render: renderWebsite, nav: '/website' },
-  { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, render: renderBrandKit, nav: '/mediakit' },
-  { path: /^\/review\/([A-Za-z0-9]{20,64})$/, render: renderReview, nav: '/website' },
-  { path: /^\/deal\/([A-Za-z0-9]{20,64})$/, render: renderDealRoom, nav: '/deals' },
+  // "/" is each role's home: her dashboard, or a client's overview.
+  { path: /^\/$/, ability: 'any', render: (view) => (can(state.user, 'studio') ? lazy(page.dashboard, 'renderDashboard') : lazy(page.client, 'renderClientHome'))(view), nav: '/' },
+  { path: /^\/requests$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequests'), nav: '/requests' },
+  { path: /^\/requests\/new$/, ability: 'portal.requests', render: lazy(page.client, 'renderNewRequest'), nav: '/requests/new' },
+  { path: /^\/requests\/(\d+)$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequest'), nav: '/requests' },
+  { path: /^\/billing$/, ability: 'portal.billing', render: lazy(page.client, 'renderBilling'), nav: '/billing' },
+  { path: /^\/account$/, ability: 'account', render: lazy(page.account, 'renderAccount'), nav: '/account' },
+  { path: /^\/clients$/, ability: 'clients.manage', render: lazy(page.clients, 'renderClients'), nav: '/clients' },
+  { path: /^\/clients\/(\d+)$/, ability: 'clients.manage', render: lazy(page.clients, 'renderClient'), nav: '/clients' },
+  { path: /^\/review\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderReview, nav: '/website' },
+  { path: /^\/deal\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderDealRoom, nav: '/deals' },
+  { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderBrandKit, nav: '/mediakit' },
+
+  // The studio (Role::STUDIO).
+  { path: /^\/breakouts$/, render: lazy(page.breakouts, 'renderBreakouts'), nav: '/breakouts' },
+  { path: /^\/channel$/, render: lazy(page.audience, 'renderAudience'), nav: '/channel' },
+  { path: /^\/ideas$/, render: lazy(page.ideas, 'renderIdeas'), nav: '/ideas' },
+  { path: /^\/scripts$/, render: lazy(page.scripts, 'renderScripts'), nav: '/scripts' },
+  { path: /^\/scripts\/(\d+)$/, render: lazy(page.scripts, 'renderScript'), nav: '/scripts' },
+  { path: /^\/goals$/, render: lazy(page.goals, 'renderGoals'), nav: '/goals' },
+  { path: /^\/flow$/, render: lazy(page.flow, 'renderFlow'), nav: '/flow' },
+  { path: /^\/settings$/, render: lazy(page.settings, 'renderSettings'), nav: '/settings' },
+  { path: /^\/tools$/, render: lazy(page.tools, 'renderTools'), nav: '/tools' },
+  { path: /^\/tools\/([\w-]+)$/, render: lazy(page.tools, 'renderTools'), nav: '/tools' },
+  { path: /^\/library$/, render: lazy(page.library, 'renderLibrary'), nav: '/library' },
+  { path: /^\/chat$/, render: lazy(page.chat, 'renderChat'), nav: '/chat' },
+  { path: /^\/chat\/(\d+)$/, render: lazy(page.chat, 'renderChat'), nav: '/chat' },
+  { path: /^\/calendar$/, render: lazy(page.calendar, 'renderCalendar'), nav: '/calendar' },
+  { path: /^\/analytics$/, render: lazy(page.analytics, 'renderAnalytics'), nav: '/analytics' },
+  { path: /^\/deals$/, render: lazy(page.deals, 'renderDeals'), nav: '/deals' },
+  { path: /^\/mediakit$/, render: lazy(page.mediakit, 'renderMediaKit'), nav: '/mediakit' },
+  { path: /^\/snippets$/, render: lazy(page.snippets, 'renderSnippets'), nav: '/snippets' },
+  { path: /^\/website$/, render: lazy(page.website, 'renderWebsite'), nav: '/website' },
   { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
-  { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
-  { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
-  { path: /^\/agents\/(\d+)$/, render: renderAgent, nav: '/agents' },
-  { path: /^\/inbox$/, render: renderInbox, nav: '/inbox' },
-  { path: /^\/love$/, render: renderLove, nav: '/love' },
-  { path: /^\/youtube$/, render: renderYouTubeStudio, nav: '/youtube' },
-  { path: /^\/media$/, render: renderMediaLibrary, nav: '/media' },
-  { path: /^\/brand$/, render: renderBrand, nav: '/brand' },
-  { path: /^\/bio$/, render: renderBio, nav: '/bio' },
-  { path: /^\/workflows$/, render: renderWorkflows, nav: '/workflows' },
-  { path: /^\/workflows\/(\d+)$/, render: renderWorkflow, nav: '/workflows' },
-  { path: /^\/repurpose$/, render: renderRepurpose, nav: '/repurpose' },
-  { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: renderPlatform, nav: null }, // nav = the platform
-  { path: /^\/posts\/(\d+)$/, render: renderPost, nav: '' },                // set by the page
+  { path: /^\/connections$/, render: lazy(page.connections, 'renderConnections'), nav: '/connections' },
+  { path: /^\/agents$/, render: lazy(page.agents, 'renderAgents'), nav: '/agents' },
+  { path: /^\/agents\/(\d+)$/, render: lazy(page.agents, 'renderAgent'), nav: '/agents' },
+  { path: /^\/inbox$/, render: lazy(page.inbox, 'renderInbox'), nav: '/inbox' },
+  { path: /^\/love$/, render: lazy(page.love, 'renderLove'), nav: '/love' },
+  { path: /^\/youtube$/, render: lazy(page.ytstudio, 'renderYouTubeStudio'), nav: '/youtube' },
+  { path: /^\/media$/, render: lazy(page.mediapage, 'renderMediaLibrary'), nav: '/media' },
+  { path: /^\/brand$/, render: lazy(page.brand, 'renderBrand'), nav: '/brand' },
+  { path: /^\/bio$/, render: lazy(page.bio, 'renderBio'), nav: '/bio' },
+  { path: /^\/workflows$/, render: lazy(page.workflows, 'renderWorkflows'), nav: '/workflows' },
+  { path: /^\/workflows\/(\d+)$/, render: lazy(page.workflows, 'renderWorkflow'), nav: '/workflows' },
+  { path: /^\/repurpose$/, render: lazy(page.social, 'renderRepurpose'), nav: '/repurpose' },
+  { path: /^\/(linkedin|instagram|x|tiktok|threads)$/, render: lazy(page.social, 'renderPlatform'), nav: null }, // nav = the platform
+  { path: /^\/posts\/(\d+)$/, render: lazy(page.social, 'renderPost'), nav: '' },                // set by the page
 ];
 
-const NAV = NAV_ITEMS;
+const allowed = (r) => r.ability === 'any' || can(state.user, r.ability);
+const isStudio = () => can(state.user, 'studio');
+const myNav = () => navFor(state.user);
 
 const root = document.getElementById('app');
 const state = { user: null, cleanup: null, shell: null };
@@ -139,7 +165,7 @@ document.addEventListener('keydown', (e) => {
 function buildShell() {
   const label = (text) => h('span', { class: 'nav-label' }, text);
   const hidden = new Set(prefs().nav_hidden || []);
-  const shown = NAV.filter((item) => item.header || (!hidden.has(item.to) && (!item.love || loveOn())))
+  const shown = myNav().items.filter((item) => item.header || (!hidden.has(item.to) && (!item.love || loveOn())))
     .filter((item, i, all) => !item.header || (all[i + 1] && !all[i + 1].header));
   const navLinks = shown.map((item) => item.header
     ? h('div', { class: 'nav-header' }, label(item.header))
@@ -157,16 +183,16 @@ function buildShell() {
   syncToggle();
   const drawerToggle = h('button', { class: 'btn ghost sm', 'aria-label': 'Open menu', 'aria-expanded': 'false', 'aria-controls': 'sidebar', onclick: () => openDrawer(true) }, icon('menu'));
 
-  const shell = h('div', { class: 'app-shell' },
+  const shell = h('div', { class: `app-shell${isStudio() ? '' : ' is-client'}` },
     h('aside', { class: 'sidebar', id: 'sidebar' },
       h('div', { class: 'brand' },
         link('/', { class: 'brand-link', onclick: () => openDrawer(false), 'aria-label': 'Creator Studio Dashboard' },
           brandMark(20),
           h('div', { class: 'brand-text nav-label' },
             h('span', { class: 'brand-title' }, 'Creator Studio'),
-            h('span', { class: 'brand-badge' }, 'PRO'))),
+            h('span', { class: 'brand-badge' }, isStudio() ? 'PRO' : 'CLIENT'))),
         h('div', { class: 'brand-actions' },
-          heartButton(),
+          isStudio() ? heartButton() : null,
           h('button', { class: 'btn ghost sm drawer-close', 'aria-label': 'Close menu', onclick: () => openDrawer(false) }, icon('x')))),
       h('nav', { class: 'nav', onclick: (e) => { if (e.target.closest('a')) openDrawer(false); } }, navLinks),
       h('div', { class: 'sidebar-footer' }, collapseBtn)),
@@ -184,7 +210,7 @@ function openStartPage() {
   const start = prefs().start_page;
   let seen = false;
   try { seen = sessionStorage.getItem('studio-started') === '1'; sessionStorage.setItem('studio-started', '1'); } catch { /* fine */ }
-  if (!seen && start && start !== '/' && location.pathname === '/' && NAV_ITEMS.some((n) => n.to === start)) history.replaceState({}, '', start);
+  if (!seen && start && start !== '/' && location.pathname === '/' && myNav().items.some((n) => n.to === start)) history.replaceState({}, '', start);
 }
 
 /** The top bar on every page: search (opens Ctrl K), notifications, Copilot and her menu. */
@@ -208,10 +234,13 @@ function appHeader(drawerToggle) {
     menu = h('div', { class: 'hdr-menu', role: 'menu', onclick: (ev) => ev.stopPropagation() },
       h('div', { class: 'hdr-menu-head' }, h('strong', {}, name || 'You'), h('span', { class: 'muted small' }, state.user?.email || '')),
       themeSwitch(),
-      link('/love', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('heart', 15), 'For you'),
-      link('/settings', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('gear', 15), 'Settings'),
-      h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); } }, icon('key', 15), 'Keyboard shortcuts'),
-      h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); startTour(); } }, icon('play', 15), 'Take the tour'),
+      link('/account', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('lock', 15), 'Account & security'),
+      isStudio() ? [
+        link('/love', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('heart', 15), 'For you'),
+        link('/settings', { class: 'hdr-menu-item', role: 'menuitem', onclick: closeMenu }, icon('gear', 15), 'Settings'),
+        h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); } }, icon('key', 15), 'Keyboard shortcuts'),
+        h('button', { class: 'hdr-menu-item', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); startTour(); } }, icon('play', 15), 'Take the tour'),
+      ] : null,
       (() => { const b = installButton((t) => t); b.className = 'hdr-menu-item'; b.setAttribute('role', 'menuitem'); return b; })(),
       h('button', { class: 'hdr-menu-item danger', role: 'menuitem', type: 'button', onclick: () => { closeMenu(); logout(); } }, icon('logout', 15), 'Log out'));
     avatar.parentElement.append(menu);
@@ -223,12 +252,12 @@ function appHeader(drawerToggle) {
 
   return h('header', { class: 'app-header' },
     h('div', { class: 'hdr-phone' }, drawerToggle, link('/', { class: 'mobile-brand' }, brandMark(18))),
-    h('button', { class: 'hdr-search', type: 'button', onclick: openPalette, 'aria-label': 'Search (Ctrl+K)' },
-      icon('search', 16), h('span', { class: 'hdr-search-text' }, 'Search scripts, posts, ideas…'), h('kbd', {}, 'Ctrl K')),
+    isStudio() ? h('button', { class: 'hdr-search', type: 'button', onclick: openPalette, 'aria-label': 'Search (Ctrl+K)' },
+      icon('search', 16), h('span', { class: 'hdr-search-text' }, 'Search scripts, posts, ideas…'), h('kbd', {}, 'Ctrl K')) : null,
     megaMenus(),
     h('div', { class: 'hdr-actions' },
-      notificationsButton(),
-      copilotBtn,
+      isStudio() ? notificationsButton() : null,
+      isStudio() ? copilotBtn : null,
       h('div', { class: 'hdr-avatar-wrap' }, avatar)));
 }
 
@@ -238,7 +267,8 @@ function appHeader(drawerToggle) {
  * each with a one-line description, live counts, and quick actions.
  */
 function megaMenus() {
-  const byTo = Object.fromEntries(NAV_ITEMS.filter((i) => i.to).map((i) => [i.to, i]));
+  const { items, mega } = myNav();
+  const byTo = Object.fromEntries(items.filter((i) => i.to).map((i) => [i.to, i]));
   const hiddenNav = new Set(prefs().nav_hidden || []);
   const visible = (to) => byTo[to] && !hiddenNav.has(to) && (!byTo[to].love || loveOn());
   const panel = h('div', { class: 'mega', id: 'mega-panel', hidden: true, role: 'region' });
@@ -295,7 +325,7 @@ function megaMenus() {
     if (focusFirst) links()[0]?.focus();
   }
 
-  for (const sec of MEGA) {
+  for (const sec of mega) {
     if (!sec.groups.some((g) => g.items.some(visible))) continue;
     const btn = h('button', { class: 'mega-tab', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'mega-panel' }, sec.label, icon('chevron-down', 14));
     btn.addEventListener('mouseenter', () => { clearTimeout(timer); timer = setTimeout(() => show(sec), open ? 0 : 110); });
@@ -373,7 +403,7 @@ async function route() {
   let params = [];
   for (const r of ROUTES) {
     const m = path.match(r.path);
-    if (m) { match = r; params = m.slice(1); break; }
+    if (m && allowed(r)) { match = r; params = m.slice(1); break; }
   }
 
   openDrawer(false);
@@ -448,26 +478,15 @@ async function boot() {
     state.user = null;
     state.shell = null;
 
-    const onLoginSuccess = async (user) => {
-      state.user = user;
+    const onLoginSuccess = async () => {
       state.guestCleanup?.();
       state.guestNav = state.guestCleanup = null;
       // Signed in from /login: land on the dashboard (or her start page), not "Page not found".
       if (isLoginPath()) history.replaceState({}, '', '/');
-      // Fetch the love-notes config and tour state first, so the sidebar is built once with them.
+      // Fetch the role, love-notes config and tour state first, so the sidebar is built once with them.
       const st = await api('GET', 'auth/status').catch(() => ({}));
-      setLove(st.love);
-      applyPrefs(st.prefs);
-      openStartPage();
-      window.__studioName = st.love?.name || user?.name || '';
-      state.shell = null;
-      mountCopilot();
-      startReminders();
-      await route();
-      // A brand-new studio gets the tour; a returning login only if it was never finished.
-      if (st.tour_done === false) startTour({ onDone: dailyHello });
-      else dailyHello();
-      checkLove();
+      if (!st.user) { boot(); return; }
+      await enter(st);
     };
 
     const showAuth = () => {
@@ -477,11 +496,14 @@ async function boot() {
       renderAuth(root, status.initialized, status.welcome, onLoginSuccess, showLanding);
     };
 
-    const showLanding = () => {
+    const showLanding = async () => {
       state.guestCleanup?.();
+      state.guestCleanup = null;
       state.guestView = 'landing';
       const view = h('div');
-      state.guestCleanup = renderLanding(view, { onAuthClick: showAuth, user: null });
+      const cleanup = await renderLanding(view, { onAuthClick: showAuth, user: null });
+      if (state.guestView !== 'landing') { cleanup?.(); return; } // they moved on while it loaded
+      state.guestCleanup = cleanup;
       clear(root).append(view);
     };
 
@@ -511,17 +533,42 @@ async function boot() {
     state.guestNav();
     return;
   }
+  await enter(status);
+}
+
+/**
+ * Signed in: a client confirms their email first, a role that needs two-factor (admins) turns it
+ * on first, then the dashboard for their role. Her studio extras (Copilot, reminders, love notes,
+ * the tour) are hers alone.
+ */
+async function enter(status) {
   state.user = status.user;
+  state.shell = null;
+  const user = status.user;
+  if (!user.email_verified) {
+    renderVerifyEmail(root, user, logout);
+    return;
+  }
+  if (user.two_factor?.required && !user.two_factor?.enabled) {
+    renderTwoFactorSetup(root, user, { onDone: boot, onLogout: logout });
+    return;
+  }
+  if (!isStudio()) {
+    window.__studioName = user.name || '';
+    await route();
+    return;
+  }
   setLove(status.love);
   applyPrefs(status.prefs);
   openStartPage();
-  window.__studioName = status.love?.name || status.user?.name || '';
+  window.__studioName = status.love?.name || user.name || '';
   mountCopilot();
   startReminders();
   await route();
+  // A brand-new studio gets the tour; a returning login only if it was never finished.
   if (status.tour_done === false) startTour({ onDone: dailyHello });
   else dailyHello();
-  checkLove();
+  page.love().then((m) => m.checkLove()).catch(() => {});
 }
 
 // Sidebar items hidden or shown again in Settings → Make it yours: rebuild the shell.

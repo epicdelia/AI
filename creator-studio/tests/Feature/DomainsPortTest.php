@@ -44,7 +44,7 @@ class DomainsPortTest extends TestCase
 
     private function login(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     // ---- Model catalog (EntityEnum rules) --------------------------------------------
@@ -204,7 +204,7 @@ class DomainsPortTest extends TestCase
 
     public function test_login_is_throttled_after_five_failures(): void
     {
-        User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
+        $this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/auth/login', ['email' => 'd@example.com', 'password' => 'wrong'])->assertStatus(401);
         }
@@ -216,7 +216,7 @@ class DomainsPortTest extends TestCase
 
     public function test_successful_login_clears_failures(): void
     {
-        User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
+        $this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
         for ($i = 0; $i < 4; $i++) {
             $this->postJson('/api/auth/login', ['email' => 'd@example.com', 'password' => 'wrong']);
         }

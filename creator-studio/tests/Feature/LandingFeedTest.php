@@ -35,7 +35,7 @@ class LandingFeedTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     public function test_without_published_posts_networks_show_nothing_invented(): void

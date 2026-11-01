@@ -28,6 +28,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // One-click "demo client" sign-in on the login page, for trying the client dashboard.
+    // Dev and testing only: never turn it on for a public server.
+    'demo_client' => [
+        'enabled' => (bool) env('DEMO_CLIENT_LOGIN', false),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

@@ -35,7 +35,7 @@ class AdvancedAgenticFeaturesTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 12:00', 'UTC'));
 
-        $this->user = User::create([
+        $this->user = $this->admin([
             'name' => 'Delia Lazarescu',
             'email' => 'delia@example.com',
             'password' => 'secret123',

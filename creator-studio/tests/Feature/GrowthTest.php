@@ -24,7 +24,7 @@ class GrowthTest extends TestCase
         Setting::put('timezone', 'UTC');
         Setting::put('llm_api_key', 'test');
         $this->travelTo(CarbonImmutable::parse('2026-11-04 08:00', 'UTC')); // Wednesday
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

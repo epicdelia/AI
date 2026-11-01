@@ -102,7 +102,7 @@ export async function renderSettings(view) {
       });
     },
   },
-  personaliseCard(NAV_ITEMS),
+  personaliseCard(NAV_ITEMS.filter((i) => !i.ability || i.ability === 'clients.manage')), // her studio's items only
   h('div', { class: 'card callout-card' },
     h('div', { class: 'row-between wrap' },
       h('div', {}, h('h2', {}, 'Connected accounts'),

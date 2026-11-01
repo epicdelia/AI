@@ -34,7 +34,7 @@ class StudioApiTest extends TestCase
 
     private function login(): User
     {
-        $user = User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
+        $user = $this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
         $this->actingAs($user);
 
         return $user;
@@ -59,14 +59,14 @@ class StudioApiTest extends TestCase
     {
         $this->getJson('/api/auth/status')->assertJson(['initialized' => false, 'authenticated' => false]);
         $this->postJson('/api/auth/setup', [
-            'name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123', 'password_confirmation' => 'secret123',
+            'name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret1234', 'password_confirmation' => 'secret1234',
         ])->assertOk();
         $this->postJson('/api/auth/setup', [
-            'name' => 'X', 'email' => 'x@example.com', 'password' => 'secret123', 'password_confirmation' => 'secret123',
+            'name' => 'X', 'email' => 'x@example.com', 'password' => 'secret1234', 'password_confirmation' => 'secret1234',
         ])->assertStatus(403);
         $this->postJson('/api/auth/logout')->assertOk();
         $this->postJson('/api/auth/login', ['email' => 'd@example.com', 'password' => 'wrong-pass'])->assertStatus(401);
-        $this->postJson('/api/auth/login', ['email' => 'd@example.com', 'password' => 'secret123'])->assertOk();
+        $this->postJson('/api/auth/login', ['email' => 'd@example.com', 'password' => 'secret1234'])->assertOk();
     }
 
     public function test_dashboard_loads(): void

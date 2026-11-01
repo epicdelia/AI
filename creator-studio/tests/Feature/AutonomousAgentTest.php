@@ -34,7 +34,7 @@ class AutonomousAgentTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-10-31 09:00', 'UTC'));
 
-        $this->user = User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([

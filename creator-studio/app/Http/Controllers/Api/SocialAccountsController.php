@@ -68,7 +68,8 @@ class SocialAccountsController extends Controller
             abort(404);
         }
         $back = fn (array $q) => redirect('/connections?'.http_build_query($q));
-        if (! Auth::check()) {
+        // Connecting her networks is studio work: only a role with Role::STUDIO gets this far.
+        if (! Auth::user()?->hasAbility(\App\Enums\Role::STUDIO)) {
             return $back(['error' => 'You were signed out of the studio. Sign in, then press Connect again.', 'network' => $platform]);
         }
         if ($request->filled('error')) {

@@ -21,7 +21,7 @@ class PricingTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     private function plans(array $changes = []): array

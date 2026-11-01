@@ -20,6 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // There's no "login" route (the SPA shows sign-in itself): signed-out API calls get a 401,
         // even plain ones like an <img> or a download, instead of a crash looking for that route.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+        // Roles (App\Enums\Role): `ability:<name>` guards a route, `active` signs out disabled
+        // accounts, `two-factor` holds admins until their second factor is on. The ability check
+        // runs before route model binding, so a client probing studio URLs only ever sees 403.
+        $middleware->alias([
+            'ability' => \App\Http\Middleware\EnsureAbility::class,
+            'active' => \App\Http\Middleware\EnsureActive::class,
+            'two-factor' => \App\Http\Middleware\EnsureTwoFactor::class,
+        ]);
+        $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureAbility::class);
+        $middleware->prependToPriorityList(\App\Http\Middleware\EnsureAbility::class, \App\Http\Middleware\EnsureTwoFactor::class);
+        $middleware->prependToPriorityList(\App\Http\Middleware\EnsureTwoFactor::class, \App\Http\Middleware\EnsureActive::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

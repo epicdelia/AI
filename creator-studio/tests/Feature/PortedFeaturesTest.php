@@ -47,7 +47,7 @@ XML;
         Setting::flush();
         Llm::$fake = fn (string $system, string $user) => "Hello there.\nSecond line.";
         Transcription::$pollSeconds = 0;
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

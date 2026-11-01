@@ -116,6 +116,8 @@ const ROUTES = [
   [/^\/chat/, 'chat', 'your chats'],
   [/^\/settings$/, 'settings', 'settings'],
   [/^\/(repurpose|flow)$/, 'form', 'this page'],
+  [/^\/requests\/new$/, 'form', 'the request form'],
+  [/^\/account$/, 'settings', 'your account'],
   [/./, 'list', 'this page'],
 ];
 

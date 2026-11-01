@@ -32,7 +32,7 @@ class OpsTest extends TestCase
         $this->storage = sys_get_temp_dir().DIRECTORY_SEPARATOR.'studio-test-'.uniqid();
         mkdir($this->storage.'/app/private/media/thumbnail', 0777, true);
         $this->app->useStoragePath($this->storage);
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

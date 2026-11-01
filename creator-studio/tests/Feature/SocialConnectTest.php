@@ -27,7 +27,7 @@ class SocialConnectTest extends TestCase
         Setting::put('timezone', 'UTC');
         config(['app.url' => 'https://studio.test']);
         $this->travelTo(CarbonImmutable::parse('2026-10-28 06:00', 'UTC'));
-        $this->user = User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
     }
 

@@ -20,7 +20,7 @@ class PartnersTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     public function test_strip_lists_her_brands_then_the_stages_from_her_talks(): void

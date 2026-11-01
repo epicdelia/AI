@@ -126,6 +126,13 @@ class Deal extends Model
             }
         });
 
+        // A deal from a verified client's email (website booking, checkout, added by her) is theirs.
+        static::creating(function (Deal $deal) {
+            if (! $deal->user_id && $deal->stage !== 'prospect') {
+                $deal->user_id = rescue(fn () => \App\Domains\Clients\ClientLink::ownerFor($deal->contact_email), null, false);
+            }
+        });
+
         // Business events for Workflows (each fires once per deal and stage; never blocks the save).
         static::created(function (Deal $deal) {
             if ($deal->source) {
@@ -147,6 +154,17 @@ class Deal extends Model
     {
         return collect([$this->created_at, $this->stage_changed_at, $this->last_contacted_at])
             ->filter()->sortByDesc(fn ($d) => $d->getTimestamp())->first() ?? now();
+    }
+
+    /** The client account this deal belongs to (null: not linked to a client). */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DealMessage::class);
     }
 
     public function script(): BelongsTo

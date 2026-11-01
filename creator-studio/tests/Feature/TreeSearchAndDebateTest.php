@@ -27,7 +27,7 @@ class TreeSearchAndDebateTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 16:00', 'UTC'));
 
-        $this->user = User::create(['name' => 'Margaret Hamilton', 'email' => 'margaret@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Margaret Hamilton', 'email' => 'margaret@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([

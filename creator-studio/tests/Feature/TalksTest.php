@@ -15,7 +15,7 @@ class TalksTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     public function test_on_stage_leads_with_the_km_summit_keynote_and_its_photo(): void

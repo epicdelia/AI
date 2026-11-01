@@ -24,7 +24,7 @@ class LoveTest extends TestCase
         Setting::flush();
         Setting::put('timezone', 'UTC');
         $this->travelTo(CarbonImmutable::parse('2026-11-04 08:00', 'UTC'));
-        $this->actingAs(User::create(['name' => 'Delia Lazarescu', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia Lazarescu', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     private function snap(string $p, int $count, string $day): void
@@ -120,6 +120,6 @@ class LoveTest extends TestCase
         $this->assertSame(['/breakouts'], $s->json('prefs.nav_hidden'));
         $this->assertSame([['id' => 'love', 'hidden' => true]], $s->json('prefs.dashboard_layout'));
         auth()->logout();
-        $this->assertSame(['name' => 'Dee', 'accent' => 'ocean', 'love' => true, 'google' => false], $this->getJson('/api/auth/status')->json('welcome'));
+        $this->assertSame(['name' => 'Dee', 'accent' => 'ocean', 'love' => true, 'google' => false, 'demo_client' => false], $this->getJson('/api/auth/status')->json('welcome'));
     }
 }

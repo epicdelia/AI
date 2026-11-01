@@ -19,7 +19,7 @@ class HeroTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     public function test_hero_uses_her_real_numbers_and_never_contradicts_itself(): void

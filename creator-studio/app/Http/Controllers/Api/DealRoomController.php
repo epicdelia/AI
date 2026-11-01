@@ -56,11 +56,18 @@ class DealRoomController extends Controller
     {
         $deal = self::byToken($token);
         $data = $request->validate(['name' => 'required|string|min:2|max:120', 'agree' => 'accepted']);
+
+        return self::acceptDeal($deal, $data['name']);
+    }
+
+    /** Shared with the client dashboard: the same Accept, from the deal room or signed in. */
+    public static function acceptDeal(Deal $deal, string $name): JsonResponse
+    {
         if (! $deal->accepted_at) {
             $before = array_search($deal->stage, Deal::STAGES, true);
-            $deal->update(['accepted_at' => now(), 'accepted_by' => $data['name'], 'last_contacted_at' => now()]
+            $deal->update(['accepted_at' => now(), 'accepted_by' => $name, 'last_contacted_at' => now()]
                 + ($before !== false && $before < array_search('contracted', Deal::STAGES, true) ? ['stage' => 'contracted'] : []));
-            AgentEvent::log('lead', "{$deal->brand_name} accepted your proposal ({$data['name']}).");
+            AgentEvent::log('lead', "{$deal->brand_name} accepted your proposal ({$name}).");
         }
 
         return response()->json(['accepted_at' => $deal->accepted_at->toIso8601String(), 'accepted_by' => $deal->accepted_by,
@@ -71,6 +78,16 @@ class DealRoomController extends Controller
     public function pay(Request $request, string $token): JsonResponse
     {
         $deal = self::byToken($token);
+        if (! $deal->room_token) {
+            abort(404);
+        }
+
+        return self::checkout($deal, '/deal/'.$deal->room_token);
+    }
+
+    /** Shared with the client dashboard: Stripe Checkout for the deal, back to $returnTo. */
+    public static function checkout(Deal $deal, string $returnTo): JsonResponse
+    {
         if ($deal->payment_status === 'paid') {
             return response()->json(['message' => 'This is already paid. Thank you!'], 409);
         }
@@ -85,7 +102,7 @@ class DealRoomController extends Controller
             'amount' => (int) round((float) $deal->rate * 100),
             'currency' => strtolower($deal->currency ?: 'usd'),
             'interval' => ($p['plan'] ?? null) === 'retainer' ? 'month' : null,
-        ], $deal->contact_email, '/deal/'.$deal->room_token);
+        ], $deal->contact_email, $returnTo);
 
         return $session
             ? response()->json(['checkout_url' => $session['url']])

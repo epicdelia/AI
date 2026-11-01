@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AgentsController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClientsController;
+use App\Http\Controllers\Api\PortalController;
 use App\Http\Controllers\Api\AudienceController;
 use App\Http\Controllers\Api\BioLinksController;
 use App\Http\Controllers\Api\BrandController;
@@ -46,14 +50,16 @@ use Illuminate\Support\Facades\Route;
 // ==========================================
 
 Route::prefix('api')->group(function () {
-    // Auth (every public write is rate limited per IP)
+    // Auth (every public write is rate limited per IP). Roles live in App\Enums\Role.
     Route::get('auth/status', [ApiController::class, 'authStatus']);
-    Route::post('auth/setup', [ApiController::class, 'setup'])->middleware('throttle:5,1');
-    Route::post('auth/register', [ApiController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('auth/login', [ApiController::class, 'login'])->middleware('throttle:20,1');
-    Route::post('auth/logout', [ApiController::class, 'logout']);
-    Route::post('auth/forgot-password', [ApiController::class, 'forgotPassword'])->middleware('throttle:3,10');
-    Route::post('auth/reset-password', [ApiController::class, 'resetPassword'])->middleware('throttle:10,1');
+    Route::post('auth/setup', [AuthController::class, 'setup'])->middleware('throttle:5,1');
+    Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,10'); // clients only
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+    Route::post('auth/two-factor', [AuthController::class, 'twoFactorChallenge'])->middleware('throttle:10,1');
+    Route::post('auth/demo-client', [AuthController::class, 'demoClient'])->middleware('throttle:10,1'); // 404 unless DEMO_CLIENT_LOGIN=true
+    Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,10');
+    Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
 
     // Guided Server & Database Install (Optional)
     Route::get('install/status', [InstallController::class, 'status']);
@@ -92,8 +98,51 @@ Route::prefix('api')->group(function () {
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
-    // Authenticated API endpoints
-    Route::middleware('auth')->group(function () {
+    // Everyone signed in: their own account, and the email confirmation resend.
+    Route::middleware(['auth', 'active', 'ability:account'])->group(function () {
+        Route::post('auth/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,10');
+        Route::get('account', [AccountController::class, 'show']);
+        // Two-factor setup stays open to an admin who hasn't turned it on yet (everything else waits).
+        Route::post('account/two-factor/start', [AccountController::class, 'twoFactorStart'])->middleware('throttle:10,1');
+        Route::post('account/two-factor/confirm', [AccountController::class, 'twoFactorConfirm'])->middleware('throttle:10,1');
+        Route::middleware('two-factor')->group(function () {
+            Route::patch('account', [AccountController::class, 'update']);
+            Route::put('account/password', [AccountController::class, 'password'])->middleware('throttle:5,1');
+            Route::put('account/email', [AccountController::class, 'email'])->middleware('throttle:5,1');
+            Route::post('account/two-factor/recovery-codes', [AccountController::class, 'recoveryCodes'])->middleware('throttle:5,1');
+            Route::delete('account/two-factor', [AccountController::class, 'twoFactorDisable'])->middleware('throttle:5,1');
+            Route::delete('account', [AccountController::class, 'destroy'])->middleware('throttle:5,1');
+        });
+    });
+
+    // Clients: only their own requests, payments and messages, once their email is confirmed.
+    Route::prefix('portal')->middleware(['auth', 'active', 'verified', 'two-factor', 'ability:portal.requests'])->group(function () {
+        Route::get('overview', [PortalController::class, 'overview']);
+        Route::get('requests', [PortalController::class, 'index']);
+        Route::post('requests', [PortalController::class, 'store'])->middleware('throttle:10,60');
+        Route::get('requests/{deal}', [PortalController::class, 'show'])->whereNumber('deal');
+        Route::post('requests/{deal}/accept', [PortalController::class, 'accept'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::post('requests/{deal}/pay', [PortalController::class, 'pay'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::get('requests/{deal}/messages', [PortalController::class, 'messages'])->whereNumber('deal');
+        Route::post('requests/{deal}/messages', [PortalController::class, 'sendMessage'])->whereNumber('deal')->middleware('throttle:20,1');
+        Route::get('billing', [PortalController::class, 'billing'])->middleware('ability:portal.billing');
+    });
+
+    // Her: the Clients page (client accounts, linking deals, invites, messages).
+    Route::middleware(['auth', 'active', 'two-factor', 'ability:clients.manage'])->group(function () {
+        Route::get('clients', [ClientsController::class, 'index']);
+        Route::get('clients/{client}', [ClientsController::class, 'show'])->whereNumber('client');
+        Route::patch('clients/{client}', [ClientsController::class, 'update'])->whereNumber('client');
+        Route::post('clients/{client}/verification', [ClientsController::class, 'resendVerification'])->whereNumber('client')->middleware('throttle:5,10');
+        Route::post('clients/{client}/deals', [ClientsController::class, 'linkDeal'])->whereNumber('client');
+        Route::delete('clients/{client}/deals/{deal}', [ClientsController::class, 'unlinkDeal'])->whereNumber('client');
+        Route::post('deals/{deal}/invite', [ClientsController::class, 'invite'])->middleware('throttle:10,10');
+        Route::get('deals/{deal}/messages', [ClientsController::class, 'messages']);
+        Route::post('deals/{deal}/messages', [ClientsController::class, 'sendMessage']);
+    });
+
+    // The studio itself: hers alone (Role::STUDIO), after two-factor sign-in.
+    Route::middleware(['auth', 'active', 'two-factor', 'ability:studio'])->group(function () {
         // Dashboard
         Route::get('dashboard', [ApiController::class, 'dashboard']);
 
@@ -550,6 +599,10 @@ Route::get('links', [BioLinksController::class, 'page']);
 Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('link');
 
 // "Login with Google" (uses the Google app from Connections → YouTube; only her own email)
+// The link in a client's confirmation email (signed; the hash must match their email).
+Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->whereNumber('id')->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+
 Route::get('auth/google/redirect', [\App\Http\Controllers\GoogleLoginController::class, 'redirect']);
 Route::get('auth/google/callback', [\App\Http\Controllers\GoogleLoginController::class, 'callback']);
 

@@ -776,6 +776,13 @@ export function renderLanding(view, options = {}) {
       }, brandMark(28)),
       megaNav,
       h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+        // Visitors: a client account to follow their requests (sign-up only ever makes clients).
+        isAuth ? null : h('button', {
+          type: 'button',
+          class: 'btn sm landing-register',
+          title: 'Create a client account to follow your projects',
+          onclick: () => (options.onRegisterClick || (() => navigate('/login?signup=1')))(),
+        }, icon('user', 15), h('span', { class: 'landing-register-label' }, 'Register')),
         h('button', {
           type: 'button',
           class: 'landing-drawer-toggle',

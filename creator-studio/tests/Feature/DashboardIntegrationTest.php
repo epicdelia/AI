@@ -23,7 +23,7 @@ class DashboardIntegrationTest extends TestCase
     {
         parent::setUp();
         Setting::flush();
-        $this->user = User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
     }
 

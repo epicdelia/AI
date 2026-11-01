@@ -19,7 +19,7 @@ class DealsTest extends TestCase
         parent::setUp();
         Setting::flush();
         Setting::put('creator_name', 'Delia Lazarescu');
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

@@ -105,6 +105,9 @@ export async function renderDeals(view) {
             : h('button', { class: 'btn sm ghost', title: 'A private link where they write a testimonial for your site', onclick: () => followUpDialog(deal, reload) }, icon('star', 13), 'Ask for a review'),
           ['prospect', 'inquiry', 'pitching', 'negotiating'].includes(deal.stage) || deal.proposal ? h('button', { class: 'btn sm ghost', onclick: () => proposalDialog(deal, reload) }, icon('doc', 13), 'Proposal') : null,
           deal.proposal ? h('button', { class: 'btn sm ghost', title: 'A page where they read, accept and pay', onclick: () => roomLinkDialog(deal) }, icon('globe', 13), deal.accepted_at ? 'Accepted ✓' : deal.room_views ? `Client page · opened ${deal.room_views}×` : 'Client page') : null,
+          // Their own dashboard: follow it, accept, pay and message her (Clients page).
+          deal.user_id ? link(`/clients/${deal.user_id}`, { class: 'btn sm ghost', title: 'Linked to their client account' }, icon('users', 13), 'Client account')
+            : deal.contact_email ? h('button', { class: 'btn sm ghost', title: `Email ${deal.contact_email} a link to their own client dashboard`, onclick: (e) => busy(e.currentTarget, 'Sending…', async () => toast((await api('POST', `deals/${deal.id}/invite`)).message)) }, icon('mail', 13), 'Invite to dashboard') : null,
           deal.meeting_at || ['inquiry', 'pitching'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => prepDialog(deal) }, icon('target', 13), deal.prep ? 'Call prep ✓' : 'Call prep') : null,
           h('button', { class: 'btn sm ghost', onclick: () => kitLinkDialog(deal) }, icon('link', 13), 'Kit link'),
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),

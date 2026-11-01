@@ -15,6 +15,26 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    /** What a visitor (or a signed-in client) can ask for. */
+    public const PROJECT_LABELS = [
+        'mvp_build' => 'MVP Build (2-4 Weeks)',
+        'retainer' => 'Advisory Retainer ($3,500/mo)',
+        'brand_deal' => 'Brand Partnership & Sponsorship',
+        'speaking' => 'Conference Keynote or Workshop',
+        'consulting' => 'Architecture & AI Technical Consulting',
+        'other' => 'General Project Discussion',
+    ];
+
+    /** Her rule-of-thumb value per project type, for the pipeline (never shown to the client). */
+    public const PROJECT_RATES = [
+        'mvp_build' => 12000,
+        'retainer' => 3500,
+        'brand_deal' => 5000,
+        'speaking' => 7500,
+        'consulting' => 2000,
+        'other' => 1500,
+    ];
+
     /** Open intro-call times for the landing page (empty when she hasn't turned them on). */
     public function slots(): JsonResponse
     {
@@ -31,7 +51,7 @@ class BookingController extends Controller
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:150',
             'company' => 'nullable|string|max:150',
-            'project_type' => 'required|string|in:mvp_build,retainer,brand_deal,speaking,consulting,other',
+            'project_type' => 'required|string|in:'.implode(',', array_keys(self::PROJECT_LABELS)),
             'slot' => 'nullable|date',
             'preferred_date' => 'required_without:slot|nullable|string|max:50',
             'preferred_time' => 'required_without:slot|nullable|string|max:50',
@@ -48,27 +68,9 @@ class BookingController extends Controller
             }
         }
 
-        $projectRates = [
-            'mvp_build' => 12000,
-            'retainer' => 3500,
-            'brand_deal' => 5000,
-            'speaking' => 7500,
-            'consulting' => 2000,
-            'other' => 1500,
-        ];
-
-        $projectLabels = [
-            'mvp_build' => 'MVP Build (2-4 Weeks)',
-            'retainer' => 'Advisory Retainer ($3,500/mo)',
-            'brand_deal' => 'Brand Partnership & Sponsorship',
-            'speaking' => 'Conference Keynote or Workshop',
-            'consulting' => 'Architecture & AI Technical Consulting',
-            'other' => 'General Project Discussion',
-        ];
-
         $company = ($data['company'] ?? null) ?: ($data['name'].' Inquiry');
-        $label = $projectLabels[$data['project_type']] ?? 'Intro Call';
-        $estRate = $projectRates[$data['project_type']] ?? 2000;
+        $label = self::PROJECT_LABELS[$data['project_type']] ?? 'Intro Call';
+        $estRate = self::PROJECT_RATES[$data['project_type']] ?? 2000;
         $bookingRef = 'CAL-'.strtoupper(Str::random(6));
         $from = Attribution::resolve($data['attribution'] ?? null, $request->getHost());
 

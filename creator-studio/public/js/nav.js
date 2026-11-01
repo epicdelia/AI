@@ -1,7 +1,19 @@
 // The sidebar: sections and pages, in order. Items she hides (Settings → Make it yours) are
 // filtered out when the shell is built; "love" items only show while love notes are on.
 // `desc` is the one-liner shown in the header's mega menus.
+// `ability` is the Role ability (app/Enums/Role.php) a user needs to see the item; none means
+// 'studio' (hers alone). The API enforces the same abilities, so hiding is never the only guard.
 export const NAV_ITEMS = [
+  // Clients: their own requests, money and account.
+  { header: 'Your projects', ability: 'portal.requests' },
+  { to: '/', label: 'Overview', icon: 'home', ability: 'portal.requests', desc: 'What’s happening and what needs you' },
+  { to: '/requests', label: 'My requests', icon: 'briefcase', ability: 'portal.requests', desc: 'Every request, proposal and deliverable' },
+  { to: '/requests/new', label: 'New request', icon: 'plus', ability: 'portal.requests', desc: 'Ask for something new' },
+  { to: '/billing', label: 'Billing', icon: 'credit-card', ability: 'portal.billing', desc: 'Payments, invoices and retainers' },
+  { header: 'You', ability: 'portal.requests' },
+  { to: '/account', label: 'Account & security', icon: 'lock', ability: 'portal.requests', desc: 'Profile, password and two-factor sign-in' },
+
+  // Her studio.
   { header: 'Today' },
   { to: '/', label: 'Dashboard', icon: 'home', desc: 'Your day, what’s due and the week at a glance' },
   { to: '/flow', label: 'Dictate', icon: 'mic', desc: 'Talk it out; it becomes a clean note' },
@@ -37,6 +49,8 @@ export const NAV_ITEMS = [
   { to: '/library', label: 'Library', icon: 'book', desc: 'Everything you saved' },
   { to: '/media', label: 'Media', icon: 'image', desc: 'Every image, video and audio file' },
   { header: 'Studio' },
+  { to: '/clients', label: 'Clients', icon: 'users', ability: 'clients.manage', desc: 'Client accounts, their requests and messages' },
+  { to: '/account', label: 'Account & security', icon: 'lock', desc: 'Your login, password and two-factor sign-in' },
   { to: '/connections', label: 'Connections', icon: 'plug', desc: 'Sign in to your networks' },
   { to: '/brand', label: 'Brand kit', icon: 'sliders', desc: 'Colours, font, logo and voice rules' },
   { to: '/settings', label: 'Settings', icon: 'gear', desc: 'AI, keys, voice and make it yours' },
@@ -60,6 +74,19 @@ export const MEGA = [
     actions: [{ label: 'Plan the week', to: '/agents', icon: 'bot' }, { label: 'Open the calendar', to: '/calendar', icon: 'calendar' }, { label: 'Brand deals', to: '/deals', icon: 'briefcase' }] },
   { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/website', '/landing', '/snippets', '/tools', '/chat', '/library', '/media'] }],
     actions: [{ label: 'Website funnel', to: '/website', icon: 'chart' }, { label: 'Preview landing page', to: '/landing', icon: 'globe' }, { label: 'New code card', to: '/snippets', icon: 'code' }] },
-  { id: 'studio', label: 'Studio', groups: [{ title: 'Studio', items: ['/connections', '/brand', '/settings'] }],
-    actions: [{ label: 'Make it yours', to: '/settings', icon: 'sliders' }] },
+  { id: 'studio', label: 'Studio', groups: [{ title: 'Clients', items: ['/clients'] }, { title: 'Studio', items: ['/connections', '/brand', '/settings', '/account'] }],
+    actions: [{ label: 'Make it yours', to: '/settings', icon: 'sliders' }, { label: 'Your clients', to: '/clients', icon: 'users' }] },
+  { id: 'projects', label: 'Your projects', ability: 'portal.requests', groups: [{ title: 'Projects', items: ['/', '/requests', '/requests/new', '/billing'] }, { title: 'You', items: ['/account'] }],
+    actions: [{ label: 'Ask for something new', to: '/requests/new', icon: 'plus' }, { label: 'Billing', to: '/billing', icon: 'credit-card' }] },
 ];
+
+/** True when the signed-in user's role grants the ability (see app/Enums/Role.php). */
+export function can(user, ability) {
+  return !!user?.abilities?.includes(ability || 'studio');
+}
+
+/** The sidebar items and header menus this user's role may see. */
+export function navFor(user) {
+  const items = NAV_ITEMS.filter((i) => can(user, i.ability));
+  return { items, mega: MEGA.filter((m) => can(user, m.ability)) };
+}

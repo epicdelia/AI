@@ -201,7 +201,7 @@ class LandingPageTest extends TestCase
         Deal::create(['brand_name' => 'Paid Co', 'stage' => 'paid', 'rate' => 500, 'currency' => 'USD', 'payment_status' => 'paid', 'paid_at' => now()]);
         Deal::create(['brand_name' => 'Signed Co', 'stage' => 'contracted', 'rate' => 5000, 'currency' => 'USD', 'payment_status' => 'pending']);
 
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
 
         $inbound = $this->getJson('/api/dashboard')->assertOk()->json('inbound');
         $this->assertSame(1, $inbound['new_inquiries']);
@@ -229,7 +229,7 @@ class LandingPageTest extends TestCase
         $this->assertSame('Technical Consulting', $deal->deliverables[0]['service']);
         $this->assertArrayNotHasKey('service', Deal::where('contact_email', 'd@example.com')->first()->deliverables[0]);
 
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
         $this->assertSame([
             ['service' => 'Technical Consulting', 'count' => 2],
             ['service' => 'Speaking & Workshops', 'count' => 1],
@@ -246,7 +246,7 @@ class LandingPageTest extends TestCase
             ])->assertOk();
         }
 
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
         $dash = $this->getJson('/api/dashboard')->json();
         $this->assertSame(['service' => 'Let us build: An app or MVP', 'count' => 2], $dash['inbound']['by_service'][0]);
         $this->assertSame(1, $dash['speaking']['requests'], 'The keynote tile counts as a speaking request');

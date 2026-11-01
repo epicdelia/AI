@@ -26,7 +26,7 @@ class SocialPlanTest extends TestCase
         Setting::put('timezone', 'UTC');
         Storage::fake('local');
         $this->travelTo(CarbonImmutable::parse('2026-10-28 06:00', 'UTC')); // Wednesday morning
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

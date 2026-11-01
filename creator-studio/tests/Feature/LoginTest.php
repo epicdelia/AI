@@ -19,20 +19,21 @@ class LoginTest extends TestCase
         parent::setUp();
         Setting::flush();
         config(['app.url' => 'https://studio.test']);
-        User::create(['name' => 'Delia Lazarescu', 'email' => 'delia@example.com', 'password' => 'secret123']);
+        // Right after install: her admin account, before she has turned on two-factor.
+        $this->admin(['name' => 'Delia Lazarescu', 'email' => 'delia@example.com'], twoFactor: false);
     }
 
     public function test_status_shows_only_first_name_love_and_google_before_sign_in(): void
     {
         $r = $this->getJson('/api/auth/status')->assertOk();
-        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => true, 'google' => false], $r->json('welcome'));
+        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => true, 'google' => false, 'demo_client' => false], $r->json('welcome'));
         $this->assertNull($r->json('love'));
         $this->assertStringNotContainsString('delia@example.com', $r->getContent());
 
         Setting::put('youtube_client_id', 'gid');
         Setting::put('youtube_client_secret', 'gsecret');
         Setting::put('love_notes', '0');
-        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => false, 'google' => true], $this->getJson('/api/auth/status')->json('welcome'));
+        $this->assertSame(['name' => 'Delia', 'accent' => 'rose', 'love' => false, 'google' => true, 'demo_client' => false], $this->getJson('/api/auth/status')->json('welcome'));
     }
 
     public function test_remember_me_is_respected(): void
@@ -106,8 +107,11 @@ class LoginTest extends TestCase
             'password_confirmation' => 'new-secret-password-123',
         ])->assertOk();
 
-        $this->assertAuthenticated();
+        // A reset never signs anyone in (that would skip two-factor): she signs in again.
+        $this->assertGuest();
         $this->assertTrue(Hash::check('new-secret-password-123', User::first()->fresh()->password));
+        $this->postJson('/api/auth/login', ['email' => 'delia@example.com', 'password' => 'new-secret-password-123'])->assertOk();
+        $this->assertAuthenticated();
     }
 
     public function test_reset_for_an_unknown_email_never_falls_back_to_her_account(): void
@@ -119,7 +123,7 @@ class LoginTest extends TestCase
 
         $this->postJson('/api/auth/reset-password', [
             'email' => 'attacker@evil.test', 'code' => '123456',
-            'password' => 'taken-over-123', 'password_confirmation' => 'taken-over-123',
+            'password' => 'taken-over-1234', 'password_confirmation' => 'taken-over-1234',
         ])->assertStatus(400);
         $this->assertGuest();
     }
@@ -129,7 +133,7 @@ class LoginTest extends TestCase
         $this->postJson('/api/auth/forgot-password', ['email' => 'delia@example.com'])->assertOk();
         $code = $this->sentResetCode();
         $wrong = $code === '111111' ? '222222' : '111111';
-        $body = ['email' => 'delia@example.com', 'password' => 'new-secret-123', 'password_confirmation' => 'new-secret-123'];
+        $body = ['email' => 'delia@example.com', 'password' => 'new-secret-1234', 'password_confirmation' => 'new-secret-1234'];
 
         foreach (range(1, 4) as $_) {
             $this->postJson('/api/auth/reset-password', $body + ['code' => $wrong])->assertStatus(422);

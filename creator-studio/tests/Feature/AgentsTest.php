@@ -29,7 +29,7 @@ class AgentsTest extends TestCase
         Setting::put('llm_api_key', 'test');
         config(['app.url' => 'https://studio.test']);
         $this->travelTo(CarbonImmutable::parse('2026-10-28 06:00', 'UTC'));
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     protected function tearDown(): void

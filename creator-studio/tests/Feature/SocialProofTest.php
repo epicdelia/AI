@@ -36,7 +36,7 @@ class SocialProofTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::firstOrCreate(['email' => 'delia@example.com'], ['name' => 'Delia', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['email' => 'delia@example.com', 'name' => 'Delia', 'password' => 'secret123']));
     }
 
     public function test_a_paid_client_is_asked_for_a_testimonial_and_approved_ones_reach_the_landing_page(): void

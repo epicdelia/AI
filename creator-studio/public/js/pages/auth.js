@@ -1,4 +1,4 @@
-// Sign in, Register and First-run Setup with Boxed Layout, Header & In-App Password Reset.
+// Sign in (her and her clients), client sign-up, first-run setup, two-factor and password reset.
 // Personalised for Delia (@Tech.Unicorn) with love from Dempsey.
 import { h, api, clear, field, formData } from '../core.js';
 import { icon, brandMark } from '../icons.js';
@@ -52,7 +52,7 @@ function passwordMeter(input) {
       label = 'Good';
     } else {
       level = 'weak';
-      label = 'Weak (at least 8 chars, mix letters & numbers)';
+      label = 'Weak (at least 10 characters, letters and numbers)';
     }
 
     wrap.className = `auth-strength auth-strength-${level}`;
@@ -224,10 +224,18 @@ function renderGuidedInstall() {
   return h('div', { class: 'auth-install-card' }, toggleBtn, body);
 }
 
+/**
+ * Sign in for everyone: her (the admin) and her clients. Modes: 'login', 'signup' (client
+ * accounts only: the role is decided on the server), 'setup' (first run: the admin), 'forgot'
+ * and 'two_factor' (the authenticator code after a correct password).
+ */
 export function renderAuth(root, initialized, welcome, onDone, onBackToLanding = null) {
   const params = new URLSearchParams(location.search);
-  const errorMsg = params.get('login_error') || '';
-  if (params.get('login_error')) history.replaceState({}, '', '/');
+  let errorMsg = params.get('login_error') || '';
+  // ?verified=1 after the email link, ?signup=1&email=… from her invite, ?two_factor=1 after Google.
+  let notice = params.get('verified') ? 'Your email is confirmed. Sign in to open your dashboard.' : '';
+  const invitedEmail = params.get('email') || '';
+  if (params.toString()) history.replaceState({}, '', '/login');
 
   // Personalised for Delia
   let creatorName = welcome?.name || 'Delia';
@@ -235,76 +243,88 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
     creatorName = 'Delia';
   }
 
-  // Sign-ups close once the studio has its account (nothing is scoped per user).
-  let mode = initialized ? 'login' : 'setup'; // 'login' | 'setup' | 'forgot'
+  let mode = !initialized ? 'setup' : params.get('two_factor') ? 'two_factor' : params.get('signup') ? 'signup' : 'login';
   let codeSent = false;
   let resetEmail = '';
   let resetNote = '';
 
   const container = h('div', { class: 'auth-inner' });
 
+  function go(next, message = '') {
+    mode = next;
+    codeSent = false;
+    notice = message;
+    errorMsg = '';
+    updateView();
+  }
+
   function updateView() {
     clear(container);
     const error = h('div', { class: 'form-error', role: 'alert', hidden: !errorMsg }, errorMsg);
+    const info = notice ? h('div', { class: 'card callout', role: 'status' }, icon('check', 15), ' ', notice) : null;
     const remember = h('input', { type: 'checkbox', name: 'remember', checked: true });
 
     let titleText = 'Sign in';
-    let subText = `Welcome back, ${creatorName}. Pick up right where you left off.`;
+    let subText = `Welcome back. Sign in to ${creatorName}’s studio or your client dashboard.`;
     let submitLabel = 'Sign in';
 
     if (mode === 'setup') {
       titleText = 'Set up your studio';
       subText = `Welcome, ${creatorName}! Create your administrator account to launch your creator studio.`;
       submitLabel = 'Create my studio';
+    } else if (mode === 'signup') {
+      titleText = 'Create your client account';
+      subText = `Follow your projects with ${creatorName}: proposals, deliverables, invoices and messages in one place.`;
+      submitLabel = 'Create account';
     } else if (mode === 'forgot') {
       titleText = 'Reset password';
-      subText = codeSent
-        ? resetNote
-        : 'Enter your email address and we’ll email you a 6-digit code.';
-      submitLabel = codeSent ? 'Reset & Sign In' : 'Send Reset Code';
+      subText = codeSent ? resetNote : 'Enter your email address and we’ll email you a 6-digit code.';
+      submitLabel = codeSent ? 'Change password' : 'Send Reset Code';
+    } else if (mode === 'two_factor') {
+      titleText = 'Two-factor sign-in';
+      subText = 'Enter the 6-digit code from your authenticator app. Lost your phone? Use one of your recovery codes.';
+      submitLabel = 'Verify';
     }
 
-    const backLink = mode === 'forgot' ? h('button', {
+    const backLink = ['forgot', 'two_factor', 'signup'].includes(mode) && initialized ? h('button', {
       type: 'button', class: 'auth-back-link',
-      onclick: () => { mode = 'login'; codeSent = false; updateView(); },
+      onclick: () => go('login'),
     }, icon('back', 16), ' Back to sign in') : null;
 
     const formFields = [];
+    const newPassword = (label = 'Password') => {
+      const pass = passwordField('password', label, 'new-password', { minlength: 10, placeholder: 'At least 10 characters, letters and numbers' });
+      formFields.push(pass.container, passwordMeter(pass.input),
+        passwordField('password_confirmation', `Confirm ${label.toLowerCase()}`, 'new-password', { minlength: 10, placeholder: 'Once more' }).container);
+    };
 
     if (mode === 'forgot') {
-      const emailInput = h('input', { type: 'email', name: 'email', required: true, value: resetEmail, placeholder: 'your@email.com' });
-      formFields.push(field('Email address', emailInput));
-
+      formFields.push(field('Email address', h('input', { type: 'email', name: 'email', required: true, value: resetEmail, autocomplete: 'email', placeholder: 'your@email.com' })));
       if (codeSent) {
-        const codeInput = h('input', { type: 'text', name: 'code', required: true, inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '6-digit code' });
-        formFields.push(field('Verification Code', codeInput));
-
-        const pass = passwordField('password', 'New Password', 'new-password', { minlength: 8, placeholder: 'At least 8 characters' });
-        formFields.push(pass.container);
-        formFields.push(passwordMeter(pass.input));
-        formFields.push(passwordField('password_confirmation', 'Confirm New Password', 'new-password', { minlength: 8, placeholder: 'Once more' }).container);
+        formFields.push(field('Code from the email', h('input', { type: 'text', name: 'code', required: true, inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '6-digit code' })));
+        newPassword('New password');
       }
+    } else if (mode === 'two_factor') {
+      formFields.push(field('Code', h('input', { type: 'text', name: 'code', required: true, autocomplete: 'one-time-code', maxlength: 20, placeholder: '123 456 or a recovery code' })));
     } else if (mode === 'setup') {
       formFields.push(
-        field('Your name', h('input', { type: 'text', name: 'name', value: mode === 'setup' ? creatorName : '', required: true, maxlength: 100, autocomplete: 'name', placeholder: 'Delia Lazarescu' }), 'used on your dashboard and in AI prompts'),
-        field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' }))
-      );
-      const pass = passwordField('password', 'Password', 'new-password', { minlength: 8, placeholder: 'At least 8 characters' });
-      formFields.push(pass.container);
-      formFields.push(passwordMeter(pass.input));
-      formFields.push(passwordField('password_confirmation', 'Confirm password', 'new-password', { minlength: 8, placeholder: 'Once more' }).container);
+        field('Your name', h('input', { type: 'text', name: 'name', value: creatorName, required: true, maxlength: 100, autocomplete: 'name', placeholder: 'Delia Lazarescu' }), 'used on your dashboard and in AI prompts'),
+        field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })));
+      newPassword();
+    } else if (mode === 'signup') {
+      formFields.push(
+        field('Your name', h('input', { type: 'text', name: 'name', required: true, maxlength: 100, autocomplete: 'name' })),
+        field('Company', h('input', { type: 'text', name: 'company', maxlength: 150, autocomplete: 'organization' }), 'optional'),
+        field('Email address', h('input', { type: 'email', name: 'email', required: true, value: invitedEmail, autocomplete: 'email', placeholder: 'you@company.com' }), 'the one you used on the website, so your requests show up'));
+      newPassword();
+      formFields.push(h('label', { class: 'auth-remember' }, h('input', { type: 'checkbox', name: 'terms', required: true }), ' I agree that my details are stored to manage my projects.'));
     } else {
-      // Login mode
       formFields.push(
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })),
         passwordField('password', 'Password', 'current-password').container,
         h('div', { class: 'auth-row' },
           h('label', { class: 'auth-remember' }, remember, ' Remember me'),
-          h('button', {
-            type: 'button', class: 'auth-link',
-            onclick: () => { mode = 'forgot'; codeSent = false; updateView(); },
-          }, 'Forgot password?'))
-      );
+          h('button', { type: 'button', class: 'auth-link', onclick: () => go('forgot') }, 'Forgot password?')));
     }
 
     const submit = h('button', { class: 'btn primary block auth-submit', type: 'submit' }, submitLabel);
@@ -319,24 +339,35 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
           const body = formData(form);
           if (mode === 'forgot') {
             if (!codeSent) {
-              // Request code: it arrives by email, never in this response
+              // The code arrives by email, never in this response.
               const res = await api('POST', 'auth/forgot-password', { email: body.email });
               resetEmail = body.email;
               resetNote = res.message;
               codeSent = true;
               updateView();
-              return;
             } else {
-              // Reset password
+              // A new password never signs in by itself: sign in again (with two-factor if on).
               const res = await api('POST', 'auth/reset-password', body);
-              onDone(res.user);
-              return;
+              go('login', res.message);
             }
+            return;
           }
-
+          if (mode === 'signup') {
+            const res = await api('POST', 'auth/register', body);
+            go('login', res.message);
+            return;
+          }
+          if (mode === 'two_factor') {
+            const res = await api('POST', 'auth/two-factor', { code: body.code });
+            onDone(res.user);
+            return;
+          }
           const res = await api('POST', mode === 'setup' ? 'auth/setup' : 'auth/login', body);
+          if (res.two_factor) { go('two_factor'); return; }
           onDone(res.user);
         } catch (err) {
+          // The password step expired: start again.
+          if (mode === 'two_factor' && err.status === 401) { go('login'); errorMsg = err.message; updateView(); return; }
           error.textContent = err.message;
           error.hidden = false;
           submit.disabled = false;
@@ -350,25 +381,69 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       h('div', { class: 'auth-or' }, h('span'), 'or', h('span')),
     ] : null;
 
-    const guidedInstall = mode === 'setup' ? renderGuidedInstall() : null;
+    // Dev/testing only (DEMO_CLIENT_LOGIN=true): straight into the demo client's dashboard.
+    const demo = mode === 'login' && initialized && welcome?.demo_client ? h('div', { class: 'card callout' },
+      h('p', { class: 'small' }, h('strong', {}, 'Testing? '), 'Open the client dashboard as a demo client with sample requests.'),
+      h('button', { class: 'btn block', type: 'button', onclick: async (e) => {
+        e.currentTarget.disabled = true;
+        try { onDone((await api('POST', 'auth/demo-client')).user); } catch (err) { errorMsg = err.message; updateView(); }
+      } }, icon('user', 16), 'Sign in as demo client')) : null;
+
+    const switchRow = initialized && mode === 'login'
+      ? h('p', { class: 'auth-foot muted small' }, 'Working with us? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('signup') }, 'Create a client account'))
+      : initialized && mode === 'signup'
+        ? h('p', { class: 'auth-foot muted small' }, 'Already have an account? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('login') }, 'Sign in'))
+        : null;
 
     container.append(
       backLink,
       h('h1', {}, titleText),
       h('p', { class: 'muted auth-sub' }, subText),
+      info,
       google,
       form,
-      guidedInstall
-    );
+      demo,
+      switchRow,
+      mode === 'setup' ? renderGuidedInstall() : null);
 
-    const firstInput = form.querySelector('input');
+    const firstInput = form.querySelector('input:not([value]), input[value=""]') || form.querySelector('input');
     if (firstInput) firstInput.focus();
   }
 
   updateView();
-
   setLove({ name: creatorName });
-  const note = welcome?.love !== false ? noteOfTheDay() : null;
+  authLayout(root, container, { onBackToLanding, love: welcome?.love !== false });
+}
+
+/** A client who hasn't opened the confirmation link yet: resend it, or sign out. */
+export function renderVerifyEmail(root, user, onLogout) {
+  const status = h('p', { class: 'muted', role: 'status' });
+  const resend = h('button', { class: 'btn primary block', type: 'button', onclick: async () => {
+    resend.disabled = true;
+    try { status.textContent = (await api('POST', 'auth/email/resend')).message; } catch (err) { status.textContent = err.message; }
+    setTimeout(() => { resend.disabled = false; }, 30000);
+  } }, icon('mail', 16), 'Send the link again');
+  authLayout(root, h('div', { class: 'auth-inner' },
+    h('h1', {}, 'Confirm your email'),
+    h('p', { class: 'muted auth-sub' }, `We sent a link to ${user.email}. Open it to see your requests: it proves the email is yours, so nobody else can see your projects.`),
+    resend, status,
+    h('p', { class: 'auth-foot muted small' }, 'Wrong email or another account? ', h('button', { type: 'button', class: 'auth-link', onclick: onLogout }, 'Sign out'))));
+}
+
+/** Admins turn on two-factor sign-in before anything else (Role::requiresTwoFactor). */
+export function renderTwoFactorSetup(root, user, { onDone, onLogout }) {
+  const box = h('div', { class: 'auth-inner' },
+    h('h1', {}, 'Turn on two-factor sign-in'),
+    h('p', { class: 'muted auth-sub' }, 'Your studio holds every key, client and payment, so signing in needs your password and a code from an authenticator app (Google Authenticator, 1Password, Authy…).'));
+  const slot = h('div', {}, h('p', { class: 'muted' }, 'Loading…'));
+  box.append(slot, h('p', { class: 'auth-foot muted small' }, h('button', { type: 'button', class: 'auth-link', onclick: onLogout }, 'Sign out')));
+  authLayout(root, box);
+  import('./account.js').then((m) => clear(slot).append(m.twoFactorEnroll({ onEnabled: onDone, doneLabel: 'Open my studio' })));
+}
+
+/** The boxed sign-in layout: header, the form side and the photo side. */
+function authLayout(root, content, { onBackToLanding = null, love = false } = {}) {
+  const note = love ? noteOfTheDay() : null;
 
   // Header with brand logo and light/dark switch
   const authHeader = h('header', { class: 'auth-header' },
@@ -401,18 +476,12 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
 
   const authBody = h('div', { class: 'auth-body' },
     h('main', { class: 'auth-side' },
-      container,
+      content,
       note ? h('p', { class: 'auth-note-mobile' }, icon('heart', 14), ' ', note) : null,
       h('div', { class: 'auth-foot-wrap' },
         h('span', { class: 'auth-couple-badge' }, icon('heart', 12), ' For Delia with love'),
         h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this server. Made with love for Delia.'))),
     authArt);
 
-  const authBox = h('div', { class: 'auth-box' },
-    authHeader,
-    authBody);
-
-  const authPage = h('div', { class: 'auth-page' }, authBox);
-
-  clear(root).append(authPage);
+  clear(root).append(h('div', { class: 'auth-page' }, h('div', { class: 'auth-box' }, authHeader, authBody)));
 }

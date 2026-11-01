@@ -46,7 +46,7 @@ class ClosingDealsTest extends TestCase
 
     private function signIn(): void
     {
-        $this->actingAs(User::firstOrCreate(['email' => 'delia@example.com'], ['name' => 'Delia', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['email' => 'delia@example.com', 'name' => 'Delia', 'password' => 'secret123']));
     }
 
     private function proposalDeal(array $extra = []): Deal

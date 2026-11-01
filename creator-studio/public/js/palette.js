@@ -152,7 +152,7 @@ export function openPalette() {
 /** Global shortcut: Ctrl+K / ⌘K, or "/" when not typing. */
 export function installPalette() {
   document.addEventListener('keydown', (e) => {
-    if (!document.querySelector('.app-shell')) return; // logged out
+    if (!document.querySelector('.app-shell:not(.is-client)')) return; // logged out, or a client (no studio search)
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable;
     // A page with its own search (the workflow canvas) keeps "/"; Ctrl+K still opens this.
     const ownSlash = document.querySelector('[data-slash-search]');

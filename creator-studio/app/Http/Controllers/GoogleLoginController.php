@@ -75,11 +75,26 @@ class GoogleLoginController extends Controller
         if (! $user) {
             RateLimiter::hit($key, 15 * 60);
 
-            return $this->fail('That Google account isn’t this studio’s account. Use the Google account with the same email as your login.');
+            return $this->fail('No account uses that Google email. Sign in with your password, or create a client account first.');
         }
         RateLimiter::clear($key);
+        if ($user->isDisabled()) {
+            return $this->fail('This account has been switched off. Contact the studio if that’s a mistake.');
+        }
+        // Google proved the email, so a client's account is confirmed (and their requests linked).
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            \App\Domains\Clients\ClientLink::claim($user);
+        }
+        // Google replaces the password, never the second factor.
+        if ($user->hasTwoFactor()) {
+            $request->session()->put('two_factor', ['id' => $user->id, 'remember' => (bool) ($saved['remember'] ?? true), 'until' => time() + 300]);
+
+            return redirect('/login?two_factor=1');
+        }
         Auth::login($user, (bool) ($saved['remember'] ?? true));
         $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
 
         return redirect('/');
     }

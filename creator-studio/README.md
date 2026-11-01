@@ -151,6 +151,26 @@ read tools (run immediately), client tools (open a page) and write tools, which 
 `copilot_actions` proposals and only run on Apply, with Undo. Generated audio
 and images are stored in `storage/app/private/media` and only served to the logged-in user.
 
+## Roles & client dashboard
+
+Roles live in one place: [`app/Enums/Role.php`](app/Enums/Role.php). Each role has abilities. The API guards
+every route with `ability:<name>` (`EnsureAbility`), and the dashboard shows only the pages whose `ability`
+the signed-in user has (`public/js/nav.js`, `app.js` routes).
+
+| Role | Who | Sees | Sign-in |
+|---|---|---|---|
+| **Admin** | Her (the first install) | The whole studio, plus **Clients** | Password + authenticator app (required) |
+| **Client** | Anyone who signs up ("Register" on the website, "Create a client account" on sign-in) | Only their own requests, proposals, deliverables, billing and messages | Password, optional authenticator app |
+
+- Public sign-up can only ever create a **client**. Clients confirm their email first: their requests are matched by email (`ClientLink`), so the email has to be proven theirs. After that, a deal's `user_id` decides who sees it.
+- A client sees a deal through an allow-list (`ClientDeal`): her notes, talking points, prep, lead score, attribution and internal estimates never leave the server.
+- Her side: **Clients** page (accounts, linking deals, switching access off, confirming an email by hand, messages), and **Invite to dashboard** on any deal.
+- Every client action (sign-up, new request, accept, message) shows in her activity feed and is emailed to her.
+
+**Before going live on a VPS:** set your SMTP server in `.env` (`MAIL_*`, see `.env.prod`), `APP_URL=https://…`, `SESSION_SECURE_COOKIE=true`, and keep `DEMO_CLIENT_LOGIN=false`. On first sign-in she sets up two-factor and stores her recovery codes.
+
+**Testing:** with `DEMO_CLIENT_LOGIN=true` (on in `.env.dev`), the sign-in page shows **Sign in as demo client**: a client account with sample requests (a proposal to accept, work in progress, a paid one). Never turn it on for a public server.
+
 ## Automation
 
 Breakout scan (daily 07:00), feed refresh (every 3 h), weekly check-in (Mondays 08:00), Memory

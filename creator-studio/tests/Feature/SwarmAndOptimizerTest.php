@@ -31,7 +31,7 @@ class SwarmAndOptimizerTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 14:00', 'UTC'));
 
-        $this->user = User::create(['name' => 'Grace Hopper', 'email' => 'grace@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Grace Hopper', 'email' => 'grace@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([

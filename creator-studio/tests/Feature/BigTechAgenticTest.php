@@ -35,7 +35,7 @@ class BigTechAgenticTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 12:00', 'UTC'));
 
-        $this->user = User::create(['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin(['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'secret123']);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([

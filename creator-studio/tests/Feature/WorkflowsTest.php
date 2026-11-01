@@ -34,7 +34,7 @@ class WorkflowsTest extends TestCase
         Setting::put('instagram_client_secret', 's');
         config(['app.url' => 'https://studio.test']);
         $this->travelTo(CarbonImmutable::parse('2026-11-02 07:00', 'UTC')); // a Monday
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
         SocialAccount::create(['platform' => 'instagram', 'access_token' => 'AT', 'external_id' => '178', 'handle' => 'tech.unicorn', 'expires_at' => now()->addDays(50)]);
     }
 

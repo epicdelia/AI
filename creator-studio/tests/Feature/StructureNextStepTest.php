@@ -20,7 +20,7 @@ class StructureNextStepTest extends TestCase
     {
         parent::setUp();
         Setting::flush();
-        $this->actingAs(User::create(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
     }
 
     /** $n spoken words (150 = one minute). */

@@ -73,7 +73,8 @@ function card(plan, { onBookCall, onStripePay }) {
 
 /** @param {{ onBookCall: Function, onStripePay: Function }} handlers */
 export function pricingSection(handlers) {
-  const grid = h('div', { class: 'lp-grid', 'aria-busy': 'true' }, Array.from({ length: 4 }, () => h('div', { class: 'lp-card is-skeleton', 'aria-hidden': 'true' })));
+  // Below 900px the plans sit side by side in one swipeable row (focusable, so arrow keys scroll it too).
+  const grid = h('div', { class: 'lp-grid', 'aria-busy': 'true', tabindex: '0', role: 'group', 'aria-label': 'Packages' }, Array.from({ length: 4 }, () => h('div', { class: 'lp-card is-skeleton', 'aria-hidden': 'true' })));
   const note = h('p', { class: 'lp-note muted', hidden: true });
 
   api('GET', 'landing/pricing').then((d) => {
@@ -98,5 +99,6 @@ export function pricingSection(handlers) {
         h('h2', { id: 'landing-pricing-title' }, 'Packages that ', h('em', {}, 'pay for themselves')),
         h('p', { class: 'muted' }, 'Start with a free scoping call or go straight to checkout. Transparent scopes and zero surprise invoices.')),
       grid,
+      h('p', { class: 'landing-swipe-hint muted', 'aria-hidden': 'true' }, icon('arrow', 13), 'Swipe to see every package'),
       note));
 }

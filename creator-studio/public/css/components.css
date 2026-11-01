@@ -14617,3 +14617,61 @@ a.landing-stat-box:hover .landing-stat-go, a.landing-stat-box:focus-visible .lan
 .prep-brief h3 {
   margin: 12px 0 4px;
 }
+
+/* ---------------------------------------------------------------- landing: more cards per row
+   Pricing plans and "How it works" phases stay side by side below desktop instead of dropping
+   to 2 (or 1) per row: all four in one row down to 900px (tighter padding), then one swipeable
+   row that shows about three on tablets and one and a bit on phones, with scroll snapping.
+   Overrides the 1180px / 680px (pricing) and 1100px / 640px (process) breakpoints above. */
+
+@media (max-width: 1180px) and (min-width: 900px) {
+  .lp-grid { grid-template-columns: repeat(var(--lp-cols), minmax(0, 1fr)); gap: 18px 12px; }
+  .lp-card { padding: 20px 14px 16px; }
+  .lp-amount { font-size: clamp(1.7rem, 2.6vw, 2.1rem); }
+  .lp-metrics { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 1100px) and (min-width: 900px) {
+  .landing-process-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .landing-process-card { padding: 18px 14px 14px; }
+  .landing-process-card:not(:last-child)::after { display: block; right: -13px; width: 14px; }
+  .landing-process-card:nth-child(2n):not(:last-child)::after { display: block; }
+}
+
+@media (max-width: 899.98px) {
+  .lp-grid,
+  .landing-process-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(230px, calc((100% - 32px) / 3));
+    gap: 16px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 2px;
+    padding: 14px 2px 12px; /* room for the "popular" ribbon and the hover ring */
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lp-grid > .lp-card,
+  .landing-process-grid > .landing-process-card { scroll-snap-align: start; }
+  .lp-card { padding: 20px 14px 16px; }
+  .lp-desc { min-height: 3em; }
+  .landing-process-card:not(:last-child)::after,
+  .landing-process-card:nth-child(2n):not(:last-child)::after { display: block; right: -17px; }
+  .lp-grid:focus-visible,
+  .landing-process-grid:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 20px; }
+}
+
+@media (max-width: 640px) {
+  .lp-grid,
+  .landing-process-grid { grid-auto-columns: min(80%, 290px); gap: 14px; }
+  .lp-amount { font-size: 1.9rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-grid, .landing-process-grid { scroll-behavior: auto; }
+}
+
+.landing-swipe-hint { display: none; margin: 4px 0 0; font-size: 0.8rem; text-align: center; }
+@media (max-width: 899.98px) { .landing-swipe-hint { display: flex; align-items: center; justify-content: center; gap: 6px; } }

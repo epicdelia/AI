@@ -7,6 +7,7 @@ use App\Domains\Landing\Attribution;
 use App\Domains\Landing\Pricing;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
+use App\Models\Payment;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -160,20 +161,75 @@ class StripePaymentController extends Controller
         }
 
         $payload = json_decode($request->getContent(), true) ?: [];
-        if (($payload['type'] ?? '') === 'checkout.session.completed') {
-            $session = $payload['data']['object'] ?? [];
-            $deal = Deal::find($session['metadata']['deal_id'] ?? null);
-            if ($deal && ($session['payment_status'] ?? 'paid') === 'paid' && $deal->payment_status !== 'paid') {
-                $deal->update([
-                    'stage' => 'paid',
-                    'payment_status' => 'paid',
-                    'paid_at' => now(),
-                ]);
-                AgentEvent::log('payment', "Paid via Stripe: {$deal->brand_name}, $" . number_format((float) $deal->rate) . '.');
-            }
-        }
+        $object = $payload['data']['object'] ?? [];
+        match ($payload['type'] ?? '') {
+            'checkout.session.completed' => self::checkoutCompleted($object),
+            'invoice.paid', 'invoice.payment_succeeded' => self::invoicePaid($object),
+            'customer.subscription.deleted' => self::subscriptionEnded($object),
+            default => null,
+        };
 
         return response()->json(['received' => true]);
+    }
+
+    /** The first payment: the deal is paid, and a retainer remembers its subscription for renewals. */
+    private static function checkoutCompleted(array $session): void
+    {
+        $deal = Deal::find($session['metadata']['deal_id'] ?? null);
+        if (! $deal || ($session['payment_status'] ?? 'paid') !== 'paid') {
+            return;
+        }
+        if (! empty($session['subscription']) && ! $deal->stripe_subscription_id) {
+            $deal->update(['stripe_subscription_id' => (string) $session['subscription'], 'subscription_status' => 'active']);
+        }
+        if (! empty($session['id']) && isset($session['amount_total'])) {
+            Payment::firstOrCreate(['stripe_id' => (string) $session['id']], [
+                'deal_id' => $deal->id, 'amount' => $session['amount_total'] / 100, 'currency' => strtoupper((string) ($session['currency'] ?? 'usd')),
+                'kind' => 'checkout', 'paid_at' => now(),
+            ]);
+        }
+        if ($deal->payment_status !== 'paid') {
+            $deal->update([
+                'stage' => 'paid',
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+            ]);
+            AgentEvent::log('payment', "Paid via Stripe: {$deal->brand_name}, $" . number_format((float) $deal->rate) . '.');
+        }
+    }
+
+    /**
+     * A retainer's monthly invoice: counted as a renewal (the first invoice is the checkout itself).
+     * The subscription id sits on the invoice (older API) or under parent.subscription_details (newer).
+     */
+    private static function invoicePaid(array $invoice): void
+    {
+        if (($invoice['billing_reason'] ?? '') !== 'subscription_cycle' || empty($invoice['id'])) {
+            return;
+        }
+        $sub = $invoice['subscription'] ?? ($invoice['parent']['subscription_details']['subscription'] ?? null);
+        $dealId = $invoice['subscription_details']['metadata']['deal_id'] ?? ($invoice['parent']['subscription_details']['metadata']['deal_id'] ?? null);
+        $deal = ($sub ? Deal::where('stripe_subscription_id', $sub)->first() : null) ?? ($dealId ? Deal::find($dealId) : null);
+        if (! $deal) {
+            return;
+        }
+        $payment = Payment::firstOrCreate(['stripe_id' => (string) $invoice['id']], [
+            'deal_id' => $deal->id, 'amount' => ((int) ($invoice['amount_paid'] ?? 0)) / 100, 'currency' => strtoupper((string) ($invoice['currency'] ?? 'usd')),
+            'kind' => 'renewal', 'paid_at' => isset($invoice['status_transitions']['paid_at']) ? \Carbon\CarbonImmutable::createFromTimestamp((int) $invoice['status_transitions']['paid_at']) : now(),
+        ]);
+        if ($payment->wasRecentlyCreated) {
+            $deal->update(['subscription_status' => 'active']);
+            AgentEvent::log('payment', "Retainer renewed: {$deal->brand_name}, $" . number_format($payment->amount) . '.');
+        }
+    }
+
+    private static function subscriptionEnded(array $sub): void
+    {
+        $deal = ! empty($sub['id']) ? Deal::where('stripe_subscription_id', $sub['id'])->first() : null;
+        if ($deal && $deal->subscription_status !== 'cancelled') {
+            $deal->update(['subscription_status' => 'cancelled']);
+            AgentEvent::log('payment', "Retainer cancelled: {$deal->brand_name}.");
+        }
     }
 
     /**
@@ -211,6 +267,7 @@ class StripePaymentController extends Controller
                         'deal_id' => $deal->id,
                         'package_id' => $pkg['id'] ?? 'proposal',
                     ],
+                    'subscription_data' => ! empty($pkg['interval']) ? ['metadata' => ['deal_id' => $deal->id]] : null,
                 ]));
 
             if ($resp->successful() && $resp->json('url')) {

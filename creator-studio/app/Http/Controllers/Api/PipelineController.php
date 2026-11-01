@@ -14,6 +14,8 @@ use App\Domains\Landing\LandingFunnel;
 use App\Domains\Landing\RevenueAttribution;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
+use App\Models\Payment;
+use App\Models\Subscriber;
 use App\Models\Setting;
 use App\Services\Llm;
 use Illuminate\Http\JsonResponse;
@@ -200,10 +202,18 @@ class PipelineController extends Controller
     {
         $open = Deal::whereNotIn('stage', Deal::NOT_PIPELINE)->get(['stage', 'rate']);
         $tz = Setting::get('timezone') ?: 'UTC';
+        $thisMonth = now($tz)->startOfMonth()->utc();
+        $lastMonth = now($tz)->subMonthNoOverflow()->startOfMonth()->utc();
+        // A deal counts once, when it's paid; retainer renewals (Stripe invoices) count every month on top.
+        $paid = fn ($from, $to) => (float) Deal::where('payment_status', 'paid')->where('paid_at', '>=', $from)->when($to, fn ($q) => $q->where('paid_at', '<', $to))->sum('rate')
+            + (float) Payment::where('kind', 'renewal')->where('paid_at', '>=', $from)->when($to, fn ($q) => $q->where('paid_at', '<', $to))->sum('amount');
 
         return [
-            'paid_this_month' => round((float) Deal::where('payment_status', 'paid')->where('paid_at', '>=', now($tz)->startOfMonth()->utc())->sum('rate'), 2),
-            'paid_last_month' => round((float) Deal::where('payment_status', 'paid')->whereBetween('paid_at', [now($tz)->subMonthNoOverflow()->startOfMonth()->utc(), now($tz)->startOfMonth()->utc()])->sum('rate'), 2),
+            'paid_this_month' => round($paid($thisMonth, null), 2),
+            'paid_last_month' => round($paid($lastMonth, $thisMonth), 2),
+            'mrr' => round((float) Deal::where('subscription_status', 'active')->sum('rate'), 2),
+            'retainers' => Deal::where('subscription_status', 'active')->count(),
+            'subscribers_30d' => Subscriber::whereNull('unsubscribed_at')->where('created_at', '>=', now()->subDays(30))->count(),
             'pipeline' => round((float) $open->sum('rate'), 2),
             'weighted' => round((float) $open->sum(fn ($d) => (float) $d->rate * (Deal::WIN_ODDS[$d->stage] ?? 0)), 2),
             'open_deals' => $open->count(),

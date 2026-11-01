@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\YouTubeController;
 use App\Http\Controllers\Api\StripePaymentController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PipelineController;
+use App\Http\Controllers\Api\SocialProofController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,12 @@ Route::prefix('api')->group(function () {
     Route::get('booking/slots', [BookingController::class, 'slots']);
     // Website funnel (visits, CTA clicks, form starts: counts only) and a brand's own media kit link.
     Route::post('landing/event', [PipelineController::class, 'event'])->middleware('throttle:120,1');
+    // Testimonials (approved ones on the page, and a client's private review form) and the email opt-in.
+    Route::get('landing/testimonials', [SocialProofController::class, 'publicTestimonials']);
+    Route::get('review/{token}', [SocialProofController::class, 'review'])->where('token', '[A-Za-z0-9]{20,64}');
+    Route::post('review/{token}', [SocialProofController::class, 'submitReview'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
+    Route::get('landing/lead-magnet', [SocialProofController::class, 'magnet']);
+    Route::post('subscribe', [SocialProofController::class, 'subscribe'])->middleware('throttle:10,1');
     Route::get('kit/{token}', [PipelineController::class, 'kit'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:30,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
@@ -179,6 +186,16 @@ Route::prefix('api')->group(function () {
         Route::get('deals/{deal}/meeting.ics', [PipelineController::class, 'meetingIcs']);
         Route::get('website', [\App\Http\Controllers\LandingPageController::class, 'workspace']);
         Route::get('landing/funnel', [PipelineController::class, 'funnel']);
+        Route::get('testimonials', [SocialProofController::class, 'testimonials']);
+        Route::post('testimonials', [SocialProofController::class, 'storeTestimonial']);
+        Route::patch('testimonials/{testimonial}', [SocialProofController::class, 'updateTestimonial']);
+        Route::delete('testimonials/{testimonial}', [SocialProofController::class, 'destroyTestimonial']);
+        Route::post('deals/{deal}/testimonial-request', [SocialProofController::class, 'requestTestimonial']);
+        Route::get('subscribers', [SocialProofController::class, 'subscribers']);
+        Route::get('subscribers/export', [SocialProofController::class, 'exportSubscribers']);
+        Route::delete('subscribers/{subscriber}', [SocialProofController::class, 'destroySubscriber']);
+        Route::put('landing/lead-magnet', [SocialProofController::class, 'saveMagnet']);
+        Route::post('engage/items/{item}/to-deal', [SocialProofController::class, 'inboxToDeal']);
         Route::post('landing/tracked-link', [PipelineController::class, 'trackedLink']);
         Route::get('landing/booking-hours', [PipelineController::class, 'bookingHours']);
         Route::put('landing/booking-hours', [PipelineController::class, 'saveBookingHours']);

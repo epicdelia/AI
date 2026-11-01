@@ -5,6 +5,7 @@ namespace App\Domains\Landing;
 use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\Outlier;
+use App\Models\Payment;
 use App\Models\Script;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,10 +19,12 @@ class RevenueAttribution
     public static function summary(int $days = 90): array
     {
         $deals = Deal::whereNotNull('source')->where('created_at', '>=', now()->subDays($days))->get();
+        // Lifetime value: the first payment plus any retainer renewals since.
+        $renewals = Payment::where('kind', 'renewal')->whereIn('deal_id', $deals->pluck('id'))->selectRaw('deal_id, sum(amount) as total')->groupBy('deal_id')->pluck('total', 'deal_id');
         $money = fn (Collection $c) => [
             'leads' => $c->count(),
             'pipeline' => round((float) $c->whereNotIn('stage', Deal::NOT_PIPELINE)->sum('rate'), 2),
-            'paid' => round((float) $c->where('payment_status', 'paid')->sum('rate'), 2),
+            'paid' => round((float) $c->where('payment_status', 'paid')->sum('rate') + (float) $c->sum(fn ($d) => $renewals[$d->id] ?? 0), 2),
             'won' => $c->where('payment_status', 'paid')->count(),
         ];
 

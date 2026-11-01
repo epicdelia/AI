@@ -63,9 +63,19 @@ class Deal extends Model
         'kit_token',
         'kit_views',
         'kit_viewed_at',
+        'stripe_subscription_id',
+        'subscription_status',
     ];
 
     protected $hidden = ['kit_token'];
+
+    /** Website leads carry a rule-of-thumb fit score (LeadScore) wherever deals are listed. */
+    protected $appends = ['lead_score'];
+
+    public function getLeadScoreAttribute(): ?array
+    {
+        return \App\Domains\Deals\LeadScore::for($this);
+    }
 
     protected function casts(): array
     {

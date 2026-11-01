@@ -41,6 +41,7 @@ import { renderSnippets } from './pages/snippets.js';
 import { renderLanding } from './pages/landing.js';
 import { renderWebsite } from './pages/website.js';
 import { renderBrandKit } from './pages/mediakit.js';
+import { renderReview } from './landing-proof.js';
 import { loveOn } from './love.js';
 import { NAV_ITEMS, MEGA } from './nav.js';
 
@@ -66,6 +67,7 @@ const ROUTES = [
   { path: /^\/snippets$/, render: renderSnippets, nav: '/snippets' },
   { path: /^\/website$/, render: renderWebsite, nav: '/website' },
   { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, render: renderBrandKit, nav: '/mediakit' },
+  { path: /^\/review\/([A-Za-z0-9]{20,64})$/, render: renderReview, nav: '/website' },
   { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
   { path: /^\/connections$/, render: renderConnections, nav: '/connections' },
   { path: /^\/agents$/, render: renderAgents, nav: '/agents' },
@@ -484,16 +486,20 @@ async function boot() {
     // Explicit login (path or query) shows sign-in; otherwise the public Tech Unicorn landing page.
     // Back/forward and in-page links switch between the two without re-rendering on #anchors.
     // A brand's media kit link (/kit/<token>) opens signed out, as its own page.
-    const showKit = (token) => {
+    // A client's review link (/review/<token>) works the same way.
+    const showPublic = (render, token, gone) => {
       state.guestCleanup?.();
       state.guestCleanup = null;
       const view = h('div', { class: 'view public-kit' });
       clear(root).append(h('main', { class: 'content-area' }, view));
-      renderBrandKit(view, token).catch(() => clear(view).append(h('div', { class: 'empty' }, h('h3', {}, 'This media kit link isn’t active.'), link('/', { class: 'btn primary' }, 'Visit the website'))));
+      render(view, token).catch(() => clear(view).append(h('div', { class: 'empty' }, h('h3', {}, gone), link('/', { class: 'btn primary' }, 'Visit the website'))));
     };
+    const showKit = (token) => showPublic(renderBrandKit, token, 'This media kit link isn’t active.');
     state.guestNav = () => {
       const kit = location.pathname.match(/^\/kit\/([A-Za-z0-9]{20,64})$/);
       if (kit) { state.guestView = 'kit'; showKit(kit[1]); return; }
+      const review = location.pathname.match(/^\/review\/([A-Za-z0-9]{20,64})$/);
+      if (review) { state.guestView = 'review'; showPublic(renderReview, review[1], 'This review link isn’t active.'); return; }
       const want = isLoginPath() ? 'auth' : 'landing';
       if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
     };

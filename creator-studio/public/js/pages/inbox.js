@@ -98,6 +98,12 @@ export async function renderInbox(view) {
       }),
     }, icon('sparkle', 14), reply.value ? 'Redraft' : 'Draft with AI');
     const ignore = h('button', { class: 'btn ghost sm', onclick: () => busy(ignore, '…', async () => { await api('POST', `engage/items/${it.id}/ignore`); await load(); }) }, it.status === 'ignored' ? 'Restore' : 'Ignore');
+    // A lead (or any message that turns out to be business) goes to Deals, credited to this network and post.
+    const toDeal = it.deal_id ? link('/deals', { class: 'btn ghost sm' }, icon('briefcase', 14), 'In deals')
+      : it.intent === 'lead' || it.kind === 'dm' ? h('button', {
+        class: `btn ${it.intent === 'lead' ? '' : 'ghost '}sm`, title: 'Add as an inquiry in Deals',
+        onclick: (e) => busy(e.currentTarget, 'Adding…', async () => { const r = await api('POST', `engage/items/${it.id}/to-deal`); toast(r.message); await load(); }),
+      }, icon('briefcase', 14), 'Add to deals') : null;
     const done = it.status === 'replied';
     return h('div', { class: `card ib-item pf-${it.platform}${done ? ' done' : ''}` },
       h('div', { class: 'ib-top' },
@@ -108,10 +114,10 @@ export async function renderInbox(view) {
         it.rule ? h('span', { class: 'pill picked', title: 'Matched an automation' }, icon('bot', 12), it.rule.name) : null),
       it.post ? h('p', { class: 'muted small ib-on' }, 'On: ', it.post.url ? h('a', { href: it.post.url, target: '_blank', rel: 'noopener' }, (it.post.title || it.post.body || '').slice(0, 80)) : (it.post.title || it.post.body || '').slice(0, 80)) : null,
       h('p', { class: 'ib-text' }, it.text),
-      done ? h('div', { class: 'ib-reply' }, h('span', { class: 'muted small' }, `${it.replied_by === 'rule' ? 'Answered by an automation' : it.replied_by === 'ai' ? 'You sent the AI draft' : 'You replied'} · ${timeAgo(it.replied_at)}`), h('p', {}, it.reply)) : [
+      done ? h('div', { class: 'ib-reply' }, it.deal_id ? link('/deals', { class: 'pill ok', style: { float: 'right' } }, 'In deals') : null, h('span', { class: 'muted small' }, `${it.replied_by === 'rule' ? 'Answered by an automation' : it.replied_by === 'ai' ? 'You sent the AI draft' : 'You replied'} · ${timeAgo(it.replied_at)}`), h('p', {}, it.reply)) : [
         it.error ? h('p', { class: 'error-text small' }, it.error) : null,
         reply, dm,
-        h('div', { class: 'row ib-actions' }, ignore, addDm, h('span', { class: 'grow' }), draft, send),
+        h('div', { class: 'row ib-actions' }, ignore, addDm, toDeal, h('span', { class: 'grow' }), draft, send),
       ]);
   }
 

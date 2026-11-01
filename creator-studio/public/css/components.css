@@ -14470,3 +14470,115 @@ a.landing-stat-box:hover .landing-stat-go, a.landing-stat-box:focus-visible .lan
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* ---------------------------------------------------------------- social proof & email list */
+
+.landing-quotes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 18px;
+}
+
+.landing-quote {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.landing-quote blockquote {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.landing-quote-stars {
+  color: var(--warn);
+  letter-spacing: 2px;
+}
+
+.landing-quote-stars .off {
+  color: var(--line);
+}
+
+.landing-magnet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .landing-magnet {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-magnet-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.landing-magnet-form input:not(.hp-field) {
+  flex: 1 1 180px;
+}
+
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.landing-magnet-done p {
+  font-weight: 600;
+}
+
+.review-page {
+  max-width: 640px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.review-form .field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.review-stars {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 10px;
+}
+
+.star-btn {
+  border: 0;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--line);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.star-btn.on {
+  color: var(--warn);
+}
+
+.review-done {
+  text-align: center;
+  padding: 24px 8px;
+  color: var(--accent);
+}
+
+.review-done h2 {
+  color: var(--ink);
+}
+
+.lead-score.hi { border-color: var(--good); color: var(--good); }
+.lead-score.mid { border-color: var(--warn); }
+.lead-score.lo { opacity: 0.8; }

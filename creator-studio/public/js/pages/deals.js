@@ -5,7 +5,7 @@ import {
 import { icon } from '../icons.js';
 import {
   followUpsCard, followUpDialog, proposalDialog, kitLinkDialog, complianceDialog, wrapReportDialog,
-  outboundPitchDialog, prospectsDialog, sourceChip, meetingLine,
+  outboundPitchDialog, prospectsDialog, sourceChip, meetingLine, leadScoreChip,
 } from '../deal-tools.js';
 
 const STAGE_LABELS = {
@@ -87,8 +87,10 @@ export async function renderDeals(view) {
       deal.coupon_code || deal.tracking_url ? h('div', { class: 'row small muted', style: { margin: '8px 0' } },
         deal.coupon_code ? h('span', {}, h('strong', {}, 'Code: '), deal.coupon_code) : null,
         deal.tracking_url ? h('a', { href: deal.tracking_url, target: '_blank', rel: 'noopener' }, 'Tracking Link ↗') : null) : null,
-      sourceChip(deal) || deal.proposal_at || deal.kit_views ? h('div', { class: 'row small', style: { gap: '6px', flexWrap: 'wrap', margin: '6px 0' } },
+      sourceChip(deal) || deal.proposal_at || deal.kit_views || deal.lead_score || deal.subscription_status ? h('div', { class: 'row small', style: { gap: '6px', flexWrap: 'wrap', margin: '6px 0' } },
         sourceChip(deal),
+        leadScoreChip(deal.lead_score),
+        deal.subscription_status ? h('span', { class: 'pf-chip' }, icon('repeat', 12), ` retainer ${deal.subscription_status}`) : null,
         deal.proposal_at ? h('span', { class: 'pf-chip' }, icon('doc', 12), ` proposal ${timeAgo(deal.proposal_at)}`) : null,
         deal.kit_views ? h('span', { class: 'pf-chip' }, icon('eye', 12), ` kit opened ${deal.kit_views}×`) : null) : null,
       meetingLine(deal),
@@ -96,7 +98,8 @@ export async function renderDeals(view) {
       h('div', { class: 'row', style: { marginTop: '12px', justifyContent: 'space-between' } },
         h('div', { class: 'row' },
           h('button', { class: 'btn sm ghost', onclick: () => editDealDialog(deal) }, icon('pen', 13), 'Edit'),
-          deal.stage !== 'paid' ? h('button', { class: 'btn sm ghost', onclick: () => followUpDialog(deal, reload) }, icon('mail', 13), 'Follow up') : null,
+          deal.stage !== 'paid' ? h('button', { class: 'btn sm ghost', onclick: () => followUpDialog(deal, reload) }, icon('mail', 13), 'Follow up')
+            : h('button', { class: 'btn sm ghost', title: 'A private link where they write a testimonial for your site', onclick: () => followUpDialog(deal, reload) }, icon('star', 13), 'Ask for a review'),
           ['prospect', 'inquiry', 'pitching', 'negotiating'].includes(deal.stage) || deal.proposal ? h('button', { class: 'btn sm ghost', onclick: () => proposalDialog(deal, reload) }, icon('doc', 13), 'Proposal') : null,
           h('button', { class: 'btn sm ghost', onclick: () => kitLinkDialog(deal) }, icon('link', 13), 'Kit link'),
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),

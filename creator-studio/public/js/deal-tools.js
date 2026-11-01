@@ -7,6 +7,7 @@ import {
 import { icon } from './icons.js';
 import { printMarkdown } from './components.js';
 
+const KIND_PILL = { kit_opened: ['ok', 'opened kit'], testimonial: ['picked', 'ask for a review'], checkout: ['bad', 'unpaid checkout'], invoiced: ['bad', null] };
 const usd = (n, cur = 'USD') => `${cur === 'USD' ? '$' : `${cur} `}${Math.round(Number(n) || 0).toLocaleString()}`;
 const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const pairs = (v, a, b) => lines(v).map((l) => { const i = l.indexOf(':'); return i > 0 ? { [a]: l.slice(0, i).trim(), [b]: l.slice(i + 1).trim() } : { [a]: l, [b]: '' }; });
@@ -24,6 +25,13 @@ export function sourceChip(deal) {
     icon(SOURCE_ICONS[deal.source] || 'globe', 12), ` from ${label}${item?.startsWith('yt:') ? ' · a video' : item ? ' · a post' : ''}`);
 }
 
+/** A website lead's rule-of-thumb fit score, with the reasons on hover. */
+export function leadScoreChip(ls) {
+  if (!ls) return null;
+  return h('span', { class: `pf-chip lead-score ${ls.score >= 70 ? 'hi' : ls.score >= 45 ? 'mid' : 'lo'}`, title: `${ls.label} (rule of thumb): ${ls.reasons.join(', ') || 'little detail in the form'}` },
+    icon('target', 12), ` fit ${ls.score}`);
+}
+
 // ---------------------------------------------------------------- follow-ups
 
 /** The "needs a follow-up" list at the top of Deals (and on the dashboard). */
@@ -39,7 +47,8 @@ export function followUpsCard(items, { onChange, compactView = false } = {}) {
       h('div', { class: 'item-main' },
         h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
           h('strong', {}, f.brand_name),
-          pill(f.kind === 'kit_opened' ? 'ok' : f.kind === 'invoiced' ? 'bad' : 'WARN', f.kind === 'kit_opened' ? 'opened kit' : `${f.days_quiet}d quiet`)),
+          pill((KIND_PILL[f.kind] || ['WARN'])[0], (KIND_PILL[f.kind] || [])[1] || `${f.days_quiet}d quiet`),
+          leadScoreChip(f.lead_score)),
         h('div', { class: 'muted small clamp-1' }, `${f.reason}${f.rate ? ` · ${usd(f.rate, f.currency)}` : ''}${f.source ? ` · from ${f.source}` : ''}`)),
       h('div', { class: 'row', style: { gap: '6px' } },
         h('button', { class: 'btn sm primary', onclick: () => followUpDialog({ id: f.deal_id, brand_name: f.brand_name, contact_email: f.contact_email }, onChange) }, icon('mail', 13), 'Draft'),

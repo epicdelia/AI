@@ -14,6 +14,7 @@ import { partnersSection } from '../landing-partners.js';
 import { marqueeSection } from '../landing-marquee.js';
 import { heroSection } from '../landing-hero.js';
 import { attribution, countEvent, icsFile, downloadIcs } from '../landing-tracking.js';
+import { testimonialsSection, leadMagnetSection } from '../landing-proof.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -1163,9 +1164,11 @@ export function renderLanding(view, options = {}) {
     services,
     ytSection,
     process,
+    testimonialsSection(),
     pricing,
     platforms,
     speaking,
+    leadMagnetSection(),
     cta,
     marquee,
     footer);

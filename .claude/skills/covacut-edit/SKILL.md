@@ -93,6 +93,11 @@ current feed. To ground it in her **latest 10 reels**, follow
 (cut rate, hook length, text style, VFX timing, duration) back into
 `references/style-profile.md`. Re-run it every few months, because her style moves.
 
+## When editing Delia's own videos
+Her `delia-vlog-editor` and `tech-unicorn-visual-brand` skills win on the look and the mix.
+Take covacut's **structure** (story first, one impossible shot, synced text timing), but use
+Delia's fonts and colors instead of covacut's gold serif, and leave music out of the render.
+
 ## Honesty rules
 - Don't tell the user the output "edits exactly like covacut". This skill copies her
   **documented** method and an approximation of her look.

@@ -43,16 +43,40 @@ face with no talking. Lots of short cutaways under the narration; the talking-he
 shots are where the emotion lands. `HYPOTHESIS:` the cutaway-to-face ratio and shot
 lengths aren't measured yet.
 
-### 4. Cut
-- Cut to the narration: each phrase gets the shot that shows it.
-- Music bed: soft, cinematic, ducked under the VO. Let it swell once, at the turn.
-- Captions: clean, small, lower-middle, phrase by phrase. `HYPOTHESIS:` font and
-  placement aren't confirmed.
-- Finish in Premiere Pro (her stated main tool). Her stated AI uses are utility only:
-  widening shots that are framed too tight, and cleaning up backgrounds, never
-  generating the story.
+### 4. Cut: through `delia-vlog-editor`
+Take Chloe's **storytelling structure**, not her look. Render with Delia's own
+`delia-vlog-editor` skill (B-roll library, edit list, caption safe area, brand fonts
+from `tech-unicorn-visual-brand`). Its rules win wherever they conflict with this file:
+- **No music in the render.** Mix the voice to about -14 LUFS with ambience under
+  it. Delia adds a licensed track in the Instagram editor, and lets it swell at the turn.
+- **Her brand, not Chloe's signature look:** Fraunces italic titles, Inter captions,
+  inside the safe area.
+- **Footage beats library B-roll.** Shots filmed on the day always win a slot.
+  Library clips fill gaps only if they don't misstate where or when something happened.
+- **Voice:** her real voice memo first. Use her ElevenLabs clone only if she signs off,
+  and then add Instagram's AI label.
+- Cut to the narration: each phrase gets the shot that shows it, cutting on word
+  boundaries.
 
-### 5. Measure, then post
+### 5. Series episodes ("AI runs my life" and similar)
+Every episode uses the same skeleton, so viewers know the format and watch for what changes:
+
+| Beat | Length | What's on screen |
+|---|---|---|
+| Hook | 0-2 s | The most arresting real frame (e.g. a charge notification), plus one plain line |
+| Rule card | 2-4 s | "Episode N. $budget. Rule: ...", as a kinetic title |
+| Setup | ~5 s | The prompt being typed, screen-recorded |
+| Clue / day | 15-25 s | Diary voiceover over b-roll from the day |
+| Reveal | ~60-70% in | Live sound, real reaction, no voiceover over it |
+| Turn | 5-8 s | What it got right or wrong about her, one honest line |
+| Verdict card | 4-6 s | The prompt (2 s), spent / budget, "knew me: N/10", next-time fix |
+| Ask | last 2 s | "Comment the rule for episode N+1" |
+
+Put the full prompt in the caption and the pinned comment. Each episode also gets a
+companion carousel (prompt, setup, receipt, fix) via `tech-unicorn-carousel`. Never
+re-stage the reveal or invent a score: if the day was dull, the verdict says so.
+
+### 6. Measure, then post
 Run `scripts/analyze_reel.py` on your export and on 2–3 of her reels (see Calibration), and
 compare shot length, cuts per 10 s, words per minute and loudness side by side.
 

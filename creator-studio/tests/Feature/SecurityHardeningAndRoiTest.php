@@ -248,3 +248,4 @@ class SecurityHardeningAndRoiTest extends TestCase
         $this->postJson("/api/portal/requests/{$dealAlice->id}/annotations", ['body' => 'Intruder note'])->assertStatus(404);
     }
 }
+

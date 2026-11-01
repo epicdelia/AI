@@ -1,9 +1,8 @@
-# Creator Studio
+# Creator Studio ✨ (Built with ❤️ for Delia)
 
-A personal YouTube studio: find what's breaking out in your niche, turn it into ideas, write and
-lint scripts, package each video, and keep a weekly shipping streak, all in one place.
+A personal YouTube studio & content empire built especially for you: find what's breaking out in your niche, turn your brilliant thoughts into viral scripts, package each video, and keep that weekly shipping streak going strong — with your personal in-house dev on call 24/7.
 
-Laravel 13 JSON API + a plain-JavaScript single-page app (ES modules, no build step, no framework).
+Laravel 13 JSON API + a plain-JavaScript single-page app (clean, lightning fast, and hand-crafted with love).
 
 ## What's inside
 
@@ -212,30 +211,70 @@ The AI, YouTube, transcription and feed calls are faked in tests (`Llm::$fake`, 
 
 ---
 
-## CI/CD & Makefile Command Guide
+## CI/CD & Boyfriend Dev Guide 💕
 
-Creator Studio includes a production-grade Docker and Makefile environment that runs all tests, security audits, static analysis, and database migrations.
+Hey beautiful, this studio is all yours! I wired up the backend, patched the PHP 8.5 security vulnerabilities, and tuned the Docker environment so you can build your content empire without worrying about the nerdy plumbing.
 
 ### Quick Cheatsheet for Delia 💕
 
-Whenever you want to run checks or work on the project, here are the most common commands:
+> [!TIP]
+> **Verified Proof It Works on My Machine (No excuses 😉):**
+> <details>
+> <summary>Click to view the clean <code>make build</code> run log</summary>
+>
+> ```text
+> dimske@DESKTOP-E6DNUUJ:/mnt/c/AI-master/creator-studio$ make build
+> [+] Building 16.2s (49/49) FINISHED
+>  => [internal] load local bake definitions                                                     0.0s 
+>  => => reading from stdin 1.28kB                                                               0.0s
+>  => [laravel internal] load build definition from Dockerfile                                   0.2s
+>  => => transferring dockerfile: 4.82kB                                                         0.2s 
+>  => [nginx internal] load build definition from Dockerfile                                     0.0s 
+>  => => transferring dockerfile: 838B                                                           0.0s 
+>  => [nginx internal] load metadata for docker.io/library/nginx:1.29-alpine                     0.7s 
+>  => [laravel] resolve image config for docker-image://docker.io/docker/dockerfile:1.7-labs     0.6s
+>  => [nginx internal] load .dockerignore                                                        0.0s
+>  => => transferring context: 2B                                                                0.0s 
+>  => CACHED [laravel] docker-image://docker.io/docker/dockerfile:1.7-labs                       0.1s 
+>  => [nginx 1/6] FROM docker.io/library/nginx:1.29-alpine                                      0.0s 
+>  => [nginx internal] load build context                                                        0.0s 
+>  => => transferring context: 59B                                                               0.0s 
+>  => CACHED [nginx 2/6] RUN ln -sf /dev/stdout /var/log/nginx/access.log ...                   0.0s 
+>  => CACHED [nginx 3/6] RUN apk add --update openssl && rm -rf /var/cache/apk/*                 0.0s 
+>  => CACHED [nginx 4/6] RUN mkdir -p /etc/nginx/certificates                                    0.0s 
+>  => CACHED [nginx 5/6] RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 ...            0.0s 
+>  => CACHED [nginx 6/6] COPY ./dev/nginx.conf /etc/nginx/conf.d/default.conf                   0.0s 
+>  => [nginx] exporting to image                                                                0.2s 
+>  => => naming to docker.io/library/environment3-nginx:latest                                   0.0s 
+>  => [laravel internal] load metadata for composer:latest, php-extension-installer, php:8.5.12  0.6s 
+>  => CACHED [laravel stage-0  1..24] 24/24 steps cached cleanly                                 0.0s 
+>  => [laravel] exporting to image                                                               0.2s 
+>  => => naming to docker.io/library/environment3-laravel:latest                                 0.0s 
+> [+] Building 2/2
+>  ✔ environment3-laravel:latest  Built                                                         0.0s 
+>  ✔ environment3-nginx:latest    Built                                                         0.0s 
+> dimske@DESKTOP-E6DNUUJ:/mnt/c/AI-master/creator-studio$ 
+> ```
+> </details>
+
+Whenever you want to run checks or kick back and create, here are your everyday magic spells:
 
 | What you want to do | Command to run | Description |
 |---|---|---|
-| **Start everything up** | `make start` | Boots up the containers (Laravel, Nginx, MySQL, Supervisor) |
-| **Check if the code passes tests** | `make phpunit` | Runs all automated unit and feature tests with code coverage |
-| **Fix code formatting automatically** | `make ecs-fix` | Auto-cleans and formats code to follow clean coding standards |
-| **Run security audit** | `make composer-audit` | Scans all installed packages for known security advisories |
-| **Run full code health check** | `make phpstan` | Deep static analysis to ensure zero type errors or broken calls |
-| **See versions and health** | `make info` | Prints active PHP, Laravel, and Composer versions |
-| **View live logs** | `make logs` | Shows real-time server output (press <kbd>Ctrl</kbd> + <kbd>C</kbd> to exit) |
-| **Shut down when done** | `make stop` | Pauses containers without losing your data |
+| **Wake up your studio** | `make start` | Boots up all containers so my girl can build her empire 👑 |
+| **Check if the code passes tests** | `make phpunit` | Runs all automated tests to prove your boyfriend writes bulletproof code for you 😉 |
+| **Fix code formatting automatically** | `make ecs-fix` | Auto-cleans and formats code (because you deserve perfection without the headache) |
+| **Run security audit** | `make composer-audit` | Guard shield: ensures zero vulnerabilities or shady packages mess with your studio |
+| **Full static brain check** | `make phpstan` | Deep static analysis: zero type errors, zero crashes, 100% peace of mind |
+| **Show off system health** | `make info` | Flaunts the shiny new PHP 8.5.12 runtime and Laravel framework version |
+| **Peek behind the scenes** | `make logs` | Shows real-time server output (press <kbd>Ctrl</kbd> + <kbd>C</kbd> to exit) |
+| **Shut down when done** | `make stop` | Puts the servers to sleep when it's time to take a break and hang out with me 🥰 |
 
 ---
 
-### Running the Full End-to-End CI/CD Pipeline Locally
+### Running the Full CI/CD Suite Locally (Flexing on GitHub)
 
-To run the exact same checks that GitHub Actions executes before accepting code:
+If you ever want to run the whole battery before pushing so GitHub gives you that satisfying green checkmark:
 
 ```bash
 # 1. Build and boot the test environment
@@ -243,21 +282,21 @@ make build-test
 make start-test
 
 # 2. Wait for MySQL and run database setup
-make wait-for-db
-make drop-migrate
-make seed
+make wait-for-db         # Patiently waiting for MySQL (almost as patient as me waiting for you to get ready 🥰)
+make drop-migrate        # Fresh clean slate for the database
+make seed                # Planting starter data so your studio isn't lonely
 
 # 3. Run the automated test suite
-make phpunit
+make phpunit             # Green tests = happy boyfriend
 
 # 4. Run the full code quality & security battery
-make composer-audit      # Checks for security vulnerabilities
-make ecs                 # Easy Coding Standard style check
+make composer-audit      # Keeps the hackers far away
+make ecs                 # Coding style perfection
 make phpcs               # PSR-12 code style check
-make phpstan             # Static analysis
+make phpstan             # Zero bugs allowed
 make phpinsights         # Architecture, complexity & style score
-make phpmd               # Mess detector (bad smells)
-make phpcpd              # Copy/paste duplicate detector
+make phpmd               # Mess detector (detects messy code, leaves your vanity table alone 😉)
+make phpcpd              # Duplicate detector (because your content is 1-of-1, never copied)
 
 # 5. Clean up the test containers
 make down-test
@@ -265,13 +304,13 @@ make down-test
 
 ---
 
-### Complete Makefile Reference
+### Complete Makefile Reference (The Full Spellbook)
 
 #### 1. Docker Environments
 * `make build` / `make build-test` / `make build-staging` / `make build-prod` — Build images for respective environments.
 * `make start` / `make start-test` / `make start-staging` / `make start-prod` — Boot containers in detached mode (`-d`).
-* `make stop` / `make stop-test` / `make stop-staging` / `make stop-prod` — Stop containers safely.
-* `make restart` / `make restart-test` / `make restart-staging` / `make restart-prod` — Restart containers.
+* `make stop` / `make stop-test` / `make stop-staging` / `make stop-prod` — Stop containers safely without losing a single draft.
+* `make restart` / `make restart-test` / `make restart-staging` / `make restart-prod` — Quick reboot.
 * `make down` / `make down-test` / `make down-staging` / `make down-prod` — Stop and remove containers/networks.
 
 #### 2. Database & Data Management
@@ -315,7 +354,7 @@ make down-test
 ### Platform Tips (Windows, macOS, Linux)
 
 * **macOS & Linux:** Run `make <command>` directly from your terminal inside `creator-studio`.
-* **Windows (PowerShell / CMD):**
+* **Windows (PowerShell / CMD / WSL):**
   * You can run `wsl make <command>` if WSL is installed.
   * Or install `make` using `choco install make` / `scoop install make`.
   * Alternatively, run commands via Docker Compose directly (e.g. `docker compose -f compose-test-ci.yaml up -d`).
@@ -325,7 +364,7 @@ make down-test
 
 ### GitHub Actions End-to-End CI/CD
 
-The workflow at `.github/workflows/creator-studio.yml` automatically triggers on every push and pull request touching `creator-studio/**`:
+Don't want to touch the terminal? No problem, babe! The workflow at `.github/workflows/creator-studio.yml` automatically triggers on every push and pull request touching `creator-studio/**`:
 
 1. **Job 1: Build, Test & Quality Checks (`test-and-lint`)**
    * Builds the Docker test environment (`make build-test`).
@@ -338,11 +377,14 @@ The workflow at `.github/workflows/creator-studio.yml` automatically triggers on
 3. **Job 3: Production Verification (`production-check`)**
    * Validates production container packaging (`make build-prod`) and database migration compatibility.
 
-#### Manual 1-Click Trigger
-Anyone with repository access can also trigger the workflow manually:
+#### The "Boyfriend Handles It" 1-Click Trigger
+You can also run all tests right from your phone or browser while drinking your morning coffee:
 1. Go to the **Actions** tab on GitHub.
 2. Select **Creator Studio CI/CD** in the left sidebar.
-3. Click the **Run workflow** dropdown and click the green **Run workflow** button!
+3. Click the **Run workflow** dropdown and press the green **Run workflow** button!
+
+> [!NOTE]
+> Need any new features or custom tweaks? Ping your in-house dev/boyfriend. Lifetime free tech support, unlimited hugs, zero hourly rate. 💕
 
 ## Notes
 

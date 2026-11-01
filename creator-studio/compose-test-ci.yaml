@@ -44,8 +44,14 @@ services:
 
     ### Cron tasks
     supervisord:
-        <<: *laravel-template
+        image: ${COMPOSE_PROJECT_NAME}-laravel:latest
         container_name: ${COMPOSE_PROJECT_NAME}-supervisord
+        volumes:
+            - ./reports:/var/www/html/reports:delegated
+        depends_on:
+            - laravel
+        networks:
+            - laravel
         expose: [ ]
         command: [ "/usr/bin/supervisord" ]
 

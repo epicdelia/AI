@@ -1,6 +1,6 @@
 // /deal/<token>: the client's own page for a deal. Her proposal, tier switcher (Essential / Growth / Enterprise),
 // "I accept" with cryptographic E-signature, and Pay with Stripe when it's set up. Works signed out.
-import { h, api, toast, mdBlock } from './core.js';
+import { h, api, toast, mdBlock, modal } from './core.js';
 import { icon, brandMark } from './icons.js';
 
 export async function renderDealRoom(view, token) {
@@ -95,6 +95,28 @@ export async function renderDealRoom(view, token) {
   }
   drawStatus();
 
+  const privacyCard = h('div', { class: 'card', style: { marginTop: '16px', background: 'rgba(99, 102, 241, 0.04)', borderColor: 'rgba(99, 102, 241, 0.2)' } });
+  function drawPrivacyStatus() {
+    privacyCard.replaceChildren(
+      h('div', { class: 'row-between', style: { flexWrap: 'wrap', gap: '8px', alignItems: 'center' } },
+        h('div', {},
+          h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+            icon('shield', 18),
+            h('strong', { style: { fontSize: '0.95rem' } }, 'Enterprise Privacy & LLM Shield'),
+            h('span', { class: 'pill sm ok' }, 'Zero Data Retention (ZDR)')
+          ),
+          h('p', { class: 'muted small', style: { margin: '4px 0 0 0' } }, 'In-memory processing · Zero model training · In-flight secret redaction · GDPR Art. 28 DPA')
+        ),
+        h('button', {
+          type: 'button',
+          class: `btn sm ${d.dpa_signed_at ? 'ok' : 'ghost'}`,
+          onclick: () => dpaDialog(token, d).then(() => drawPrivacyStatus())
+        }, icon('file', 14), d.dpa_signed_at ? ' View Signed DPA' : ' Review & Sign DPA (GDPR)')
+      )
+    );
+  }
+  drawPrivacyStatus();
+
   const q = new URLSearchParams(location.search);
   if (q.get('payment') === 'success') toast('Payment received. Thank you!');
 
@@ -106,6 +128,7 @@ export async function renderDealRoom(view, token) {
       h('a', { href: '/login' }, 'Sign in')) : null,
     d.markdown ? h('div', { class: 'card' }, mdBlock(d.markdown)) : h('div', { class: 'card' }, h('p', { class: 'muted' }, `${first} is finishing your proposal. Check back soon.`)),
     tierContainer,
+    privacyCard,
     h('div', { class: 'card deal-room-actions' },
       h('div', { class: 'row-between', style: { flexWrap: 'wrap', gap: '8px' } }, h('strong', {}, 'Investment'), rateDisplay),
       d.proposal?.investment?.terms ? h('p', { class: 'muted small' }, d.proposal.investment.terms) : null,
@@ -113,12 +136,89 @@ export async function renderDealRoom(view, token) {
     h('p', { class: 'muted small', style: { textAlign: 'center' } }, 'Questions? Just reply to the email this link came in.'),
     h('div', { class: 'deal-room-legal-footer', style: { textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' } },
       h('p', {}, 'EU VAT Notice: Invoices issued under Article 196 Directive 2006/112/EC (Reverse Charge applicable for verified EU business VAT numbers).'),
-      h('div', { style: { display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.35rem' } },
+      h('div', { style: { display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.35rem', flexWrap: 'wrap' } },
         h('a', { href: '/impressum', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Legal Notice (Impressum)'),
         h('span', {}, '•'),
-        h('a', { href: '/terms', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Commercial Terms & Conditions'),
+        h('a', { href: '/terms', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Commercial Terms'),
         h('span', {}, '•'),
-        h('a', { href: '/privacy', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'GDPR Privacy Policy')
+        h('a', { href: '/privacy', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'GDPR Privacy'),
+        h('span', {}, '•'),
+        h('a', { href: '#/dpa', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Data Processing Agreement (DPA)'),
+        h('span', {}, '•'),
+        h('a', { href: '#/subprocessors', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Sub-Processors')
       )
     )));
+}
+
+export async function dpaDialog(token, d) {
+  return modal('Enterprise Data Processing Agreement (GDPR Art. 28)', (close) => {
+    const body = h('div', { class: 'dpa-dialog-content', style: { maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' } });
+    const content = h('div', { class: 'muted' }, 'Loading DPA agreement...');
+    body.appendChild(content);
+
+    api('GET', `room/${token}/dpa`).then((res) => {
+      const isSigned = !!res.signed;
+      const doc = h('div', { class: 'card', style: { marginBottom: '16px' } }, mdBlock(res.markdown));
+
+      if (isSigned) {
+        content.replaceChildren(
+          h('div', { class: 'callout ok', style: { marginBottom: '12px', padding: '12px' } },
+            h('strong', {}, '✓ DPA Cryptographically Executed under GDPR Article 28'),
+            h('p', { class: 'small muted', style: { margin: '4px 0 0 0' } }, `Signed by ${res.signer_name} (${res.signer_email}) on ${new Date(res.signed_at).toLocaleString()}`),
+            h('p', { class: 'small', style: { fontFamily: 'monospace', wordBreak: 'break-all', marginTop: '6px' } }, `SHA-256 Hash: ${res.signature_hash}`)
+          ),
+          doc,
+          h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
+            h('button', { class: 'btn', onclick: () => close() }, 'Close')
+          )
+        );
+      } else {
+        const signerName = h('input', { type: 'text', required: true, placeholder: 'Signer Legal Name', value: d.contact || '' });
+        const signerEmail = h('input', { type: 'email', required: true, placeholder: 'Signer Corporate Email' });
+        const agreeCheck = h('input', { type: 'checkbox', required: true });
+        const signBtn = h('button', { type: 'submit', class: 'btn primary' }, 'Cryptographically Sign DPA (SHA-256)');
+
+        const form = h('form', {
+          class: 'card',
+          style: { marginTop: '16px' },
+          onsubmit: async (e) => {
+            e.preventDefault();
+            signBtn.disabled = true;
+            try {
+              const signRes = await api('POST', `room/${token}/dpa/sign`, {
+                name: signerName.value.trim(),
+                email: signerEmail.value.trim(),
+                agree: agreeCheck.checked,
+              });
+              toast(signRes.message);
+              d.dpa_signed_at = signRes.signed_at;
+              d.dpa_signer_name = signRes.signer_name;
+              d.dpa_signature_hash = signRes.signature_hash;
+              close(signRes);
+            } catch (err) {
+              signBtn.disabled = false;
+              toast(err.message, 'err');
+            }
+          }
+        },
+        h('h4', { style: { margin: '0 0 8px 0' } }, 'Electronic Execution (Regulation (EU) No 910/2014)'),
+        h('p', { class: 'small muted', style: { margin: '0 0 12px 0' } }, 'Executing this DPA incorporates EU Standard Contractual Clauses (SCCs Module 2) and binds both parties to Article 28 GDPR obligations.'),
+        h('div', { class: 'grid grid-2', style: { gap: '10px', marginBottom: '10px' } }, signerName, signerEmail),
+        h('label', { class: 'row small', style: { gap: '8px', alignItems: 'flex-start', marginBottom: '12px' } },
+          agreeCheck,
+          h('span', {}, 'I represent that I have legal authority to bind this entity to the GDPR Article 28 Data Processing Agreement and EU Standard Contractual Clauses.')
+        ),
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel'),
+          signBtn
+        ));
+
+        content.replaceChildren(doc, form);
+      }
+    }).catch((err) => {
+      content.replaceChildren(h('p', { class: 'err' }, 'Failed to load DPA: ' + err.message));
+    });
+
+    return body;
+  }, { wide: true });
 }

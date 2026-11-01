@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PipelineController;
 use App\Http\Controllers\Api\SocialProofController;
 use App\Http\Controllers\Api\DealRoomController;
+use App\Http\Controllers\Api\PrivacyController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -88,6 +89,8 @@ Route::prefix('api')->group(function () {
     Route::post('room/{token}/select-tier', [DealRoomController::class, 'selectTier'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:20,1');
     Route::post('room/{token}/accept', [DealRoomController::class, 'accept'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::post('room/{token}/pay', [DealRoomController::class, 'pay'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
+    Route::get('room/{token}/dpa', [DealRoomController::class, 'dpa'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:60,1');
+    Route::post('room/{token}/dpa/sign', [DealRoomController::class, 'signDpa'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:10,1');
     Route::get('kit/{token}', [PipelineController::class, 'kit'])->where('token', '[A-Za-z0-9]{20,64}')->middleware('throttle:30,1');
     Route::get('landing/youtube-videos', [\App\Http\Controllers\LandingPageController::class, 'youtubeVideos']);
     Route::get('landing/social-feed', [\App\Http\Controllers\LandingPageController::class, 'socialFeed']);
@@ -104,6 +107,12 @@ Route::prefix('api')->group(function () {
     Route::get('legal/privacy', [LegalController::class, 'privacy']);
     Route::get('legal/terms', [LegalController::class, 'terms']);
     Route::get('legal/impressum', [LegalController::class, 'impressum']);
+
+    // Enterprise Privacy & Trust Center
+    Route::get('legal/dpa', [PrivacyController::class, 'dpa']);
+    Route::get('privacy/subprocessors', [PrivacyController::class, 'subprocessors']);
+    Route::post('privacy/subprocessors/subscribe', [PrivacyController::class, 'subscribeSubprocessor'])->middleware('throttle:10,1');
+    Route::post('privacy/redact', [PrivacyController::class, 'redact'])->middleware('throttle:30,1');
 
     // Everyone signed in: their own account, and the email confirmation resend.
     Route::middleware(['auth', 'active', 'ability:account'])->group(function () {
@@ -150,6 +159,11 @@ Route::prefix('api')->group(function () {
         Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
         Route::get('requests/{deal}/compliance', [PortalController::class, 'compliance'])->whereNumber('deal');
         Route::get('requests/{deal}/compliance/report', [PortalController::class, 'complianceReport'])->whereNumber('deal');
+        Route::get('requests/{deal}/dpa', [PortalController::class, 'dpa'])->whereNumber('deal');
+        Route::post('requests/{deal}/dpa/sign', [PortalController::class, 'signDpa'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::get('requests/{deal}/zdr-certificate', [PortalController::class, 'zdrCertificate'])->whereNumber('deal');
+        Route::post('requests/{deal}/purge', [PortalController::class, 'purgeDealData'])->whereNumber('deal')->middleware('throttle:5,1');
+        Route::get('privacy/access-log', [PrivacyController::class, 'accessLog']);
         Route::post('requests/{deal}/select-tier', [PortalController::class, 'selectTier'])->whereNumber('deal')->middleware('throttle:20,1');
         Route::get('requests/{deal}/add-ons', [PortalController::class, 'addOns'])->whereNumber('deal');
         Route::post('requests/{deal}/add-ons', [PortalController::class, 'applyAddOn'])->whereNumber('deal')->middleware('throttle:10,1');

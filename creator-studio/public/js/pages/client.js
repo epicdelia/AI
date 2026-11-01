@@ -105,16 +105,23 @@ export async function renderRequest(view, id) {
   async function loadCompliance() {
     try {
       const c = await api('GET', `portal/requests/${id}/compliance`);
+      const dpaRes = await api('GET', `portal/requests/${id}/dpa`).catch(() => null);
       clear(complianceSlot).append(
         h('div', { class: 'card-header' },
-          h('h2', {}, icon('lock', 15), ' Verified Legal & FTC Compliance'),
+          h('h2', {}, icon('lock', 15), ' Verified Legal, Privacy & EU Compliance'),
           h('span', { class: 'pill ok' }, `Score: ${c.compliance_score}/100`)),
         h('div', { class: 'grid grid-3 small', style: { gap: '10px', marginTop: '8px' } },
           h('div', {}, h('strong', {}, 'FTC & AVMSD Disclosures: '), h('span', { class: 'pill sm ok' }, 'Verified Callout & #ad')),
           h('div', {}, h('strong', {}, 'Exclusivity Window: '), h('span', { class: 'pill sm ok' }, 'Cleared Non-Compete')),
-          h('div', {}, h('strong', {}, 'EU AI Act (Art. 50): '), h('span', { class: 'pill sm ok' }, 'Human-Verified Editorial'))),
-        h('div', { class: 'row', style: { marginTop: '12px' } },
-          h('button', { class: 'btn sm', type: 'button', onclick: () => openWrapReportModal(id) }, icon('file-text', 13), 'View Executive Wrap Report')));
+          h('div', {}, h('strong', {}, 'EU AI Act (Art. 50): '), h('span', { class: 'pill sm ok' }, 'Human-Verified Editorial')),
+          h('div', {}, h('strong', {}, 'GDPR DPA (Art. 28): '), h('span', { class: `pill sm ${dpaRes?.signed ? 'ok' : 'late'}` }, dpaRes?.signed ? '✓ Executed' : 'Pending Sign')),
+          h('div', {}, h('strong', {}, 'Zero Data Retention: '), h('span', { class: 'pill sm ok' }, 'Active ZDR Shield')),
+          h('div', {}, h('strong', {}, 'PII Sanitization: '), h('span', { class: 'pill sm ok' }, 'In-Flight Active'))),
+        h('div', { class: 'row', style: { marginTop: '12px', gap: '8px', flexWrap: 'wrap' } },
+          h('button', { class: 'btn sm', type: 'button', onclick: () => openWrapReportModal(id) }, icon('file-text', 13), 'Executive Wrap Report'),
+          h('button', { class: `btn sm ${dpaRes?.signed ? '' : 'primary'}`, type: 'button', onclick: () => openDpaModal(id, () => loadCompliance()) }, icon('file', 13), dpaRes?.signed ? 'View Signed DPA' : 'Execute DPA (GDPR Art. 28)'),
+          h('button', { class: 'btn sm', type: 'button', onclick: () => openZdrModal(id) }, icon('shield', 13), 'ZDR Certificate'),
+          r.payment_status === 'paid' ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => purgeDealData(id) }, icon('trash', 13), 'Purge Ephemeral Assets (GDPR Art. 17)') : null));
     } catch { /* skip */ }
   }
 
@@ -243,6 +250,96 @@ function openWrapReportModal(dealId) {
   });
 }
 
+function openDpaModal(dealId, onDone) {
+  modal('Data Processing Agreement (GDPR Art. 28 & EU SCCs)', (close) => {
+    const contentSlot = h('div', { class: 'markdown-body', style: { maxHeight: '65vh', overflowY: 'auto' } }, h('p', { class: 'muted' }, 'Loading DPA agreement…'));
+    const actionSlot = h('div', { style: { marginTop: '12px' } });
+
+    api('GET', `portal/requests/${dealId}/dpa`).then((res) => {
+      clear(contentSlot).append(h('div', { html: markdown(res.markdown) }));
+      if (res.signed) {
+        clear(actionSlot).append(
+          h('div', { class: 'callout ok', style: { padding: '10px', marginBottom: '10px' } },
+            h('strong', {}, '✓ DPA Cryptographically Signed under GDPR Article 28'),
+            h('p', { class: 'small muted', style: { margin: '4px 0 0 0' } }, `Signer: ${res.signer_name} (${res.signer_email}) on ${new Date(res.signed_at).toLocaleString()}`),
+            h('p', { class: 'small', style: { fontFamily: 'monospace', wordBreak: 'break-all', marginTop: '4px' } }, `SHA-256: ${res.signature_hash}`)
+          ),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+            h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, icon('file-text', 14), 'Print / PDF'),
+            h('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Done')
+          )
+        );
+      } else {
+        const nameInput = h('input', { type: 'text', required: true, placeholder: 'Signer Legal Representative Name' });
+        const emailInput = h('input', { type: 'email', required: true, placeholder: 'Signer Corporate Email' });
+        const agreeBox = h('input', { type: 'checkbox', required: true });
+        const submitBtn = h('button', { class: 'btn primary', type: 'submit' }, 'Cryptographically Sign DPA (SHA-256)');
+
+        const form = h('form', {
+          onsubmit: async (e) => {
+            e.preventDefault();
+            busy(submitBtn, 'Signing…', async () => {
+              const signRes = await api('POST', `portal/requests/${dealId}/dpa/sign`, {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                agree: agreeBox.checked,
+              });
+              toast(signRes.message);
+              if (onDone) onDone();
+              close();
+            });
+          }
+        },
+        h('h4', { style: { margin: '8px 0 6px 0' } }, 'Execute DPA for this Campaign'),
+        h('div', { class: 'grid grid-2', style: { gap: '10px', marginBottom: '8px' } }, nameInput, emailInput),
+        h('label', { class: 'row small', style: { gap: '8px', marginBottom: '10px' } }, agreeBox, 'I confirm corporate signing authority under GDPR Article 28 and Regulation (EU) No 910/2014.'),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px' } },
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => close() }, 'Cancel'),
+          submitBtn
+        ));
+        clear(actionSlot).append(form);
+      }
+    });
+
+    return h('div', {}, contentSlot, actionSlot);
+  }, { wide: true });
+}
+
+function openZdrModal(dealId) {
+  modal('Enterprise Zero Data Retention (ZDR) Certificate', (close) => {
+    const slot = h('div', { class: 'markdown-body', style: { maxHeight: '65vh', overflowY: 'auto' } }, h('p', { class: 'muted' }, 'Issuing certificate…'));
+    api('GET', `portal/requests/${dealId}/zdr-certificate`).then((res) => {
+      clear(slot).append(
+        h('div', { class: 'callout ok', style: { padding: '12px', marginBottom: '16px' } },
+          h('h3', { style: { margin: 0 } }, '✓ Enterprise ZDR Shield Certified'),
+          h('p', { class: 'small muted', style: { margin: '4px 0 0 0' } }, `Certificate ID: ${res.certificate_id} · Issued ${new Date(res.certified_at).toLocaleDateString()}`)
+        ),
+        h('div', { class: 'stack' },
+          Object.entries(res.guarantees || {}).map(([key, text]) =>
+            h('div', { class: 'card small', style: { margin: '4px 0' } }, h('strong', {}, `• ${key.replace('_', ' ').toUpperCase()}: `), text)
+          )
+        )
+      );
+    });
+    return h('div', {}, slot,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '16px' } },
+        h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, icon('file-text', 14), 'Print Certificate'),
+        h('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Done')
+      )
+    );
+  }, { wide: true });
+}
+
+async function purgeDealData(dealId) {
+  if (!confirm('GDPR Article 17 Purge: Permanently erase all raw video proofing cuts, timecode annotations, and scratch files for this deal? Statutory tax invoices and signed DPA records will be preserved.')) return;
+  try {
+    const res = await api('POST', `portal/requests/${dealId}/purge`);
+    toast(res.message);
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
 function annotationRow(a, dealId, onUpdate) {
   const isResolved = a.status === 'resolved';
   return h('div', { class: `card ${isResolved ? 'muted' : ''}`, style: { margin: '6px 0', padding: '10px' } },
@@ -357,6 +454,13 @@ export async function renderBrandVault(view) {
   const countryCode = h('input', { name: 'country_code', value: vault.country_code || 'US', maxlength: 3, placeholder: 'e.g. DE, GB, US' });
   const billingAddress = h('textarea', { name: 'billing_address', rows: 3, placeholder: 'Full registered legal entity address for invoices...' }, vault.billing_address || '');
 
+  // Enterprise Privacy & Data Retention
+  const retentionDays = h('input', { name: 'retention_days', type: 'number', min: 7, max: 365, value: vault.retention_days ?? 60 });
+  const zdrEnabled = h('input', { name: 'zdr_enabled', type: 'checkbox', checked: !!vault.zdr_enabled });
+  const autoRedactSecrets = h('input', { name: 'auto_redact_secrets', type: 'checkbox', checked: vault.auto_redact_secrets !== false });
+
+  const viewAccessLogBtn = h('button', { class: 'btn sm', type: 'button', onclick: () => openAccessLogModal() }, icon('shield', 13), 'View Immutable Access Log (GDPR Art. 30)');
+
   const testBtn = h('button', { class: 'btn sm', type: 'button', onclick: () => {
     if (!slackWebhook.value) return toast('Enter a webhook URL first.', 'err');
     busy(testBtn, 'Testing…', async () => {
@@ -397,8 +501,11 @@ export async function renderBrandVault(view) {
         tax_id: taxId.value,
         country_code: countryCode.value,
         billing_address: billingAddress.value,
+        retention_days: parseInt(retentionDays.value, 10) || 60,
+        zdr_enabled: zdrEnabled.checked,
+        auto_redact_secrets: autoRedactSecrets.checked,
       });
-      toast('Brand Vault & Enterprise Billing settings saved.');
+      toast('Brand Vault & Enterprise Privacy settings saved.');
     });
   } },
   h('div', { class: 'grid grid-2' },
@@ -423,11 +530,65 @@ export async function renderBrandVault(view) {
   h('div', { class: 'grid grid-2' },
     field('UTM Source', utmSource),
     field('UTM Medium', utmMedium)),
+  h('h3', {}, 'Enterprise Privacy & Data Retention Controls'),
+  h('div', { class: 'grid grid-2' },
+    field('Ephemeral Asset Purge Window (Days)', retentionDays),
+    h('div', { style: { display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' } }, viewAccessLogBtn)),
+  h('label', { class: 'row small', style: { gap: '8px', marginBottom: '8px' } },
+    zdrEnabled,
+    h('span', {}, 'Enforce Enterprise Zero Data Retention (ZDR): Transient in-memory LLM processing with zero AI training.')),
+  h('label', { class: 'row small', style: { gap: '8px', marginBottom: '14px' } },
+    autoRedactSecrets,
+    h('span', {}, 'In-Flight PII & Secret Redaction: Automatically strip leaked Stripe, OpenAI, AWS or GitHub keys from briefs.')),
   submit);
 
   view.append(
     pageHead('Brand Vault', 'Store your official corporate brand assets, guidelines, Slack webhook, and tax IDs once. Every script, invoice and deliverable automatically adopts your exact standards.'),
     form);
+}
+
+function openAccessLogModal() {
+  modal('Data Access Transparency Log (GDPR Article 30 RoPA)', (close) => {
+    const slot = h('div', { style: { maxHeight: '65vh', overflowY: 'auto' } }, h('p', { class: 'muted' }, 'Loading access logs…'));
+    api('GET', 'portal/privacy/access-log').then((res) => {
+      const logs = res.logs || [];
+      if (!logs.length) {
+        clear(slot).append(h('p', { class: 'muted' }, 'No logged data access events yet.'));
+        return;
+      }
+      clear(slot).append(
+        h('table', { class: 'table small', style: { width: '100%' } },
+          h('thead', {},
+            h('tr', {},
+              h('th', {}, 'Timestamp'),
+              h('th', {}, 'Actor'),
+              h('th', {}, 'Action'),
+              h('th', {}, 'Resource'),
+              h('th', {}, 'Purpose'),
+              h('th', {}, 'Subnet')
+            )
+          ),
+          h('tbody', {},
+            logs.map((l) =>
+              h('tr', {},
+                h('td', { class: 'muted small' }, new Date(l.timestamp).toLocaleString()),
+                h('td', {}, l.actor),
+                h('td', {}, h('span', { class: 'pill sm' }, l.action)),
+                h('td', {}, l.resource),
+                h('td', { class: 'muted small' }, l.purpose),
+                h('td', { style: { fontFamily: 'monospace' } }, l.ip_subnet)
+              )
+            )
+          )
+        )
+      );
+    });
+    return h('div', {}, slot,
+      h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '16px' } },
+        h('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Close')
+      )
+    );
+  }, { wide: true });
 }
 
 function bubble(m) {

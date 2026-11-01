@@ -32,14 +32,36 @@ export async function renderImpressum(view) {
   }
 }
 
+export async function renderDpa(view) {
+  view.innerHTML = '<div class="card"><p class="muted">Loading Data Processing Agreement…</p></div>';
+  try {
+    const data = await api('GET', 'legal/dpa');
+    renderLegalDoc(view, data, 'dpa');
+  } catch (e) {
+    view.innerHTML = `<div class="card"><p class="muted error">Failed to load DPA: ${e.message}</p></div>`;
+  }
+}
+
+export async function renderSubprocessors(view) {
+  view.innerHTML = '<div class="card"><p class="muted">Loading Sub-Processors Directory…</p></div>';
+  try {
+    const data = await api('GET', 'privacy/subprocessors');
+    renderLegalDoc(view, data, 'subprocessors');
+  } catch (e) {
+    view.innerHTML = `<div class="card"><p class="muted error">Failed to load sub-processors: ${e.message}</p></div>`;
+  }
+}
+
 function renderLegalDoc(view, data, type) {
   view.innerHTML = '';
 
   const isPrivacy = type === 'privacy';
   const isTerms = type === 'terms';
   const isImpressum = type === 'impressum';
+  const isDpa = type === 'dpa';
+  const isSubprocessors = type === 'subprocessors';
 
-  const title = data.title || (isPrivacy ? 'Privacy Policy' : (isTerms ? 'Terms & Conditions' : 'Legal Notice (Impressum)'));
+  const title = data.title || (isPrivacy ? 'Privacy Policy' : (isTerms ? 'Terms & Conditions' : (isImpressum ? 'Legal Notice (Impressum)' : (isDpa ? 'Data Processing Agreement' : 'Authorized Sub-Processors'))));
   
   let subtitle = 'EU Legal Compliance Framework';
   let badgeText = 'EU Compliant';
@@ -53,6 +75,12 @@ function renderLegalDoc(view, data, type) {
   } else if (isImpressum) {
     subtitle = 'Information pursuant to § 5 DDG (Germany), Directive 2000/31/EC & EU AI Act (Art. 50)';
     badgeText = '§ 5 DDG & EU AI Act (Art. 50)';
+  } else if (isDpa) {
+    subtitle = 'GDPR Article 28 & European Commission Standard Contractual Clauses (Decision 2021/914/EU)';
+    badgeText = 'GDPR Art. 28 & EU SCCs';
+  } else if (isSubprocessors) {
+    subtitle = 'Transparency Register of Authorized Sub-Processors & 30-Day Advance Notification Feed';
+    badgeText = 'GDPR Art. 28(4)';
   }
 
   const badge = h('span', { class: 'pill ok' }, badgeText);
@@ -63,9 +91,11 @@ function renderLegalDoc(view, data, type) {
       copyText(data.markdown || '');
       toast('Copied legal markdown to clipboard.');
     } }, icon('copy', 15), 'Copy Text'),
-    !isImpressum ? h('a', { class: 'btn', href: '#/impressum' }, icon('shield', 15), 'Legal Notice (Impressum)') : null,
+    !isImpressum ? h('a', { class: 'btn', href: '#/impressum' }, icon('shield', 15), 'Legal Notice') : null,
     !isPrivacy ? h('a', { class: 'btn', href: '#/privacy' }, icon('shield', 15), 'Privacy Policy') : null,
-    !isTerms ? h('a', { class: 'btn', href: '#/terms' }, icon('file-text', 15), 'Commercial Terms') : null
+    !isTerms ? h('a', { class: 'btn', href: '#/terms' }, icon('file-text', 15), 'Terms & Conditions') : null,
+    !isDpa ? h('a', { class: 'btn', href: '#/dpa' }, icon('file', 15), 'DPA (GDPR Art. 28)') : null,
+    !isSubprocessors ? h('a', { class: 'btn', href: '#/subprocessors' }, icon('users', 15), 'Sub-Processors') : null
   );
 
   const headerCard = h('div', { class: 'card' },
@@ -83,9 +113,44 @@ function renderLegalDoc(view, data, type) {
     mdBlock(data.markdown || '')
   );
 
+  let extraCard = null;
+  if (isSubprocessors) {
+    const subEmail = h('input', { type: 'email', required: true, placeholder: 'compliance-team@company.com' });
+    const subCompany = h('input', { type: 'text', placeholder: 'Legal Entity / Company Name' });
+    const subBtn = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 14), 'Subscribe to Alerts');
+    
+    const subForm = h('form', {
+      class: 'row',
+      style: 'gap: 0.5rem; flex-wrap: wrap;',
+      onsubmit: async (e) => {
+        e.preventDefault();
+        busy(subBtn, 'Subscribing…', async () => {
+          try {
+            const res = await api('POST', 'privacy/subprocessors/subscribe', {
+              email: subEmail.value.trim(),
+              company: subCompany.value.trim() || null,
+            });
+            toast(res.message);
+            subEmail.value = '';
+            subCompany.value = '';
+          } catch (err) {
+            toast(err.message, 'err');
+          }
+        });
+      }
+    }, subEmail, subCompany, subBtn);
+
+    extraCard = h('div', { class: 'card callout', style: 'margin-top: 1rem;' },
+      h('h3', { style: 'margin-top: 0;' }, icon('shield', 16), ' Subscribe to 30-Day Sub-Processor Change Notifications'),
+      h('p', { class: 'muted small' }, 'Under Article 28(4) GDPR, enterprise data controllers are notified at least 30 days prior to the engagement or replacement of any third-party sub-processor, with statutory right to object.'),
+      subForm
+    );
+  }
+
   view.append(
     pageHead(title, subtitle),
     headerCard,
-    bodyCard
+    bodyCard,
+    extraCard
   );
 }

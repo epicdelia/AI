@@ -97,6 +97,13 @@ class Deal extends Model
         'is_ai_assisted',
         'ai_model_name',
         'human_reviewed_at',
+        'dpa_signed_at',
+        'dpa_signer_name',
+        'dpa_signer_email',
+        'dpa_signature_hash',
+        'zdr_certified',
+        'zdr_certificate_id',
+        'retention_purged_at',
     ];
 
     protected $hidden = ['kit_token', 'room_token'];
@@ -139,6 +146,9 @@ class Deal extends Model
             'vat_rate' => 'float',
             'vat_amount' => 'float',
             'gross_amount' => 'float',
+            'dpa_signed_at' => 'datetime',
+            'retention_purged_at' => 'datetime',
+            'zdr_certified' => 'boolean',
         ];
     }
 

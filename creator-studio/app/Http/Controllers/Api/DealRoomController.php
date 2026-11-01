@@ -8,6 +8,7 @@ use App\Domains\Deals\ContractSigner;
 use App\Domains\Deals\PipelineInsights;
 use App\Domains\Deals\ProposalTiers;
 use App\Domains\Deals\ProposalWriter;
+use App\Domains\Privacy\DataProcessingAgreement;
 use App\Domains\Workflows\Engine;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
@@ -55,6 +56,11 @@ class DealRoomController extends Controller
             'meeting_at' => $deal->meeting_at?->toIso8601String(),
             'tiers' => ProposalTiers::forDeal($deal)['tiers'],
             'selected_tier' => $deal->selected_tier ?: 'growth',
+            'dpa_signed_at' => $deal->dpa_signed_at?->toIso8601String(),
+            'dpa_signer_name' => $deal->dpa_signer_name,
+            'dpa_signature_hash' => $deal->dpa_signature_hash,
+            'zdr_certified' => (bool) $deal->zdr_certified,
+            'zdr_certificate_id' => $deal->zdr_certificate_id,
             // Linked to a client account: the page offers their dashboard (messages, files, invoices).
             'has_account' => (bool) $deal->user_id,
         ]);
@@ -103,6 +109,36 @@ class DealRoomController extends Controller
         }
 
         return self::checkout($deal, '/deal/'.$deal->room_token);
+    }
+
+    public function dpa(string $token): JsonResponse
+    {
+        $deal = self::byToken($token);
+
+        return response()->json([
+            'deal_id' => $deal->id,
+            'brand' => $deal->brand_name,
+            'signed' => (bool) $deal->dpa_signed_at,
+            'signed_at' => $deal->dpa_signed_at?->toIso8601String(),
+            'signer_name' => $deal->dpa_signer_name,
+            'signer_email' => $deal->dpa_signer_email,
+            'signature_hash' => $deal->dpa_signature_hash,
+            'markdown' => DataProcessingAgreement::dpaMarkdown($deal),
+        ]);
+    }
+
+    public function signDpa(Request $request, string $token): JsonResponse
+    {
+        $deal = self::byToken($token);
+        $data = $request->validate([
+            'name' => 'required|string|min:2|max:120',
+            'email' => 'required|email|max:150',
+            'agree' => 'accepted',
+        ]);
+
+        $res = DataProcessingAgreement::sign($deal, $data['name'], $data['email'], $request->ip() ?? '127.0.0.1');
+
+        return response()->json($res);
     }
 
     /** Shared with the client dashboard: Stripe Checkout for the deal, back to $returnTo. */

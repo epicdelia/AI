@@ -61,6 +61,8 @@ const renderLanding = lazy(page.landing, 'renderLanding');
 const renderPrivacy = lazy(page.legal, 'renderPrivacy');
 const renderTerms = lazy(page.legal, 'renderTerms');
 const renderImpressum = lazy(page.legal, 'renderImpressum');
+const renderDpa = lazy(page.legal, 'renderDpa');
+const renderSubprocessors = lazy(page.legal, 'renderSubprocessors');
 
 // `ability`: the Role ability needed (none = 'studio'; 'any' = everyone signed in). The API checks
 // the same abilities; this only decides what the dashboard offers.
@@ -78,6 +80,8 @@ const ROUTES = [
   { path: /^\/privacy$/, ability: 'any', render: renderPrivacy, nav: '/privacy' },
   { path: /^\/terms$/, ability: 'any', render: renderTerms, nav: '/terms' },
   { path: /^\/impressum$/, ability: 'any', render: renderImpressum, nav: '/impressum' },
+  { path: /^\/dpa$/, ability: 'any', render: renderDpa, nav: '/dpa' },
+  { path: /^\/subprocessors$/, ability: 'any', render: renderSubprocessors, nav: '/subprocessors' },
   { path: /^\/review\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderReview, nav: '/website' },
   { path: /^\/deal\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderDealRoom, nav: '/deals' },
   { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderBrandKit, nav: '/mediakit' },
@@ -537,6 +541,8 @@ async function boot() {
       if (location.pathname === '/privacy') { state.guestView = 'privacy'; showPublic(renderPrivacy, null, 'Privacy policy not available.'); return; }
       if (location.pathname === '/terms') { state.guestView = 'terms'; showPublic(renderTerms, null, 'Terms not available.'); return; }
       if (location.pathname === '/impressum') { state.guestView = 'impressum'; showPublic(renderImpressum, null, 'Legal notice not available.'); return; }
+      if (location.pathname === '/dpa') { state.guestView = 'dpa'; showPublic(renderDpa, null, 'DPA not available.'); return; }
+      if (location.pathname === '/subprocessors') { state.guestView = 'subprocessors'; showPublic(renderSubprocessors, null, 'Sub-processors directory not available.'); return; }
       const want = isLoginPath() ? 'auth' : 'landing';
       if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
     };

@@ -19,6 +19,10 @@ use App\Domains\Clients\TaxCompliance;
 use App\Domains\Deals\ProposalTiers;
 use App\Domains\Landing\BookingSlots;
 use App\Domains\Landing\Pricing;
+use App\Domains\Privacy\DataProcessingAgreement;
+use App\Domains\Privacy\DataRetentionPurger;
+use App\Domains\Privacy\PrivacyAccessLogger;
+use App\Domains\Privacy\ZeroDataRetention;
 use App\Domains\Security\Audit;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
@@ -482,6 +486,56 @@ class PortalController extends Controller
         ]);
     }
 
+    public function dpa(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        PrivacyAccessLogger::log($request->user(), 'dpa_view', $deal);
+
+        return response()->json([
+            'deal_id' => $deal->id,
+            'brand' => $deal->brand_name,
+            'signed' => (bool) $deal->dpa_signed_at,
+            'signed_at' => $deal->dpa_signed_at?->toIso8601String(),
+            'signer_name' => $deal->dpa_signer_name,
+            'signer_email' => $deal->dpa_signer_email,
+            'signature_hash' => $deal->dpa_signature_hash,
+            'markdown' => DataProcessingAgreement::dpaMarkdown($deal, $request->user()),
+        ]);
+    }
+
+    public function signDpa(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $data = $request->validate([
+            'name' => 'required|string|min:2|max:120',
+            'email' => 'required|email|max:150',
+            'agree' => 'accepted',
+        ]);
+
+        $res = DataProcessingAgreement::sign($deal, $data['name'], $data['email'], $request->ip() ?? '127.0.0.1');
+        PrivacyAccessLogger::log($request->user(), 'dpa_sign', $deal, ['hash' => $res['signature_hash'] ?? null]);
+
+        return response()->json($res);
+    }
+
+    public function zdrCertificate(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $cert = ZeroDataRetention::certify($deal);
+        PrivacyAccessLogger::log($request->user(), 'zdr_cert_view', $deal, ['certificate_id' => $cert['certificate_id']]);
+
+        return response()->json($cert);
+    }
+
+    public function purgeDealData(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $res = DataRetentionPurger::purgeDeal($deal, $request->user());
+        PrivacyAccessLogger::log($request->user(), 'deal_data_purged', $deal, $res);
+
+        return response()->json($res);
+    }
+
     public function testWebhook(Request $request): JsonResponse
     {
         $url = $request->input('webhook_url') ?: $request->input('url');
@@ -515,6 +569,9 @@ class PortalController extends Controller
             'tax_id' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:500',
             'country_code' => 'nullable|string|max:3',
+            'retention_days' => 'nullable|integer|min:7|max:365',
+            'zdr_enabled' => 'nullable|boolean',
+            'auto_redact_secrets' => 'nullable|boolean',
         ]);
 
         $taxId = $data['tax_id'] ?? $vault->tax_id;
@@ -547,6 +604,9 @@ class PortalController extends Controller
             'tax_id' => $data['tax_id'] ?? $vault->tax_id,
             'billing_address' => $data['billing_address'] ?? $vault->billing_address,
             'country_code' => $data['country_code'] ?? $vault->country_code,
+            'retention_days' => $data['retention_days'] ?? $vault->retention_days,
+            'zdr_enabled' => array_key_exists('zdr_enabled', $data) ? (bool) $data['zdr_enabled'] : $vault->zdr_enabled,
+            'auto_redact_secrets' => array_key_exists('auto_redact_secrets', $data) ? (bool) $data['auto_redact_secrets'] : $vault->auto_redact_secrets,
         ] + $viesData, fn ($v) => $v !== null));
 
         Audit::log('brand_vault_updated', $user, $vault);

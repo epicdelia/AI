@@ -19,6 +19,9 @@ class ClientBrandVault extends Model
             'utm_params' => 'array',
             'vies_verified' => 'boolean',
             'vies_verified_at' => 'datetime',
+            'retention_days' => 'integer',
+            'zdr_enabled' => 'boolean',
+            'auto_redact_secrets' => 'boolean',
         ];
     }
 
@@ -54,6 +57,9 @@ class ClientBrandVault extends Model
             'vies_verified_at' => $this->vies_verified_at?->toIso8601String(),
             'vies_company_name' => $this->vies_company_name,
             'vies_company_address' => $this->vies_company_address,
+            'retention_days' => $this->retention_days ?? 60,
+            'zdr_enabled' => (bool) $this->zdr_enabled,
+            'auto_redact_secrets' => $this->auto_redact_secrets ?? true,
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }

@@ -103,6 +103,7 @@ Route::prefix('api')->group(function () {
     // EU Compliance & Commercial Legal Framework
     Route::get('legal/privacy', [LegalController::class, 'privacy']);
     Route::get('legal/terms', [LegalController::class, 'terms']);
+    Route::get('legal/impressum', [LegalController::class, 'impressum']);
 
     // Everyone signed in: their own account, and the email confirmation resend.
     Route::middleware(['auth', 'active', 'ability:account'])->group(function () {
@@ -154,6 +155,7 @@ Route::prefix('api')->group(function () {
         Route::post('requests/{deal}/add-ons', [PortalController::class, 'applyAddOn'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::get('brand-vault', [PortalController::class, 'brandVault']);
         Route::put('brand-vault', [PortalController::class, 'saveBrandVault'])->middleware('throttle:10,1');
+        Route::post('brand-vault/verify-vies', [PortalController::class, 'verifyVies'])->middleware('throttle:10,1');
         Route::post('webhook/test', [PortalController::class, 'testWebhook'])->middleware('throttle:10,1');
         Route::get('referrals', [PortalController::class, 'referrals']);
         Route::get('calls/slots', [PortalController::class, 'slots']);

@@ -60,6 +60,7 @@ const renderDealRoom = lazy(page.dealRoom, 'renderDealRoom');
 const renderLanding = lazy(page.landing, 'renderLanding');
 const renderPrivacy = lazy(page.legal, 'renderPrivacy');
 const renderTerms = lazy(page.legal, 'renderTerms');
+const renderImpressum = lazy(page.legal, 'renderImpressum');
 
 // `ability`: the Role ability needed (none = 'studio'; 'any' = everyone signed in). The API checks
 // the same abilities; this only decides what the dashboard offers.
@@ -76,6 +77,7 @@ const ROUTES = [
   { path: /^\/clients\/(\d+)$/, ability: 'clients.manage', render: lazy(page.clients, 'renderClient'), nav: '/clients' },
   { path: /^\/privacy$/, ability: 'any', render: renderPrivacy, nav: '/privacy' },
   { path: /^\/terms$/, ability: 'any', render: renderTerms, nav: '/terms' },
+  { path: /^\/impressum$/, ability: 'any', render: renderImpressum, nav: '/impressum' },
   { path: /^\/review\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderReview, nav: '/website' },
   { path: /^\/deal\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderDealRoom, nav: '/deals' },
   { path: /^\/kit\/([A-Za-z0-9]{20,64})$/, ability: 'any', render: renderBrandKit, nav: '/mediakit' },
@@ -534,6 +536,7 @@ async function boot() {
       if (room) { state.guestView = 'deal'; showPublic(renderDealRoom, room[1], 'This proposal link isn’t active.'); return; }
       if (location.pathname === '/privacy') { state.guestView = 'privacy'; showPublic(renderPrivacy, null, 'Privacy policy not available.'); return; }
       if (location.pathname === '/terms') { state.guestView = 'terms'; showPublic(renderTerms, null, 'Terms not available.'); return; }
+      if (location.pathname === '/impressum') { state.guestView = 'impressum'; showPublic(renderImpressum, null, 'Legal notice not available.'); return; }
       const want = isLoginPath() ? 'auth' : 'landing';
       if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
     };

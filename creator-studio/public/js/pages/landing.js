@@ -1215,6 +1215,7 @@ export function renderLanding(view, options = {}) {
           h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.'),
           h('span', { class: 'auth-couple-badge landing-love-badge' }, icon('heart', 12), ' For Delia with love')),
         h('div', { class: 'landing-footer-sub-right' },
+          h('a', { href: '/impressum', class: 'landing-footer-sub-link' }, 'Impressum'),
           h('a', { href: '/terms', class: 'landing-footer-sub-link' }, 'Commercial Terms'),
           h('a', { href: '/privacy', class: 'landing-footer-sub-link' }, 'GDPR Privacy'),
           h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links Hub'),

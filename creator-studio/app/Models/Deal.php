@@ -90,6 +90,13 @@ class Deal extends Model
         'selected_tier',
         'referral_partner_id',
         'referral_credit_earned',
+        'vat_rate',
+        'vat_amount',
+        'gross_amount',
+        'oss_country_code',
+        'is_ai_assisted',
+        'ai_model_name',
+        'human_reviewed_at',
     ];
 
     protected $hidden = ['kit_token', 'room_token'];
@@ -127,6 +134,11 @@ class Deal extends Model
             'room_expires_at' => 'datetime',
             'kit_expires_at' => 'datetime',
             'add_ons' => 'array',
+            'is_ai_assisted' => 'boolean',
+            'human_reviewed_at' => 'datetime',
+            'vat_rate' => 'float',
+            'vat_amount' => 'float',
+            'gross_amount' => 'float',
         ];
     }
 

@@ -13,11 +13,18 @@ class Script extends Model
     protected $fillable = [
         'idea_id', 'title', 'body', 'outline', 'review', 'fact_check', 'fact_checked_at', 'transcript', 'substack', 'edit_brief', 'status',
         'youtube_url', 'published_on', 'publish_kit',
+        'is_ai_assisted', 'ai_model_name', 'human_reviewed_at', 'editorial_notes',
     ];
 
     protected function casts(): array
     {
-        return ['published_on' => 'date', 'fact_checked_at' => 'datetime', 'outline' => 'array'];
+        return [
+            'published_on' => 'date',
+            'fact_checked_at' => 'datetime',
+            'outline' => 'array',
+            'is_ai_assisted' => 'boolean',
+            'human_reviewed_at' => 'datetime',
+        ];
     }
 
     protected static function booted(): void

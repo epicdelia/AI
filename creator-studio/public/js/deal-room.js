@@ -114,6 +114,8 @@ export async function renderDealRoom(view, token) {
     h('div', { class: 'deal-room-legal-footer', style: { textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' } },
       h('p', {}, 'EU VAT Notice: Invoices issued under Article 196 Directive 2006/112/EC (Reverse Charge applicable for verified EU business VAT numbers).'),
       h('div', { style: { display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.35rem' } },
+        h('a', { href: '/impressum', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Legal Notice (Impressum)'),
+        h('span', {}, '•'),
         h('a', { href: '/terms', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'Commercial Terms & Conditions'),
         h('span', {}, '•'),
         h('a', { href: '/privacy', target: '_blank', style: { color: 'var(--muted)', textDecoration: 'underline' } }, 'GDPR Privacy Policy')

@@ -46,7 +46,11 @@ class ScriptStreamController extends Controller
 
         return $sse->respond(function (StreamService $sse) use ($script, $user, $llm) {
             $body = $llm->as('script')->stream(Prompts::scriptSystem(), [['role' => 'user', 'content' => $user]], $sse->chunk(...));
-            $script->update(['body' => $body]);
+            $script->update([
+                'body' => $body,
+                'is_ai_assisted' => true,
+                'ai_model_name' => 'creator-studio-llm',
+            ]);
 
             return ['script' => $script->fresh(), 'findings' => AiTellsLinter::lint($body)];
         });

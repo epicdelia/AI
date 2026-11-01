@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Ai\AiTransparency;
 use App\Domains\Chat\Models\Conversation;
 use App\Domains\Toolkit\DocxWriter;
 use App\Domains\Toolkit\Models\Document;
@@ -39,7 +40,16 @@ class ExportController extends Controller
             $md[] = (count($parts) > 1 ? '# '.self::SCRIPT_PARTS[$part]."\n\n" : '').trim((string) $value);
         }
 
-        return $this->respond($request, $script->title, implode("\n\n---\n\n", $md) ?: '(empty)');
+        $content = implode("\n\n---\n\n", $md) ?: '(empty)';
+        if ($script->is_ai_assisted || $request->boolean('ai_watermark', false)) {
+            $content = AiTransparency::embedWatermark(
+                $content,
+                $script->ai_model_name,
+                $script->human_reviewed_at !== null
+            );
+        }
+
+        return $this->respond($request, $script->title, $content, (bool) $script->is_ai_assisted);
     }
 
     public function chat(Request $request, Conversation $conversation): Response
@@ -47,7 +57,7 @@ class ExportController extends Controller
         $name = \App\Models\Setting::get('creator_name') ?: (auth()->user()?->name ?: 'You');
         $md = $conversation->messages->map(fn ($m) => ($m->role === 'user' ? "**{$name}:**" : '**Producer:**')."\n\n".trim($m->content))->implode("\n\n---\n\n");
 
-        return $this->respond($request, $conversation->title, $md ?: '(no messages)');
+        return $this->respond($request, $conversation->title, $md ?: '(no messages)', true);
     }
 
     public function document(Request $request, Document $document): Response
@@ -55,7 +65,7 @@ class ExportController extends Controller
         return $this->respond($request, $document->title, $document->content);
     }
 
-    private function respond(Request $request, string $title, string $markdown): Response
+    private function respond(Request $request, string $title, string $markdown, bool $isAi = false): Response
     {
         $format = in_array($request->query('format'), ['docx', 'md', 'txt'], true) ? $request->query('format') : 'docx';
         $file = (Str::slug($title) ?: 'export').'.'.$format;
@@ -70,11 +80,17 @@ class ExportController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        return response($bytes, 200, [
+        $headers = [
             'Content-Type' => $mime,
             'Content-Disposition' => 'attachment; filename="'.$file.'"',
             'Cache-Control' => 'no-store',
-        ]);
+        ];
+
+        if ($isAi) {
+            $headers = array_merge($headers, AiTransparency::headers('creator-studio', true));
+        }
+
+        return response($bytes, 200, $headers);
     }
 
     /** Markdown → readable plain text (MagicAI's generateTxt stripped tags the same way). */

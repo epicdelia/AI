@@ -113,7 +113,8 @@ export async function renderAccount(view) {
         toast('GDPR archive downloaded successfully.');
       }) }, icon('download', 15), 'Export My Data (JSON)'),
       h('a', { class: 'btn', href: '#/privacy', target: '_blank' }, icon('shield', 15), 'Privacy Policy'),
-      h('a', { class: 'btn', href: '#/terms', target: '_blank' }, icon('file-text', 15), 'Commercial Terms')
+      h('a', { class: 'btn', href: '#/terms', target: '_blank' }, icon('file-text', 15), 'Commercial Terms'),
+      h('a', { class: 'btn', href: '#/impressum', target: '_blank' }, icon('doc', 15), 'Legal Notice (Impressum)')
     )
   );
 

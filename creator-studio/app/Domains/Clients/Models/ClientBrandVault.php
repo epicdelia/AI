@@ -17,6 +17,8 @@ class ClientBrandVault extends Model
             'talking_points' => 'array',
             'dos_and_donts' => 'array',
             'utm_params' => 'array',
+            'vies_verified' => 'boolean',
+            'vies_verified_at' => 'datetime',
         ];
     }
 
@@ -47,6 +49,11 @@ class ClientBrandVault extends Model
             'tax_id' => $this->tax_id,
             'billing_address' => $this->billing_address,
             'country_code' => $this->country_code ?: 'US',
+            'vies_verified' => (bool) $this->vies_verified,
+            'vies_request_identifier' => $this->vies_request_identifier,
+            'vies_verified_at' => $this->vies_verified_at?->toIso8601String(),
+            'vies_company_name' => $this->vies_company_name,
+            'vies_company_address' => $this->vies_company_address,
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }

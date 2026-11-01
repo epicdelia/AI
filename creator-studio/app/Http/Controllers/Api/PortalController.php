@@ -517,6 +517,24 @@ class PortalController extends Controller
             'country_code' => 'nullable|string|max:3',
         ]);
 
+        $taxId = $data['tax_id'] ?? $vault->tax_id;
+        $countryCode = $data['country_code'] ?? $vault->country_code;
+        $viesData = [];
+
+        if ($taxId) {
+            $taxRes = TaxCompliance::validateTaxId($taxId, $countryCode);
+            if (($taxRes['type'] ?? '') === 'EU_VAT' && isset($taxRes['vies'])) {
+                $vies = $taxRes['vies'];
+                $viesData = [
+                    'vies_verified' => (bool) ($vies['valid'] ?? false),
+                    'vies_request_identifier' => $vies['request_identifier'] ?? null,
+                    'vies_verified_at' => ($vies['valid'] ?? false) ? now() : null,
+                    'vies_company_name' => $vies['name'] ?? null,
+                    'vies_company_address' => $vies['address'] ?? null,
+                ];
+            }
+        }
+
         $vault->update(array_filter([
             'brand_name' => $data['brand_name'] ?? $vault->brand_name,
             'website' => $data['website'] ?? $vault->website,
@@ -529,11 +547,22 @@ class PortalController extends Controller
             'tax_id' => $data['tax_id'] ?? $vault->tax_id,
             'billing_address' => $data['billing_address'] ?? $vault->billing_address,
             'country_code' => $data['country_code'] ?? $vault->country_code,
-        ], fn ($v) => $v !== null));
+        ] + $viesData, fn ($v) => $v !== null));
 
         Audit::log('brand_vault_updated', $user, $vault);
 
         return response()->json(['message' => 'Brand Vault saved.', 'vault' => $vault->fresh()->toResponse()]);
+    }
+
+    public function verifyVies(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'tax_id' => 'required|string|max:50',
+            'country_code' => 'nullable|string|max:3',
+        ]);
+        $res = TaxCompliance::verifyVies($data['tax_id'], $data['country_code'] ?? null);
+
+        return response()->json($res);
     }
 
     // ------------------------------------------------------------ team

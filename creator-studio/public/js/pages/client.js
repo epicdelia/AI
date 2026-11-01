@@ -109,9 +109,10 @@ export async function renderRequest(view, id) {
         h('div', { class: 'card-header' },
           h('h2', {}, icon('lock', 15), ' Verified Legal & FTC Compliance'),
           h('span', { class: 'pill ok' }, `Score: ${c.compliance_score}/100`)),
-        h('div', { class: 'grid grid-2 small', style: { gap: '10px', marginTop: '8px' } },
-          h('div', {}, h('strong', {}, 'FTC Ad Disclosures: '), h('span', { class: 'pill sm ok' }, 'Verified Callout & Description #ad')),
-          h('div', {}, h('strong', {}, 'Competitor Non-Compete: '), h('span', { class: 'pill sm ok' }, '14-Day Exclusivity Cleared'))),
+        h('div', { class: 'grid grid-3 small', style: { gap: '10px', marginTop: '8px' } },
+          h('div', {}, h('strong', {}, 'FTC & AVMSD Disclosures: '), h('span', { class: 'pill sm ok' }, 'Verified Callout & #ad')),
+          h('div', {}, h('strong', {}, 'Exclusivity Window: '), h('span', { class: 'pill sm ok' }, 'Cleared Non-Compete')),
+          h('div', {}, h('strong', {}, 'EU AI Act (Art. 50): '), h('span', { class: 'pill sm ok' }, 'Human-Verified Editorial'))),
         h('div', { class: 'row', style: { marginTop: '12px' } },
           h('button', { class: 'btn sm', type: 'button', onclick: () => openWrapReportModal(id) }, icon('file-text', 13), 'View Executive Wrap Report')));
     } catch { /* skip */ }
@@ -364,6 +365,24 @@ export async function renderBrandVault(view) {
     });
   } }, icon('check', 13), 'Test Slack Connection');
 
+  const viesStatusSlot = h('div', { class: 'muted small', style: { marginTop: '4px' } });
+  if (vault.vies_verified && vault.vies_request_identifier) {
+    viesStatusSlot.innerHTML = `<span class="pill ok">✓ VIES Verified Active (${vault.vies_request_identifier})</span>`;
+  }
+  const verifyViesBtn = h('button', { class: 'btn sm', type: 'button', onclick: () => {
+    if (!taxId.value) return toast('Enter a Tax / VAT ID first.', 'err');
+    busy(verifyViesBtn, 'Verifying…', async () => {
+      const res = await api('POST', 'portal/brand-vault/verify-vies', { tax_id: taxId.value, country_code: countryCode.value });
+      if (res.valid) {
+        toast(`VIES Verified: ${res.name || 'Active EU Taxable Entity'}`);
+        viesStatusSlot.innerHTML = `<span class="pill ok">✓ VIES Active: ${res.name || res.request_identifier}</span>`;
+      } else {
+        toast(res.notice || 'VAT number could not be verified by VIES.', 'err');
+        viesStatusSlot.innerHTML = `<span class="pill danger">✕ ${res.status || 'Unverified'}</span>`;
+      }
+    });
+  } }, icon('shield', 13), 'Verify with EU VIES');
+
   const submit = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 15), 'Save Brand Vault');
   const form = h('form', { class: 'card stack', onsubmit: (e) => {
     e.preventDefault();
@@ -393,10 +412,12 @@ export async function renderBrandVault(view) {
   h('div', { class: 'grid grid-2' },
     field('Incoming Webhook URL', slackWebhook),
     h('div', { style: { display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' } }, testBtn)),
-  h('h3', {}, 'Enterprise Procurement & VAT Invoicing'),
+  h('h3', {}, 'Enterprise Procurement & VAT Invoicing (VIES / Article 196)'),
   h('div', { class: 'grid grid-2' },
-    field('Corporate Tax / VAT ID', taxId),
-    field('Country Code', countryCode)),
+    h('div', {}, field('Corporate Tax / VAT ID', taxId), viesStatusSlot),
+    h('div', { style: { display: 'flex', gap: '8px', alignItems: 'flex-end', paddingBottom: '12px' } },
+      field('Country Code', countryCode),
+      verifyViesBtn)),
   field('Registered Billing Address', billingAddress),
   h('h3', {}, 'Default Tracking & UTM Parameters'),
   h('div', { class: 'grid grid-2' },

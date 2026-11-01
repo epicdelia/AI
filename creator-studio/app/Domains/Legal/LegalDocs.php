@@ -185,4 +185,83 @@ MARKDOWN;
             'markdown' => $markdown,
         ];
     }
+
+    /**
+     * Mandatory European Union Legal Notice (Impressum) pursuant to
+     * Section 5 of the Digital Services Act (DDG - Digitale-Dienste-Gesetz),
+     * Directive 2000/31/EC (e-Commerce Directive), and EU AI Act (Art. 50).
+     */
+    public static function impressum(): array
+    {
+        $creator = Prompts::name();
+        $date = 'November 1, 2026';
+
+        $markdown = <<<MARKDOWN
+# Legal Notice (Impressum)
+
+Information required pursuant to **§ 5 Digitale-Dienste-Gesetz (DDG)**, **Directive 2000/31/EC (e-Commerce Directive)**, and **Regulation (EU) 2024/1689 (EU AI Act)**.
+
+---
+
+### 1. Service Provider Details
+
+**Operator & Legal Entity:**  
+{$creator} Creator Studio  
+Sole Proprietorship / Independent Media & Engineering Consultancy  
+**Founder & Legal Representative:** Delia Lazarescu  
+
+**Registered Business Inquiries:**  
+Email: **legal@techunicorn.dev** / **hello@thetechunicorn.com**  
+Website: [https://thetechunicorn.com](https://thetechunicorn.com)  
+Client Portal: [https://studio.thetechunicorn.com](https://studio.thetechunicorn.com)  
+
+---
+
+### 2. Value Added Tax (VAT) & Tax Identification
+
+- **VAT Identification Number (USt-IdNr. / VIES):** Registered intra-Community EU VAT identification number on file pursuant to **Article 214 of Council Directive 2006/112/EC**.
+- **Cross-Border B2B Supply:** Validated active under European Commission VIES. All cross-border business transactions within the EU are invoiced subject to the **Reverse Charge Mechanism (Article 196 Council Directive 2006/112/EC)**.
+- **B2C Digital Supplies (One-Stop Shop - OSS):** Taxed at the statutory destination rate of the consumer's EU Member State of residence.
+
+---
+
+### 3. Editorial Responsibility (Journalistic & Social Media Content)
+
+Person responsible for editorial content pursuant to **§ 18 Abs. 2 MStV (Medienstaatsvertrag)** and the **EU Audiovisual Media Services Directive (AVMSD)**:
+
+**Delia Lazarescu**  
+Email: editorial@techunicorn.dev  
+
+---
+
+### 4. EU AI Act Transparency Declaration (Regulation (EU) 2024/1689)
+
+Pursuant to **Article 50 of the EU Artificial Intelligence Act**:
+1. This creator studio deploys general-purpose generative AI systems to assist with creative brainstorming, preliminary research, script drafting, and code compilation.
+2. **Editorial Verification & Accountability:** All commercial content, published videos, software implementations, and client deliverables undergo human verification and editorial authorization by Delia Lazarescu.
+3. Machine-readable detectability metadata (`X-AI-Generated: true`) is incorporated into digital exports.
+
+---
+
+### 5. Consumer Dispute Resolution & Online Dispute Resolution (ODR)
+
+The European Commission provides an official platform for online dispute resolution (ODR):  
+[https://ec.europa.eu/consumers/odr/](https://ec.europa.eu/consumers/odr/)  
+
+We are neither obliged nor willing to participate in dispute resolution proceedings before a consumer arbitration board (Verbraucherschlichtungsstelle) pursuant to the Consumer Dispute Settlement Act (§ 36 VSBG). We resolve any commercial feedback directly and amicably with our clients.
+
+---
+
+### 6. Copyright & Intellectual Property
+
+The contents, software tools, scripts, and video works published on this website and client portal are subject to international and European copyright law. Third-party contributions are identified as such. Reproduction, processing, distribution, or any form of commercialization beyond the scope of the copyright law requires the prior written consent of the creator.
+MARKDOWN;
+
+        return [
+            'title' => 'Legal Notice (Impressum)',
+            'effective_date' => $date,
+            'contact_email' => 'legal@techunicorn.dev',
+            'markdown' => $markdown,
+        ];
+    }
 }

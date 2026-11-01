@@ -18,5 +18,10 @@ class LegalController extends Controller
     {
         return response()->json(LegalDocs::termsAndConditions());
     }
+
+    public function impressum(Request $request): JsonResponse
+    {
+        return response()->json(LegalDocs::impressum());
+    }
 }
 

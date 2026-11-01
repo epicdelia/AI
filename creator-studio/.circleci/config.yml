@@ -1,0 +1,78 @@
+version: 2.1
+jobs:
+  build:
+    working_directory: ~/html
+    machine:
+      image: ubuntu-2204:2026.05.1
+    steps:
+      - checkout
+
+      - run:
+          name: Prepare and start containers and verify it's working
+          command: |
+            make build-test
+            make start-test
+
+      - run:
+          name: Wait for DB container is running and initialize DB
+          command: |
+            make wait-for-db
+            make drop-migrate
+            make seed
+
+      - run:
+          name: Show framework version and additional info, php & composer version
+          command: |
+            make info
+
+      - run:
+          name: Run Application/Integration/Unit tests
+          command: |
+            make phpunit
+
+      - run:
+          name: Report code coverage
+          command: |
+            make report-code-coverage
+
+      - run:
+          name: Checks for security vulnerability advisories for installed packages
+          command: |
+            make composer-audit
+
+      - run:
+          name: Check coding standard & CodeSniffer
+          command: |
+            make ecs
+            make phpcs
+
+      - run:
+          name: Run PHPStan
+          command: |
+            make phpstan
+
+      - run:
+          name: Run PHPInsights
+          command: |
+            make phpinsights
+
+      - run:
+          name: Run PHP Mess Detector
+          command: |
+            make phpmd
+
+      - run:
+          name: Run PHP copy paste detector
+          command: |
+            make phpcpd
+
+      - run:
+          name: Clean up environment
+          command: |
+            make down-test
+
+      - store_artifacts:
+          path: reports
+
+      - store_test_results:
+          path: reports/junit.xml

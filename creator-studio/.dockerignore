@@ -1,0 +1,31 @@
+### User-specific stuff:
+/.git*
+.DS_Store
+.vscode/
+/.idea/
+.dockerignore
+/node_modules/
+
+### Exclude local app artifacts ###
+/storage/logs/
+/reports/
+
+### Other data
+storage/mysql-data
+vendor/
+bootstrap/cache
+!bootstrap/cache/.gitignore
+.phpstorm.meta.php
+_ide_helper.php
+
+### Vendor bin dependencies
+/tools/*/vendor/
+.phpunit.cache
+.phpunit.result.cache
+
+### Docker
+Dockerfile
+compose.yaml
+compose-test-ci.yaml
+compose-staging.yaml
+compose-prod.yaml

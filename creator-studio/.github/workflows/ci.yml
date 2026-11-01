@@ -1,0 +1,105 @@
+name: Laravel App
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the docker images
+        run: make build-test
+      - name: Start the docker images
+        run: make start-test
+      - name: Check running containers
+        run: docker ps -a
+      - name: Wait for database connection
+        run: make wait-for-db
+      - name: Run migrations
+        run: make drop-migrate
+      - name: Run seeds
+        run: make seed
+      - name: Show framework version and additional info, php & composer version
+        run: make info
+      - name: Run test suite
+        run: make phpunit
+      - name: Archive coverage data and reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage-data
+          path: reports/
+          retention-days: 7
+      - name: Checks for security vulnerability advisories for installed packages
+        run: make composer-audit
+      - name: Run coding standard
+        run: make ecs
+      - name: Run codeSniffer
+        run: make phpcs
+      - name: Run PHPStan
+        run: make phpstan
+      - name: Run PHPInsights
+        run: make phpinsights
+      - name: Run php mess detector
+        run: make phpmd
+      - name: Run php copy paste detector
+        run: make phpcpd
+      - name: Stop the docker images
+        run: make down-test
+
+  build-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the staging docker images
+        run: make build-staging
+      - name: Start the staging docker images
+        run: make start-staging
+      - name: Check running staging containers
+        run: docker ps -a
+      - name: Wait for database connection
+        run: make wait-for-db
+      - name: Run migrations
+        run: make migrate-no-test
+      - name: Set key for staging application
+        run: make key-generate
+      - name: Show framework version and additional info, php & composer version
+        run: make info
+      - name: Stop the staging docker images
+        run: make down-staging
+
+# Currently local Qodana report differ from CI Qodana report due to some issues https://youtrack.jetbrains.com/issue/QD-7379
+#    qodana:
+#        runs-on: ubuntu-20.04
+#        needs: build
+#        permissions:
+#            contents: write
+#            pull-requests: write
+#            checks: write
+#        steps:
+#            - uses: actions/checkout@v4
+#              with:
+#                  ref: ${{ github.event.pull_request.head.sha }}  # to check out the actual pull request commit, not the merge commit
+#                  fetch-depth: 0  # a full history is required for pull request analysis
+#                  php-version: '8.3'
+#            - name: 'Install dependencies'
+#              run: COMPOSER_MEMORY_LIMIT=-1 composer install
+#            - name: 'Download coverage data for Qodana'
+#              uses: actions/download-artifact@v4
+#              with:
+#                  name: php-coverage-data
+#                  path: .qodana/code-coverage
+#            - name: 'Qodana Scan'
+#              uses: JetBrains/qodana-action@v2023.2
+#              env:
+#                  QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}

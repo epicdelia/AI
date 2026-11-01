@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Swipe Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one phone-width column. Header counts, filter chips, the card stack, then the three swipe buttons. */
+:root {
+  --bg: #f6f2fb;
+  --surface: #ffffff;
+  --ink: #23142e;
+  --muted: #6c5a7a;
+  --line: #e2d8ec;
+  --accent: #6b3fa0;
+  --approve: #1f8a5b;
+  --fix: #c2410c;
+  --later: #8a7a99;
+  --warn-bg: #fff4e0;
+  --warn-ink: #8a4b00;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #160d1d; --surface: #22162c; --ink: #f1e9f8; --muted: #b3a2c4; --line: #3a2a48;
+    --accent: #b58cf0; --approve: #4ccf93; --fix: #ff8a5c; --later: #a596b5;
+    --warn-bg: #3a2a12; --warn-ink: #ffcf8a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #160d1d; --surface: #22162c; --ink: #f1e9f8; --muted: #b3a2c4; --line: #3a2a48;
+  --accent: #b58cf0; --approve: #4ccf93; --fix: #ff8a5c; --later: #a596b5;
+  --warn-bg: #3a2a12; --warn-ink: #ffcf8a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+.app { max-width: 460px; margin: 0 auto; padding: 16px; min-height: 100%; display: flex; flex-direction: column; gap: 12px; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font: 700 26px/1.1 var(--display); margin: 0; text-wrap: balance; }
+.counts { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip .n { font-variant-numeric: tabular-nums; opacity: .75; margin-left: 4px; }
+.notice { border-radius: 12px; padding: 12px 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14px; }
+.notice button { margin-top: 8px; border: 1px solid currentColor; background: transparent; border-radius: 8px; padding: 4px 10px; }
+.stack { position: relative; flex: 1; min-height: 480px; }
+.card { position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(35, 20, 46, .12); display: flex; flex-direction: column; overflow: hidden;
+  touch-action: pan-y; user-select: none; transition: transform .25s ease, opacity .25s ease; }
+.card.behind { transform: scale(.96) translateY(10px); opacity: .6; pointer-events: none; }
+.card.dragging { transition: none; }
+.media { background: #120a18; aspect-ratio: 9 / 12; max-height: 52%; display: grid; place-items: center; position: relative; flex-shrink: 0; }
+.media video, .media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.media .tap { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.55); color: #fff; border: 0; border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+.nomedia { padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.nomedia label { color: var(--accent); text-decoration: underline; cursor: pointer; width: fit-content; }
+.body { padding: 14px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.pill { border-radius: 6px; padding: 2px 7px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.pill.sponsor { background: var(--warn-bg); color: var(--warn-ink); border-color: transparent; font-weight: 600; }
+.pill.stale { color: var(--fix); border-color: var(--fix); }
+.pill.final { color: var(--accent); border-color: var(--accent); }
+.title { font: 700 20px/1.25 var(--display); margin: 0; text-wrap: balance; }
+.field { font-size: 14px; }
+.field b { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.preview { font-size: 14px; white-space: pre-wrap; color: var(--ink); }
+.preview.loading { color: var(--muted); }
+.open { font-size: 13px; }
+.stamp { position: absolute; top: 18px; padding: 4px 12px; border: 3px solid; border-radius: 8px; font: 700 22px/1 var(--display); opacity: 0; pointer-events: none; z-index: 2; background: var(--surface); }
+.stamp.yes { left: 18px; color: var(--approve); transform: rotate(-12deg); }
+.stamp.no { right: 18px; color: var(--fix); transform: rotate(12deg); }
+.controls { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.ctl { border-radius: 999px; border: 2px solid; background: var(--surface); padding: 12px 0; font-weight: 600; font-size: 15px; }
+.ctl.fix { color: var(--fix); }
+.ctl.ok { color: var(--approve); }
+.ctl.later { color: var(--later); padding: 10px 16px; font-size: 13px; }
+.ctl:disabled { opacity: .4; cursor: default; }
+.sub { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.linkbtn { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 0; }
+.linkbtn:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 13px; max-width: calc(100% - 32px); display: none; gap: 10px; align-items: center; z-index: 10; }
+.toast.show { display: flex; }
+.toast button { background: none; border: 1px solid currentColor; color: inherit; border-radius: 6px; padding: 2px 8px; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(20, 10, 28, .5); display: none; align-items: flex-end; justify-content: center; z-index: 5; }
+.sheet-bg.show { display: flex; }
+.sheet { background: var(--surface); width: 100%; max-width: 460px; border-radius: 18px 18px 0 0; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.sheet h2 { font: 700 18px/1.2 var(--display); margin: 0; }
+.sheet textarea { width: 100%; min-height: 80px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg); color: var(--ink); font: inherit; }
+.sheet .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.sheet .primary { background: var(--fix); color: #fff; border: 0; border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+.sheet .danger { background: transparent; color: var(--fix); border: 1px solid var(--fix); border-radius: 10px; padding: 9px 14px; }
+.sheet .plain { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; }
+.empty { text-align: center; padding: 40px 12px; color: var(--muted); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.empty h2 { font: 700 22px/1.2 var(--display); color: var(--ink); margin: 0; }
+.taste { width: 100%; text-align: left; font-size: 13px; border-top: 1px solid var(--line); padding-top: 10px; font-variant-numeric: tabular-nums; }
+.taste div { display: flex; justify-content: space-between; }
+.help { font-size: 12px; color: var(--muted); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Swipe to approve</h1>
+    <div class="counts" id="counts">Loading your review queue…</div>
+  </header>
+  <div class="chips" id="chips" role="group" aria-label="Filter cards"></div>
+  <div id="notice"></div>
+  <div class="stack" id="stack" aria-live="polite"></div>
+  <div class="controls">
+    <button class="ctl fix" id="btnFix" type="button" aria-label="Needs changes (left)">✕ Fix</button>
+    <button class="ctl later" id="btnLater" type="button" aria-label="Decide later (up)">Later</button>
+    <button class="ctl ok" id="btnOk" type="button" aria-label="Approve (right)">✓ Approve</button>
+  </div>
+  <div class="sub">
+    <button class="linkbtn" id="btnUndo" type="button" disabled>↩ Undo last</button>
+    <span id="session" class="counts"></span>
+    <button class="linkbtn" id="btnKill" type="button">Kill this idea</button>
+  </div>
+  <div class="help">Swipe right to approve, left to send back. Keys: → ← ↑, Z to undo.</div>
+</div>
+
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">What needs to change?</h2>
+    <div class="chips" id="reasons"></div>
+    <label for="note" class="counts">Note for the team (goes in a Notion comment)</label>
+    <textarea id="note" placeholder="e.g. hook is too slow, cut the first line"></textarea>
+    <div class="row">
+      <button class="plain" id="sheetCancel" type="button">Cancel</button>
+      <button class="primary" id="sheetSend" type="button">Send back</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"><span id="toastText"></span><button id="toastBtn" type="button" hidden></button></div>
+
+<script>
+(() => {
+  const SERVER = "Notion";
+  const DS = "collection://30afce66-e714-81f3-bfac-000bd9319357";
+  const JESSE = "user://2e8d872b-594c-812f-844a-00023103407c";
+  const REASONS = ["Hook is weak", "Too long", "Fact-check it", "Off my voice", "Needs a real video", "Wrong date"];
+  const VIDEO_TYPES = ["Reel", "Short Form", "Long Form"];
+  const TEXT_TYPES = ["Post", "Tweet", "Substack", "Educational"];
+
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    mcp: null, db: null, assets: null,
+    cards: [], filter: "all", media: {}, decisions: {}, bodies: {},
+    undo: null, busy: false, session: { ok: 0, fix: 0, kill: 0, later: 0 }, pendingFix: null,
+  };
+
+  // ---------- helpers ----------
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const parseList = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const pageIdOf = (url) => ((url || "").match(/([0-9a-f]{32})/) || [])[1];
+  const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const parseDay = (s) => { if (!s) return null; const [y, m, d] = s.slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmtDay = (s) => { const d = parseDay(s); return d ? d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "No date"; };
+  const payloadOf = (res) => { let p = res && res.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch {} } return p; };
+
+  function toast(text, actionLabel, action) {
+    $("toastText").textContent = text;
+    const b = $("toastBtn");
+    if (actionLabel) { b.hidden = false; b.textContent = actionLabel; b.onclick = () => { hideToast(); action(); }; } else { b.hidden = true; b.onclick = null; }
+    $("toast").classList.add("show");
+    clearTimeout(toast.t);
+    toast.t = setTimeout(hideToast, actionLabel ? 9000 : 3200);
+  }
+  function hideToast() { $("toast").classList.remove("show"); }
+
+  function errorText(e) {
+    switch (e && e.code) {
+      case "needs_reauth": return "Notion needs reconnecting: claude.ai Settings → Connectors → Notion.";
+      case "server_not_connected": return "Add the Notion connector in claude.ai Settings → Connectors, then reload.";
+      case "selection_required": return "You have more than one Notion connector. Pick one in the prompt claude.ai shows, then reload.";
+      case "not_in_manifest": return "Notion access is turned off for this page. Turn it back on from the page's connector settings.";
+      case "approval_required": return "This page needs your OK to use Notion.";
+      case "blocked_by_policy": return "Your organization's policy blocks this Notion action.";
+      case "server_unavailable": return "Notion didn't answer in time.";
+      case "tool_error": return "Notion refused it: " + (e.message || "unknown reason");
+      default: return "Something failed talking to Notion" + (e && e.code ? " (" + e.code + ")" : "") + ".";
+    }
+  }
+
+  // ---------- classification ----------
+  function classify(row) {
+    const types = parseList(row["Content Type"]);
+    const platforms = parseList(row["Platform"]);
+    const areas = parseList(row["Area"]);
+    const sponsors = parseList(row["Sponsor"]);
+    const partners = parseList(row["Partnership"]);
+    const name = row["Name"] || "Untitled";
+    const sponsored = areas.includes("Paid Partnership") || types.includes("Ads") || sponsors.length > 0 || partners.length > 0
+      || /sponsor|#ad\b|paid partner/i.test(name);
+    const files = decodeURIComponent(row["Files & media"] || "");
+    const kind = types.some((t) => VIDEO_TYPES.includes(t)) ? "video" : types.includes("Carousel") ? "carousel" : types.some((t) => TEXT_TYPES.includes(t)) ? "text" : "other";
+    const date = row["date:Publish Date:start"] || null;
+    const d = parseDay(date);
+    return {
+      id: pageIdOf(row.url), url: row.url, name, types, platforms, sponsored, kind, date,
+      stale: !!(d && d < today()), status: row["Status"],
+      notionVideo: /\.(mp4|mov|webm)\b/i.test(files), notionImage: /\.(png|jpe?g|webp|gif)\b/i.test(files),
+      assetsLink: row["Assets Link"] || "", reviewLink: row["Review Link"] || "",
+      titles: row["Suggested Titles"] || "", notes: row["Notes"] || "", brief: row["Brief"] || "", script: row["Script"] || "",
+    };
+  }
+
+  // ---------- loading ----------
+  const F = {
+    notArchived: { type: "property", property: "Archive", propertyType: "checkbox", operator: "checkbox_is", value: { type: "exact", value: false } },
+    status: (s) => ({ type: "property", property: "Status", propertyType: "select", operator: "enum_is", value: { type: "exact", value: s } }),
+    onOrAfterToday: { type: "property", property: "Publish Date", propertyType: "date", operator: "date_is_on_or_after", value: { type: "relative", value: "today" } },
+    beforeToday: { type: "property", property: "Publish Date", propertyType: "date", operator: "date_is_before", value: { type: "relative", value: "today" } },
+    noDate: { type: "property", property: "Publish Date", propertyType: "date", operator: "is_empty" },
+  };
+  function query(filters, dir) {
+    return state.mcp.callTool(SERVER, "notion-query-data-sources", {
+      data: { mode: "rows", data_source_url: DS, limit: 100,
+        filter: { type: "group", operator: "and", filters: [F.notArchived, ...filters] },
+        sort: [{ property: "Publish Date", direction: dir || "ascending" }] },
+    }, { cache: false }).then((r) => (payloadOf(r) || {}).results || []);
+  }
+
+  async function load() {
+    $("counts").textContent = "Loading your review queue…";
+    $("notice").replaceChildren();
+    const parts = [
+      query([F.status("Delia final review")]),
+      query([F.status("To review"), F.onOrAfterToday]),
+      query([F.status("To review"), F.noDate]),
+      query([F.status("To review"), F.beforeToday], "descending"),
+    ];
+    const settled = await Promise.allSettled(parts);
+    const failed = settled.filter((s) => s.status === "rejected");
+    if (failed.length === settled.length) { showLoadError(failed[0].reason); return; }
+    const seen = new Set();
+    const cards = [];
+    settled.forEach((s) => (s.status === "fulfilled" ? s.value : []).forEach((row) => {
+      const c = classify(row);
+      if (c.id && !seen.has(c.id)) { seen.add(c.id); cards.push(c); }
+    }));
+    state.cards = cards;
+    if (failed.length) toast("Part of the queue didn't load: " + errorText(failed[0].reason));
+    render();
+  }
+
+  function showLoadError(e) {
+    $("counts").textContent = "Couldn't load the queue";
+    const n = el("div", "notice", errorText(e));
+    const b = el("button", null, e && e.code === "approval_required" ? "Allow Notion" : "Try again");
+    b.type = "button"; b.onclick = load; n.append(document.createElement("br"), b);
+    $("notice").replaceChildren(n);
+    $("stack").replaceChildren();
+  }
+
+  // ---------- view ----------
+  function visibleCards() {
+    return state.cards.filter((c) => {
+      const d = state.decisions[c.id];
+      if (d && d.action === "approved_pending_brand") return false;
+      if (state.filter === "all") return true;
+      if (state.filter === "past") return c.stale;
+      if (state.filter === "sponsored") return c.sponsored;
+      return c.kind === state.filter;
+    });
+  }
+
+  function renderChips() {
+    const n = (f) => state.cards.filter((c) => !(state.decisions[c.id] && state.decisions[c.id].action === "approved_pending_brand"))
+      .filter((c) => f === "all" || (f === "past" ? c.stale : f === "sponsored" ? c.sponsored : c.kind === f)).length;
+    const defs = [["all", "All"], ["video", "Video"], ["carousel", "Carousel"], ["text", "Text"], ["sponsored", "Sponsored"], ["past", "Date passed"]];
+    $("chips").replaceChildren(...defs.map(([f, label]) => {
+      const b = el("button", "chip", label); b.type = "button";
+      b.setAttribute("aria-pressed", String(state.filter === f));
+      b.append(el("span", "n", String(n(f))));
+      b.onclick = () => { state.filter = f; render(); };
+      return b;
+    }));
+  }
+
+  function render() {
+    renderChips();
+    const list = visibleCards();
+    const total = state.cards.length;
+    const withVideo = state.cards.filter((c) => state.media[c.id]).length;
+    const pending = Object.values(state.decisions).filter((d) => d.action === "approved_pending_brand").length;
+    $("counts").textContent = `${total} waiting · ${withVideo} with a playable video` + (pending ? ` · ${pending} waiting on brands` : "");
+    const s = state.session;
+    $("session").textContent = (s.ok + s.fix + s.kill + s.later) ? `${s.ok} ✓ · ${s.fix} ✕ · ${s.kill} killed · ${s.later} later` : "";
+    const stack = $("stack");
+    const top = list[0], next = list[1];
+    ["btnOk", "btnFix", "btnLater", "btnKill"].forEach((id) => { $(id).disabled = !top || state.busy; });
+    if (!top) { stack.replaceChildren(emptyView()); return; }
+    const nodes = [];
+    if (next) { const b = cardView(next); b.classList.add("behind"); nodes.push(b); }
+    const t = cardView(top); t.dataset.top = "1"; nodes.push(t);
+    stack.replaceChildren(...nodes);
+    attachDrag(t, top);
+    loadBody(top); if (next) loadBody(next);
+  }
+
+  function emptyView() {
+    const box = el("div", "empty");
+    box.append(el("h2", null, state.cards.length ? "Nothing left in this filter" : "Queue is clear"));
+    box.append(el("p", null, state.cards.length ? "Switch filters to keep going." : "New drafts show up here when their Notion status is To review or Delia final review."));
+    const rel = el("button", "chip", "Reload from Notion"); rel.type = "button"; rel.onclick = load; box.append(rel);
+    box.append(tasteView());
+    return box;
+  }
+
+  function tasteView() {
+    const by = {};
+    Object.values(state.decisions).forEach((d) => {
+      const k = d.kind || "other"; by[k] = by[k] || { ok: 0, fix: 0, kill: 0 };
+      if (d.action === "approved" || d.action === "approved_pending_brand") by[k].ok++;
+      else if (d.action === "needs_fix") by[k].fix++; else if (d.action === "killed") by[k].kill++;
+    });
+    const wrap = el("div", "taste");
+    const keys = Object.keys(by);
+    if (!keys.length) return wrap;
+    wrap.append(el("b", null, "Your swipes so far, by format"));
+    keys.forEach((k) => {
+      const r = by[k], n = r.ok + r.fix + r.kill;
+      const row = el("div"); row.append(el("span", null, k), el("span", null, `${r.ok}/${n} approved`)); wrap.append(row);
+    });
+    return wrap;
+  }
+
+  function cardView(c) {
+    const card = el("article", "card");
+    card.setAttribute("aria-label", c.name);
+    card.append(el("div", "stamp yes", "POST IT"), el("div", "stamp no", "FIX IT"));
+    const m = state.media[c.id];
+    if (m && m.asset_id) {
+      const box = el("div", "media");
+      if ((m.content_type || "").startsWith("image/")) {
+        const img = el("img"); img.alt = c.name; img.src = "/_blob/" + m.asset_id; box.append(img);
+      } else {
+        const v = el("video"); v.src = "/_blob/" + m.asset_id; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = "metadata";
+        v.onerror = () => { box.replaceChildren(el("div", "nomedia", "This video file is missing. Attach it again.")); };
+        const t = el("button", "tap", "Sound on"); t.type = "button";
+        t.onclick = (ev) => { ev.stopPropagation(); v.muted = !v.muted; t.textContent = v.muted ? "Sound on" : "Sound off"; v.play().catch(() => {}); };
+        box.append(v, t);
+      }
+      card.append(box);
+    } else {
+      const nm = el("div", "nomedia");
+      if (c.notionVideo) nm.append(el("span", null, "A video is attached in Notion, but it can't play here. Open it in Notion, or attach the file to this card."));
+      else if (/instagram\.com|tiktok\.com|youtu/.test(c.assetsLink + c.reviewLink)) {
+        const a = el("a", null, "Watch the original ↗"); a.href = c.assetsLink || c.reviewLink; a.target = "_blank"; a.rel = "noopener";
+        nm.append(el("span", null, "No preview file yet."), a);
+      } else nm.append(el("span", null, c.kind === "video" ? "No video attached yet. This is the script stage." : "No preview file. Review the copy below."));
+      if (state.assets) {
+        const id = "f-" + c.id;
+        const lab = el("label", null, "Attach a video or image"); lab.htmlFor = id;
+        const inp = el("input"); inp.type = "file"; inp.id = id; inp.accept = "video/mp4,video/webm,image/png,image/jpeg,image/webp"; inp.hidden = true;
+        inp.onchange = () => inp.files[0] && attachFile(c, inp.files[0]);
+        nm.append(lab, inp);
+      }
+      card.append(nm);
+    }
+    const body = el("div", "body");
+    const meta = el("div", "meta");
+    if (c.status === "Delia final review") meta.append(el("span", "pill final", "Final review"));
+    if (c.sponsored) meta.append(el("span", "pill sponsor", "Sponsored: brand OK still needed"));
+    c.platforms.forEach((p) => meta.append(el("span", "pill", p)));
+    c.types.forEach((t) => meta.append(el("span", "pill", t)));
+    meta.append(el("span", "pill" + (c.stale ? " stale" : ""), (c.stale ? "Date passed: " : "") + fmtDay(c.date)));
+    body.append(meta, el("h2", "title", c.name));
+    [["Suggested title", c.titles], ["Notes", c.notes], ["Brief", c.brief], ["Script", c.script]].forEach(([k, v]) => {
+      if (v && v.trim()) { const f = el("div", "field"); f.append(el("b", null, k), document.createTextNode(v.trim().slice(0, 600))); body.append(f); }
+    });
+    const prev = el("div", "preview loading", state.bodies[c.id] || "Loading the draft…");
+    if (state.bodies[c.id]) prev.classList.remove("loading");
+    prev.dataset.preview = c.id;
+    body.append(prev);
+    const open = el("a", "open", "Open in Notion ↗"); open.href = c.url; open.target = "_blank"; open.rel = "noopener";
+    body.append(open);
+    card.append(body);
+    return card;
+  }
+
+  async function loadBody(c) {
+    if (state.bodies[c.id] !== undefined) return;
+    state.bodies[c.id] = "";
+    try {
+      const r = await state.mcp.callTool(SERVER, "notion-fetch", { id: c.id }, { cache: { staleTime: 300000, gcTime: 900000 } });
+      const p = payloadOf(r);
+      const raw = typeof p === "string" ? p : (p && p.text) || "";
+      const m = raw.match(/<content>([\s\S]*?)<\/content>/);
+      let text = (m ? m[1] : raw)
+        .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|tr|li|h\d|callout|summary)>/gi, "\n")
+        .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+        .replace(/\\([*_#\[\]()`>~|-])/g, "$1").replace(/\n{3,}/g, "\n\n").trim();
+      state.bodies[c.id] = text ? text.slice(0, 1600) + (text.length > 1600 ? "\n…" : "") : "This page has no draft text.";
+    } catch (e) {
+      state.bodies[c.id] = undefined;
+      const n = document.querySelector(`[data-preview="${c.id}"]`);
+      if (n) n.textContent = "Couldn't load the draft. " + errorText(e);
+      return;
+    }
+    const n = document.querySelector(`[data-preview="${c.id}"]`);
+    if (n) { n.textContent = state.bodies[c.id]; n.classList.remove("loading"); }
+  }
+
+  // ---------- swipe ----------
+  function attachDrag(node, c) {
+    let sx = 0, sy = 0, dx = 0, active = false, horizontal = null;
+    const yes = node.querySelector(".stamp.yes"), no = node.querySelector(".stamp.no");
+    node.addEventListener("pointerdown", (e) => {
+      if (state.busy || e.target.closest("a,button,label,input,video")) return;
+      active = true; horizontal = null; sx = e.clientX; sy = e.clientY; dx = 0;
+    });
+    node.addEventListener("pointermove", (e) => {
+      if (!active) return;
+      const mx = e.clientX - sx, my = e.clientY - sy;
+      if (horizontal === null && Math.abs(mx) + Math.abs(my) > 8) {
+        horizontal = Math.abs(mx) > Math.abs(my);
+        if (horizontal) { node.setPointerCapture(e.pointerId); node.classList.add("dragging"); } else { active = false; return; }
+      }
+      if (!horizontal) return;
+      dx = mx;
+      node.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+      yes.style.opacity = Math.max(0, Math.min(1, dx / 110));
+      no.style.opacity = Math.max(0, Math.min(1, -dx / 110));
+    });
+    const end = () => {
+      if (!active) return; active = false;
+      node.classList.remove("dragging");
+      if (dx > 110) decide(c, "approve");
+      else if (dx < -110) decide(c, "fix");
+      else { node.style.transform = ""; yes.style.opacity = 0; no.style.opacity = 0; }
+    };
+    node.addEventListener("pointerup", end);
+    node.addEventListener("pointercancel", end);
+  }
+
+  function flyOut(dir) {
+    const t = document.querySelector('.card[data-top="1"]');
+    if (!t) return;
+    const x = dir === "right" ? 600 : dir === "left" ? -600 : 0, y = dir === "up" ? -700 : 0;
+    t.style.transform = `translate(${x}px, ${y}px) rotate(${x / 30}deg)`;
+    t.style.opacity = "0";
+  }
+
+  // ---------- decisions ----------
+  async function notion(tool, input) { return state.mcp.callTool(SERVER, tool, input, { cache: false }); }
+  const setProps = (c, properties) => notion("notion-update-page", { page_id: c.id, command: "update_properties", properties, allow_async: false });
+  const comment = (c, markdown) => notion("notion-create-comment", { page_id: c.id, markdown });
+
+  async function logDecision(c, action, note) {
+    if (!state.db) return;
+    try {
+      await state.db.collection("decisions").doc(c.id).set({
+        title: c.name, action, note: note || "", kind: c.kind, types: c.types, platforms: c.platforms,
+        sponsored: c.sponsored, prev_status: c.status, decided_at: new Date().toISOString(),
+      });
+    } catch (e) { /* the Notion write is the record that matters; the log is for stats */ }
+  }
+
+  function removeCard(c) { state.cards = state.cards.filter((x) => x.id !== c.id); }
+
+  async function decide(c, action) {
+    if (state.busy) return;
+    if (action === "fix") { flyOut("left"); openFixSheet(c); return; }
+    if (action === "later") {
+      flyOut("up"); state.session.later++;
+      setTimeout(() => { state.cards = state.cards.filter((x) => x.id !== c.id).concat([c]); render(); }, 180);
+      return;
+    }
+    if (action === "approve") {
+      flyOut("right");
+      await run(c, async () => {
+        if (c.sponsored) {
+          await comment(c, "✅ Delia approved this in the swipe deck. **Brand/client approval is still needed** before it moves to Ready to post.");
+          await logDecision(c, "approved_pending_brand");
+          state.decisions[c.id] = { action: "approved_pending_brand", kind: c.kind };
+          return { label: "Approved. Waiting on the brand", undo: async () => {
+            await comment(c, "↩️ Approval undone in the swipe deck.");
+          } };
+        }
+        await setProps(c, { Status: "Ready to post" });
+        await comment(c, `✅ Approved by Delia in the swipe deck. <mention url="${JESSE}"/> this is ready to post.`);
+        await logDecision(c, "approved");
+        return { label: "Approved: Ready to post", undo: async () => {
+          await setProps(c, { Status: c.status });
+          await comment(c, "↩️ Approval undone in the swipe deck. Back to " + c.status + ".");
+        } };
+      }, "ok");
+    }
+    if (action === "kill") {
+      flyOut("up");
+      await run(c, async () => {
+        await setProps(c, { Archive: "__YES__" });
+        await comment(c, "🗑️ Killed by Delia in the swipe deck (archived).");
+        await logDecision(c, "killed");
+        return { label: "Killed and archived", undo: async () => {
+          await setProps(c, { Archive: "__NO__" });
+          await comment(c, "↩️ Un-archived from the swipe deck.");
+        } };
+      }, "kill");
+    }
+  }
+
+  async function run(c, work, counter) {
+    state.busy = true; render();
+    try {
+      const res = await work();
+      if (counter !== "ok" || !c.sponsored) removeCard(c);
+      state.session[counter]++;
+      state.undo = { card: c, counter, fn: res.undo };
+      $("btnUndo").disabled = false;
+      toast(res.label, "Undo", undoLast);
+    } catch (e) {
+      // A failed write may still have landed (timeouts are ambiguous), so re-check in Notion before retrying.
+      toast(errorText(e) + " Check the page in Notion before retrying.");
+    } finally {
+      state.busy = false; render();
+    }
+  }
+
+  async function undoLast() {
+    const u = state.undo; if (!u || state.busy) return;
+    state.busy = true; render();
+    try {
+      await u.fn();
+      if (state.db) { try { await state.db.collection("decisions").doc(u.card.id).delete(); } catch {} }
+      delete state.decisions[u.card.id];
+      state.cards = [u.card].concat(state.cards.filter((x) => x.id !== u.card.id));
+      state.session[u.counter] = Math.max(0, state.session[u.counter] - 1);
+      state.undo = null; $("btnUndo").disabled = true;
+      toast("Undone");
+    } catch (e) { toast("Undo failed. " + errorText(e)); }
+    finally { state.busy = false; render(); }
+  }
+
+  // ---------- fix sheet ----------
+  function openFixSheet(c) {
+    state.pendingFix = c;
+    const picked = new Set();
+    $("reasons").replaceChildren(...REASONS.map((r) => {
+      const b = el("button", "chip", r); b.type = "button"; b.setAttribute("aria-pressed", "false");
+      b.onclick = () => { picked.has(r) ? picked.delete(r) : picked.add(r); b.setAttribute("aria-pressed", String(picked.has(r))); };
+      return b;
+    }));
+    $("note").value = "";
+    $("sheetSend").onclick = () => sendFix(c, [...picked], $("note").value.trim());
+    $("sheetBg").classList.add("show");
+    setTimeout(() => $("note").focus(), 50);
+  }
+  function closeSheet(restore) {
+    $("sheetBg").classList.remove("show");
+    if (restore) { state.pendingFix = null; render(); }
+  }
+  async function sendFix(c, reasons, note) {
+    closeSheet(false);
+    const text = [reasons.length ? "**" + reasons.join(" · ") + "**" : "", note].filter(Boolean).join(" ") || "No note given.";
+    await run(c, async () => {
+      await setProps(c, { Status: "Needs me to Fix" });
+      await comment(c, "✕ Sent back by Delia in the swipe deck: " + text);
+      await logDecision(c, "needs_fix", text);
+      return { label: "Sent back with your note", undo: async () => {
+        await setProps(c, { Status: c.status });
+        await comment(c, "↩️ Send-back undone in the swipe deck. Back to " + c.status + ".");
+      } };
+    }, "fix");
+    state.pendingFix = null;
+  }
+
+  // ---------- attachments ----------
+  async function attachFile(c, file) {
+    try {
+      toast("Uploading…");
+      const r = await state.assets.upload(file, file.type ? undefined : { type: "video/mp4" });
+      const doc = { asset_id: r.id, content_type: r.contentType, name: file.name, added_at: new Date().toISOString(), title: c.name };
+      if (state.db) await state.db.collection("media").doc(c.id).set(doc);
+      state.media[c.id] = doc; render(); toast("Attached");
+    } catch (e) {
+      const why = { too_large: "The file is over 20 MB. Export a smaller version.", unsupported_type: "Use an MP4, WebM, PNG, JPEG or WebP file." }[e && e.code];
+      toast(why || "Upload failed" + (e && e.code ? " (" + e.code + ")" : "") + ".");
+    }
+  }
+
+  // ---------- controls ----------
+  const topCard = () => visibleCards()[0];
+  $("btnOk").onclick = () => topCard() && decide(topCard(), "approve");
+  $("btnFix").onclick = () => topCard() && decide(topCard(), "fix");
+  $("btnLater").onclick = () => topCard() && decide(topCard(), "later");
+  $("btnKill").onclick = () => topCard() && decide(topCard(), "kill");
+  $("btnUndo").onclick = undoLast;
+  $("sheetCancel").onclick = () => closeSheet(true);
+  $("sheetBg").addEventListener("click", (e) => { if (e.target === $("sheetBg")) closeSheet(true); });
+  document.addEventListener("keydown", (e) => {
+    if ($("sheetBg").classList.contains("show")) { if (e.key === "Escape") closeSheet(true); return; }
+    if (e.target.closest && e.target.closest("textarea,input")) return;
+    const c = topCard(); if (!c) return;
+    if (e.key === "ArrowRight") decide(c, "approve");
+    else if (e.key === "ArrowLeft") decide(c, "fix");
+    else if (e.key === "ArrowUp") decide(c, "later");
+    else if (e.key.toLowerCase() === "z") undoLast();
+  });
+
+  // ---------- boot ----------
+  async function waitForRuntime() {
+    for (let i = 0; i < 40; i++) {
+      if (window.claude && typeof window.claude.use === "function") return window.claude;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return null;
+  }
+  async function boot() {
+    const claude = await waitForRuntime();
+    if (!claude) { noRuntime(); return; }
+    const [mcp, db, assets] = await Promise.all([claude.use("mcp"), claude.use("db"), claude.use("assets")]);
+    state.mcp = mcp; state.db = db; state.assets = assets;
+    if (!mcp) { noRuntime(); return; }
+    if (db) {
+      db.collection("media").onSnapshot((snap) => {
+        const m = {}; snap.docs.forEach((d) => { m[d.id] = d.data(); }); state.media = m; if (state.cards.length) render();
+      }, () => {});
+      db.collection("decisions").onSnapshot((snap) => {
+        const m = {}; snap.docs.forEach((d) => { m[d.id] = d.data(); }); state.decisions = m; if (state.cards.length) render();
+      }, () => {});
+    }
+    load();
+  }
+  function noRuntime() {
+    $("counts").textContent = "Notion isn't reachable from this view";
+    $("notice").replaceChildren(el("div", "notice", "Open this page on claude.ai, signed in, with your Notion connector connected. The deck reads your Notion review queue live and writes your swipes back to it."));
+    $("stack").replaceChildren();
+    ["btnOk", "btnFix", "btnLater", "btnKill"].forEach((id) => { $(id).disabled = true; });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

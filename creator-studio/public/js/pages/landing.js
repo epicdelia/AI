@@ -4,7 +4,7 @@
 import { h, link, navigate, api, modal, toast, field } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
-import { contentSection } from '../landing-content.js';
+import { contentSection, loadFeed } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
 import { ctaSection, emailPill } from '../landing-cta.js';
@@ -305,227 +305,262 @@ export function openStripeModal(pkgId = 'retainer') {
 }
 
 /**
- * Global Navigation Configuration for both Mega Menus and Mobile Side Drawer.
+ * Live details for the menus, fetched once on first open: her current package prices, whether a
+ * build slot is open, her audience headline and profile links. The menus work without them.
  */
-function getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth }) {
+let liveNav = null;
+function loadNavLive() {
+  liveNav ||= Promise.all([
+    api('GET', 'landing/pricing').catch(() => null),
+    api('GET', 'landing/availability').catch(() => null),
+    loadFeed().catch(() => null),
+  ]).then(([pricing, availability, feed]) => {
+    const price = {};
+    for (const p of pricing?.plans || []) price[p.key] = p;
+    return { price, availability, audience: feed?.headline || '519K+', urls: feed?.urls || {} };
+  });
+  return liveNav;
+}
+const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
+
+/**
+ * Global Navigation Configuration for both Mega Menus and Mobile Side Drawer.
+ * `live` (optional) fills in her current prices and audience; badges are short facts.
+ */
+function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
+  const p = (key, fallback) => (live?.price?.[key] ? money(live.price[key].price) : fallback);
+  const audience = live?.audience || '519K+';
   return [
     {
       id: 'services',
       label: 'Services',
+      lede: 'What we can build together, from a two-week MVP to a sponsored series.',
       groups: [
         {
           title: 'Core Engineering',
           items: [
-            { label: 'Vibecoded Apps', desc: 'AI-powered MVPs designed, built, and shipped in 2 to 4 weeks.', icon: 'zap', href: '#services' },
-            { label: 'AI Integration', desc: 'Practical LLMs and autonomous agents that earn their keep.', icon: 'sparkle', href: '#services' },
-            { label: 'Technical Consulting', desc: 'Ex-Google architecture reviews and build-vs-buy decisions.', icon: 'code', href: '#services' },
+            { label: 'Vibecoded Apps', desc: 'AI-powered MVPs designed, built and shipped.', badge: '2–4 wks', icon: 'zap', href: '#services' },
+            { label: 'AI Integration', desc: 'Practical LLM features and agents that earn their keep.', badge: 'Agents', icon: 'sparkle', href: '#services' },
+            { label: 'Technical Consulting', desc: 'Architecture reviews and build-vs-buy calls.', badge: 'Ex-Google', icon: 'code', href: '#services' },
           ],
         },
         {
           title: 'Audience & Growth',
           items: [
-            { label: 'Content Creation', desc: 'Short-form reels and YouTube deep-dives for 472K+ followers.', icon: 'play', href: '#content' },
-            { label: 'Brand Partnerships', desc: 'High-retention technical integrations and sponsor features.', icon: 'briefcase', href: '#pricing' },
-            { label: 'Speaking & Workshops', desc: 'Conference keynotes and hands-on AI workshops worldwide.', icon: 'mic', href: '#speaking' },
+            { label: 'Content Creation', desc: `Reels and YouTube deep dives for ${audience} people.`, badge: 'Weekly', icon: 'play', href: '#youtube' },
+            { label: 'Brand Partnerships', desc: 'High-retention technical integrations for your product.', badge: p('brand', '$5,000'), icon: 'briefcase', href: '#pricing' },
+            { label: 'Speaking & Workshops', desc: 'Keynotes and hands-on AI workshops worldwide.', badge: 'Global', icon: 'mic', href: '#speaking' },
           ],
         },
       ],
+      feature: 'availability',
       actions: [
-        { label: 'Book an Intro Call', icon: 'calendar', onClick: () => onBookCall('mvp_build') },
-        { label: 'Explore Packages & Pricing', icon: 'tag', href: '#pricing' },
+        { label: 'Book an Intro Call', icon: 'calendar', onClick: () => onBookCall('mvp_build'), primary: true },
+        { label: 'Packages & Pricing', icon: 'tag', href: '#pricing' },
+        { label: 'How it works', icon: 'flow', href: '#process' },
       ],
     },
     {
       id: 'pricing',
       label: 'Pricing & Retainers',
+      lede: 'Transparent scopes and fixed prices. Pay by card, or ask for an invoice.',
       groups: [
         {
           title: 'Fixed Engagements',
           items: [
-            { label: 'MVP Build (from $12,000)', desc: 'Complete product in 2 to 4 weeks with weekly Friday live demos.', icon: 'rocket', href: '#pricing' },
-            { label: 'Advisory Retainer ($3,500/mo)', desc: 'Ex-Google engineer on call, 2 monthly strategy calls, 24h response.', icon: 'clock', href: '#pricing' },
-            { label: 'Brand Partnership ($5,000)', desc: 'Concept, video production, and multi-network sponsor distribution.', icon: 'star', href: '#pricing' },
+            { label: 'MVP Build', desc: 'A complete product with weekly Friday demos.', badge: p('mvp', '$12,000'), icon: 'rocket', href: '#pricing' },
+            { label: 'Advisory Retainer', desc: 'An engineer on call: 2 strategy calls a month, 24h replies.', badge: `${p('retainer', '$3,500')}/mo`, icon: 'clock', href: '#pricing' },
+            { label: 'Brand Partnership', desc: 'Concept, production and multi-network distribution.', badge: p('brand', '$5,000'), icon: 'star', href: '#pricing' },
           ],
         },
         {
-          title: 'Instant Stripe Checkout',
+          title: 'Start Today',
           items: [
-            { label: 'Pay 50% MVP Deposit ($6,000)', desc: 'Lock in your upcoming build slot with instant Stripe confirmation.', icon: 'credit-card', onClick: () => onStripePay('mvp_deposit') },
-            { label: 'Start Monthly Retainer ($3,500)', desc: 'Begin immediate monthly advisory and asynchronous architectural reviews.', icon: 'repeat', onClick: () => onStripePay('retainer') },
-            { label: 'Verified Media Kit Feature ($1,500)', desc: 'Featured partner placement in Delia’s live media kit rate card.', icon: 'file-text', onClick: () => onStripePay('media_kit_sponsor') },
+            { label: 'Pay the MVP deposit', desc: 'Lock your build slot with a 50% deposit.', badge: 'Stripe', icon: 'credit-card', onClick: () => onStripePay('mvp_deposit') },
+            { label: 'Start the retainer', desc: 'Monthly advisory and async architecture reviews.', badge: 'Stripe', icon: 'repeat', onClick: () => onStripePay('retainer') },
+            { label: 'Strategy session', desc: 'A private 90-minute review and AI roadmap.', badge: p('strategy', '$500'), icon: 'target', onClick: () => onStripePay('advisory_session') },
           ],
         },
       ],
+      feature: 'prices',
       actions: [
-        { label: 'Pay with Stripe', icon: 'credit-card', onClick: () => onStripePay('retainer') },
+        { label: 'Pay with Stripe', icon: 'credit-card', onClick: () => onStripePay('retainer'), primary: true },
         { label: isAuth ? 'Open Media Kit' : 'Request Media Kit', icon: 'file-text', onClick: () => (isAuth ? navigate('/mediakit') : onBookCall('brand_deal')) },
       ],
     },
     {
       id: 'about',
       label: 'About Delia',
+      lede: 'Engineer first, storyteller always: who you’d be working with.',
       groups: [
         {
-          title: 'Background & Ethos',
+          title: 'Background',
           items: [
-            { label: 'Ex-Google Software Engineer', desc: 'Production systems engineer turned independent creator and founder.', icon: 'briefcase', href: '#about' },
-            { label: '69 Countries Digital Nomad', desc: 'Building products and shipping software from beach cafés globally.', icon: 'globe', href: '#about' },
-            { label: '472K+ Community', desc: 'Demystifying technology for hundreds of thousands across social platforms.', icon: 'users', href: '#reach' },
+            { label: 'Ex-Google Engineer', desc: 'Production systems engineer turned founder and creator.', badge: 'Ex-G', icon: 'briefcase', href: '#about' },
+            { label: 'Digital Nomad', desc: 'Shipping software from beach cafés worldwide.', badge: '69 countries', icon: 'globe', href: '#about' },
+            { label: `${audience} Community`, desc: 'Demystifying tech across every network.', badge: 'Live', icon: 'users', href: '#reach' },
           ],
         },
         {
-          title: 'Stages & Keynotes',
+          title: 'On Stage',
           items: [
-            { label: 'Nomad Cruise Keynote', desc: 'Building an international career in technology without a permanent address.', icon: 'mic', href: '#speaking' },
-            { label: 'Vently Panel', desc: 'Creator-led software businesses and distribution for engineers.', icon: 'chat', href: '#speaking' },
-            { label: 'Digital Garage Tokyo', desc: 'Hands-on AI workflows and generative tools for product teams.', icon: 'sparkle', href: '#speaking' },
+            { label: 'Keynotes & Panels', desc: 'Careers in tech without a permanent address.', badge: 'Talks', icon: 'mic', href: '#speaking' },
+            { label: 'Workshops', desc: 'Hands-on AI workflows for product teams.', badge: 'Hands-on', icon: 'sparkle', href: '#speaking' },
+            { label: 'Client stories', desc: 'What working together looks like, in their words.', badge: 'Reviews', icon: 'chat', href: '#testimonials' },
           ],
         },
       ],
+      feature: 'facts',
       actions: [
-        { label: 'Open Public Bio Page', icon: 'link', href: '/links' },
-        { label: 'Instagram @tech.unicorn', icon: 'brand:instagram', href: 'https://instagram.com/tech.unicorn', external: true },
+        { label: 'Link in bio', icon: 'link', href: '/links', primary: true },
+        { label: 'Instagram @tech.unicorn', icon: 'brand:instagram', href: live?.urls?.instagram || 'https://instagram.com/tech.unicorn', external: true },
       ],
     },
   ];
 }
 
+/** Follow a menu item: run its action, or smooth-scroll to its section. */
+function followNavItem(it, e, close) {
+  close();
+  if (it.onClick) {
+    e.preventDefault();
+    it.onClick();
+  } else if (it.href?.startsWith('#')) {
+    const target = document.querySelector(it.href);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  }
+}
+
+/** One compact menu row: icon tile, label, one-line description, a short fact on the right. */
+function navRow(it, cls, close) {
+  return h('a', {
+    href: it.href || '#',
+    target: it.external ? '_blank' : undefined,
+    rel: it.external ? 'noopener' : undefined,
+    class: cls,
+    onclick: (e) => followNavItem(it, e, close),
+  },
+  h('span', { class: 'ln-ico' }, icon(it.icon, 15)),
+  h('span', { class: 'ln-text' }, h('strong', {}, it.label), it.desc ? h('span', {}, it.desc) : null),
+  it.badge ? h('span', { class: 'ln-badge' }, it.badge) : null);
+}
+
+/** The card beside each menu: build slots, live prices, or quick facts. */
+function navFeature(kind, live, { onBookCall }, close) {
+  if (kind === 'availability') {
+    const a = live?.availability;
+    const open = a?.show && a.status === 'open';
+    return h('div', { class: 'ln-feature' },
+      h('span', { class: `ln-feature-pill${a?.show ? (open ? ' is-open' : ' is-wait') : ''}` }, h('i'), a?.show ? a.label : 'Taking on new projects'),
+      h('strong', {}, 'Idea to production in 2–4 weeks'),
+      h('p', {}, 'Weekly Friday demos, you own all the code, and a 30-day warranty after launch.'),
+      h('button', { type: 'button', class: 'ln-feature-cta', onclick: () => { close(); onBookCall('mvp_build', 'Menu: build slot'); } }, open ? 'Claim a slot' : 'Join the list', icon('arrow', 12)));
+  }
+  if (kind === 'prices') {
+    const rows = [['strategy', 'Strategy call'], ['retainer', 'Retainer'], ['mvp', 'MVP build'], ['brand', 'Brand deal']]
+      .map(([k, l]) => [l, live?.price?.[k] ? `${money(live.price[k].price)}${live.price[k].per && live.price[k].per !== 'fixed' ? `<small>${live.price[k].per}</small>` : ''}` : null])
+      .filter(([, v]) => v);
+    return h('div', { class: 'ln-feature' },
+      h('strong', {}, 'Current prices'),
+      rows.length ? h('dl', { class: 'ln-prices' }, rows.map(([l, v]) => [h('dt', {}, l), h('dd', { html: v })]))
+        : h('p', {}, 'Fixed scopes for every package, shown in full below.'),
+      h('p', { class: 'ln-feature-note' }, icon('lock', 11), ' Stripe checkout, or an invoice'));
+  }
+  return h('div', { class: 'ln-feature' },
+    h('div', { class: 'ln-facts' },
+      h('div', {}, h('b', {}, live?.audience || '519K+'), h('small', {}, 'community')),
+      h('div', {}, h('b', {}, '69'), h('small', {}, 'countries')),
+      h('div', {}, h('b', {}, 'Ex-G'), h('small', {}, 'Google engineer'))),
+    h('a', { class: 'ln-feature-cta', href: '#about', onclick: (e) => followNavItem({ href: '#about' }, e, close) }, 'Read her story', icon('arrow', 12)));
+}
+
 /**
- * Multi-Column Mega Menus for the Landing Page Header.
- * Matches Creator Studio dashboard megaMenus() styling and interactive structure.
+ * Multi-Column Mega Menus for the Landing Page Header: a short intro, compact rows with a fact
+ * each, a feature card (slots, live prices or quick facts), quick actions and a footer strip.
+ * Hover or click a tab; ↓ opens it and moves into the panel, ↑/↓ move between rows, Esc closes.
  */
-function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
-  const MEGA_CONFIG = getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth });
-  const panel = h('div', { class: 'mega', id: 'landing-mega-panel', hidden: true, role: 'region' });
+function landingMegaMenus(handlers) {
+  const panel = h('div', { class: 'mega landing-mega', id: 'landing-mega-panel', hidden: true, role: 'region' });
   let openSec = null;
   let timer = null;
+  let live = null;
   const tabs = [];
 
   const close = () => {
     clearTimeout(timer);
     if (!openSec) return;
-    const tab = tabs.find((t) => t.sec === openSec);
-    tab?.btn.setAttribute('aria-expanded', 'false');
+    tabs.find((t) => t.id === openSec)?.btn.setAttribute('aria-expanded', 'false');
     panel.classList.remove('open');
     panel.hidden = true;
     openSec = null;
   };
 
-  function fill(sec) {
-    const itemElem = (it) => {
-      const clickHandler = (e) => {
-        close();
-        if (it.onClick) {
-          e.preventDefault();
-          it.onClick();
-        } else if (it.href && it.href.startsWith('#')) {
-          // Smooth scroll to anchor
-          const target = document.querySelector(it.href);
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      };
-
-      if (it.to) {
-        return link(it.to, { class: 'mega-link', onclick: () => close() },
-          h('span', { class: 'mega-ico' }, icon(it.icon, 18)),
-          h('span', { class: 'mega-text' },
-            h('strong', {}, it.label),
-            h('span', { class: 'muted small' }, it.desc)));
-      }
-
-      return h('a', {
-        href: it.href || '#',
-        target: it.external ? '_blank' : undefined,
-        rel: it.external ? 'noopener' : undefined,
-        class: 'mega-link',
-        onclick: clickHandler,
-      },
-        h('span', { class: 'mega-ico' }, icon(it.icon, 18)),
-        h('span', { class: 'mega-text' },
-          h('strong', {}, it.label),
-          h('span', { class: 'muted small' }, it.desc)));
-    };
-
-    panel.replaceChildren(h('div', { class: 'mega-inner' },
-      h('div', { class: `mega-cols cols-${sec.groups.length}` },
-        sec.groups.map((g) => h('div', { class: 'mega-col' },
-          h('p', { class: 'mega-title' }, g.title),
-          h('div', { class: 'mega-list' }, g.items.map(itemElem))))),
-      h('aside', { class: 'mega-side' },
-        h('p', { class: 'mega-title' }, 'Quick actions'),
-        sec.actions.map((act) => {
-          const actClick = (e) => {
-            close();
-            if (act.onClick) {
-              e.preventDefault();
-              act.onClick();
-            }
-          };
-
-          if (act.to) {
-            return link(act.to, { class: 'mega-action', onclick: () => close() },
-              icon(act.icon, 15),
-              act.label,
-              icon('arrow', 13));
-          }
-
-          return h('a', {
-            href: act.href || '#',
-            target: act.external ? '_blank' : undefined,
-            rel: act.external ? 'noopener' : undefined,
-            class: 'mega-action',
-            onclick: actClick,
-          },
-            icon(act.icon, 15),
-            act.label,
-            icon('arrow', 13));
-        }))));
+  function fill(id) {
+    const sec = getLandingNavConfig(handlers, live).find((s) => s.id === id);
+    const tab = tabs.find((t) => t.id === id);
+    panel.setAttribute('aria-label', sec.label);
+    panel.replaceChildren(h('div', { class: 'ln-panel' },
+      h('div', { class: 'ln-main' },
+        h('p', { class: 'ln-lede' }, sec.lede),
+        h('div', { class: `ln-cols cols-${sec.groups.length}` },
+          sec.groups.map((g) => h('div', { class: 'ln-col' },
+            h('p', { class: 'ln-title' }, g.title),
+            h('div', { class: 'ln-list' }, g.items.map((it) => navRow(it, 'ln-row', close))))))),
+      h('aside', { class: 'ln-side' },
+        navFeature(sec.feature, live, handlers, close),
+        h('div', { class: 'ln-actions' }, sec.actions.map((a) => h('a', {
+          href: a.href || '#', target: a.external ? '_blank' : undefined, rel: a.external ? 'noopener' : undefined,
+          class: `ln-action${a.primary ? ' is-primary' : ''}`, onclick: (e) => followNavItem(a, e, close),
+        }, icon(a.icon, 13), h('span', {}, a.label), icon('arrow', 11))))),
+      h('div', { class: 'ln-foot' },
+        h('span', {}, icon('calendar', 12), ' Free 30-minute intro call'),
+        h('span', {}, icon('clock', 12), ' Replies within one business day'),
+        h('span', {}, icon('check', 12), ' Fixed scopes, no surprise invoices'))));
+    tab?.btn.classList.add('is-active');
   }
 
-  function show(sec) {
+  function show(id, focusFirst = false) {
     clearTimeout(timer);
-    if (openSec !== sec) {
-      tabs.forEach((t) => t.btn.setAttribute('aria-expanded', String(t.sec === sec)));
-      openSec = sec;
-      fill(sec);
+    if (openSec !== id) {
+      tabs.forEach((t) => { t.btn.setAttribute('aria-expanded', String(t.id === id)); t.btn.classList.toggle('is-active', t.id === id); });
+      openSec = id;
+      fill(id);
       panel.hidden = false;
       requestAnimationFrame(() => panel.classList.add('open'));
+      // Prices, slots and audience arrive once; the open panel refreshes with them.
+      if (!live) loadNavLive().then((l) => { live = l; if (openSec) fill(openSec); });
     }
+    if (focusFirst) requestAnimationFrame(() => panel.querySelector('.ln-row')?.focus());
   }
 
-  for (const sec of MEGA_CONFIG) {
-    const btn = h('button', {
-      class: 'mega-tab',
-      type: 'button',
-      'aria-expanded': 'false',
-      'aria-controls': 'landing-mega-panel',
-    }, sec.label, icon('chevron-down', 14));
-
-    btn.addEventListener('mouseenter', () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => show(sec), openSec ? 0 : 100);
-    });
-    btn.addEventListener('mouseleave', () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => close(), 200);
-    });
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openSec === sec ? close() : show(sec);
-    });
-
-    tabs.push({ sec, btn });
+  for (const sec of getLandingNavConfig(handlers)) {
+    const btn = h('button', { class: 'mega-tab', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'landing-mega-panel' }, sec.label, icon('chevron-down', 13));
+    btn.addEventListener('mouseenter', () => { clearTimeout(timer); timer = setTimeout(() => show(sec.id), openSec ? 0 : 100); });
+    btn.addEventListener('mouseleave', () => { clearTimeout(timer); timer = setTimeout(close, 220); });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openSec === sec.id ? close() : show(sec.id); });
+    btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); show(sec.id, true); } });
+    tabs.push({ id: sec.id, btn });
   }
 
   panel.addEventListener('mouseenter', () => clearTimeout(timer));
-  panel.addEventListener('mouseleave', () => {
-    timer = setTimeout(() => close(), 200);
-  });
+  panel.addEventListener('mouseleave', () => { timer = setTimeout(close, 220); });
   panel.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', () => close());
+  panel.addEventListener('keydown', (e) => {
+    const rows = [...panel.querySelectorAll('.ln-row, .ln-action, .ln-feature-cta')];
+    const i = rows.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      const tab = tabs.find((t) => t.id === openSec)?.btn;
+      close();
+      tab?.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      rows[(i + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length]?.focus();
+    }
+  });
+  document.addEventListener('click', close);
 
   return h('div', { class: 'mega-wrap' },
     h('nav', { class: 'mega-tabs', 'aria-label': 'Landing navigation' }, tabs.map((t) => t.btn)),
@@ -533,115 +568,82 @@ function landingMegaMenus({ onBookCall, onStripePay, onAuthClick, isAuth }) {
 }
 
 /**
- * Mobile & Tablet Off-Canvas Side Drawer.
- * Faithfully mirrors the Creator Studio dashboard mobile drawer navigation.
+ * Mobile & Tablet Off-Canvas Side Drawer: the build-slot status and main call to action first,
+ * then each menu as a collapsible group of compact rows, her profiles and the theme switch.
+ * Focus stays inside while it's open; Esc or the backdrop closes it.
  */
 function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
-  const MEGA_CONFIG = getLandingNavConfig({ onBookCall, onStripePay, onAuthClick, isAuth });
+  const handlers = { onBookCall, onStripePay, isAuth };
   const backdrop = h('div', { class: 'landing-drawer-backdrop' });
+  const closeBtn = h('button', { type: 'button', class: 'landing-drawer-close', 'aria-label': 'Close menu' }, icon('x', 16));
+  const status = h('span', { class: 'ln-feature-pill' }, h('i'), 'Taking on new projects');
+  const sectionsBox = h('div', { class: 'ld-sections' });
+  const socials = h('div', { class: 'ld-socials' });
 
-  const closeBtn = h('button', {
-    type: 'button',
-    class: 'landing-drawer-close',
-    'aria-label': 'Close menu',
-  }, icon('x', 18));
+  const drawSections = (live = null) => {
+    sectionsBox.replaceChildren(...getLandingNavConfig(handlers, live).map((sec, i) => h('details', { class: 'ld-group', open: i === 0 },
+      h('summary', {}, h('span', {}, sec.label), h('small', {}, sec.groups.reduce((n, g) => n + g.items.length, 0)), icon('chevron-down', 13)),
+      // close is defined further down: look it up when a row is clicked, not while building.
+      h('div', { class: 'ld-list' }, sec.groups.flatMap((g) => g.items).map((it) => navRow(it, 'ln-row is-drawer', () => close()))))));
+  };
+  drawSections();
 
-  const drawerHead = h('div', { class: 'landing-drawer-head' },
-    h('div', { class: 'row', style: { gap: '10px', alignItems: 'center' } },
-      brandMark(24),
-      h('strong', { style: { fontSize: '1.05rem', letterSpacing: '0.02em' } }, 'Tech Unicorn')),
-    closeBtn);
-
-  const actionsBox = h('div', { class: 'landing-drawer-actions' },
-    h('button', {
-      type: 'button',
-      class: 'btn primary',
-      onclick: () => { close(); onBookCall('mvp_build'); },
-    }, icon('calendar', 14), 'Book an Intro Call'),
-    h('button', {
-      type: 'button',
-      class: 'btn ghost',
-      onclick: () => { close(); onStripePay('retainer'); },
-    }, icon('credit-card', 14), 'Pay with Stripe'),
-    h('button', {
-      type: 'button',
-      class: 'btn ghost',
-      onclick: () => { close(); onAuthClick(); },
-    }, icon('sparkle', 14), isAuth ? 'Open Dashboard' : 'Studio Login'));
-
-  const sectionsBox = h('div', { class: 'landing-drawer-sections' },
-    MEGA_CONFIG.map((sec) =>
-      h('div', { class: 'landing-drawer-group' },
-        h('p', { class: 'landing-drawer-group-title' }, sec.label),
-        h('div', { class: 'landing-drawer-group-list', style: { display: 'grid', gap: '4px' } },
-          sec.groups.flatMap((g) => g.items).map((item) => {
-            const clickHandler = (e) => {
-              close();
-              if (item.onClick) {
-                e.preventDefault();
-                item.onClick();
-              } else if (item.href && item.href.startsWith('#')) {
-                const target = document.querySelector(item.href);
-                if (target) {
-                  e.preventDefault();
-                  target.scrollIntoView({ behavior: 'smooth' });
-                }
-              }
-            };
-
-            if (item.to) {
-              return link(item.to, { class: 'landing-drawer-link', onclick: () => close() },
-                icon(item.icon, 16),
-                h('span', {}, item.label));
-            }
-
-            return h('a', {
-              href: item.href || '#',
-              target: item.external ? '_blank' : undefined,
-              rel: item.external ? 'noopener' : undefined,
-              class: 'landing-drawer-link',
-              onclick: clickHandler,
-            },
-              icon(item.icon, 16),
-              h('span', {}, item.label));
-          })))));
-
-  const drawerFoot = h('div', { class: 'landing-drawer-footer' },
-    h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
-      h('span', { class: 'muted small' }, 'Appearance'),
-      themeSwitch()),
-    h('p', { class: 'muted small', style: { margin: 0 } }, 'Delia Lazarescu · @Tech.Unicorn'));
-
-  const drawerPanel = h('aside', { class: 'landing-drawer', role: 'dialog', 'aria-label': 'Navigation menu' },
-    drawerHead,
-    actionsBox,
+  const drawerPanel = h('aside', { class: 'landing-drawer ld', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Navigation menu' },
+    h('div', { class: 'ld-head' },
+      h('div', { class: 'ld-brand' }, brandMark(22), h('span', {}, h('strong', {}, 'Tech Unicorn'), h('small', {}, 'Delia Lazarescu'))),
+      closeBtn),
+    h('div', { class: 'ld-cta' },
+      status,
+      h('button', { type: 'button', class: 'ld-primary', onclick: () => { close(); onBookCall('mvp_build'); } }, icon('calendar', 14), 'Book an Intro Call', icon('arrow', 12)),
+      h('div', { class: 'ld-secondary' },
+        h('button', { type: 'button', onclick: () => { close(); onStripePay('retainer'); } }, icon('credit-card', 13), 'Pay with Stripe'),
+        h('button', { type: 'button', onclick: () => { close(); onAuthClick(); } }, icon('sparkle', 13), isAuth ? 'Dashboard' : 'Studio login'))),
     sectionsBox,
-    drawerFoot);
+    h('div', { class: 'ld-foot' },
+      socials,
+      h('div', { class: 'ld-theme' }, h('span', {}, 'Appearance'), themeSwitch()),
+      h('p', {}, '© 2026 Tech Unicorn · @Tech.Unicorn')));
 
-  const drawerWrap = h('div', { class: 'landing-drawer-wrap', 'aria-hidden': 'true' },
-    backdrop,
-    drawerPanel);
+  const drawerWrap = h('div', { class: 'landing-drawer-wrap', 'aria-hidden': 'true' }, backdrop, drawerPanel);
 
+  let lastFocus = null;
   const close = () => {
     drawerWrap.classList.remove('open');
     drawerWrap.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('landing-drawer-open');
+    lastFocus?.focus?.();
   };
-
   const open = () => {
+    lastFocus = document.activeElement;
     drawerWrap.classList.add('open');
     drawerWrap.setAttribute('aria-hidden', 'false');
     document.body.classList.add('landing-drawer-open');
     closeBtn.focus();
+    loadNavLive().then((live) => {
+      drawSections(live);
+      const a = live.availability;
+      if (a?.show) {
+        status.className = `ln-feature-pill ${a.status === 'open' ? 'is-open' : 'is-wait'}`;
+        status.replaceChildren(h('i'), a.label);
+      }
+      const nets = [['youtube', 'brand:youtube'], ['instagram', 'brand:instagram'], ['linkedin', 'brand:linkedin'], ['tiktok', 'brand:tiktok'], ['twitter', 'brand:x']]
+        .filter(([k]) => live.urls?.[k]);
+      socials.replaceChildren(...nets.map(([k, ic]) => h('a', { href: live.urls[k], target: '_blank', rel: 'noopener', 'aria-label': k }, icon(ic, 15))));
+    });
   };
 
   closeBtn.addEventListener('click', close);
   backdrop.addEventListener('click', close);
   drawerPanel.addEventListener('click', (e) => e.stopPropagation());
-
   const onKey = (e) => {
-    if (e.key === 'Escape' && drawerWrap.classList.contains('open')) {
-      close();
+    if (!drawerWrap.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'Tab') {
+      // Keep focus inside the drawer while it's open.
+      const items = [...drawerPanel.querySelectorAll('a[href], button, summary, [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+      if (e.shiftKey && document.activeElement === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
     }
   };
   document.addEventListener('keydown', onKey);

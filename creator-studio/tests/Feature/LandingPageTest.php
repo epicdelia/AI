@@ -106,7 +106,7 @@ class LandingPageTest extends TestCase
         $response->assertOk()->assertJson(['status' => 'redirect', 'paid' => false, 'checkout_url' => 'https://checkout.stripe.com/c/pay/cs_test_1']);
         $deal = Deal::findOrFail($response->json('deal_id'));
         $this->assertSame('pending', $deal->payment_status);
-        Http::assertSent(fn ($req) => ($req->data()['success_url'] ?? null) === url('/?payment=success&deal='.$deal->id));
+        Http::assertSent(fn($req) => ($req->data()['success_url'] ?? null) === url('/?payment=success&deal=' . $deal->id));
     }
 
     public function test_stripe_failure_falls_back_to_an_invoice_request(): void
@@ -127,20 +127,27 @@ class LandingPageTest extends TestCase
     {
         $deal = Deal::create(['brand_name' => 'Acme', 'stage' => 'inquiry', 'rate' => 500, 'currency' => 'USD', 'payment_status' => 'pending']);
         $payload = json_encode(['type' => 'checkout.session.completed', 'data' => ['object' => ['payment_status' => 'paid', 'metadata' => ['deal_id' => $deal->id]]]]);
-        $post = fn (?string $sig) => $this->call('POST', '/api/stripe/webhook', [], [], [],
-            array_filter(['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $sig]), $payload);
+        $post = fn(?string $sig) => $this->call(
+            'POST',
+            '/api/stripe/webhook',
+            [],
+            [],
+            [],
+            array_filter(['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $sig]),
+            $payload
+        );
 
         // No secret configured: rejected.
         $post(null)->assertStatus(400);
 
         Setting::put('stripe_webhook_secret', 'whsec_test');
-        $post('t='.time().',v1=forged')->assertStatus(400);
+        $post('t=' . time() . ',v1=forged')->assertStatus(400);
         $old = time() - 3600;
-        $post("t={$old},v1=".hash_hmac('sha256', "{$old}.{$payload}", 'whsec_test'))->assertStatus(400);
+        $post("t={$old},v1=" . hash_hmac('sha256', "{$old}.{$payload}", 'whsec_test'))->assertStatus(400);
         $this->assertSame('pending', $deal->fresh()->payment_status);
 
         $t = time();
-        $post("t={$t},v1=".hash_hmac('sha256', "{$t}.{$payload}", 'whsec_test'))->assertOk();
+        $post("t={$t},v1=" . hash_hmac('sha256', "{$t}.{$payload}", 'whsec_test'))->assertOk();
 
         $deal->refresh();
         $this->assertSame('paid', $deal->stage);
@@ -195,8 +202,12 @@ class LandingPageTest extends TestCase
     public function test_website_leads_reach_the_dashboard_and_notifications(): void
     {
         $this->postJson('/api/booking', [
-            'name' => 'Sarah Connor', 'email' => 'sarah@example.com', 'company' => 'Cyberdyne',
-            'project_type' => 'speaking', 'preferred_date' => '2026-11-15', 'preferred_time' => '15:00 UTC',
+            'name' => 'Sarah Connor',
+            'email' => 'sarah@example.com',
+            'company' => 'Cyberdyne',
+            'project_type' => 'speaking',
+            'preferred_date' => '2026-11-15',
+            'preferred_time' => '15:00 UTC',
         ])->assertOk();
         Deal::create(['brand_name' => 'Paid Co', 'stage' => 'paid', 'rate' => 500, 'currency' => 'USD', 'payment_status' => 'paid', 'paid_at' => now()]);
         Deal::create(['brand_name' => 'Signed Co', 'stage' => 'contracted', 'rate' => 5000, 'currency' => 'USD', 'payment_status' => 'pending']);
@@ -216,9 +227,13 @@ class LandingPageTest extends TestCase
 
     public function test_service_card_bookings_are_grouped_by_service_on_the_dashboard(): void
     {
-        $book = fn (string $email, ?string $service) => $this->postJson('/api/booking', array_filter([
-            'name' => 'Lead', 'email' => $email, 'project_type' => 'consulting',
-            'preferred_date' => '2026-11-15', 'preferred_time' => '15:00 UTC', 'service' => $service,
+        $book = fn(string $email, ?string $service) => $this->postJson('/api/booking', array_filter([
+            'name' => 'Lead',
+            'email' => $email,
+            'project_type' => 'consulting',
+            'preferred_date' => '2026-11-15',
+            'preferred_time' => '15:00 UTC',
+            'service' => $service,
         ]))->assertOk();
         $book('a@example.com', 'Technical Consulting');
         $book('b@example.com', 'Technical Consulting');
@@ -242,8 +257,12 @@ class LandingPageTest extends TestCase
     {
         foreach (['Let us build: An app or MVP', 'Let us build: An app or MVP', 'Let us build: A keynote or workshop'] as $i => $service) {
             $this->postJson('/api/booking', [
-                'name' => "Lead {$i}", 'email' => "lead{$i}@example.com", 'project_type' => str_contains($service, 'keynote') ? 'speaking' : 'mvp_build',
-                'preferred_date' => '2026-11-20', 'preferred_time' => '15:00 UTC', 'service' => $service,
+                'name' => "Lead {$i}",
+                'email' => "lead{$i}@example.com",
+                'project_type' => str_contains($service, 'keynote') ? 'speaking' : 'mvp_build',
+                'preferred_date' => '2026-11-20',
+                'preferred_time' => '15:00 UTC',
+                'service' => $service,
             ])->assertOk();
         }
 

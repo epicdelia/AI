@@ -20,6 +20,8 @@ import { stackSection } from '../landing-stack.js';
 import { comparisonSection } from '../landing-compare.js';
 import { estimatorSection } from '../landing-estimator.js';
 import { buildsSection } from '../landing-builds.js';
+import { guaranteesSection } from '../landing-guarantees.js';
+import { nomadSection } from '../landing-nomad.js';
 
 /**
  * Interactive Booking Modal for 30-minute Intro Calls.
@@ -367,6 +369,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
         { label: 'Packages & Pricing', icon: 'tag', href: '#pricing' },
         { label: 'How it works', icon: 'flow', href: '#process' },
         { label: 'Tech Stack', icon: 'sliders', href: '#stack' },
+        { label: 'Client Guarantees', icon: 'lock', href: '#guarantees' },
         { label: 'Project Estimator', icon: 'target', href: '#estimator' },
         { label: 'FAQ', icon: 'chat', href: '#faq' },
       ],
@@ -396,6 +399,7 @@ function getLandingNavConfig({ onBookCall, onStripePay, isAuth }, live = null) {
       feature: 'prices',
       actions: [
         { label: 'Pay with Stripe', icon: 'credit-card', onClick: () => onStripePay('retainer'), primary: true },
+        { label: 'Client Guarantees', icon: 'lock', href: '#guarantees' },
         { label: 'Project Estimator', icon: 'target', href: '#estimator' },
         { label: isAuth ? 'Open Media Kit' : 'Request Media Kit', icon: 'file-text', onClick: () => (isAuth ? navigate('/mediakit') : onBookCall('brand_deal')) },
       ],
@@ -1144,7 +1148,9 @@ export function renderLanding(view, options = {}) {
           h('a', { href: '#services', class: 'landing-footer-link' }, 'Technical Consulting'),
           h('a', { href: '#stack', class: 'landing-footer-link' }, 'Tech Stack & Architecture'),
           h('a', { href: '#why-delia', class: 'landing-footer-link' }, 'Why Delia Lazarescu'),
+          h('a', { href: '#guarantees', class: 'landing-footer-link' }, 'Client Guarantees & Code Quality'),
           h('a', { href: '#builds', class: 'landing-footer-link' }, 'Shipped Products & Case Studies'),
+          h('a', { href: '#nomad', class: 'landing-footer-link' }, 'Shipped from 69 Countries'),
           h('a', { href: '#pricing', class: 'landing-footer-link' }, 'Packages & Retainers'),
           h('a', { href: '#estimator', class: 'landing-footer-link' }, 'Interactive Project Estimator'),
           h('a', { href: '#faq', class: 'landing-footer-link' }, 'Frequently Asked Questions (FAQ)'),
@@ -1179,7 +1185,9 @@ export function renderLanding(view, options = {}) {
 
   const stack = stackSection({ onBookCall: handleBookCall });
   const comparison = comparisonSection({ onBookCall: handleBookCall });
+  const guarantees = guaranteesSection({ onBookCall: handleBookCall });
   const builds = buildsSection({ onBookCall: handleBookCall });
+  const nomad = nomadSection({ onBookCall: handleBookCall });
   const estimator = estimatorSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
   const faq = faqSection({ onBookCall: handleBookCall, onStripePay: handleStripePay });
 
@@ -1191,9 +1199,11 @@ export function renderLanding(view, options = {}) {
     services,
     ytSection,
     process,
+    guarantees,
     stack,
     comparison,
     builds,
+    nomad,
     testimonialsSection(),
     pricing,
     estimator,

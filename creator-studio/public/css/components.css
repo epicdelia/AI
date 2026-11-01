@@ -16590,10 +16590,271 @@ a.tu-shot:hover img { transform: scale(1.05); }
   .landing-faq-cta-box,
   .landing-stack-cta,
   .landing-compare-foot,
-  .landing-builds-cta {
+  .landing-builds-cta,
+  .landing-guar-banner {
     flex-direction: column;
     align-items: flex-start;
   }
 }
+
+/* ==========================================================================
+   LANDING: CLIENT GUARANTEES & CODE QUALITY MANIFESTO
+   ========================================================================== */
+.landing-guar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .landing-guar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 580px) {
+  .landing-guar-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-guar-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.25s, box-shadow 0.25s;
+}
+
+.landing-guar-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.landing-guar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.landing-guar-icon-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing-guar-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.landing-guar-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: monospace;
+}
+
+.landing-guar-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--panel-2);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.landing-guar-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.landing-guar-desc {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0;
+}
+
+.landing-guar-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  margin-top: 22px;
+}
+
+/* ==========================================================================
+   LANDING: SHIPPED FROM 69 COUNTRIES (Nomad Setup)
+   ========================================================================== */
+.landing-nomad-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .landing-nomad-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-nomad-rig {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landing-nomad-rig-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.landing-nomad-rig-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.landing-nomad-rig-card strong {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.landing-nomad-rig-card p {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.landing-nomad-dispatch {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  padding: 18px 20px;
+}
+
+.landing-nomad-dispatch-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.landing-nomad-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.landing-nomad-dispatch-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landing-nomad-dispatch-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--panel-2);
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+
+.landing-nomad-flag {
+  font-size: 1.15rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.landing-nomad-dispatch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.landing-nomad-dispatch-city-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1px;
+}
+
+.landing-nomad-dispatch-city-row strong {
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.landing-nomad-tz-badge {
+  font-size: 0.62rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.landing-nomad-dispatch-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  flex-wrap: wrap;
+}
+
+.landing-nomad-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent);
+  flex-shrink: 0;
+}
+
 
 

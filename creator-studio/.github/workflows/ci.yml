@@ -3,14 +3,17 @@ name: Laravel App
 on:
   push:
     branches:
+      - master
       - main
       - develop
   pull_request:
     branches:
+      - master
       - main
       - develop
   release:
     types: [ published ]
+  workflow_dispatch:
 
 jobs:
   build:

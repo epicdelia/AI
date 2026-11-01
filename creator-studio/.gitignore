@@ -1,27 +1,136 @@
-*.log
+### User-specific stuff & OS ###
 .DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.codex
-/.cursor/
-/.idea
-/.nova
-/.phpunit.cache
+
+### PhpStorm / IntelliJ IDEA Shared Configs ###
+# 1. Personal editor state (changes frequently, causes merge conflicts)
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/usage.statistics.xml
+.idea/caches/
+# 2. Local history (may contain session cookies and tokens from REST Client)
+.idea/httpRequests/
+# 3. Databases (MUST be ignored to prevent leaking passwords and local ports)
+.idea/dataSources/
+.idea/dataSources.xml
+.idea/dataSources.local.xml
+.idea/sqldialects.xml
+.idea/queries/
+# 4. Local dictionaries (to avoid sharing personal typos with the team)
+.idea/dictionaries/
+
+### Docker local overrides ###
+compose.override.yaml
+docker-compose.override.yaml
+
+reports/*
+!reports/.gitkeep
+
+###> laravel ###
 /.vscode
+/.fleet
+/.nova
 /.zed
-/auth.json
 /node_modules
 /public/build
-/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
 /storage/*.key
+/storage/mysql-data/
 /storage/pail
 /vendor
-_ide_helper.php
-Homestead.json
+/tools/**/vendor
 Homestead.yaml
-Thumbs.db
+Homestead.json
+auth.json
+.env
+.env.backup
+_ide_helper.php
+.phpstorm.meta.php
+_ide_helper_models.php
+npm-debug.log
+yarn-error.log
+.phpactor.json
+###< laravel ###
+
+###> phpunit ###
+.phpunit.result.cache
+.phpunit.cache
+###< phpunit ###
+
+###> friendsofphp/php-cs-fixer ###
+.php-cs-fixer.cache
+.php_cs
+.php_cs.cache
+###< friendsofphp/php-cs-fixer ###
+
+#### Terraform .gitignore template
+## Comment path that would like to get ignored
+
+### Basic .gitignore
+# **/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfplan
+**/.terraform/**
+**/terraform.tfstate.d/**
+**/*.tfplan
+**/terraform_plugins/**
+backend.hcl
+*.hcl
+*.lock.hcl
+# only for snd
+#backend.tf
+#*.tfvars
+
+### https://raw.githubusercontent.com/hashicorp/terraform/master/.gitignore
+*.dll
+*.exe
+.DS_Store
+example.tf
+terraform.tfplan
+terraform.tfstate
+tf.out
+.vagrant/
+*.backup
+./*.tfstate
+errored.tfstate
+.terraform/
+*.log
+*.bak
+*~
+.*.swp
+.idea
+*.iml
+*.test
+*.iml
+.envrc
+
+### https://raw.github.com/github/gitignore/abad92dac5a4306f72242dae3bca6e277bce3615/Global/Vim.gitignore
+
+# swap
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+# session
+Session.vim
+# temporary
+.netrwhist
+*~
+# auto-generated tag files
+tags
+
+### Ignore .DS_Store on MAC
+.DS_Store
+.DS_Store?
+
+### Temporary dir for CodeDeploy
+build/
+.build
+dummy.zip
+
+terraform.tfstate*
+*.tgz
+*.icloud
+
+terraform/modules/**
+test/**
+tfplan*

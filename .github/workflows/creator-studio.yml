@@ -1,0 +1,166 @@
+name: Creator Studio CI/CD
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+    paths:
+      - "creator-studio/**"
+      - ".github/workflows/creator-studio.yml"
+  pull_request:
+    branches:
+      - master
+      - main
+      - develop
+    paths:
+      - "creator-studio/**"
+      - ".github/workflows/creator-studio.yml"
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-lint:
+    name: "Build, Test & Quality Checks"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Reports Directory
+        run: mkdir -p reports/coverage reports/phpcpd reports/phpmetrics
+
+      - name: Build Test Docker Images
+        run: make build-test
+
+      - name: Start Test Environment Containers
+        run: make start-test
+
+      - name: Verify Running Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Database Migrations
+        run: make drop-migrate
+
+      - name: Seed Database
+        run: make seed
+
+      - name: Display PHP, Composer & Laravel Versions
+        run: make info
+
+      - name: Run PHPUnit Test Suite with Coverage
+        run: make phpunit
+
+      - name: Archive Test Reports & Coverage Data
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: creator-studio-test-reports
+          path: creator-studio/reports/
+          retention-days: 7
+
+      - name: Composer Security Vulnerability Audit
+        run: make composer-audit
+
+      - name: Easy Coding Standard (ECS) Check
+        run: make ecs
+
+      - name: PHP_CodeSniffer (PSR-12) Check
+        run: make phpcs
+
+      - name: PHPStan Static Analysis
+        run: make phpstan
+
+      - name: PHP Insights Analysis
+        run: make phpinsights
+
+      - name: PHP Mess Detector (PHPMD)
+        run: make phpmd
+
+      - name: PHP Copy/Paste Detector (PHPCPD)
+        run: make phpcpd
+
+      - name: Tear Down Test Environment
+        if: always()
+        run: make down-test
+
+  staging-check:
+    name: "Staging Environment Build & Migration"
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Staging Docker Images
+        run: make build-staging
+
+      - name: Start Staging Environment Containers
+        run: make start-staging
+
+      - name: Verify Staging Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Staging Database Migrations
+        run: make migrate-no-test
+
+      - name: Generate Application Key
+        run: make key-generate
+
+      - name: Display Environment Info
+        run: make info
+
+      - name: Tear Down Staging Environment
+        if: always()
+        run: make down-staging
+
+  production-check:
+    name: "Production Environment Build Verification"
+    needs: staging-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Production Docker Images
+        run: make build-prod
+
+      - name: Start Production Environment Containers
+        run: make start-prod
+
+      - name: Verify Production Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Production Database Migrations
+        run: make migrate-no-test
+
+      - name: Display Environment Info
+        run: make info
+
+      - name: Tear Down Production Environment
+        if: always()
+        run: make down-prod
+

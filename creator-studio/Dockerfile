@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7-labs
-FROM php:8.5-fpm-bookworm
+FROM php:8.5.12-fpm-bookworm
 
 # set main params
 ARG BUILD_ARGUMENT_ENV=dev

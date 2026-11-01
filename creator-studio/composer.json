@@ -42,7 +42,10 @@
             "*": "dist"
         },
         "sort-packages": true,
-        "allow-plugins": true
+        "allow-plugins": true,
+        "platform": {
+            "php": "8.5.12"
+        }
     },
     "extra": {
         "bamarni-bin": {

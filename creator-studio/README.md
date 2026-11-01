@@ -210,6 +210,140 @@ php vendor/bin/phpunit
 The AI, YouTube, transcription and feed calls are faked in tests (`Llm::$fake`, `YouTubeTranscript::$fake`,
 `Transcription::$fake`, `FeedReader::$fake`, `Http::fake`).
 
+---
+
+## CI/CD & Makefile Command Guide
+
+Creator Studio includes a production-grade Docker and Makefile environment that runs all tests, security audits, static analysis, and database migrations.
+
+### Quick Cheatsheet for Delia 💕
+
+Whenever you want to run checks or work on the project, here are the most common commands:
+
+| What you want to do | Command to run | Description |
+|---|---|---|
+| **Start everything up** | `make start` | Boots up the containers (Laravel, Nginx, MySQL, Supervisor) |
+| **Check if the code passes tests** | `make phpunit` | Runs all automated unit and feature tests with code coverage |
+| **Fix code formatting automatically** | `make ecs-fix` | Auto-cleans and formats code to follow clean coding standards |
+| **Run security audit** | `make composer-audit` | Scans all installed packages for known security advisories |
+| **Run full code health check** | `make phpstan` | Deep static analysis to ensure zero type errors or broken calls |
+| **See versions and health** | `make info` | Prints active PHP, Laravel, and Composer versions |
+| **View live logs** | `make logs` | Shows real-time server output (press <kbd>Ctrl</kbd> + <kbd>C</kbd> to exit) |
+| **Shut down when done** | `make stop` | Pauses containers without losing your data |
+
+---
+
+### Running the Full End-to-End CI/CD Pipeline Locally
+
+To run the exact same checks that GitHub Actions executes before accepting code:
+
+```bash
+# 1. Build and boot the test environment
+make build-test
+make start-test
+
+# 2. Wait for MySQL and run database setup
+make wait-for-db
+make drop-migrate
+make seed
+
+# 3. Run the automated test suite
+make phpunit
+
+# 4. Run the full code quality & security battery
+make composer-audit      # Checks for security vulnerabilities
+make ecs                 # Easy Coding Standard style check
+make phpcs               # PSR-12 code style check
+make phpstan             # Static analysis
+make phpinsights         # Architecture, complexity & style score
+make phpmd               # Mess detector (bad smells)
+make phpcpd              # Copy/paste duplicate detector
+
+# 5. Clean up the test containers
+make down-test
+```
+
+---
+
+### Complete Makefile Reference
+
+#### 1. Docker Environments
+* `make build` / `make build-test` / `make build-staging` / `make build-prod` — Build images for respective environments.
+* `make start` / `make start-test` / `make start-staging` / `make start-prod` — Boot containers in detached mode (`-d`).
+* `make stop` / `make stop-test` / `make stop-staging` / `make stop-prod` — Stop containers safely.
+* `make restart` / `make restart-test` / `make restart-staging` / `make restart-prod` — Restart containers.
+* `make down` / `make down-test` / `make down-staging` / `make down-prod` — Stop and remove containers/networks.
+
+#### 2. Database & Data Management
+* `make wait-for-db` — Polls MySQL until the database is ready to accept connections.
+* `make drop-migrate` — Freshly drops all tables and runs migrations for main & test databases.
+* `make migrate` — Runs pending migrations on main and test databases.
+* `make migrate-no-test` — Runs pending migrations only on the main database (staging/prod safe).
+* `make seed` — Seeds the test database with starter records.
+
+#### 3. Code Quality, Analysis & Security
+* `make phpunit` — Executes PHPUnit with Clover XML, JUnit XML, and HTML coverage reports generated in `reports/coverage`.
+* `make composer-audit` — Queries Packagist security advisories database for vulnerabilities.
+* `make ecs` — Checks Easy Coding Standard rules across `app/` and `tests/`.
+* `make ecs-fix` — Automatically fixes ECS coding standard violations.
+* `make phpcs` — Runs PHP_CodeSniffer with PSR-12 standard.
+* `make phpstan` — Clears test cache and executes PHPStan static analysis.
+* `make phpinsights` — In-depth analysis for code quality, complexity, architecture, and style.
+* `make phpmd` — Analyzes code using PHP Mess Detector ruleset (`phpmd_ruleset.xml`).
+* `make phpcpd` — Detects duplicated copy-paste code blocks.
+* `make phpcpd-html-report` — Generates formatted HTML report for duplicate code.
+* `make phpmetrics` — Generates interactive visual metrics report in `reports/phpmetrics`.
+
+#### 4. Package & Dependency Hygiene
+* `make composer-normalize` — Sorts and formats `composer.json` consistently.
+* `make composer-validate` — Verifies `composer.json` syntax and schema.
+* `make composer-require-checker` — Detects soft dependencies used in code without being declared.
+* `make composer-unused` — Detects unused Composer dependencies in namespaces.
+* `make composer-install` / `make composer-install-no-dev` / `make composer-update` — Composer package management.
+
+#### 5. Container Shells & Logs
+* `make ssh` — Enter the Laravel container as `www-data` user.
+* `make ssh-root` — Enter the Laravel container as `root`.
+* `make fish` — Interactive fish shell inside container.
+* `make ssh-nginx` / `make ssh-mysql` / `make ssh-supervisord` — Shell into respective services.
+* `make logs` / `make logs-nginx` / `make logs-mysql` / `make logs-supervisord` — Follow real-time container logs.
+* `make key-generate` — Generates a new `APP_KEY` inside the container.
+* `make report-prepare` / `make report-clean` — Manages the `reports/` output folder.
+
+---
+
+### Platform Tips (Windows, macOS, Linux)
+
+* **macOS & Linux:** Run `make <command>` directly from your terminal inside `creator-studio`.
+* **Windows (PowerShell / CMD):**
+  * You can run `wsl make <command>` if WSL is installed.
+  * Or install `make` using `choco install make` / `scoop install make`.
+  * Alternatively, run commands via Docker Compose directly (e.g. `docker compose -f compose-test-ci.yaml up -d`).
+  * `HOST_UID` and `HOST_GID` in the Makefile automatically fallback to `1000` to prevent permissions issues across operating systems.
+
+---
+
+### GitHub Actions End-to-End CI/CD
+
+The workflow at `.github/workflows/creator-studio.yml` automatically triggers on every push and pull request touching `creator-studio/**`:
+
+1. **Job 1: Build, Test & Quality Checks (`test-and-lint`)**
+   * Builds the Docker test environment (`make build-test`).
+   * Starts MySQL, waits for connection, runs database migrations and seeds.
+   * Runs the full PHPUnit test suite and uploads reports to GitHub artifacts.
+   * Runs the full security and lint battery (`composer-audit`, `ecs`, `phpcs`, `phpstan`, `phpinsights`, `phpmd`, `phpcpd`).
+   * Tears down containers cleanly.
+2. **Job 2: Staging Verification (`staging-check`)**
+   * Validates building and migrating the staging container environment (`make build-staging`).
+3. **Job 3: Production Verification (`production-check`)**
+   * Validates production container packaging (`make build-prod`) and database migration compatibility.
+
+#### Manual 1-Click Trigger
+Anyone with repository access can also trigger the workflow manually:
+1. Go to the **Actions** tab on GitHub.
+2. Select **Creator Studio CI/CD** in the left sidebar.
+3. Click the **Run workflow** dropdown and click the green **Run workflow** button!
+
 ## Notes
 
 - API keys are stored encrypted with `APP_KEY`. Changing `APP_KEY` makes saved keys unreadable; re-enter them.

@@ -2,7 +2,7 @@
 	"name": "epicdelia/creator-studio",
 	"description": "",
 	"require": {
-		"php": "^8.5.0"
+		"php": "^8.5.12"
 	},
 	"require-dev": {
 		"larastan/larastan": "3.10.*",
@@ -11,7 +11,7 @@
 	"config": {
 		"allow-plugins": true,
 		"platform": {
-			"php": "8.5.0"
+			"php": "8.5.12"
 		},
 		"preferred-install": {
 			"*": "dist"

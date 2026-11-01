@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Clients\ClientAnalytics;
 use App\Domains\Clients\ClientDeal;
 use App\Domains\Clients\ClientLink;
 use App\Domains\Clients\ClientNotifier;
@@ -207,6 +208,66 @@ class ClientsController extends Controller
         Audit::log('share_link_revoked', null, $deal);
 
         return response()->json(['message' => 'Links switched off. Make a new one when you need it.']);
+    }
+
+    public function annotations(Deal $deal): JsonResponse
+    {
+        return response()->json([
+            'annotations' => $deal->annotations()->with(['user:id,name,role', 'resolver:id,name'])->latest()->get()->map->toRow()->values(),
+        ]);
+    }
+
+    public function addAnnotation(Request $request, Deal $deal): JsonResponse
+    {
+        $data = $request->validate([
+            'deliverable_index' => 'nullable|integer|min:0',
+            'kind' => 'nullable|string|in:video,image,slide,document,general',
+            'timecode_seconds' => 'nullable|numeric|min:0',
+            'position_xy' => 'nullable|string|max:50',
+            'page_or_slide' => 'nullable|integer|min:1',
+            'body' => 'required|string|min:3|max:3000',
+        ]);
+
+        $user = $request->user();
+        $annotation = $deal->annotations()->create([
+            'user_id' => $user->id,
+            'deliverable_index' => (int) ($data['deliverable_index'] ?? 0),
+            'kind' => $data['kind'] ?? 'general',
+            'timecode_seconds' => $data['timecode_seconds'] ?? null,
+            'position_xy' => $data['position_xy'] ?? null,
+            'page_or_slide' => $data['page_or_slide'] ?? null,
+            'body' => trim($data['body']),
+            'status' => 'open',
+        ]);
+
+        Audit::log('deliverable_annotated', $user, $deal, [
+            'annotation_id' => $annotation->id,
+            'kind' => $annotation->kind,
+            'timecode' => $annotation->timecode_seconds,
+        ]);
+
+        return response()->json(['annotation' => $annotation->load(['user:id,name,role', 'resolver:id,name'])->toRow()], 201);
+    }
+
+    public function resolveAnnotation(Deal $deal, int $annotation): JsonResponse
+    {
+        $item = $deal->annotations()->findOrFail($annotation);
+        $user = request()->user();
+
+        $item->update([
+            'status' => 'resolved',
+            'resolved_at' => now(),
+            'resolved_by' => $user?->id,
+        ]);
+
+        Audit::log('deliverable_resolved', $user, $deal, ['annotation_id' => $item->id]);
+
+        return response()->json(['message' => 'Feedback marked resolved.', 'annotation' => $item->fresh()->load(['user:id,name,role', 'resolver:id,name'])->toRow()]);
+    }
+
+    public function roi(Deal $deal): JsonResponse
+    {
+        return response()->json(ClientAnalytics::forDeal($deal));
     }
 
     /** The security log: sign-ins, two-factor and password changes, client access, downloads. */

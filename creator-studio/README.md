@@ -124,6 +124,11 @@ Laravel 13 JSON API + a plain-JavaScript single-page app (clean, lightning fast,
 | **Business workflows** | New triggers: New website lead (with a minimum fit score), Deal moves to a stage, Payment received (including retainer renewals), Proposal or kit opened, Testimonial received, New subscriber. New actions: Prep the call, Move the deal. Fields `{deal}`, `{contact}`, `{amount}`, `{source}`, `{stage}`, `{fit}`. Templates: strong lead → notify + prep, proposal opened → nudge, paid → testimonial reminder in a week, testimonial → LinkedIn draft |
 | **Morning pipeline** | `studio:pipeline` at 08:15: prep briefs for intro calls in the next 24 hours, and one notification with today's calls and the follow-ups due (with the money in play) |
 | **Ideas that pay** | Idea generation also sees the videos and posts that brought website leads or clients, and what recent leads asked her to help with |
+| **Deliverable proofing & revisions** | Timestamped video/audio timecode comments, slide pins and revision feedback directly on active deliverables with one-click resolution (`DeliverableAnnotation`) |
+| **Verified campaign ROI** | Live brand sponsor performance portal showing verified views, tracked clicks, CTR, effective CPM, and tech industry benchmark comparison with re-booking incentive (`ClientAnalytics`) |
+| **Client brand vault** | Persistent corporate guidelines, brand palettes, vector logo assets, mandatory disclosures, and UTM parameters automatically loaded into scripts and pitches (`ClientBrandVault`) |
+| **Campaign add-on upsells** | Self-serve modular extensions (90-day Spark Ads whitelisting rights, extra Reel cuts, newsletter feature, expedited 48-h delivery) with instant contract and invoice updates (`DealAddOns`) |
+| **E-signature & anti-malware defense** | Cryptographic proposal signing audit trail (SHA-256 fingerprint, IP, email, timestamp in `ContractSigner`) plus binary magic-byte inspection and SVG defanging in `DealFiles` |
 
 Read-aloud, mockups and Shorts are optional and billed by each provider per use.
 

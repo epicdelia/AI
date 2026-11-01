@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { to: '/', label: 'Overview', icon: 'home', ability: 'portal.requests', desc: 'What’s happening and what needs you' },
   { to: '/requests', label: 'My requests', icon: 'briefcase', ability: 'portal.requests', desc: 'Every request, proposal and deliverable' },
   { to: '/requests/new', label: 'New request', icon: 'plus', ability: 'portal.requests', desc: 'Ask for something new' },
+  { to: '/brand-vault', label: 'Brand Vault', icon: 'sliders', ability: 'portal.requests', desc: 'Brand assets, guidelines and tracking links' },
   { to: '/billing', label: 'Billing', icon: 'credit-card', ability: 'portal.billing', desc: 'Payments, invoices and retainers' },
   { header: 'You', ability: 'portal.requests' },
   { to: '/account', label: 'Account & security', icon: 'lock', ability: 'portal.requests', desc: 'Profile, password and two-factor sign-in' },

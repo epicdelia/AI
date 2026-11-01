@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
+use App\Domains\Clients\ClientAnalytics;
 use App\Domains\Clients\ClientDeal;
 use App\Domains\Clients\ClientNotifier;
+use App\Domains\Clients\DealAddOns;
 use App\Domains\Clients\DealFiles;
+use App\Domains\Clients\Models\ClientBrandVault;
 use App\Domains\Clients\Models\DealMessage;
+use App\Domains\Clients\Models\DeliverableAnnotation;
 use App\Domains\Clients\Models\TeamInvite;
 use App\Domains\Landing\BookingSlots;
 use App\Domains\Landing\Pricing;
@@ -330,6 +334,150 @@ class PortalController extends Controller
         $f->delete();
 
         return response()->json(['message' => 'Removed.']);
+    }
+
+    // ------------------------------------------------------------ proofing & annotations
+
+    public function annotations(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        return response()->json([
+            'annotations' => $deal->annotations()->with(['user:id,name,role', 'resolver:id,name'])->latest()->get()->map->toRow()->values(),
+        ]);
+    }
+
+    public function addAnnotation(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $data = $request->validate([
+            'deliverable_index' => 'nullable|integer|min:0',
+            'kind' => 'nullable|string|in:video,image,slide,document,general',
+            'timecode_seconds' => 'nullable|numeric|min:0',
+            'position_xy' => 'nullable|string|max:50',
+            'page_or_slide' => 'nullable|integer|min:1',
+            'body' => 'required|string|min:3|max:3000',
+        ]);
+
+        $user = $request->user();
+        $annotation = $deal->annotations()->create([
+            'user_id' => $user->id,
+            'deliverable_index' => (int) ($data['deliverable_index'] ?? 0),
+            'kind' => $data['kind'] ?? 'general',
+            'timecode_seconds' => $data['timecode_seconds'] ?? null,
+            'position_xy' => $data['position_xy'] ?? null,
+            'page_or_slide' => $data['page_or_slide'] ?? null,
+            'body' => trim($data['body']),
+            'status' => 'open',
+        ]);
+
+        Audit::log('deliverable_annotated', $user, $deal, [
+            'annotation_id' => $annotation->id,
+            'kind' => $annotation->kind,
+            'timecode' => $annotation->timecode_seconds,
+        ]);
+        AgentEvent::log('lead', "{$user->name} added revision feedback on ".ClientDeal::summary($deal)['title'].'.');
+        self::tellAdmins("Feedback on {$deal->brand_name}", "{$user->name} left revision feedback on \"".ClientDeal::summary($deal)['title']."\":\n\n".trim($data['body'])."\n\nReview: ".url('/deals'));
+
+        return response()->json(['annotation' => $annotation->load(['user:id,name,role', 'resolver:id,name'])->toRow()], 201);
+    }
+
+    public function resolveAnnotation(Request $request, int $deal, int $annotation): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $item = $deal->annotations()->findOrFail($annotation);
+        $user = $request->user();
+
+        $item->update([
+            'status' => 'resolved',
+            'resolved_at' => now(),
+            'resolved_by' => $user->id,
+        ]);
+
+        Audit::log('deliverable_resolved', $user, $deal, ['annotation_id' => $item->id]);
+
+        return response()->json(['message' => 'Feedback marked resolved.', 'annotation' => $item->fresh()->load(['user:id,name,role', 'resolver:id,name'])->toRow()]);
+    }
+
+    // ------------------------------------------------------------ campaign ROI & performance
+
+    public function roi(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        return response()->json(ClientAnalytics::forDeal($deal));
+    }
+
+    // ------------------------------------------------------------ add-ons & upsells
+
+    public function addOns(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        return response()->json([
+            'catalog' => DealAddOns::catalog(),
+            'applied' => $deal->add_ons ?? [],
+            'currency' => $deal->currency ?: 'USD',
+        ]);
+    }
+
+    public function applyAddOn(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $data = $request->validate(['add_on' => 'required|string']);
+
+        $res = DealAddOns::apply($deal, $data['add_on'], $request->user());
+        return response()->json($res, 201);
+    }
+
+    // ------------------------------------------------------------ brand vault
+
+    public function brandVault(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $ownerId = $user->teamOwnerId();
+        $vault = ClientBrandVault::firstOrCreate(
+            ['user_id' => $ownerId],
+            [
+                'brand_name' => $user->company ?: $user->name,
+                'website' => null,
+                'brand_colors' => ['primary' => '#6366f1', 'secondary' => '#ec4899', 'accent' => '#10b981', 'bg' => '#0f172a'],
+                'guidelines_markdown' => '',
+                'talking_points' => [],
+                'dos_and_donts' => ['dos' => [], 'donts' => []],
+                'utm_params' => ['utm_source' => 'tech-unicorn', 'utm_medium' => 'creator-partnership'],
+            ]
+        );
+
+        return response()->json(['vault' => $vault->toResponse()]);
+    }
+
+    public function saveBrandVault(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $ownerId = $user->teamOwnerId();
+        $vault = ClientBrandVault::firstOrCreate(['user_id' => $ownerId]);
+
+        $data = $request->validate([
+            'brand_name' => 'nullable|string|max:150',
+            'website' => 'nullable|url|max:255',
+            'brand_colors' => 'nullable|array',
+            'guidelines_markdown' => 'nullable|string|max:10000',
+            'talking_points' => 'nullable|array',
+            'dos_and_donts' => 'nullable|array',
+            'utm_params' => 'nullable|array',
+        ]);
+
+        $vault->update(array_filter([
+            'brand_name' => $data['brand_name'] ?? $vault->brand_name,
+            'website' => $data['website'] ?? $vault->website,
+            'brand_colors' => $data['brand_colors'] ?? $vault->brand_colors,
+            'guidelines_markdown' => $data['guidelines_markdown'] ?? $vault->guidelines_markdown,
+            'talking_points' => $data['talking_points'] ?? $vault->talking_points,
+            'dos_and_donts' => $data['dos_and_donts'] ?? $vault->dos_and_donts,
+            'utm_params' => $data['utm_params'] ?? $vault->utm_params,
+        ], fn ($v) => $v !== null));
+
+        Audit::log('brand_vault_updated', $user, $vault);
+
+        return response()->json(['message' => 'Brand Vault saved.', 'vault' => $vault->fresh()->toResponse()]);
     }
 
     // ------------------------------------------------------------ team

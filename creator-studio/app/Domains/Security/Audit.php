@@ -42,6 +42,10 @@ class Audit
         'automations_resumed' => 'Automations resumed',
         'team_member_added' => 'Teammate joined',
         'team_member_removed' => 'Teammate removed',
+        'contract_signed' => 'Agreement signed & verified',
+        'deliverable_annotated' => 'Deliverable feedback added',
+        'deliverable_resolved' => 'Deliverable revision resolved',
+        'brand_vault_updated' => 'Brand assets updated',
     ];
 
     public static function log(string $action, ?User $user = null, ?Model $subject = null, array $meta = []): void

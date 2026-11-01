@@ -136,6 +136,14 @@ Route::prefix('api')->group(function () {
         Route::post('requests/{deal}/files', [PortalController::class, 'uploadFile'])->whereNumber('deal')->middleware('throttle:30,10');
         Route::get('requests/{deal}/files/{file}', [PortalController::class, 'downloadFile'])->whereNumber(['deal', 'file']);
         Route::delete('requests/{deal}/files/{file}', [PortalController::class, 'deleteFile'])->whereNumber(['deal', 'file']);
+        Route::get('requests/{deal}/annotations', [PortalController::class, 'annotations'])->whereNumber('deal');
+        Route::post('requests/{deal}/annotations', [PortalController::class, 'addAnnotation'])->whereNumber('deal')->middleware('throttle:30,1');
+        Route::post('requests/{deal}/annotations/{annotation}/resolve', [PortalController::class, 'resolveAnnotation'])->whereNumber(['deal', 'annotation'])->middleware('throttle:30,1');
+        Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
+        Route::get('requests/{deal}/add-ons', [PortalController::class, 'addOns'])->whereNumber('deal');
+        Route::post('requests/{deal}/add-ons', [PortalController::class, 'applyAddOn'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::get('brand-vault', [PortalController::class, 'brandVault']);
+        Route::put('brand-vault', [PortalController::class, 'saveBrandVault'])->middleware('throttle:10,1');
         Route::get('calls/slots', [PortalController::class, 'slots']);
         Route::post('calls', [PortalController::class, 'bookCall'])->middleware('throttle:5,10');
         Route::middleware('ability:portal.billing')->group(function () {
@@ -168,6 +176,10 @@ Route::prefix('api')->group(function () {
         Route::post('deals/{deal}/files', [ClientsController::class, 'uploadFile']);
         Route::get('deals/{deal}/files/{file}', [ClientsController::class, 'downloadFile'])->whereNumber('file');
         Route::delete('deals/{deal}/files/{file}', [ClientsController::class, 'deleteFile'])->whereNumber('file');
+        Route::get('deals/{deal}/annotations', [ClientsController::class, 'annotations'])->whereNumber('deal');
+        Route::post('deals/{deal}/annotations', [ClientsController::class, 'addAnnotation'])->whereNumber('deal');
+        Route::post('deals/{deal}/annotations/{annotation}/resolve', [ClientsController::class, 'resolveAnnotation'])->whereNumber(['deal', 'annotation']);
+        Route::get('deals/{deal}/roi', [ClientsController::class, 'roi'])->whereNumber('deal');
         Route::delete('deals/{deal}/share-links', [ClientsController::class, 'revokeLinks']);
         Route::get('security/audit', [ClientsController::class, 'audit']);
         Route::post('deals/{deal}/messages', [ClientsController::class, 'sendMessage']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Deals\CallPrep;
+use App\Domains\Deals\ContractSigner;
 use App\Domains\Deals\PipelineInsights;
 use App\Domains\Deals\ProposalWriter;
 use App\Domains\Workflows\Engine;
@@ -69,14 +70,15 @@ class DealRoomController extends Controller
     public static function acceptDeal(Deal $deal, string $name): JsonResponse
     {
         if (! $deal->accepted_at) {
-            $before = array_search($deal->stage, Deal::STAGES, true);
-            $deal->update(['accepted_at' => now(), 'accepted_by' => $name, 'last_contacted_at' => now()]
-                + ($before !== false && $before < array_search('contracted', Deal::STAGES, true) ? ['stage' => 'contracted'] : []));
-            AgentEvent::log('lead', "{$deal->brand_name} accepted your proposal ({$name}).");
+            return ContractSigner::sign($deal, $name);
         }
 
-        return response()->json(['accepted_at' => $deal->accepted_at->toIso8601String(), 'accepted_by' => $deal->accepted_by,
-            'message' => 'Accepted. Thank you! '.explode(' ', Prompts::name())[0].' will be in touch about next steps.']);
+        return response()->json([
+            'accepted_at' => $deal->accepted_at->toIso8601String(),
+            'accepted_by' => $deal->accepted_by,
+            'signature_hash' => $deal->signature_hash,
+            'message' => 'Proposal is already signed and accepted.',
+        ]);
     }
 
     /** Pay the proposal's amount with Stripe Checkout (the webhook marks it paid). */

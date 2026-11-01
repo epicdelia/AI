@@ -66,6 +66,7 @@ const ROUTES = [
   { path: /^\/requests$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequests'), nav: '/requests' },
   { path: /^\/requests\/new$/, ability: 'portal.requests', render: lazy(page.client, 'renderNewRequest'), nav: '/requests/new' },
   { path: /^\/requests\/(\d+)$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequest'), nav: '/requests' },
+  { path: /^\/brand-vault$/, ability: 'portal.requests', render: lazy(page.client, 'renderBrandVault'), nav: '/brand-vault' },
   { path: /^\/billing$/, ability: 'portal.billing', render: lazy(page.client, 'renderBilling'), nav: '/billing' },
   { path: /^\/account$/, ability: 'account', render: lazy(page.account, 'renderAccount'), nav: '/account' },
   { path: /^\/clients$/, ability: 'clients.manage', render: lazy(page.clients, 'renderClients'), nav: '/clients' },

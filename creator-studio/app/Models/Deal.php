@@ -40,6 +40,7 @@ class Deal extends Model
     ];
 
     protected $fillable = [
+        'user_id',
         'brand_name',
         'contact_name',
         'contact_email',
@@ -81,6 +82,11 @@ class Deal extends Model
         'prep',
         'prep_at',
         'lost_reason',
+        'signature_hash',
+        'signer_ip',
+        'signer_user_agent',
+        'signer_email',
+        'add_ons',
     ];
 
     protected $hidden = ['kit_token', 'room_token'];
@@ -117,6 +123,7 @@ class Deal extends Model
             'approved_at' => 'datetime',
             'room_expires_at' => 'datetime',
             'kit_expires_at' => 'datetime',
+            'add_ons' => 'array',
         ];
     }
 
@@ -172,6 +179,11 @@ class Deal extends Model
     public function files(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Domains\Clients\Models\DealFile::class);
+    }
+
+    public function annotations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DeliverableAnnotation::class);
     }
 
     public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany

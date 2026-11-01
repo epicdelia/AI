@@ -14897,6 +14897,152 @@ a.landing-trusted-item:focus-visible {
   padding-top: 4px;
 }
 
+/* ---- Pricing Trust Ledger & Safe Payment Marks ---- */
+.ag-pt-ledger-card {
+  margin: 32px auto 0;
+  max-width: 720px;
+  width: 100%;
+  padding: 16px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ag-pt-note-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: center;
+}
+
+.ag-pt-note-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.ag-pt-note-text {
+  color: var(--ink);
+}
+
+.ag-pt-ledger-rule {
+  display: block;
+  width: 100%;
+  border-bottom: 1px dashed var(--line);
+}
+
+.ag-pt-ledger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ag-pt-pay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ag-pt-pay-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.ag-pt-pay-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ag-pay-mark {
+  height: 18px;
+  width: auto;
+  color: var(--ink);
+  transition: transform 0.18s ease;
+  vertical-align: middle;
+}
+
+.ag-pay-mark:hover {
+  transform: translateY(-2px);
+}
+
+.ag-pt-ledger-divider {
+  width: 1px;
+  height: 26px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.ag-pt-cloud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ag-pt-cloud-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.ag-pt-cloud-text {
+  margin: 0;
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+}
+
+.ag-pt-cloud-brand {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ag-pt-cloud-note {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  .ag-pt-ledger {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .ag-pt-ledger-divider {
+    display: none;
+  }
+  .ag-pt-pay {
+    justify-content: center;
+  }
+}
+
 .lp-note {
   display: flex;
   align-items: center;

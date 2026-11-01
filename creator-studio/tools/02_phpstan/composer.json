@@ -1,11 +1,11 @@
 {
-	"name": "systemsdk/docker-nginx-php-laravel-tools",
+	"name": "epicdelia/creator-studio",
 	"description": "",
 	"require": {
 		"php": "^8.5.0"
 	},
 	"require-dev": {
-		"larastan/larastan":  "3.10.*",
+		"larastan/larastan": "3.10.*",
 		"roave/security-advisories": "dev-latest"
 	},
 	"config": {

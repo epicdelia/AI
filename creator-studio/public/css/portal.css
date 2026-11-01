@@ -40,3 +40,7 @@ tr.clickable:hover td { background: var(--hover-line); }
   .client-msg { max-width: 100%; }
   .client-steps li { flex-basis: 45%; }
 }
+
+/* Landing footer: "For Delia with love" next to the copyright */
+.landing-footer-sub-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.landing-love-badge { margin: 0; }

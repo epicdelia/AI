@@ -1,9 +1,9 @@
 // Sign in (her and her clients), client sign-up, first-run setup, two-factor and password reset.
-// Personalised for Delia (@Tech.Unicorn) with love from Dempsey.
+// Clients use this page too, so it stays neutral: her love notes live in her dashboard.
 import { h, api, clear, field, formData } from '../core.js';
 import { icon, brandMark } from '../icons.js';
 import { themeSwitch } from '../theme.js';
-import { noteOfTheDay, setLove } from '../love.js';
+import { setLove } from '../love.js';
 
 const GOOGLE = '<svg width="20" height="20" viewBox="0 0 25 24" aria-hidden="true"><path d="M23 12.23c0-.86-.07-1.49-.23-2.14H12.72v3.9h5.9c-.12.97-.76 2.42-2.19 3.4l-.02.13 3.18 2.42.22.02C21.83 18.12 23 15.43 23 12.23Z" fill="#4285F4"/><path d="M12.71 22.5c2.9 0 5.32-.93 7.1-2.54l-3.38-2.57c-.9.62-2.12 1.05-3.72 1.05a6.45 6.45 0 0 1-6.09-4.36l-.13.01-3.3 2.51-.05.12a10.7 10.7 0 0 0 9.57 5.78Z" fill="#34A853"/><path d="M6.62 14.08A6.63 6.63 0 0 1 6.26 12c0-.72.13-1.42.35-2.08v-.14L3.25 7.24l-.1.05a10.5 10.5 0 0 0 0 9.42l3.47-2.63Z" fill="#FBBC05"/><path d="M12.71 5.56c2.01 0 3.37.85 4.15 1.56l3.02-2.89A10.36 10.36 0 0 0 12.71 1.5 10.7 10.7 0 0 0 3.14 7.29l3.47 2.63a6.48 6.48 0 0 1 6.1-4.36Z" fill="#EB4335"/></svg>';
 
@@ -412,7 +412,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
 
   updateView();
   setLove({ name: creatorName });
-  authLayout(root, container, { onBackToLanding, love: welcome?.love !== false });
+  authLayout(root, container, { onBackToLanding });
 }
 
 /** A client who hasn't opened the confirmation link yet: resend it, or sign out. */
@@ -442,8 +442,7 @@ export function renderTwoFactorSetup(root, user, { onDone, onLogout }) {
 }
 
 /** The boxed sign-in layout: header, the form side and the photo side. */
-function authLayout(root, content, { onBackToLanding = null, love = false } = {}) {
-  const note = love ? noteOfTheDay() : null;
+function authLayout(root, content, { onBackToLanding = null } = {}) {
 
   // Header with brand logo and light/dark switch
   const authHeader = h('header', { class: 'auth-header' },
@@ -461,26 +460,18 @@ function authLayout(root, content, { onBackToLanding = null, love = false } = {}
       themeSwitch()
     ));
 
-  // Right side: Full-height vertical Unsplash studio photography + anchored note of the day
+  // Right side: Full-height vertical Unsplash studio photography
   const authArt = h('aside', { class: 'auth-art', 'aria-hidden': 'true' },
     h('img', {
       class: 'auth-hero-img',
       src: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1000&h=1400&q=80',
       alt: 'Creator Studio Workspace',
       loading: 'eager',
-    }),
-    note ? h('figure', { class: 'auth-note' },
-      h('span', { class: 'auth-note-heart' }, icon('mail', 18)),
-      h('blockquote', {}, note),
-      h('figcaption', {}, 'Daily note from Dempsey')) : null);
+    }));
 
   const authBody = h('div', { class: 'auth-body' },
     h('main', { class: 'auth-side' },
-      content,
-      note ? h('p', { class: 'auth-note-mobile' }, icon('heart', 14), ' ', note) : null,
-      h('div', { class: 'auth-foot-wrap' },
-        h('span', { class: 'auth-couple-badge' }, icon('heart', 12), ' For Delia with love'),
-        h('p', { class: 'auth-foot muted small' }, 'Your studio runs on this server. Made with love for Delia.'))),
+      content),
     authArt);
 
   clear(root).append(h('div', { class: 'auth-page' }, h('div', { class: 'auth-box' }, authHeader, authBody)));

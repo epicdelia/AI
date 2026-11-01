@@ -1207,8 +1207,9 @@ export function renderLanding(view, options = {}) {
 
       // Subfooter Bar
       h('div', { class: 'landing-footer-sub' },
-        h('div', {},
-          h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.')),
+        h('div', { class: 'landing-footer-sub-left' },
+          h('span', {}, '© 2026 Tech Unicorn · Delia Lazarescu. All rights reserved.'),
+          h('span', { class: 'auth-couple-badge landing-love-badge' }, icon('heart', 12), ' For Delia with love')),
         h('div', { class: 'landing-footer-sub-right' },
           h('a', { href: '/links', class: 'landing-footer-sub-link' }, 'Links Hub'),
           h('a', { href: 'mailto:hello@thetechunicorn.com', class: 'landing-footer-sub-link' }, 'Contact'),

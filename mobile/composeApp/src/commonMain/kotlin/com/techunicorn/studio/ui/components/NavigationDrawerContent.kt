@@ -20,8 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.UserRole
 import com.techunicorn.studio.ui.navigation.StudioDestination
-import com.techunicorn.studio.ui.theme.StudioAccentDark
-import com.techunicorn.studio.ui.theme.StudioVioletDark
+import com.techunicorn.studio.ui.theme.*
 
 @Composable
 fun NavigationDrawerContent(
@@ -106,15 +105,11 @@ fun NavigationDrawerContent(
                     Box(
                         modifier = Modifier
                             .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(StudioAccentDark, StudioVioletDark)
-                                )
-                            ),
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(StudioCoral),
                         contentAlignment = Alignment.Center
                     ) {
-                        StudioLogo(size = 22.dp, useGradient = true)
+                        StudioLogo(size = 22.dp, tint = Color.White)
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {

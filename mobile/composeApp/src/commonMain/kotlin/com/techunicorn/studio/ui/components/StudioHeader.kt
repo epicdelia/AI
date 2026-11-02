@@ -113,16 +113,12 @@ fun StudioHeader(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(StudioAccentDark, StudioVioletDark)
-                                )
-                            )
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(StudioCoral)
                             .clickable { onAction(HeaderAction.Navigate(StudioDestination.Dashboard)) },
                         contentAlignment = Alignment.Center
                     ) {
-                        StudioLogo(size = 22.dp, useGradient = true)
+                        StudioLogo(size = 22.dp, tint = Color.White)
                     }
 
                     Spacer(Modifier.width(8.dp))
@@ -276,9 +272,9 @@ fun StudioHeader(
                                 .clip(CircleShape)
                                 .background(
                                     when (userRole) {
-                                        UserRole.STUDIO -> Brush.linearGradient(listOf(StudioCoral, StudioViolet))
-                                        UserRole.CLIENT -> Brush.linearGradient(listOf(StudioOcean, StudioViolet))
-                                        UserRole.PUBLIC -> Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.outline))
+                                        UserRole.STUDIO -> StudioCoral
+                                        UserRole.CLIENT -> StudioOcean
+                                        UserRole.PUBLIC -> MaterialTheme.colorScheme.surfaceVariant
                                     }
                                 )
                                 .clickable {

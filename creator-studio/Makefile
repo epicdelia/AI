@@ -88,7 +88,7 @@ git-clone:
 # ================== #
 #   DOCKER-COMPOSE   #
 # ================== #
-.PHONY: run stop remove
+.PHONY: run stop-legacy remove
 run:
 	@echo "=============================================================="
 	@echo " Task      : Docker Container "
@@ -97,7 +97,7 @@ run:
 	@./run-docker.sh
 	@echo '- DONE -'
 
-stop:
+stop-legacy:
 	@echo "=============================================================="
 	@echo " Task      : Stopping Docker Container "
 	@echo " Date/Time : `date`"
@@ -362,20 +362,20 @@ tf-infra-resource:
 
 # Determine if .env file exist
 ifneq ("$(wildcard .env)","")
-	include .env
+include .env
 endif
 
 ifndef INSIDE_DOCKER_CONTAINER
-	INSIDE_DOCKER_CONTAINER = 0
+INSIDE_DOCKER_CONTAINER = 0
 endif
 
 HOST_UID := $(shell id -u 2>/dev/null || echo 1000)
 ifeq ($(strip $(HOST_UID)),)
-	HOST_UID := 1000
+HOST_UID := 1000
 endif
 HOST_GID := $(shell id -g 2>/dev/null || echo 1000)
 ifeq ($(strip $(HOST_GID)),)
-	HOST_GID := 1000
+HOST_GID := 1000
 endif
 PHP_USER := -u www-data
 PROJECT_NAME := -p ${COMPOSE_PROJECT_NAME}
@@ -383,11 +383,11 @@ INTERACTIVE := $(shell [ -t 0 ] && echo 1)
 ERROR_ONLY_FOR_HOST = @printf "\033[33mThis command for host machine\033[39m\n"
 .DEFAULT_GOAL := help
 ifneq ($(INTERACTIVE), 1)
-	OPTION_T := -T
+OPTION_T := -T
 endif
 ifeq ($(GITLAB_CI), 1)
-	# Determine additional params for phpunit in order to generate coverage badge on GitLabCI side
-	PHPUNIT_OPTIONS := --coverage-text --colors=never
+# Determine additional params for phpunit in order to generate coverage badge on GitLabCI side
+PHPUNIT_OPTIONS := --coverage-text --colors=never
 endif
 
 help: ## Show available commands and their descriptions

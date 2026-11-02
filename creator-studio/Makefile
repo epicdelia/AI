@@ -701,7 +701,7 @@ phpmd: ## Run PHP Mess Detector
 phpstan: ## Run PHPStan static analysis
 ifeq ($(INSIDE_DOCKER_CONTAINER), 1)
 	@echo "\033[32mRunning PHPStan - PHP Static Analysis Tool\033[39m"
-	@php artisan cache:clear --env=test
+	-@php artisan cache:clear --env=test 2>/dev/null || true
 	@./vendor/bin/phpstan --version
 	@./vendor/bin/phpstan analyze app tests
 else

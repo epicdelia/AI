@@ -265,6 +265,12 @@ jobs:
       - name: Start Test Environment Containers
         run: make start-test
 
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Database Migrations
+        run: make drop-migrate
+
       - name: Composer Security Vulnerability Audit
         run: make composer-audit
 

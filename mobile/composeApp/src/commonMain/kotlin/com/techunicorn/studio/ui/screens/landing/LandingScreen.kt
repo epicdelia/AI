@@ -190,97 +190,25 @@ fun LandingScreen(
         }
 
         // ==========================================
-        // 3. TRUSTED BY / MARQUEE
+        // 3. ABOUT SECTION (<section class="landing-section landing-about" id="about">)
         // ==========================================
         item {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "TRUSTED BY FOUNDERS & DEVELOPERS AT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.sp
-                )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    val partners = listOf("Google", "Nomad Cruise", "Cursor", "Supabase", "JetBrains", "Vercel", "Stripe", "Cloud Run")
-                    partners.forEach { partner ->
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Text(
-                                partner,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+            LandingAboutSection(
+                onBookIntroCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
+                },
+                onReadStory = {
+                    // Open LinkedIn / Story
+                },
+                onFactClick = { factKey ->
+                    if (factKey == "countries") isDepositView = false
                 }
-            }
+            )
         }
 
         // ==========================================
-        // 4. ABOUT & SYSTEMS RIGOR PHILOSOPHY
-        // ==========================================
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    Text("01: THE PHILOSOPHY", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Why Vibecoding with Systems Rigor Wins", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Traditional agencies spend months writing 80-page spec sheets before writing a single line of code. Meanwhile, amateur AI prompts result in unmaintainable spaghetti that crashes at 100 users.\n\n" +
-                        "At Tech Unicorn, I bridge the two worlds: autonomous AI tools for 10x iteration speed, backed by Google-grade systems engineering discipline — automated test coverage, strict database schemas, and zero vendor lock-in.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text("🛡️ Zero Technical Debt", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Spacer(Modifier.height(4.dp))
-                                Text("Strict static types, comprehensive unit tests, and production Docker containers.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text("🚀 Private Git Ownership", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Spacer(Modifier.height(4.dp))
-                                Text("Every commit pushed to your GitHub from Day 1. Full IP transfer with zero royalties.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // 5. 6 CORE SERVICES
+        // 4. 6 CORE SERVICES
         // ==========================================
         item {
             Column {

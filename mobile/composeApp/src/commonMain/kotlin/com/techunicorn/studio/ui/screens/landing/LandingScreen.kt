@@ -1,6 +1,7 @@
 package com.techunicorn.studio.ui.screens.landing
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,12 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.*
-import com.techunicorn.studio.ui.components.StudioLogo
+import com.techunicorn.studio.ui.components.*
 import com.techunicorn.studio.ui.theme.*
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -47,6 +49,7 @@ fun LandingScreen(
     var bookingEmail by remember { mutableStateOf("") }
     var bookingNotes by remember { mutableStateOf("") }
     var bookingConfirmed by remember { mutableStateOf(false) }
+    var activeVideoModal by remember { mutableStateOf<HeroMosaicVideo?>(null) }
 
     // Estimator state
     var selectedProjectType by remember { mutableStateOf(0) } // 0: MVP ($12,500), 1: AI Agent Pipeline ($8,500), 2: Backend Architecture ($9,500), 3: Advisory ($3,500)
@@ -94,11 +97,7 @@ fun LandingScreen(
                                 modifier = Modifier
                                     .size(42.dp)
                                     .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(StudioCoral, StudioViolet)
-                                        )
-                                    ),
+                                    .background(StudioCoral),
                                 contentAlignment = Alignment.Center
                             ) {
                                 StudioLogo(size = 24.dp, tint = Color.White)
@@ -132,7 +131,7 @@ fun LandingScreen(
                     }
 
                     Spacer(Modifier.height(12.dp))
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Spacer(Modifier.height(10.dp))
 
                     // Location & Live Status Pill
@@ -168,103 +167,26 @@ fun LandingScreen(
         }
 
         // ==========================================
-        // 2. HERO SECTION
+        // 2. HERO SECTION (<section class="landing-hero tu-hero-stage">)
         // ==========================================
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(StudioViolet.copy(alpha = 0.15f))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            "✨ AI-Augmented Software Studio",
-                            color = StudioViolet,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = "I build & ship production software with AI in weeks, not months.",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 34.sp
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "Ex-Google systems engineer & digital nomad building full-stack MVPs, autonomous agent pipelines, and high-concurrency cloud systems. Zero agency fluff, private GitHub commits from Day 1.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                selectedServiceForBooking = "Sprint MVP Build"
-                                showBookingDialog = true
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = StudioCoral),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Book Intro Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = onExploreSnippets,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Code Studio", fontSize = 13.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.height(20.dp))
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                    Spacer(Modifier.height(16.dp))
-
-                    // Social Proof Stats Grid
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text("472K+", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = StudioCoral)
-                            Text("Developer Reach", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Column {
-                            Text("2–4 Wks", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = StudioViolet)
-                            Text("MVP Turnaround", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Column {
-                            Text("100%", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = StudioEmerald)
-                            Text("IP Ownership", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Column {
-                            Text("69", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = StudioAmber)
-                            Text("Countries Nomad", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+            LandingHero(
+                onBookIntroCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
+                },
+                onWatchVideo = { video ->
+                    activeVideoModal = video
+                },
+                onSelectWorkOption = { opt ->
+                    selectedServiceForBooking = opt.title
+                    showBookingDialog = true
+                },
+                onOpenSocial = { /* Social deep-link */ },
+                onNavigateSection = { section ->
+                    if (section == "pricing") isDepositView = false
                 }
-            }
+            )
         }
 
         // ==========================================
@@ -633,7 +555,7 @@ fun LandingScreen(
                             (if (addVectorRag) 2000 else 0)
 
                     Spacer(Modifier.height(16.dp))
-                    Divider()
+                    HorizontalDivider()
                     Spacer(Modifier.height(12.dp))
 
                     Row(
@@ -993,7 +915,7 @@ fun LandingScreen(
                     )
 
                     Spacer(Modifier.height(16.dp))
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(12.dp))
 
                     Text("PORTAL ACCESS & MODES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1017,7 +939,7 @@ fun LandingScreen(
                     }
 
                     Spacer(Modifier.height(16.dp))
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(12.dp))
 
                     Text("EU LEGAL & COMPLIANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1140,6 +1062,101 @@ fun LandingScreen(
                     }
                 }
             }
+        )
+    }
+
+    // FEATURED / MOSAIC VIDEO PREVIEW DIALOG
+    if (activeVideoModal != null) {
+        val video = activeVideoModal!!
+        AlertDialog(
+            onDismissRequest = { activeVideoModal = null },
+            confirmButton = {
+                Button(
+                    onClick = { activeVideoModal = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = StudioCoral),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Close", fontWeight = FontWeight.Bold)
+                }
+            },
+            title = {
+                Text(
+                    text = video.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF1E212B),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Surface(
+                                shape = CircleShape,
+                                color = StudioCoral,
+                                modifier = Modifier.size(46.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = "Playing",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.Black.copy(alpha = 0.8f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    video.duration,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = video.views,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = StudioCoral
+                        )
+                        Text(
+                            text = "Ex-Google Software Engineer",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Text(
+                        text = "YouTube ID: ${video.id} • Delia Lazarescu (@Tech.Unicorn)",
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

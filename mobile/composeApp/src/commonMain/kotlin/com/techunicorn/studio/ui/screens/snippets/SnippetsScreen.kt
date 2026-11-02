@@ -228,3 +228,4 @@ println("Verdict: ${'$'}{verdict.score}/100")"""
         }
     }
 }
+

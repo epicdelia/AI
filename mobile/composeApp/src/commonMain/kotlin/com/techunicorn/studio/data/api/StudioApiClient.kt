@@ -387,7 +387,13 @@ $rawText
                 paymentStatus = "paid",
                 deliverables = listOf("Core LLM pipeline", "GitHub webhook listener", "Stripe billing integration"),
                 annotations = listOf(
-                    DeliverableAnnotation(1, "02:15", "Sarah (CTO)", "Can we add support for GitLab PRs as well as GitHub?", false),
+                    DeliverableAnnotation(
+                        1,
+                        "02:15",
+                        "Sarah (CTO)",
+                        "Can we add support for GitLab PRs as well as GitHub?",
+                        false
+                    ),
                     DeliverableAnnotation(2, "04:30", "Delia", "Added GitLab OAuth in the latest build commit.", true)
                 )
             ),
@@ -426,7 +432,12 @@ $rawText
                     name = "Growth Cascade",
                     amount = 12000.0,
                     summary = "60-second video + multi-platform syndication across X, LinkedIn, and newsletter.",
-                    features = listOf("60s Dedicated Segment", "Dedicated X thread (47K views est.)", "LinkedIn Carousel post", "Newsletter banner"),
+                    features = listOf(
+                        "60s Dedicated Segment",
+                        "Dedicated X thread (47K views est.)",
+                        "LinkedIn Carousel post",
+                        "Newsletter banner"
+                    ),
                     badge = "MOST POPULAR"
                 ),
                 DealTier(
@@ -434,7 +445,12 @@ $rawText
                     name = "Full Ecosystem Takeover",
                     amount = 18500.0,
                     summary = "Full dedicated 10-minute deep dive video + complete social campaign.",
-                    features = listOf("10-minute Dedicated Video", "Full GitHub open-source sample", "Keynote mention", "30-day exclusive category sponsorship")
+                    features = listOf(
+                        "10-minute Dedicated Video",
+                        "Full GitHub open-source sample",
+                        "Keynote mention",
+                        "30-day exclusive category sponsorship"
+                    )
                 )
             ),
             acceptedAt = null,

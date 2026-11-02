@@ -35,6 +35,12 @@ print_line2() {
   echo "-------------------------------------------------------------------------------------"
 }
 
+logo() {
+  echo "$COL_BLUE=====================================================================================$COL_END"
+  echo "$COL_GREEN  $TITLE v$VER$COL_END"
+  echo "$COL_BLUE=====================================================================================$COL_END"
+}
+
 header() {
   logo
   print_line0
@@ -51,10 +57,11 @@ footer() {
 }
 
 skip_exists() {
-  if [[ -f "$1" ]]; then
-    echo ">> Skip for existing file $1 ..."
+  REPO_NAME=$(basename "$1" .git)
+  if [ -d "$REPO_NAME" ]; then
+    echo ">> Skip for existing module $REPO_NAME ..."
   else
-    git clone --depth 1 $1
+    git clone --depth 1 "$1"
   fi
 }
 
@@ -63,14 +70,15 @@ submodule_terrafom() {
   get_time
   echo "$COL_BLUE[ $DATE ] ##### Download Community Submodule(s): $COL_END"
 
-  cd $PATH_MODULES
-  while IFS= read line; do
+  mkdir -p "$PATH_MODULES"
+  cd "$PATH_MODULES"
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -z "$line" ] && continue
     get_time
     print_line2
-    echo "$COL_GREEN[ $DATE ]       git clone --depth 1 $line $COL_END"
+    echo "$COL_GREEN[ $DATE ]       Module: $line $COL_END"
     print_line2
-    # skip_exists $line
-    git clone --depth 1 $line
+    skip_exists "$line"
     echo ""
   done <"$SUBMODULE_TERRAFORM"
   echo '- DOWNLOAD DONE -'

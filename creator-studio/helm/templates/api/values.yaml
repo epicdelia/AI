@@ -90,6 +90,10 @@ application:
           key: password
           name: test-secret
 
+envFrom:
+  enabled: false
+  envFrom: []
+
 resources:
   limits:
     cpu: 100m

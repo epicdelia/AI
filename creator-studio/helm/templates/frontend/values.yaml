@@ -83,6 +83,10 @@ application:
     - name: TOKEN_EXPIRE_HOUR
       value: "1"
 
+envFrom:
+  enabled: false
+  envFrom: []
+
 resources:
   limits:
     cpu: 100m

@@ -101,6 +101,10 @@ application:
     - name: DB_CONN_LIFETIME
       value: "600"
 
+envFrom:
+  enabled: false
+  envFrom: []
+
 resources:
   limits:
     cpu: 100m

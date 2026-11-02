@@ -16,6 +16,9 @@ use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
 use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
 use App\Domains\Agents\Verification\FactCheckShield;
 use App\Domains\Agents\YouTube\TitleBanditOptimizer;
+use App\Domains\Agents\Monetization\SponsorRevenueArchitect;
+use App\Domains\Agents\Arbitrage\RepurposingArbitrageEngine;
+use App\Domains\Agents\Infra\StudioInfraGuardian;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Social\SocialScheduler;
@@ -235,6 +238,40 @@ class ToolRegistry
                     ],
                 ],
             ],
+            [
+                'name' => 'architect_sponsor_placement',
+                'description' => 'Monetization & Retention Architect: optimize mid-roll sponsored segment timestamp, organic segue line, and CPM yield.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['script_text'],
+                    'properties' => [
+                        'script_text' => ['type' => 'string', 'description' => 'Full script or outline text.'],
+                        'brand' => ['type' => 'string', 'description' => 'Sponsor brand name.'],
+                        'base_cpm' => ['type' => 'number', 'description' => 'Expected CPM rate.'],
+                        'projected_views' => ['type' => 'integer', 'description' => 'Projected views for the video.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'calculate_repurposing_arbitrage',
+                'description' => 'Multi-Platform Reach Arbitrage: adapt core script/post into 4 native high-retention social formats with viral velocity scores.',
+                'parameters' => [
+                    'type' => 'object',
+                    'required' => ['content'],
+                    'properties' => [
+                        'content' => ['type' => 'string', 'description' => 'Source script or thought leadership text.'],
+                        'niche' => ['type' => 'string', 'description' => 'Target niche domain.'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'inspect_infra_health',
+                'description' => 'Infra Guardian: audit status across database, cache, storage, terraform modules, and helm templates.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [],
+                ],
+            ],
         ];
     }
 
@@ -266,6 +303,9 @@ class ToolRegistry
             'recycle_evergreen_content' => $this->recycleEvergreenContent($args),
             'shield_platform_algorithm' => $this->shieldPlatformAlgorithm($args),
             'orchestrate_weekly_sprint' => $this->orchestrateWeeklySprint($args),
+            'architect_sponsor_placement' => $this->architectSponsorPlacement($args),
+            'calculate_repurposing_arbitrage' => $this->calculateRepurposingArbitrage($args),
+            'inspect_infra_health' => $this->inspectInfraHealth($args),
             default => throw new \InvalidArgumentException("Unknown tool: {$name}"),
         };
     }
@@ -404,5 +444,22 @@ class ToolRegistry
     {
         $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
         return app(SprintOrchestrator::class)->planSprint($agent, $args);
+    }
+
+    public function architectSponsorPlacement(array $args): array
+    {
+        $scriptText = $args['script_text'] ?? '';
+        return app(SponsorRevenueArchitect::class)->architect($scriptText, $args);
+    }
+
+    public function calculateRepurposingArbitrage(array $args): array
+    {
+        $content = $args['content'] ?? '';
+        return app(RepurposingArbitrageEngine::class)->synthesize($content, $args);
+    }
+
+    public function inspectInfraHealth(array $args = []): array
+    {
+        return app(StudioInfraGuardian::class)->audit();
     }
 }

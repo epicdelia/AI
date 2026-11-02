@@ -115,6 +115,10 @@ application:
     - name: HELM_TEMPLATE_NAME
       value: stateful
 
+envFrom:
+  enabled: false
+  envFrom: []
+
 resources:
   limits:
     cpu: 100m

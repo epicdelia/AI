@@ -33,6 +33,9 @@ use App\Domains\Agents\Swarm\AgentSwarm;
 use App\Domains\Agents\TreeSearch\AgentTreeSearch;
 use App\Domains\Agents\Verification\FactCheckShield;
 use App\Domains\Agents\YouTube\TitleBanditOptimizer;
+use App\Domains\Agents\Monetization\SponsorRevenueArchitect;
+use App\Domains\Agents\Arbitrage\RepurposingArbitrageEngine;
+use App\Domains\Agents\Infra\StudioInfraGuardian;
 use App\Domains\Social\Connect\Connections;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\Social\Models\SocialPost;
@@ -825,6 +828,54 @@ class AgentsController extends Controller
             'message' => 'Weekly production sprint roadmap generated.',
             'result' => $result,
         ]);
+    }
+
+    public function architectSponsorPlacement(Request $request, SocialAgent $agent, SponsorRevenueArchitect $architect): JsonResponse
+    {
+        @set_time_limit(300);
+        $data = $request->validate([
+            'script_text' => ['required', 'string', 'min:10', 'max:50000'],
+            'brand' => ['nullable', 'string', 'max:200'],
+            'talking_points' => ['nullable', 'string', 'max:1000'],
+            'base_cpm' => ['nullable', 'numeric', 'min:1', 'max:500'],
+            'projected_views' => ['nullable', 'integer', 'min:100', 'max:10000000'],
+        ]);
+
+        try {
+            $result = $architect->architect($data['script_text'], $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Sponsored segment integration & revenue yield calculated.',
+            'result' => $result,
+        ]);
+    }
+
+    public function repurposingArbitrage(Request $request, SocialAgent $agent, RepurposingArbitrageEngine $engine): JsonResponse
+    {
+        @set_time_limit(300);
+        $data = $request->validate([
+            'content' => ['required', 'string', 'min:10', 'max:50000'],
+            'niche' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        try {
+            $result = $engine->synthesize($data['content'], $data);
+        } catch (Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Multi-platform reach arbitrage synthesis generated.',
+            'result' => $result,
+        ]);
+    }
+
+    public function infraHealth(StudioInfraGuardian $guardian): JsonResponse
+    {
+        return response()->json($guardian->audit());
     }
 
     /** Approve (optionally with her edits): it's scheduled at its slot. */

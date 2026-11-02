@@ -13,7 +13,7 @@ export MYSQL_PORT=33061
 export PATH_APP=`pwd`
 export PATH_WORKSPACE="src"
 export PATH_SCRIPT="scripts"
-export PATH_HELM="helm/Chart"
+export PATH_HELM="helm/templates"
 export PATH_COMPOSE="."
 export PATH_DOCKER="."
 export PROJECT_NAME="infra-laravel-deployment"
@@ -215,6 +215,57 @@ helm-push-lab:
 	@echo "=============================================================="
 	@cd ${PATH_HELM} && ./helm-push-lab.sh
 	@echo '- DONE -'
+
+# ================================= #
+#   INFRASTRUCTURE VALIDATION SUITE #
+# ================================= #
+.PHONY: tf-init-all tf-validate-all helm-lint-all helm-template-all test-high-roi verify-all
+
+tf-init-all: ## Initialize all Terraform stacks with submodules
+	@echo "=== Initializing Terraform Stacks ==="
+	@cd $(PATH_APP)/terraform/environment/providers/aws/infra/core && terraform init -backend=false $(ARGS)
+	@cd $(PATH_APP)/terraform/environment/providers/aws/infra/tfstate && terraform init -backend=false $(ARGS)
+	@cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/budget && terraform init -backend=false $(ARGS)
+	@cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/rds/laraveldb && terraform init -backend=false $(ARGS)
+	@cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/eks && terraform init -backend=false $(ARGS)
+	@echo "All Terraform stacks initialized successfully."
+
+tf-validate-all: ## Validate all Terraform configuration syntax and providers
+	@echo "=== Validating Terraform Stacks ==="
+	@echo "1/5 Validating Core..." && cd $(PATH_APP)/terraform/environment/providers/aws/infra/core && terraform validate
+	@echo "2/5 Validating Tfstate..." && cd $(PATH_APP)/terraform/environment/providers/aws/infra/tfstate && terraform validate
+	@echo "3/5 Validating Budget..." && cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/budget && terraform validate
+	@echo "4/5 Validating RDS LaravelDB..." && cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/rds/laraveldb && terraform validate
+	@echo "5/5 Validating EKS..." && cd $(PATH_APP)/terraform/environment/providers/aws/infra/resources/eks && terraform validate
+	@echo "All Terraform configurations are VALID!"
+
+helm-lint-all: ## Lint all 16 Helm charts (templates and stateful/others)
+	@echo "=== Linting Helm Charts ==="
+	@for chart in api backend configmap frontend secretref stateful svcrole; do \
+		echo "Linting template $$chart..."; \
+		helm lint $(PATH_APP)/helm/templates/$$chart || exit 1; \
+	done
+	@for chart in stateful/mariadb stateful/mysql stateful/postgresql stateful/redis others/nginx others/nginx-ingress-controller others/node-exporter others/kube-state-metrics others/kube-prometheus; do \
+		echo "Linting chart $$chart..."; \
+		helm lint $(PATH_APP)/helm/charts/$$chart || exit 1; \
+	done
+	@echo "All Helm charts linted successfully with 0 errors!"
+
+helm-template-all: ## Dry-run render templates across all microservice charts
+	@echo "=== Testing Helm Template Rendering ==="
+	@for chart in api backend configmap frontend secretref stateful svcrole; do \
+		echo "Rendering template $$chart..."; \
+		helm template $$chart $(PATH_APP)/helm/templates/$$chart > /dev/null || exit 1; \
+	done
+	@echo "All Helm template renderings succeeded!"
+
+test-high-roi: ## Run High ROI Features Feature Tests
+	@php artisan test tests/Feature/HighRoiFeaturesTest.php
+
+verify-all: sub-all tf-init-all tf-validate-all helm-lint-all helm-template-all test-high-roi ## Run full end-to-end verification suite
+	@echo "=============================================================="
+	@echo " ✨ CREATOR STUDIO VERIFICATION COMPLETE: ALL SYSTEMS GO! ✨ "
+	@echo "=============================================================="
 
 # =========================== #
 #   PROVISIONING INFRA CORE   #

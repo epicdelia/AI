@@ -34,11 +34,11 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.application.enabled }}
+          {{- if and .Values.application .Values.application.enabled }}
           env:
             {{- toYaml .Values.application.env | nindent 12 }}
           {{- end }}
-          {{- if .Values.envFrom.enabled }}
+          {{- if and .Values.envFrom .Values.envFrom.enabled }}
           envFrom:
             {{- toYaml .Values.envFrom.envFrom | nindent 12 }}
           {{- end }}

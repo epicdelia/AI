@@ -21,14 +21,9 @@ locals {
 provider "aws" {
   region = var.aws_region
 
-  ## version >= 3.63.0, < 4.0
-  shared_credentials_file = "$HOME/.aws/creator/credentials"
-  profile                 = "creator"
-
   ## version >= 4.0
-  # shared_config_files      = ["$HOME/.aws/creator/config"]
-  # shared_credentials_files = ["$HOME/.aws/creator/credentials"]
-  # profile                  = "creator"
+  shared_credentials_files = ["$HOME/.aws/creator/credentials"]
+  profile                  = "creator"
 }
 
 # --------------------------------------------------------------------------

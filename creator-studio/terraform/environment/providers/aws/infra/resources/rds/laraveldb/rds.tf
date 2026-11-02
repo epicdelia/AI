@@ -114,7 +114,8 @@ module "db" {
   ## DB_PASSWORD (static)
   # password = "secret"
   ## DB_PASSWORD (random)
-  password = random_password.db_password.result
+  manage_master_user_password = false
+  password_wo                 = random_password.db_password.result
   ## DB_PORT
   port = "5432"
 

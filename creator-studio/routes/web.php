@@ -493,6 +493,9 @@ Route::prefix('api')->group(function () {
         Route::post('agents/{agent}/schedule-evergreen-reboot', [AgentsController::class, 'scheduleEvergreenReboot'])->where('agent', '[0-9]+|studio');
         Route::post('agents/{agent}/shield-algorithm', [AgentsController::class, 'shieldAlgorithm'])->where('agent', '[0-9]+|studio');
         Route::post('agents/{agent}/plan-sprint', [AgentsController::class, 'planSprint'])->where('agent', '[0-9]+|studio');
+        Route::post('agents/{agent}/architect-sponsor-placement', [AgentsController::class, 'architectSponsorPlacement'])->where('agent', '[0-9]+|studio');
+        Route::post('agents/{agent}/repurposing-arbitrage', [AgentsController::class, 'repurposingArbitrage'])->where('agent', '[0-9]+|studio');
+        Route::get('studio/infra/health', [AgentsController::class, 'infraHealth']);
         Route::post('mcp', [AgentsController::class, 'mcp']);
         Route::get('mcp/tools', [AgentsController::class, 'mcpTools']);
 

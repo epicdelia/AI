@@ -62,7 +62,7 @@ variable "retention_db" {
 }
 
 variable "vpc_list" {
-  type = list(string)
+  type = map(string)
   ## VPC Lab, Staging, Prod
   default = {
     lab     = "vpc-1234567890"

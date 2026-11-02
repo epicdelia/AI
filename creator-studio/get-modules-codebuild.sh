@@ -38,6 +38,12 @@ print_line2() {
   echo "-------------------------------------------------------------------------------------"
 }
 
+logo() {
+  echo "$COL_BLUE=====================================================================================$COL_END"
+  echo "$COL_GREEN  $TITLE v$VER$COL_END"
+  echo "$COL_BLUE=====================================================================================$COL_END"
+}
+
 header() {
   logo
   print_line0
@@ -54,10 +60,11 @@ footer() {
 }
 
 skip_exists() {
-  if [[ -f "$1" ]]; then
-    echo ">> Skip for existing file $1 ..."
+  REPO_NAME=$(basename "$1" .git)
+  if [ -d "$REPO_NAME" ]; then
+    echo ">> Skip for existing module $REPO_NAME ..."
   else
-    git clone --depth 1 $1
+    git clone --depth 1 "$1"
   fi
 }
 

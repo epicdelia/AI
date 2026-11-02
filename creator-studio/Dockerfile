@@ -31,6 +31,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
       procps \
       nano \
       git \
+      make \
+      curl \
+      ca-certificates \
       unzip \
       libicu-dev \
       zlib1g-dev \
@@ -58,6 +61,19 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         $(debsecan --suite bookworm --format packages --only-fixed) \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# install terraform & helm for infra validation & deployment
+ARG TERRAFORM_VERSION=1.11.4
+ARG HELM_VERSION=v3.16.4
+RUN curl -fsSL -o /tmp/terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
+    && unzip -q /tmp/terraform.zip -d /usr/local/bin/ \
+    && rm -f /tmp/terraform.zip \
+    && chmod +x /usr/local/bin/terraform \
+    && curl -fsSL -o /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+    && tar -xzf /tmp/helm.tar.gz -C /tmp \
+    && mv /tmp/linux-amd64/helm /usr/local/bin/helm \
+    && rm -rf /tmp/helm.tar.gz /tmp/linux-amd64 \
+    && chmod +x /usr/local/bin/helm
 
 # Pull the PHP extension installer from the official image
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/

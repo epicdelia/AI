@@ -12,7 +12,9 @@ use App\Models\Script;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Memory: search across her own past work ("have I made this before?"). */
+/**
+ * Memory: search across her own past work ("have I made this before?").
+ */
 class MemoryController extends Controller
 {
     private const TYPES = ['script', 'transcript', 'document', 'note', 'idea'];
@@ -24,12 +26,16 @@ class MemoryController extends Controller
             'types' => 'nullable|string|max:100',
             'limit' => 'nullable|integer|min:1|max:20',
         ]);
-        $types = array_values(array_intersect(self::TYPES, explode(',', (string) ($data['types'] ?? ''))));
-        $hits = $memory->search($data['q'], (int) ($data['limit'] ?? 8), $types);
+        $types = array_values(array_intersect(self::TYPES, explode(',', (string)($data['types'] ?? ''))));
+        $hits = $memory->search($data['q'], (int)($data['limit'] ?? 8), $types);
 
-        return response()->json(['results' => array_map(fn ($h) => $h + ['link' => self::link($h)] + [
-            'excerpt' => self::excerpt($h['content'], $data['q']),
-        ], $hits)]);
+        return response()->json([
+            'results' => array_map(fn ($h) => $h + [
+                'link' => self::link($h),
+            ] + [
+                'excerpt' => self::excerpt($h['content'], $data['q']),
+            ], $hits),
+        ]);
     }
 
     public function status(): JsonResponse
@@ -51,10 +57,14 @@ class MemoryController extends Controller
         }
         $n = $memory->reindexAll();
 
-        return response()->json(['message' => "Memory updated: {$n} chunk(s) indexed."] + $this->status()->getData(true));
+        return response()->json([
+            'message' => "Memory updated: {$n} chunk(s) indexed.",
+        ] + $this->status()->getData(true));
     }
 
-    /** Where in the app a hit lives. */
+    /**
+     * Where in the app a hit lives.
+     */
     private static function link(array $hit): ?string
     {
         return match ($hit['source_type']) {
@@ -66,7 +76,9 @@ class MemoryController extends Controller
         };
     }
 
-    /** ~280 characters around the first matching term. */
+    /**
+     * ~280 characters around the first matching term.
+     */
     private static function excerpt(string $content, string $query): string
     {
         $pos = null;
@@ -78,6 +90,6 @@ class MemoryController extends Controller
         }
         $start = max(0, ($pos ?? 0) - 100);
 
-        return ($start > 0 ? '…' : '').trim(mb_substr($content, $start, 280)).(mb_strlen($content) > $start + 280 ? '…' : '');
+        return ($start > 0 ? '…' : '') . trim(mb_substr($content, $start, 280)) . (mb_strlen($content) > $start + 280 ? '…' : '');
     }
 }

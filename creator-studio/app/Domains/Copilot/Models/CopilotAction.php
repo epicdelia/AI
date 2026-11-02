@@ -10,6 +10,9 @@ class CopilotAction extends Model
 
     protected function casts(): array
     {
-        return ['args' => 'array', 'result' => 'array'];
+        return [
+            'args' => 'array',
+            'result' => 'array',
+        ];
     }
 }

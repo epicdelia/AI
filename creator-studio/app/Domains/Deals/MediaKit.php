@@ -91,16 +91,40 @@ class MediaKit
                 ],
                 'demographics' => [
                     'professions' => [
-                        ['label' => 'Software Engineers & Developers', 'pct' => 54],
-                        ['label' => 'Tech Leads, Architects & Founders', 'pct' => 22],
-                        ['label' => 'Data & AI Practitioners', 'pct' => 14],
-                        ['label' => 'Students & Career Switchers', 'pct' => 10],
+                        [
+                            'label' => 'Software Engineers & Developers',
+                            'pct' => 54,
+                        ],
+                        [
+                            'label' => 'Tech Leads, Architects & Founders',
+                            'pct' => 22,
+                        ],
+                        [
+                            'label' => 'Data & AI Practitioners',
+                            'pct' => 14,
+                        ],
+                        [
+                            'label' => 'Students & Career Switchers',
+                            'pct' => 10,
+                        ],
                     ],
                     'geography' => [
-                        ['country' => 'United States', 'pct' => 45],
-                        ['country' => 'United Kingdom & Europe', 'pct' => 26],
-                        ['country' => 'Canada', 'pct' => 15],
-                        ['country' => 'Australia & Other', 'pct' => 14],
+                        [
+                            'country' => 'United States',
+                            'pct' => 45,
+                        ],
+                        [
+                            'country' => 'United Kingdom & Europe',
+                            'pct' => 26,
+                        ],
+                        [
+                            'country' => 'Canada',
+                            'pct' => 15,
+                        ],
+                        [
+                            'country' => 'Australia & Other',
+                            'pct' => 14,
+                        ],
                     ],
                     'age_bracket' => '84% between 21 – 35 years old',
                 ],

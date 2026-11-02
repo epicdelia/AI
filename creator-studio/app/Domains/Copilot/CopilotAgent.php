@@ -24,7 +24,11 @@ class CopilotAgent
 
     public const HISTORY = 40; // most recent transcript rows sent back to the model
 
-    public function __construct(private Llm $llm, private CopilotTools $tools) {}
+    public function __construct(
+        private Llm $llm,
+        private CopilotTools $tools
+    ) {
+    }
 
     /**
      * @param  array{path?: string, page?: string, script_id?: int, title?: string, selection?: string}  $context
@@ -35,14 +39,25 @@ class CopilotAgent
     {
         $userText = $content;
         foreach ($attachments as $f) {
-            $userText .= "\n\n--- Attached file: {$f['name']} ---\n".mb_substr($f['text'], 0, 60000);
+            $userText .= "\n\n--- Attached file: {$f['name']} ---\n" . mb_substr($f['text'], 0, 60000);
         }
-        $user = $thread->messages()->create(['role' => 'user', 'content' => $userText, 'meta' => [
-            'shown' => $content, 'context' => $context, 'attachments' => array_map(fn ($f) => ['name' => $f['name'], 'chars' => mb_strlen($f['text'])], $attachments),
-        ]]);
-        $sse->emit('message', (string) $user->id);
+        $user = $thread->messages()->create([
+            'role' => 'user',
+            'content' => $userText,
+            'meta' => [
+                'shown' => $content,
+                'context' => $context,
+                'attachments' => array_map(fn ($f) => [
+                    'name' => $f['name'],
+                    'chars' => mb_strlen($f['text']),
+                ], $attachments),
+            ],
+        ]);
+        $sse->emit('message', (string)$user->id);
         if ($thread->title === 'New chat') {
-            $thread->update(['title' => mb_strimwidth(preg_replace('/\s+/', ' ', $content), 0, 60, '…') ?: 'New chat']);
+            $thread->update([
+                'title' => mb_strimwidth(preg_replace('/\s+/', ' ', $content), 0, 60, '…') ?: 'New chat',
+            ]);
         }
 
         $llm = $this->llm->as('copilot')->model($thread->model);
@@ -52,15 +67,26 @@ class CopilotAgent
         $final = null;
 
         for ($step = 0; $step < self::MAX_STEPS; $step++) {
-            $sse->emit('status', json_encode(['step' => $step === 0 ? 'thinking' : 'working']));
+            $sse->emit('status', json_encode([
+                'step' => $step === 0 ? 'thinking' : 'working',
+            ]));
             $turn = $llm->agentTurn($system, $this->transcript($thread), $step === self::MAX_STEPS - 1 ? [] : $defs);
 
-            if (! $turn->wantsTools()) {
-                $final = $thread->messages()->create(['role' => 'assistant', 'content' => $turn->text]);
+            if (!$turn->wantsTools()) {
+                $final = $thread->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $turn->text,
+                ]);
                 break;
             }
 
-            $thread->messages()->create(['role' => 'assistant', 'content' => $turn->text, 'meta' => ['tool_calls' => $turn->toolCalls]]);
+            $thread->messages()->create([
+                'role' => 'assistant',
+                'content' => $turn->text,
+                'meta' => [
+                    'tool_calls' => $turn->toolCalls,
+                ],
+            ]);
             if ($turn->text !== '') {
                 $sse->emit('note', json_encode($turn->text, JSON_UNESCAPED_UNICODE)); // the model's "I'll check..." aside
             }
@@ -68,8 +94,15 @@ class CopilotAgent
             foreach ($turn->toolCalls as $call) {
                 $name = $call['name'];
                 $kind = CopilotTools::kind($name);
-                $step_ = ['id' => $call['id'], 'name' => $name, 'kind' => $kind, 'label' => CopilotTools::label($name, $call['args'])];
-                $sse->emit('tool', json_encode($step_ + ['status' => 'running'], JSON_UNESCAPED_UNICODE));
+                $step_ = [
+                    'id' => $call['id'],
+                    'name' => $name,
+                    'kind' => $kind,
+                    'label' => CopilotTools::label($name, $call['args']),
+                ];
+                $sse->emit('tool', json_encode($step_ + [
+                    'status' => 'running',
+                ], JSON_UNESCAPED_UNICODE));
 
                 if ($kind === 'write' && $thread->mode !== 'agent') {
                     $result = 'ERROR: Ask mode can’t change anything. Explain what you would change instead.';
@@ -82,11 +115,14 @@ class CopilotAgent
                         $result = "Proposed to her as change #{$action->id} (\"{$action->summary}\"). It is NOT applied yet: she decides with the Apply button. Don't propose it again; tell her what you proposed.";
                         $status = 'proposed';
                     } catch (\Throwable $e) {
-                        $result = 'ERROR: '.$e->getMessage();
+                        $result = 'ERROR: ' . $e->getMessage();
                         $status = 'error';
                     }
                 } elseif ($kind === 'client') {
-                    $sse->emit('client', json_encode(['name' => $name, 'args' => $call['args']], JSON_UNESCAPED_UNICODE));
+                    $sse->emit('client', json_encode([
+                        'name' => $name,
+                        'args' => $call['args'],
+                    ], JSON_UNESCAPED_UNICODE));
                     $result = 'Done: the page was opened for her.';
                     $status = 'done';
                 } else {
@@ -94,21 +130,39 @@ class CopilotAgent
                     $status = str_starts_with($result, 'ERROR:') ? 'error' : 'done';
                 }
 
-                $thread->messages()->create(['role' => 'tool', 'content' => $result, 'meta' => ['tool_call_id' => $call['id'], 'name' => $name, 'status' => $status]]);
-                $sse->emit('tool', json_encode($step_ + ['status' => $status], JSON_UNESCAPED_UNICODE));
+                $thread->messages()->create([
+                    'role' => 'tool',
+                    'content' => $result,
+                    'meta' => [
+                        'tool_call_id' => $call['id'],
+                        'name' => $name,
+                        'status' => $status,
+                    ],
+                ]);
+                $sse->emit('tool', json_encode($step_ + [
+                    'status' => $status,
+                ], JSON_UNESCAPED_UNICODE));
             }
         }
 
-        $final ??= $thread->messages()->create(['role' => 'assistant', 'content' => 'I took too many steps on that one. Here’s where I got to: try asking for one thing at a time.']);
-        foreach (self::chunks((string) $final->content) as $piece) {
+        $final ??= $thread->messages()->create([
+            'role' => 'assistant',
+            'content' => 'I took too many steps on that one. Here’s where I got to: try asking for one thing at a time.',
+        ]);
+        foreach (self::chunks((string)$final->content) as $piece) {
             $sse->chunk($piece);
         }
         $thread->touch();
 
-        return ['message' => $final, 'actions' => $actions];
+        return [
+            'message' => $final,
+            'actions' => $actions,
+        ];
     }
 
-    /** Stored rows → the provider-neutral transcript for EngineDriver::toolChat. */
+    /**
+     * Stored rows → the provider-neutral transcript for EngineDriver::toolChat.
+     */
     private function transcript(CopilotThread $thread): array
     {
         $rows = $thread->messages()->reorder()->orderByDesc('id')->take(self::HISTORY)->get()->reverse()->values();
@@ -118,9 +172,22 @@ class CopilotAgent
         }
 
         return $rows->map(fn (CopilotMessage $m) => match ($m->role) {
-            'tool' => ['role' => 'tool', 'tool_call_id' => $m->meta['tool_call_id'] ?? '', 'name' => $m->meta['name'] ?? '', 'content' => (string) $m->content],
-            'assistant' => ['role' => 'assistant', 'content' => (string) $m->content] + (! empty($m->meta['tool_calls']) ? ['tool_calls' => $m->meta['tool_calls']] : []),
-            default => ['role' => 'user', 'content' => (string) $m->content],
+            'tool' => [
+                'role' => 'tool',
+                'tool_call_id' => $m->meta['tool_call_id'] ?? '',
+                'name' => $m->meta['name'] ?? '',
+                'content' => (string)$m->content,
+            ],
+            'assistant' => [
+                'role' => 'assistant',
+                'content' => (string)$m->content,
+            ] + (!empty($m->meta['tool_calls']) ? [
+                'tool_calls' => $m->meta['tool_calls'],
+            ] : []),
+            default => [
+                'role' => 'user',
+                'content' => (string)$m->content,
+            ],
         })->all();
     }
 
@@ -128,20 +195,20 @@ class CopilotAgent
     {
         $name = Prompts::name();
         $page = '';
-        if (! empty($c['path'])) {
-            $page = "She is on the page {$c['path']}".(! empty($c['title']) ? " (\"{$c['title']}\")" : '').'.';
-            if (! empty($c['script_id']) && ($s = Script::find($c['script_id']))) {
+        if (!empty($c['path'])) {
+            $page = "She is on the page {$c['path']}" . (!empty($c['title']) ? " (\"{$c['title']}\")" : '') . '.';
+            if (!empty($c['script_id']) && ($s = Script::find($c['script_id']))) {
                 $page .= " It's script #{$s->id} \"{$s->title}\" ({$s->status}, {$s->wordCount()} words). Use get_script to read it.";
             }
         }
-        if (! empty($c['selection'])) {
-            $page .= "\nShe has selected this text (\"this\", \"it\" and \"the selection\" mean this):\n\"\"\"\n".mb_substr($c['selection'], 0, 6000)."\n\"\"\"";
+        if (!empty($c['selection'])) {
+            $page .= "\nShe has selected this text (\"this\", \"it\" and \"the selection\" mean this):\n\"\"\"\n" . mb_substr($c['selection'], 0, 6000) . "\n\"\"\"";
         }
         $mode = $thread->mode === 'agent'
-            ? "AGENT mode: you may propose changes with the edit/create/add/save tools. Proposals only run when she presses Apply, so never say a change is done; say what you proposed. For edits to selected text use edit_script with operation replace_text and find = the exact selection. Deals: update_deal, create_deal and write_proposal are proposals too."
+            ? 'AGENT mode: you may propose changes with the edit/create/add/save tools. Proposals only run when she presses Apply, so never say a change is done; say what you proposed. For edits to selected text use edit_script with operation replace_text and find = the exact selection. Deals: update_deal, create_deal and write_proposal are proposals too.'
             : 'ASK mode: answer and explain only. You cannot change anything; if a change would help, describe it.';
-        $mode .= "
-Her business: get_revenue_overview, list_follow_ups and draft_follow_up cover her website leads, pipeline and payments; nothing is ever emailed for her, she sends drafts herself. The AI check tools (retention, hooks, titles, reach, sponsor compliance, sprint, claims) return model estimates: present their scores as estimates, and prefer her own numbers when a tool includes them.";
+        $mode .= '
+Her business: get_revenue_overview, list_follow_ups and draft_follow_up cover her website leads, pipeline and payments; nothing is ever emailed for her, she sends drafts herself. The AI check tools (retention, hooks, titles, reach, sponsor compliance, sprint, claims) return model estimates: present their scores as estimates, and prefer her own numbers when a tool includes them.';
         $love = Setting::get('love_notes', '1') === '1' ? " She's loved: be warm with her." : '';
 
         return <<<TXT
@@ -172,7 +239,9 @@ TXT;
         return Prompts::profile();
     }
 
-    /** Split the final answer into word-sized pieces for the streaming panel. */
+    /**
+     * Split the final answer into word-sized pieces for the streaming panel.
+     */
     private static function chunks(string $text): array
     {
         return preg_split('/(?<=\s)/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [$text];

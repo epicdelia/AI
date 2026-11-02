@@ -20,7 +20,8 @@ class CompetitorReverseEngineer
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Reverse engineer an outlier breakout and generate 3 Blue Ocean angles.
@@ -48,13 +49,13 @@ class CompetitorReverseEngineer
     public function deconstruct(SocialAgent $agent, array $params): array
     {
         $outlier = null;
-        if (! empty($params['outlier_id'])) {
+        if (!empty($params['outlier_id'])) {
             $outlier = Outlier::with('channel')->find($params['outlier_id']);
         }
 
-        $title = $outlier?->title ?? trim((string) ($params['title'] ?? ''));
-        $competitor = $outlier?->channel?->title ?? $outlier?->channel_title ?? trim((string) ($params['competitor_name'] ?? 'Competitor Channel'));
-        $whyItWorked = $outlier?->why_it_worked ?? trim((string) ($params['why_it_worked'] ?? ''));
+        $title = $outlier?->title ?? trim((string)($params['title'] ?? ''));
+        $competitor = $outlier?->channel?->title ?? $outlier?->channel_title ?? trim((string)($params['competitor_name'] ?? 'Competitor Channel'));
+        $whyItWorked = $outlier?->why_it_worked ?? trim((string)($params['why_it_worked'] ?? ''));
         $multiplier = $outlier ? "{$outlier->outlier_score}x" : '3.5x';
 
         if (empty($title)) {
@@ -129,17 +130,17 @@ Return a valid JSON object matching this schema:
 SYS;
 
         $userPrompt = "Competitor Outlier Video:\n"
-            ."- Title: \"{$title}\"\n"
-            ."- Competitor: {$competitor}\n"
-            ."- Outlier Multiplier: {$multiplier}\n"
-            .($whyItWorked ? "- Why It Worked Note: {$whyItWorked}\n" : '');
+            . "- Title: \"{$title}\"\n"
+            . "- Competitor: {$competitor}\n"
+            . "- Outlier Multiplier: {$multiplier}\n"
+            . ($whyItWorked ? "- Why It Worked Note: {$whyItWorked}\n" : '');
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 800);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 800);
 
         try {
             $data = $this->llm->as('outlier-reverse-engineer')->creativity(0.5)->json($systemPrompt, $userPrompt);
 
-            if (! isset($data['blue_ocean_angles'], $data['actionable_concept'])) {
+            if (!isset($data['blue_ocean_angles'], $data['actionable_concept'])) {
                 throw new \RuntimeException('Incomplete outlier deconstruction response.');
             }
 
@@ -156,7 +157,7 @@ SYS;
                 'title' => $title,
                 'competitor' => $competitor,
                 'outlier_multiplier' => $multiplier,
-                'core_topic' => "Architectural trade-offs in modern backends",
+                'core_topic' => 'Architectural trade-offs in modern backends',
             ],
             'psychological_triggers' => [
                 'primary_trigger' => 'Dogma Challenge & Fatigue with Over-Engineering',
@@ -203,4 +204,3 @@ SYS;
         ];
     }
 }
-

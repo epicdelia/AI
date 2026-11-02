@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Media\MediaFile;
 use App\Domains\Social\Models\SocialAccount;
 use App\Domains\YouTube\AbTesting\BayesianAbOptimizer;
 use App\Domains\YouTube\PreFlight\AdSuitabilityShield;
@@ -10,7 +9,6 @@ use App\Domains\YouTube\PreFlight\AudioLoudnessAnalyzer;
 use App\Domains\YouTube\PreFlight\PreFlightSuite;
 use App\Domains\YouTube\VideoAbTest;
 use App\Domains\YouTube\VideoCheck;
-use App\Domains\YouTube\VideoUpload;
 use App\Models\Deal;
 use App\Models\Script;
 use App\Models\Setting;
@@ -160,8 +158,12 @@ class YouTubeStudioParityPhase1Test extends TestCase
         $optimizer = app(BayesianAbOptimizer::class);
 
         $test = $optimizer->startTest('yt_test_vid_123', 'Control Title A', null, [
-            ['title' => 'Challenger Title B'],
-            ['title' => 'Challenger Title C'],
+            [
+                'title' => 'Challenger Title B',
+            ],
+            [
+                'title' => 'Challenger Title C',
+            ],
         ]);
 
         $this->assertInstanceOf(VideoAbTest::class, $test);
@@ -177,13 +179,25 @@ class YouTubeStudioParityPhase1Test extends TestCase
         $optimizer = app(BayesianAbOptimizer::class);
 
         $test = $optimizer->startTest('yt_test_vid_456', 'Control A', null, [
-            ['title' => 'Challenger B'],
+            [
+                'title' => 'Challenger B',
+            ],
         ]);
 
         // Challenger B clearly outperforms Control A
         $updated = $optimizer->recordPerformance($test, [
-            ['variant_id' => 0, 'impressions' => 500, 'clicks' => 15, 'watch_time_sec' => 3000],  // 3% CTR
-            ['variant_id' => 1, 'impressions' => 500, 'clicks' => 65, 'watch_time_sec' => 18000], // 13% CTR
+            [
+                'variant_id' => 0,
+                'impressions' => 500,
+                'clicks' => 15,
+                'watch_time_sec' => 3000,
+            ],  // 3% CTR
+            [
+                'variant_id' => 1,
+                'impressions' => 500,
+                'clicks' => 65,
+                'watch_time_sec' => 18000,
+            ], // 13% CTR
         ]);
 
         $eval = $optimizer->evaluate($updated);
@@ -202,7 +216,9 @@ class YouTubeStudioParityPhase1Test extends TestCase
             'video_id' => 'yt_api_vid_789',
             'original_title' => 'Original Title A',
             'variants' => [
-                ['title' => 'Challenger Variant B'],
+                [
+                    'title' => 'Challenger Variant B',
+                ],
             ],
         ])->assertCreated();
 
@@ -212,8 +228,18 @@ class YouTubeStudioParityPhase1Test extends TestCase
         // 2. Ingest performance observations
         $resPerf = $this->postJson("/api/youtube/ab-tests/{$testId}/performance", [
             'observations' => [
-                ['variant_id' => 0, 'impressions' => 150, 'clicks' => 6, 'watch_time_sec' => 1000],
-                ['variant_id' => 1, 'impressions' => 150, 'clicks' => 18, 'watch_time_sec' => 3500],
+                [
+                    'variant_id' => 0,
+                    'impressions' => 150,
+                    'clicks' => 6,
+                    'watch_time_sec' => 1000,
+                ],
+                [
+                    'variant_id' => 1,
+                    'impressions' => 150,
+                    'clicks' => 18,
+                    'watch_time_sec' => 3500,
+                ],
             ],
         ])->assertOk();
 
@@ -223,7 +249,7 @@ class YouTubeStudioParityPhase1Test extends TestCase
         $this->postJson("/api/youtube/ab-tests/{$testId}/conclude", [
             'winner_index' => 1,
         ])->assertOk()->assertJsonPath('ab_test.status', 'concluded')
-          ->assertJsonPath('ab_test.winner_index', 1);
+            ->assertJsonPath('ab_test.winner_index', 1);
 
         // 4. Index endpoint lists checks and ab_tests
         $indexRes = $this->getJson('/api/youtube/studio')->assertOk();

@@ -2,23 +2,22 @@
 
 namespace App\Domains\Agents\Harness;
 
+use App\Domains\Agents\Arbitrage\RepurposingArbitrageEngine;
 use App\Domains\Agents\Cascade\TransmediaCascade;
 use App\Domains\Agents\Deals\BrandPitchSynthesizer;
 use App\Domains\Agents\Deals\DealFulfillmentGuardian;
 use App\Domains\Agents\Deals\SponsorNegotiator;
 use App\Domains\Agents\Engagement\LeadTriageAgent;
 use App\Domains\Agents\Guardrails\PlatformAlgorithmShield;
-use App\Domains\Agents\Harness\SprintOrchestrator;
 use App\Domains\Agents\Hooks\HookMatrixOptimizer;
+use App\Domains\Agents\Infra\StudioInfraGuardian;
 use App\Domains\Agents\Models\SocialAgent;
+use App\Domains\Agents\Monetization\SponsorRevenueArchitect;
 use App\Domains\Agents\Optimization\EvergreenRecycler;
 use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
 use App\Domains\Agents\Scripts\ScriptRetentionAuditor;
 use App\Domains\Agents\Verification\FactCheckShield;
 use App\Domains\Agents\YouTube\TitleBanditOptimizer;
-use App\Domains\Agents\Monetization\SponsorRevenueArchitect;
-use App\Domains\Agents\Arbitrage\RepurposingArbitrageEngine;
-use App\Domains\Agents\Infra\StudioInfraGuardian;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Social\SocialScheduler;
@@ -33,34 +32,71 @@ use Illuminate\Support\Collection;
  */
 class ToolRegistry
 {
-    /** @return array<int, array{name: string, description: string, parameters: array}> */
+    /**
+     * @return array<int, array{name: string, description: string, parameters: array}>
+     */
     public static function definitions(): array
     {
         return [
             [
                 'name' => 'fetch_breakouts',
                 'description' => 'Retrieve top recent competitor breakout videos and why they succeeded.',
-                'parameters' => ['type' => 'object', 'properties' => ['limit' => ['type' => 'integer', 'default' => 5]]],
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'limit' => [
+                            'type' => 'integer',
+                            'default' => 5,
+                        ],
+                    ],
+                ],
             ],
             [
                 'name' => 'fetch_news_feeds',
                 'description' => 'Retrieve fresh technical articles from creator RSS feeds.',
-                'parameters' => ['type' => 'object', 'properties' => ['limit' => ['type' => 'integer', 'default' => 5]]],
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'limit' => [
+                            'type' => 'integer',
+                            'default' => 5,
+                        ],
+                    ],
+                ],
             ],
             [
                 'name' => 'fetch_recent_scripts',
                 'description' => 'Retrieve the creator\'s recent YouTube video concepts and outlines.',
-                'parameters' => ['type' => 'object', 'properties' => ['limit' => ['type' => 'integer', 'default' => 3]]],
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'limit' => [
+                            'type' => 'integer',
+                            'default' => 3,
+                        ],
+                    ],
+                ],
             ],
             [
                 'name' => 'fetch_audience_asks',
                 'description' => 'Retrieve questions asked by followers in video comments.',
-                'parameters' => ['type' => 'object', 'properties' => ['limit' => ['type' => 'integer', 'default' => 3]]],
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'limit' => [
+                            'type' => 'integer',
+                            'default' => 3,
+                        ],
+                    ],
+                ],
             ],
             [
                 'name' => 'fetch_active_sponsors',
                 'description' => 'Retrieve active brand sponsorships with pending deliverables.',
-                'parameters' => ['type' => 'object', 'properties' => []],
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [],
+                ],
             ],
             [
                 'name' => 'find_optimal_slot',
@@ -68,7 +104,12 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'required' => ['platform'],
-                    'properties' => ['platform' => ['type' => 'string', 'enum' => ['linkedin', 'x', 'threads', 'instagram', 'tiktok', 'youtube']]],
+                    'properties' => [
+                        'platform' => [
+                            'type' => 'string',
+                            'enum' => ['linkedin', 'x', 'threads', 'instagram', 'tiktok', 'youtube'],
+                        ],
+                    ],
                 ],
             ],
             [
@@ -78,8 +119,14 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['inbound_text'],
                     'properties' => [
-                        'inbound_text' => ['type' => 'string', 'description' => 'Raw email text or DM pitch from the sponsor.'],
-                        'brand_name' => ['type' => 'string', 'description' => 'Optional brand name.'],
+                        'inbound_text' => [
+                            'type' => 'string',
+                            'description' => 'Raw email text or DM pitch from the sponsor.',
+                        ],
+                        'brand_name' => [
+                            'type' => 'string',
+                            'description' => 'Optional brand name.',
+                        ],
                     ],
                 ],
             ],
@@ -90,7 +137,10 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['topic'],
                     'properties' => [
-                        'topic' => ['type' => 'string', 'description' => 'Core technical topic or video title.'],
+                        'topic' => [
+                            'type' => 'string',
+                            'description' => 'Core technical topic or video title.',
+                        ],
                     ],
                 ],
             ],
@@ -101,8 +151,14 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['topic'],
                     'properties' => [
-                        'topic' => ['type' => 'string', 'description' => 'Subject or proposition to hook.'],
-                        'platform' => ['type' => 'string', 'default' => 'linkedin'],
+                        'topic' => [
+                            'type' => 'string',
+                            'description' => 'Subject or proposition to hook.',
+                        ],
+                        'platform' => [
+                            'type' => 'string',
+                            'default' => 'linkedin',
+                        ],
                     ],
                 ],
             ],
@@ -113,7 +169,10 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['text'],
                     'properties' => [
-                        'text' => ['type' => 'string', 'description' => 'Draft post text or script segment to verify.'],
+                        'text' => [
+                            'type' => 'string',
+                            'description' => 'Draft post text or script segment to verify.',
+                        ],
                     ],
                 ],
             ],
@@ -123,8 +182,14 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'outlier_id' => ['type' => 'integer', 'description' => 'Optional Outlier model ID.'],
-                        'title' => ['type' => 'string', 'description' => 'Outlier video title.'],
+                        'outlier_id' => [
+                            'type' => 'integer',
+                            'description' => 'Optional Outlier model ID.',
+                        ],
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Outlier video title.',
+                        ],
                     ],
                 ],
             ],
@@ -135,8 +200,14 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['topic'],
                     'properties' => [
-                        'topic' => ['type' => 'string', 'description' => 'Video topic or proposition.'],
-                        'video_id' => ['type' => 'string', 'description' => 'Optional YouTube video ID.'],
+                        'topic' => [
+                            'type' => 'string',
+                            'description' => 'Video topic or proposition.',
+                        ],
+                        'video_id' => [
+                            'type' => 'string',
+                            'description' => 'Optional YouTube video ID.',
+                        ],
                     ],
                 ],
             ],
@@ -146,7 +217,10 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'item_id' => ['type' => 'integer', 'description' => 'Optional EngagementItem ID to triage.'],
+                        'item_id' => [
+                            'type' => 'integer',
+                            'description' => 'Optional EngagementItem ID to triage.',
+                        ],
                     ],
                 ],
             ],
@@ -156,9 +230,18 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'script_id' => ['type' => 'integer', 'description' => 'Optional Script ID.'],
-                        'title' => ['type' => 'string', 'description' => 'Video title.'],
-                        'body' => ['type' => 'string', 'description' => 'Script outline or text.'],
+                        'script_id' => [
+                            'type' => 'integer',
+                            'description' => 'Optional Script ID.',
+                        ],
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Video title.',
+                        ],
+                        'body' => [
+                            'type' => 'string',
+                            'description' => 'Script outline or text.',
+                        ],
                     ],
                 ],
             ],
@@ -169,10 +252,22 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['content'],
                     'properties' => [
-                        'content' => ['type' => 'string', 'description' => 'Draft script or social post content.'],
-                        'deal_id' => ['type' => 'integer', 'description' => 'Optional Deal model ID.'],
-                        'platform' => ['type' => 'string', 'description' => 'Target platform.'],
-                        'brand_name' => ['type' => 'string', 'description' => 'Optional sponsor brand name.'],
+                        'content' => [
+                            'type' => 'string',
+                            'description' => 'Draft script or social post content.',
+                        ],
+                        'deal_id' => [
+                            'type' => 'integer',
+                            'description' => 'Optional Deal model ID.',
+                        ],
+                        'platform' => [
+                            'type' => 'string',
+                            'description' => 'Target platform.',
+                        ],
+                        'brand_name' => [
+                            'type' => 'string',
+                            'description' => 'Optional sponsor brand name.',
+                        ],
                     ],
                 ],
             ],
@@ -182,10 +277,22 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'deal_id' => ['type' => 'integer', 'description' => 'Deal model ID.'],
-                        'impressions' => ['type' => 'integer', 'description' => 'Total recorded impressions.'],
-                        'clicks' => ['type' => 'integer', 'description' => 'Total tracked link clicks.'],
-                        'live_url' => ['type' => 'string', 'description' => 'Published video or post URL.'],
+                        'deal_id' => [
+                            'type' => 'integer',
+                            'description' => 'Deal model ID.',
+                        ],
+                        'impressions' => [
+                            'type' => 'integer',
+                            'description' => 'Total recorded impressions.',
+                        ],
+                        'clicks' => [
+                            'type' => 'integer',
+                            'description' => 'Total tracked link clicks.',
+                        ],
+                        'live_url' => [
+                            'type' => 'string',
+                            'description' => 'Published video or post URL.',
+                        ],
                     ],
                 ],
             ],
@@ -196,9 +303,18 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['brand_name'],
                     'properties' => [
-                        'brand_name' => ['type' => 'string', 'description' => 'Target company or product name.'],
-                        'product_category' => ['type' => 'string', 'description' => 'Category of product.'],
-                        'pitch_angle' => ['type' => 'string', 'description' => 'Specific video concept or theme.'],
+                        'brand_name' => [
+                            'type' => 'string',
+                            'description' => 'Target company or product name.',
+                        ],
+                        'product_category' => [
+                            'type' => 'string',
+                            'description' => 'Category of product.',
+                        ],
+                        'pitch_angle' => [
+                            'type' => 'string',
+                            'description' => 'Specific video concept or theme.',
+                        ],
                     ],
                 ],
             ],
@@ -208,9 +324,18 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'topic' => ['type' => 'string', 'description' => 'Past successful topic or proposition.'],
-                        'script_id' => ['type' => 'integer', 'description' => 'Optional Script ID.'],
-                        'target_platform' => ['type' => 'string', 'description' => 'Platform for reboot post.'],
+                        'topic' => [
+                            'type' => 'string',
+                            'description' => 'Past successful topic or proposition.',
+                        ],
+                        'script_id' => [
+                            'type' => 'integer',
+                            'description' => 'Optional Script ID.',
+                        ],
+                        'target_platform' => [
+                            'type' => 'string',
+                            'description' => 'Platform for reboot post.',
+                        ],
                     ],
                 ],
             ],
@@ -221,9 +346,18 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['content', 'platform'],
                     'properties' => [
-                        'content' => ['type' => 'string', 'description' => 'Draft post text.'],
-                        'platform' => ['type' => 'string', 'description' => 'Platform name (linkedin, x, youtube, tiktok, threads).'],
-                        'title' => ['type' => 'string', 'description' => 'Optional title.'],
+                        'content' => [
+                            'type' => 'string',
+                            'description' => 'Draft post text.',
+                        ],
+                        'platform' => [
+                            'type' => 'string',
+                            'description' => 'Platform name (linkedin, x, youtube, tiktok, threads).',
+                        ],
+                        'title' => [
+                            'type' => 'string',
+                            'description' => 'Optional title.',
+                        ],
                     ],
                 ],
             ],
@@ -233,8 +367,14 @@ class ToolRegistry
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'hours_available' => ['type' => 'integer', 'description' => 'Weekly production hours available.'],
-                        'focus_topic' => ['type' => 'string', 'description' => 'Primary video or content focus.'],
+                        'hours_available' => [
+                            'type' => 'integer',
+                            'description' => 'Weekly production hours available.',
+                        ],
+                        'focus_topic' => [
+                            'type' => 'string',
+                            'description' => 'Primary video or content focus.',
+                        ],
                     ],
                 ],
             ],
@@ -245,10 +385,22 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['script_text'],
                     'properties' => [
-                        'script_text' => ['type' => 'string', 'description' => 'Full script or outline text.'],
-                        'brand' => ['type' => 'string', 'description' => 'Sponsor brand name.'],
-                        'base_cpm' => ['type' => 'number', 'description' => 'Expected CPM rate.'],
-                        'projected_views' => ['type' => 'integer', 'description' => 'Projected views for the video.'],
+                        'script_text' => [
+                            'type' => 'string',
+                            'description' => 'Full script or outline text.',
+                        ],
+                        'brand' => [
+                            'type' => 'string',
+                            'description' => 'Sponsor brand name.',
+                        ],
+                        'base_cpm' => [
+                            'type' => 'number',
+                            'description' => 'Expected CPM rate.',
+                        ],
+                        'projected_views' => [
+                            'type' => 'integer',
+                            'description' => 'Projected views for the video.',
+                        ],
                     ],
                 ],
             ],
@@ -259,8 +411,14 @@ class ToolRegistry
                     'type' => 'object',
                     'required' => ['content'],
                     'properties' => [
-                        'content' => ['type' => 'string', 'description' => 'Source script or thought leadership text.'],
-                        'niche' => ['type' => 'string', 'description' => 'Target niche domain.'],
+                        'content' => [
+                            'type' => 'string',
+                            'description' => 'Source script or thought leadership text.',
+                        ],
+                        'niche' => [
+                            'type' => 'string',
+                            'description' => 'Target niche domain.',
+                        ],
                     ],
                 ],
             ],
@@ -283,10 +441,10 @@ class ToolRegistry
     public function executeTool(string $name, array $args = []): mixed
     {
         return match ($name) {
-            'fetch_breakouts' => $this->fetchBreakouts((int) ($args['limit'] ?? 5)),
-            'fetch_news_feeds', 'fetch_rss_feeds' => $this->fetchNewsFeeds((int) ($args['limit'] ?? 5)),
-            'fetch_recent_scripts', 'fetch_channel_scripts' => $this->fetchRecentScripts((int) ($args['limit'] ?? 3)),
-            'fetch_audience_asks' => $this->fetchAudienceAsks((int) ($args['limit'] ?? 3)),
+            'fetch_breakouts' => $this->fetchBreakouts((int)($args['limit'] ?? 5)),
+            'fetch_news_feeds', 'fetch_rss_feeds' => $this->fetchNewsFeeds((int)($args['limit'] ?? 5)),
+            'fetch_recent_scripts', 'fetch_channel_scripts' => $this->fetchRecentScripts((int)($args['limit'] ?? 3)),
+            'fetch_audience_asks' => $this->fetchAudienceAsks((int)($args['limit'] ?? 3)),
             'fetch_active_sponsors' => $this->fetchActiveSponsors(),
             'find_optimal_slot', 'get_open_schedule_slots' => $this->findOptimalSlot($args['platform'] ?? 'linkedin'),
             'analyze_sponsor_inquiry' => $this->analyzeSponsorInquiry($args),
@@ -354,7 +512,11 @@ class ToolRegistry
 
     public function analyzeSponsorInquiry(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(SponsorNegotiator::class)->negotiate($agent, [
             'inbound_text' => $args['inbound_text'] ?? '',
             'brand_name' => $args['brand_name'] ?? '',
@@ -363,7 +525,11 @@ class ToolRegistry
 
     public function generateTransmediaCascade(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(TransmediaCascade::class)->generate($agent, [
             'topic' => $args['topic'] ?? '',
         ]);
@@ -371,7 +537,11 @@ class ToolRegistry
 
     public function generateHookMatrix(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(HookMatrixOptimizer::class)->generateMatrix($agent, [
             'topic' => $args['topic'] ?? '',
             'platform' => $args['platform'] ?? 'linkedin',
@@ -380,7 +550,11 @@ class ToolRegistry
 
     public function verifyTechnicalFacts(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(FactCheckShield::class)->verify($agent, [
             'text' => $args['text'] ?? '',
         ]);
@@ -388,73 +562,115 @@ class ToolRegistry
 
     public function reverseEngineerOutlier(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(CompetitorReverseEngineer::class)->deconstruct($agent, $args);
     }
 
     public function optimizeBanditTitles(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(TitleBanditOptimizer::class)->optimize($agent, $args);
     }
 
     public function triageCommunityLeads(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(LeadTriageAgent::class)->triage($agent, $args);
     }
 
     public function auditScriptRetention(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(ScriptRetentionAuditor::class)->audit($agent, $args);
     }
 
     public function auditDealFulfillment(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(DealFulfillmentGuardian::class)->auditDraft($agent, $args);
     }
 
     public function generateDealWrapReport(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(DealFulfillmentGuardian::class)->generateWrapReport($agent, $args);
     }
 
     public function synthesizeBrandPitch(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(BrandPitchSynthesizer::class)->synthesizePitch($agent, $args);
     }
 
     public function recycleEvergreenContent(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(EvergreenRecycler::class)->recycle($agent, $args);
     }
 
     public function shieldPlatformAlgorithm(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(PlatformAlgorithmShield::class)->auditAndArmor($agent, $args);
     }
 
     public function orchestrateWeeklySprint(array $args): array
     {
-        $agent = SocialAgent::first() ?? new SocialAgent(['name' => 'Creator Agent', 'brand' => 'Tech Engineering']);
+        $agent = SocialAgent::first() ?? new SocialAgent([
+            'name' => 'Creator Agent',
+            'brand' => 'Tech Engineering',
+        ]);
+
         return app(SprintOrchestrator::class)->planSprint($agent, $args);
     }
 
     public function architectSponsorPlacement(array $args): array
     {
         $scriptText = $args['script_text'] ?? '';
+
         return app(SponsorRevenueArchitect::class)->architect($scriptText, $args);
     }
 
     public function calculateRepurposingArbitrage(array $args): array
     {
         $content = $args['content'] ?? '';
+
         return app(RepurposingArbitrageEngine::class)->synthesize($content, $args);
     }
 

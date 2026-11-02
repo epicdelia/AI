@@ -24,7 +24,7 @@ class ZeroDataRetention
     {
         $brand = $deal->brand_name;
         $timestamp = now()->toIso8601String();
-        $certId = 'ZDR-'.strtoupper(substr(hash('sha256', "{$deal->id}|{$brand}|zdr|2026"), 0, 16));
+        $certId = 'ZDR-' . strtoupper(substr(hash('sha256', "{$deal->id}|{$brand}|zdr|2026"), 0, 16));
 
         $deal->update([
             'zdr_certified' => true,
@@ -64,7 +64,7 @@ class ZeroDataRetention
     {
         $creator = Prompts::name();
         $brand = $deal->brand_name;
-        $certId = $deal->zdr_certificate_id ?: ('ZDR-'.strtoupper(substr(hash('sha256', "{$deal->id}|{$brand}|zdr|2026"), 0, 16)));
+        $certId = $deal->zdr_certificate_id ?: ('ZDR-' . strtoupper(substr(hash('sha256', "{$deal->id}|{$brand}|zdr|2026"), 0, 16)));
         $date = now()->format('F j, Y');
 
         return <<<MARKDOWN
@@ -99,4 +99,3 @@ class ZeroDataRetention
 MARKDOWN;
     }
 }
-

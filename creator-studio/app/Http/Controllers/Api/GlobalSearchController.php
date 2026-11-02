@@ -58,49 +58,117 @@ class GlobalSearchController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        $q = trim((string) $request->validate(['q' => 'required|string|max:100'])['q']);
+        $q = trim((string)$request->validate([
+            'q' => 'required|string|max:100',
+        ])['q']);
         $lower = mb_strtolower($q);
-        $like = '%'.addcslashes($q, '%_\\').'%';
+        $like = '%' . addcslashes($q, '%_\\') . '%';
         $groups = [];
 
-        $pages = collect(self::PAGES)->filter(fn ($p) => str_contains(mb_strtolower($p[0].' '.$p[3]), $lower))
-            ->map(fn ($p) => ['label' => $p[0], 'context' => 'Page', 'url' => $p[1], 'icon' => $p[2]]);
-        $groups[] = ['title' => 'Pages', 'items' => $pages->take(self::MAX_PER_GROUP)->values()];
+        $pages = collect(self::PAGES)->filter(fn ($p) => str_contains(mb_strtolower($p[0] . ' ' . $p[3]), $lower))
+            ->map(fn ($p) => [
+                'label' => $p[0],
+                'context' => 'Page',
+                'url' => $p[1],
+                'icon' => $p[2],
+            ]);
+        $groups[] = [
+            'title' => 'Pages',
+            'items' => $pages->take(self::MAX_PER_GROUP)->values(),
+        ];
 
-        $settings = collect(self::SETTINGS)->filter(fn ($s) => str_contains(mb_strtolower($s[0].' '.$s[1]), $lower))
-            ->map(fn ($s) => ['label' => $s[0], 'context' => 'Settings', 'url' => '/settings', 'icon' => 'gear']);
-        $groups[] = ['title' => 'Settings', 'items' => $settings->take(self::MAX_PER_GROUP)->values()];
+        $settings = collect(self::SETTINGS)->filter(fn ($s) => str_contains(mb_strtolower($s[0] . ' ' . $s[1]), $lower))
+            ->map(fn ($s) => [
+                'label' => $s[0],
+                'context' => 'Settings',
+                'url' => '/settings',
+                'icon' => 'gear',
+            ]);
+        $groups[] = [
+            'title' => 'Settings',
+            'items' => $settings->take(self::MAX_PER_GROUP)->values(),
+        ];
 
-        $groups[] = ['title' => 'Scripts', 'items' => Script::query()
-            ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('body', 'like', $like))
-            ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'status'])
-            ->map(fn ($s) => ['label' => $s->title, 'context' => 'Script · '.$s->status, 'url' => "/scripts/{$s->id}", 'icon' => 'doc'])];
+        $groups[] = [
+            'title' => 'Scripts',
+            'items' => Script::query()
+                ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('body', 'like', $like))
+                ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'status'])
+                ->map(fn ($s) => [
+                    'label' => $s->title,
+                    'context' => 'Script · ' . $s->status,
+                    'url' => "/scripts/{$s->id}",
+                    'icon' => 'doc',
+                ]),
+        ];
 
-        $groups[] = ['title' => 'Ideas', 'items' => Idea::query()
-            ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('premise', 'like', $like)->orWhere('notes', 'like', $like))
-            ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'status'])
-            ->map(fn ($i) => ['label' => $i->title, 'context' => 'Idea · '.$i->status, 'url' => '/ideas', 'icon' => 'bulb'])];
+        $groups[] = [
+            'title' => 'Ideas',
+            'items' => Idea::query()
+                ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('premise', 'like', $like)->orWhere('notes', 'like', $like))
+                ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'status'])
+                ->map(fn ($i) => [
+                    'label' => $i->title,
+                    'context' => 'Idea · ' . $i->status,
+                    'url' => '/ideas',
+                    'icon' => 'bulb',
+                ]),
+        ];
 
-        $groups[] = ['title' => 'Brand Deals', 'items' => \App\Models\Deal::query()
-            ->where(fn ($w) => $w->where('brand_name', 'like', $like)->orWhere('contact_name', 'like', $like)->orWhere('notes', 'like', $like))
-            ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'brand_name', 'stage', 'rate', 'currency'])
-            ->map(fn ($d) => ['label' => $d->brand_name.' ('.$d->currency.' '.number_format($d->rate).')', 'context' => 'Deal · '.$d->stage, 'url' => '/deals', 'icon' => 'briefcase'])];
+        $groups[] = [
+            'title' => 'Brand Deals',
+            'items' => \App\Models\Deal::query()
+                ->where(fn ($w) => $w->where('brand_name', 'like', $like)->orWhere('contact_name', 'like', $like)->orWhere('notes', 'like', $like))
+                ->latest()->limit(self::MAX_PER_GROUP)->get(['id', 'brand_name', 'stage', 'rate', 'currency'])
+                ->map(fn ($d) => [
+                    'label' => $d->brand_name . ' (' . $d->currency . ' ' . number_format($d->rate) . ')',
+                    'context' => 'Deal · ' . $d->stage,
+                    'url' => '/deals',
+                    'icon' => 'briefcase',
+                ]),
+        ];
 
-        $groups[] = ['title' => 'Library', 'items' => Document::query()
-            ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('content', 'like', $like))
-            ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'tool'])
-            ->map(fn ($d) => ['label' => $d->title, 'context' => 'Library'.($d->tool ? ' · '.str_replace(['tool:', 'youtube:', 'upload:'], ['', 'youtube ', 'upload '], $d->tool) : ''), 'url' => '/library?doc='.$d->id, 'icon' => 'book'])];
+        $groups[] = [
+            'title' => 'Library',
+            'items' => Document::query()
+                ->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('content', 'like', $like))
+                ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title', 'tool'])
+                ->map(fn ($d) => [
+                    'label' => $d->title,
+                    'context' => 'Library' . ($d->tool ? ' · ' . str_replace(['tool:', 'youtube:', 'upload:'], ['', 'youtube ', 'upload '], $d->tool) : ''),
+                    'url' => '/library?doc=' . $d->id,
+                    'icon' => 'book',
+                ]),
+        ];
 
-        $groups[] = ['title' => 'Chats', 'items' => Conversation::query()
-            ->where(fn ($w) => $w->where('title', 'like', $like)->orWhereHas('messages', fn ($m) => $m->where('content', 'like', $like)))
-            ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title'])
-            ->map(fn ($c) => ['label' => $c->title, 'context' => 'Producer chat', 'url' => "/chat/{$c->id}", 'icon' => 'chat'])];
+        $groups[] = [
+            'title' => 'Chats',
+            'items' => Conversation::query()
+                ->where(fn ($w) => $w->where('title', 'like', $like)->orWhereHas('messages', fn ($m) => $m->where('content', 'like', $like)))
+                ->latest('updated_at')->limit(self::MAX_PER_GROUP)->get(['id', 'title'])
+                ->map(fn ($c) => [
+                    'label' => $c->title,
+                    'context' => 'Producer chat',
+                    'url' => "/chat/{$c->id}",
+                    'icon' => 'chat',
+                ]),
+        ];
 
-        $groups[] = ['title' => 'Toolkit', 'items' => collect(ToolRegistry::all())
-            ->filter(fn ($t) => str_contains(mb_strtolower($t['name'].' '.($t['description'] ?? '')), $lower))
-            ->take(self::MAX_PER_GROUP)
-            ->map(fn ($t) => ['label' => $t['name'], 'context' => 'Tool', 'url' => "/tools/{$t['key']}", 'icon' => 'sparkle'])->values()];
+        $groups[] = [
+            'title' => 'Toolkit',
+            'items' => collect(ToolRegistry::all())
+                ->filter(fn ($t) => str_contains(mb_strtolower($t['name'] . ' ' . ($t['description'] ?? '')), $lower))
+                ->take(self::MAX_PER_GROUP)
+                ->map(fn ($t) => [
+                    'label' => $t['name'],
+                    'context' => 'Tool',
+                    'url' => "/tools/{$t['key']}",
+                    'icon' => 'sparkle',
+                ])->values(),
+        ];
 
-        return response()->json(['groups' => array_values(array_filter($groups, fn ($g) => count($g['items']) > 0))]);
+        return response()->json([
+            'groups' => array_values(array_filter($groups, fn ($g) => count($g['items']) > 0)),
+        ]);
     }
 }

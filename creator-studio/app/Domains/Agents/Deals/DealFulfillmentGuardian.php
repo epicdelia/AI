@@ -6,7 +6,6 @@ use App\Domains\Agents\Guardrails\AgentGuardrails;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Models\Deal;
 use App\Services\Llm;
-use App\Services\Prompts;
 use Throwable;
 
 /**
@@ -44,9 +43,9 @@ class DealFulfillmentGuardian
      */
     public function auditDraft(SocialAgent $agent, array $params): array
     {
-        $content = trim((string) ($params['content'] ?? ''));
-        $platform = (string) ($params['platform'] ?? 'youtube');
-        $title = (string) ($params['title'] ?? '');
+        $content = trim((string)($params['content'] ?? ''));
+        $platform = (string)($params['platform'] ?? 'youtube');
+        $title = (string)($params['title'] ?? '');
 
         $deal = null;
         if (!empty($params['deal_id'])) {
@@ -178,14 +177,14 @@ TEXT;
         }
 
         $brandName = $deal?->brand_name ?? ($params['brand_name'] ?? 'Partner Brand');
-        $rate = (int) ($deal?->rate ?? ($params['rate'] ?? 3500));
+        $rate = (int)($deal?->rate ?? ($params['rate'] ?? 3500));
         $deliverables = self::deliverablesText($deal) ?: 'YouTube Integration + Social Cascade';
         // Only real numbers: what she typed, else the linked post's logged numbers, else 0 ("not measured").
-        $metrics = (array) ($deal?->socialPost?->metrics ?? []);
-        $impressions = (int) ($params['impressions'] ?? ($metrics['impressions'] ?? 0));
-        $clicks = (int) ($params['clicks'] ?? ($metrics['clicks'] ?? 0));
-        $liveUrl = (string) ($params['live_url'] ?? ($deal?->socialPost?->url ?: ($deal?->script?->youtube_url ?: '')));
-        $comments = array_values(array_filter((array) ($params['positive_comments'] ?? []), 'is_string'));
+        $metrics = (array)($deal?->socialPost?->metrics ?? []);
+        $impressions = (int)($params['impressions'] ?? ($metrics['impressions'] ?? 0));
+        $clicks = (int)($params['clicks'] ?? ($metrics['clicks'] ?? 0));
+        $liveUrl = (string)($params['live_url'] ?? ($deal?->socialPost?->url ?: ($deal?->script?->youtube_url ?: '')));
+        $comments = array_values(array_filter((array)($params['positive_comments'] ?? []), 'is_string'));
 
         $system = <<<'PROMPT'
 You are the Executive Vice President of Partnerships for Delia Lazarescu (@Tech.Unicorn).
@@ -236,18 +235,18 @@ TEXT;
 
         if (!is_array($data) || !isset($data['ready_for_invoicing'])) {
             $measured = $impressions > 0
-                ? number_format($impressions).' impressions'.($clicks > 0 ? ' and '.number_format($clicks).' clicks' : '').' recorded'
+                ? number_format($impressions) . ' impressions' . ($clicks > 0 ? ' and ' . number_format($clicks) . ' clicks' : '') . ' recorded'
                 : 'numbers not measured yet';
 
             return [
                 'brand_name' => $brandName,
                 'campaign_status' => $liveUrl !== '' ? 'Delivered' : 'In progress',
-                'executive_summary' => "The {$brandName} campaign ({$deliverables}): {$measured}.".($liveUrl !== '' ? " Live at {$liveUrl}." : ''),
+                'executive_summary' => "The {$brandName} campaign ({$deliverables}): {$measured}." . ($liveUrl !== '' ? " Live at {$liveUrl}." : ''),
                 'key_metrics' => [
                     'impressions' => $impressions,
                     'engagement_rate' => 'not measured',
-                    'ctr' => $impressions > 0 && $clicks > 0 ? round($clicks / $impressions * 100, 2).'%' : 'not measured',
-                    'estimated_cpm' => $impressions > 0 ? (int) round(($rate / $impressions) * 1000) : 0,
+                    'ctr' => $impressions > 0 && $clicks > 0 ? round($clicks / $impressions * 100, 2) . '%' : 'not measured',
+                    'estimated_cpm' => $impressions > 0 ? (int)round(($rate / $impressions) * 1000) : 0,
                 ],
                 'audience_sentiment' => [
                     'overall' => $comments ? 'From the comments below' : 'No comments added',
@@ -265,6 +264,16 @@ TEXT;
         return $data;
     }
 
+    /**
+     * A deal's deliverables as one line, whether stored as strings or {platform, format, …}.
+     */
+    public static function deliverablesText(?Deal $deal): string
+    {
+        return collect(is_array($deal?->deliverables) ? $deal->deliverables : [])
+            ->map(fn ($d) => is_string($d) ? $d : trim(($d['platform'] ?? '') . ' ' . ($d['format'] ?? '')))
+            ->filter()->implode(', ');
+    }
+
     private function fallbackAudit(string $brand, ?string $code, ?string $link, string $content): array
     {
         $hasBrand = stripos($content, $brand) !== false;
@@ -275,11 +284,28 @@ TEXT;
             'compliance_score' => $score,
             'status' => $score >= 80 ? 'approved' : 'revisions_needed',
             'checks' => [
-                'deliverable_coverage' => ['status' => $hasBrand ? 'verified' : 'missing', 'details' => 'Brand mentioned in content.'],
-                'talking_points_checklist' => ['Primary Brand Integration' => $hasBrand],
-                'ftc_disclosure' => ['compliant' => $hasAd, 'detected_phrase' => $hasAd ? '#ad' : null, 'notes' => 'Disclosure check.'],
-                'tracking_and_promo' => ['compliant' => true, 'promo_detected' => (bool) $code, 'link_detected' => (bool) $link],
-                'competitor_conflicts' => ['has_conflict' => false, 'conflicting_brands' => [], 'details' => 'No direct conflicts.'],
+                'deliverable_coverage' => [
+                    'status' => $hasBrand ? 'verified' : 'missing',
+                    'details' => 'Brand mentioned in content.',
+                ],
+                'talking_points_checklist' => [
+                    'Primary Brand Integration' => $hasBrand,
+                ],
+                'ftc_disclosure' => [
+                    'compliant' => $hasAd,
+                    'detected_phrase' => $hasAd ? '#ad' : null,
+                    'notes' => 'Disclosure check.',
+                ],
+                'tracking_and_promo' => [
+                    'compliant' => true,
+                    'promo_detected' => (bool)$code,
+                    'link_detected' => (bool)$link,
+                ],
+                'competitor_conflicts' => [
+                    'has_conflict' => false,
+                    'conflicting_brands' => [],
+                    'details' => 'No direct conflicts.',
+                ],
             ],
             'missing_mandatories' => $hasAd ? [] : ['Missing #ad or sponsorship verbal disclosure.'],
             'suggested_remedies' => ['Add clear sponsorship disclosure at beginning of content.'],
@@ -290,13 +316,5 @@ TEXT;
     private function formatArray(array $arr): string
     {
         return empty($arr) ? 'None' : implode("\n- ", $arr);
-    }
-
-    /** A deal's deliverables as one line, whether stored as strings or {platform, format, …}. */
-    public static function deliverablesText(?Deal $deal): string
-    {
-        return collect(is_array($deal?->deliverables) ? $deal->deliverables : [])
-            ->map(fn ($d) => is_string($d) ? $d : trim(($d['platform'] ?? '').' '.($d['format'] ?? '')))
-            ->filter()->implode(', ');
     }
 }

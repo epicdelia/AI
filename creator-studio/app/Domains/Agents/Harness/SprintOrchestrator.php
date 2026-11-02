@@ -6,7 +6,6 @@ use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\Script;
-use App\Models\Setting;
 use App\Services\Llm;
 use App\Services\Prompts;
 
@@ -52,8 +51,8 @@ class SprintOrchestrator
      */
     public function planSprint(SocialAgent $agent, array $params = []): array
     {
-        $hoursAvailable = (int) ($params['hours_available'] ?? 15);
-        $focusTopic = (string) ($params['focus_topic'] ?? '');
+        $hoursAvailable = (int)($params['hours_available'] ?? 15);
+        $focusTopic = (string)($params['focus_topic'] ?? '');
 
         // 1. Check active deals and upcoming deliverables
         $activeDeals = Deal::whereNotIn('stage', ['paid', 'lost', 'prospect'])
@@ -114,8 +113,8 @@ Return ONLY a valid JSON object matching this schema:
 }
 PROMPT;
 
-        $dealsSummary = $activeDeals->map(fn($d) => "- {$d->brand_name} ({$d->stage}): " . (is_array($d->deliverables) ? implode(', ', $d->deliverables) : $d->deliverables))->implode("\n");
-        $scriptsSummary = $pendingScripts->map(fn($s) => "- {$s->title} [Status: {$s->status}]")->implode("\n");
+        $dealsSummary = $activeDeals->map(fn ($d) => "- {$d->brand_name} ({$d->stage}): " . (is_array($d->deliverables) ? implode(', ', $d->deliverables) : $d->deliverables))->implode("\n");
+        $scriptsSummary = $pendingScripts->map(fn ($s) => "- {$s->title} [Status: {$s->status}]")->implode("\n");
 
         $prompt = <<<TEXT
 Generate Weekly Production Sprint for:
@@ -172,9 +171,9 @@ TEXT;
                     'Saturday' => ['Light review of weekly analytics and sponsor clicks'],
                     'Sunday' => ['Run Weekly Retrospective & calibrate Agent Learner lessons'],
                 ],
-                'sponsor_deadline_alerts' => $activeDeals->map(fn($d) => [
+                'sponsor_deadline_alerts' => $activeDeals->map(fn ($d) => [
                     'brand' => $d->brand_name,
-                    'deliverable' => is_array($d->deliverables) ? implode(', ', $d->deliverables) : (string) $d->deliverables,
+                    'deliverable' => is_array($d->deliverables) ? implode(', ', $d->deliverables) : (string)$d->deliverables,
                     'status' => $d->stage,
                     'urgency' => in_array($d->stage, ['contracted', 'production']) ? 'High' : 'Normal',
                 ])->values()->all(),

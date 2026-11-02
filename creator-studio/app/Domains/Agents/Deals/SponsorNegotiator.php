@@ -10,7 +10,6 @@ use App\Domains\Landing\Audience;
 use App\Models\Deal;
 use App\Models\Setting;
 use App\Services\Llm;
-use App\Services\Prompts;
 use Throwable;
 
 /**
@@ -25,7 +24,8 @@ class SponsorNegotiator
         private Llm $llm,
         private AgentGuardrails $guardrails,
         private AgentEpisodicMemory $memory
-    ) {}
+    ) {
+    }
 
     /**
      * Analyze an inbound sponsorship inquiry and construct tiered counter-proposals.
@@ -51,10 +51,10 @@ class SponsorNegotiator
      */
     public function negotiate(SocialAgent $agent, array $params): array
     {
-        $inboundText = trim((string) ($params['inbound_text'] ?? ''));
-        $brandHint = trim((string) ($params['brand_name'] ?? ''));
-        $productHint = trim((string) ($params['target_product'] ?? ''));
-        $budgetHint = trim((string) ($params['initial_budget'] ?? ''));
+        $inboundText = trim((string)($params['inbound_text'] ?? ''));
+        $brandHint = trim((string)($params['brand_name'] ?? ''));
+        $productHint = trim((string)($params['target_product'] ?? ''));
+        $budgetHint = trim((string)($params['initial_budget'] ?? ''));
 
         // 1. Current studio rate calculations & active deals for conflict detection
         $rateData = DealCalculator::calculateRates();
@@ -135,17 +135,17 @@ Return a valid JSON object matching this exact schema:
 SYS;
 
         $userPrompt = "Inbound Sponsor Message:\n\"{$inboundText}\"\n\n"
-            .($brandHint ? "Brand Hint: {$brandHint}\n" : '')
-            .($productHint ? "Product Hint: {$productHint}\n" : '')
-            .($budgetHint ? "Budget Mentioned: {$budgetHint}\n" : '');
+            . ($brandHint ? "Brand Hint: {$brandHint}\n" : '')
+            . ($productHint ? "Product Hint: {$productHint}\n" : '')
+            . ($budgetHint ? "Budget Mentioned: {$budgetHint}\n" : '');
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 600);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 600);
 
         try {
             $parsed = $this->llm->as('deal-desk-agent')->creativity(0.4)->json($systemPrompt, $userPrompt);
 
             // Sanity check structure
-            if (! isset($parsed['analysis'], $parsed['tiered_packages'], $parsed['negotiation_email'])) {
+            if (!isset($parsed['analysis'], $parsed['tiered_packages'], $parsed['negotiation_email'])) {
                 throw new \RuntimeException('Incomplete deal desk payload returned by LLM.');
             }
 
@@ -167,21 +167,21 @@ SYS;
                 'tiered_packages' => [
                     'tier_1_essential' => [
                         'name' => 'Single Platform Midroll',
-                        'rate' => (int) $baseYtMidroll,
+                        'rate' => (int)$baseYtMidroll,
                         'deliverables' => '60s organic YouTube integration + description link + pinned comment',
                         'cpm' => 45,
                         'rationale' => 'Focused product spotlight embedded seamlessly within relevant technical tutorial.',
                     ],
                     'tier_2_synergy' => [
                         'name' => 'Cross-Platform B2B Synergy (Recommended)',
-                        'rate' => (int) round(($baseYtMidroll + $baseLiPost + $baseXThread) * 0.85, -1),
+                        'rate' => (int)round(($baseYtMidroll + $baseLiPost + $baseXThread) * 0.85, -1),
                         'deliverables' => 'YouTube 60s integration + 1x LinkedIn post + 1x X thread breakdown',
                         'cpm' => 40,
                         'rationale' => 'Captures long-tail YouTube search along with high-velocity LinkedIn B2B reach.',
                     ],
                     'tier_3_takeover' => [
                         'name' => 'Full Omnichannel Authority Campaign',
-                        'rate' => (int) round(($baseYtDedicated + $baseLiPost * 2 + $baseXThread) * 0.9, -1),
+                        'rate' => (int)round(($baseYtDedicated + $baseLiPost * 2 + $baseXThread) * 0.9, -1),
                         'deliverables' => 'Dedicated YouTube feature + LinkedIn post + X thread + TikTok breakdown + 30-day organic usage rights',
                         'cpm' => 35,
                         'rationale' => 'Comprehensive category ownership for landmark launches.',
@@ -189,7 +189,7 @@ SYS;
                 ],
                 'negotiation_email' => [
                     'subject' => "{$creatorName} (@Tech.Unicorn) × {$brand} Partnership Proposal",
-                    'body' => "Hi team at {$brand},\n\nThank you for reaching out! I've been following what you're building with {$product}, and there's strong organic synergy with my audience of senior software engineers, tech leads, and builders.\n\nTo ensure maximum conversion and developer engagement, I've outlined 3 partnership tiers ranging from a focused YouTube integration to a full cross-platform campaign across YouTube, LinkedIn, and X.\n\nOur most popular package is Tier 2 (Cross-Platform Synergy at \$".round(($baseYtMidroll + $baseLiPost + $baseXThread) * 0.85, -1)."), which reinforces the video tutorial with a deep-dive LinkedIn post to capture B2B engineering leaders.\n\nLet me know which direction aligns best with your launch goals, or if you'd like to jump on a quick 15-minute alignment call.\n\nBest regards,\n{$creatorName}\n@Tech.Unicorn",
+                    'body' => "Hi team at {$brand},\n\nThank you for reaching out! I've been following what you're building with {$product}, and there's strong organic synergy with my audience of senior software engineers, tech leads, and builders.\n\nTo ensure maximum conversion and developer engagement, I've outlined 3 partnership tiers ranging from a focused YouTube integration to a full cross-platform campaign across YouTube, LinkedIn, and X.\n\nOur most popular package is Tier 2 (Cross-Platform Synergy at \$" . round(($baseYtMidroll + $baseLiPost + $baseXThread) * 0.85, -1) . "), which reinforces the video tutorial with a deep-dive LinkedIn post to capture B2B engineering leaders.\n\nLet me know which direction aligns best with your launch goals, or if you'd like to jump on a quick 15-minute alignment call.\n\nBest regards,\n{$creatorName}\n@Tech.Unicorn",
                     'call_to_action' => 'Reply to select package or schedule 15-minute campaign onboarding call.',
                 ],
                 'contract_stipulations' => [
@@ -205,7 +205,7 @@ SYS;
     /**
      * Convert an approved negotiation package into a tracked Deal in the studio pipeline.
      *
-     * @param  array{
+     * @param  array $agent{
      *     brand_name: string,
      *     tier_key: string,
      *     rate: numeric,
@@ -221,14 +221,13 @@ SYS;
             'contact_email' => $params['contact_email'] ?? null,
             'stage' => 'negotiating',
             'deliverables' => [$params['deliverables']],
-            'rate' => (float) $params['rate'],
+            'rate' => (float)$params['rate'],
             'currency' => 'USD',
             'payment_terms' => 'Net 30',
             'payment_status' => 'pending',
-            'notes' => trim(($params['notes'] ?? '')."\nAutonomously initiated via Deal Desk Agent for {$agent->name}."),
+            'notes' => trim(($params['notes'] ?? '') . "\nAutonomously initiated via Deal Desk Agent for {$agent->name}."),
         ]);
 
         return $deal;
     }
 }
-

@@ -10,12 +10,9 @@ class TitleTest extends Model
 
     protected $appends = ['results'];
 
-    protected function casts(): array
-    {
-        return ['titles' => 'array', 'windows' => 'array', 'window_started_at' => 'datetime'];
-    }
-
-    /** Views per hour for each title over its windows. */
+    /**
+     * Views per hour for each title over its windows.
+     */
     public function rates(?array $windows = null): array
     {
         $views = $hours = array_fill(0, count($this->titles), 0);
@@ -36,7 +33,20 @@ class TitleTest extends Model
         $rates = $this->rates();
         $windows = collect($this->windows ?? []);
 
-        return array_map(fn ($t, $i) => ['title' => $t, 'views_per_hour' => round($rates[$i], 2),
-            'windows' => $windows->where('title_index', $i)->count(), 'views' => $windows->where('title_index', $i)->sum('views')], $this->titles, array_keys($this->titles));
+        return array_map(fn ($t, $i) => [
+            'title' => $t,
+            'views_per_hour' => round($rates[$i], 2),
+            'windows' => $windows->where('title_index', $i)->count(),
+            'views' => $windows->where('title_index', $i)->sum('views'),
+        ], $this->titles, array_keys($this->titles));
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'titles' => 'array',
+            'windows' => 'array',
+            'window_started_at' => 'datetime',
+        ];
     }
 }

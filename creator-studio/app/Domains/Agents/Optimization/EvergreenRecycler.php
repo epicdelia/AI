@@ -8,7 +8,6 @@ use App\Domains\Social\Models\SocialPost;
 use App\Domains\Social\SocialScheduler;
 use App\Models\Script;
 use App\Services\Llm;
-use App\Services\Prompts;
 
 /**
  * Autonomous Evergreen Content Recycler & Fresh-Take Engine.
@@ -50,8 +49,8 @@ class EvergreenRecycler
      */
     public function recycle(SocialAgent $agent, array $params): array
     {
-        $topic = trim((string) ($params['topic'] ?? ''));
-        $targetPlatform = (string) ($params['target_platform'] ?? 'linkedin');
+        $topic = trim((string)($params['topic'] ?? ''));
+        $targetPlatform = (string)($params['target_platform'] ?? 'linkedin');
 
         if (!empty($params['script_id'])) {
             $script = Script::find($params['script_id']);
@@ -61,7 +60,7 @@ class EvergreenRecycler
         } elseif (!empty($params['post_id'])) {
             $post = SocialPost::find($params['post_id']);
             if ($post) {
-                $topic = $post->title ?: mb_substr((string) $post->body, 0, 300);
+                $topic = $post->title ?: mb_substr((string)$post->body, 0, 300);
             }
         }
 
@@ -127,23 +126,23 @@ TEXT;
                     [
                         'archetype' => 'paradigm_shift',
                         'title' => "The 2026 Rethink of {$topic}",
-                        'hook' => "Most distributed architectural patterns from 2022 are now obsolete.",
+                        'hook' => 'Most distributed architectural patterns from 2022 are now obsolete.',
                         'the_2026_shift' => 'Single-node NVMe instances with SQLite replicate faster than complex clusters.',
                         'suggested_platform' => 'linkedin',
                         'projected_virality_score' => 92,
                     ],
                     [
                         'archetype' => 'contrarian_retraction',
-                        'title' => "Why I Stopped Recommending Complex Message Queues",
-                        'hook' => "I spent 3 years advocating Kafka before realizing 95% of workloads only need Postgres LISTEN/NOTIFY.",
+                        'title' => 'Why I Stopped Recommending Complex Message Queues',
+                        'hook' => 'I spent 3 years advocating Kafka before realizing 95% of workloads only need Postgres LISTEN/NOTIFY.',
                         'the_2026_shift' => 'Operational simplicity beats theoretical scalability.',
                         'suggested_platform' => 'x',
                         'projected_virality_score' => 95,
                     ],
                     [
                         'archetype' => 'high_density_cheat_sheet',
-                        'title' => "Production System Design Checklist (2026 Edition)",
-                        'hook' => "Bookmark this 6-point checklist before your next architectural review.",
+                        'title' => 'Production System Design Checklist (2026 Edition)',
+                        'hook' => 'Bookmark this 6-point checklist before your next architectural review.',
                         'the_2026_shift' => 'Idempotent retry patterns and boundary isolation.',
                         'suggested_platform' => 'linkedin',
                         'projected_virality_score' => 89,
@@ -152,7 +151,7 @@ TEXT;
                 'winning_reboot' => [
                     'archetype' => 'contrarian_retraction',
                     'platform' => $targetPlatform,
-                    'title' => "Why I Stopped Recommending Complex Message Queues",
+                    'title' => 'Why I Stopped Recommending Complex Message Queues',
                     'body' => "I spent 3 years advocating Kafka before realizing 95% of workloads only need Postgres LISTEN/NOTIFY.\n\nHere are 3 production realities we learned the hard way:\n1. Partition rebalancing causes latency spikes.\n2. In-memory queuing often masks database deadlocks.\n3. Simple append-only tables are trivial to audit and replay.\n\nWhat is your team's stance on message broker complexity?",
                     'parts' => [],
                     'why_it_wins' => 'Contrarian engineering confessions generate peak bookmarking velocity and high-credibility comments.',

@@ -2,7 +2,9 @@
 
 namespace App\Domains\Engine\Data;
 
-/** One completed chat call: the text plus whatever token counts the provider reported. */
+/**
+ * One completed chat call: the text plus whatever token counts the provider reported.
+ */
 final class ChatResult
 {
     public function __construct(
@@ -10,5 +12,6 @@ final class ChatResult
         public readonly ?int $inputTokens = null,
         public readonly ?int $outputTokens = null,
         public readonly ?string $model = null,
-    ) {}
+    ) {
+    }
 }

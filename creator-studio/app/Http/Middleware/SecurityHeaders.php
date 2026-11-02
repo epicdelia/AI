@@ -34,7 +34,7 @@ class SecurityHeaders
         // Dictation and voice input need the microphone; nothing here needs location or payments APIs.
         $h->set('Permissions-Policy', 'microphone=(self), camera=(self), geolocation=(), payment=(), usb=()', false);
 
-        if (! $h->has('Content-Security-Policy') && str_contains((string) $h->get('Content-Type', 'text/html'), 'text/html')) {
+        if (!$h->has('Content-Security-Policy') && str_contains((string)$h->get('Content-Type', 'text/html'), 'text/html')) {
             $h->set('Content-Security-Policy', self::policy(self::html($response)));
         }
 
@@ -47,14 +47,14 @@ class SecurityHeaders
 
         return implode('; ', [
             "default-src 'self'",
-            'script-src '.implode(' ', $scripts),
+            'script-src ' . implode(' ', $scripts),
             // The UI sets inline styles all over (positions, widths, accent colours).
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' data: https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
             "media-src 'self' data: blob: https:",
-            "connect-src 'self' ".implode(' ', self::CONNECT),
-            'frame-src '.implode(' ', self::FRAMES),
+            "connect-src 'self' " . implode(' ', self::CONNECT),
+            'frame-src ' . implode(' ', self::FRAMES),
             "worker-src 'self' blob:",
             "manifest-src 'self'",
             "object-src 'none'",
@@ -64,21 +64,25 @@ class SecurityHeaders
         ]);
     }
 
-    /** sha256 of each <script> without a src, the way browsers hash them. */
+    /**
+     * sha256 of each <script> without a src, the way browsers hash them.
+     */
     public static function inlineScriptHashes(string $html): array
     {
         preg_match_all('#<script\b(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>#is', $html, $m);
 
-        return array_values(array_unique(array_map(fn ($code) => "'sha256-".base64_encode(hash('sha256', $code, true))."'", $m[1])));
+        return array_values(array_unique(array_map(fn ($code) => "'sha256-" . base64_encode(hash('sha256', $code, true)) . "'", $m[1])));
     }
 
-    /** The body, also for the SPA shell (sent as a file, so not in getContent()). */
+    /**
+     * The body, also for the SPA shell (sent as a file, so not in getContent()).
+     */
     private static function html(Response $response): string
     {
         if ($response instanceof \Symfony\Component\HttpFoundation\BinaryFileResponse) {
-            return (string) @file_get_contents($response->getFile()->getPathname());
+            return (string)@file_get_contents($response->getFile()->getPathname());
         }
 
-        return (string) $response->getContent();
+        return (string)$response->getContent();
     }
 }

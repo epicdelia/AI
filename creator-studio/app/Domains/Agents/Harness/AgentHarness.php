@@ -39,16 +39,24 @@ class AgentHarness
         $trace = [];
 
         // 1. Observation Phase (Tool Registry with Guardrail Validation)
-        $this->guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 4]);
+        $this->guardrails->recordAndValidateToolCall('fetch_breakouts', [
+            'limit' => 4,
+        ]);
         $breakouts = $this->tools->fetchBreakouts(4);
 
-        $this->guardrails->recordAndValidateToolCall('fetch_news_feeds', ['limit' => 4]);
+        $this->guardrails->recordAndValidateToolCall('fetch_news_feeds', [
+            'limit' => 4,
+        ]);
         $news = $this->tools->fetchNewsFeeds(4);
 
-        $this->guardrails->recordAndValidateToolCall('fetch_recent_scripts', ['limit' => 3]);
+        $this->guardrails->recordAndValidateToolCall('fetch_recent_scripts', [
+            'limit' => 3,
+        ]);
         $scripts = $this->tools->fetchRecentScripts(3);
 
-        $this->guardrails->recordAndValidateToolCall('fetch_audience_asks', ['limit' => 3]);
+        $this->guardrails->recordAndValidateToolCall('fetch_audience_asks', [
+            'limit' => 3,
+        ]);
         $asks = $this->tools->fetchAudienceAsks(3);
 
         $this->guardrails->recordAndValidateToolCall('fetch_active_sponsors');
@@ -69,7 +77,7 @@ class AgentHarness
 
         $trace[] = [
             'phase' => 'execution',
-            'summary' => count($posts) ? 'Generated '.count($posts).' candidate post drafts.' : 'No new posts needed for target cadence.',
+            'summary' => count($posts) ? 'Generated ' . count($posts) . ' candidate post drafts.' : 'No new posts needed for target cadence.',
         ];
 
         // 3. Evaluation & Remediation Phase
@@ -99,7 +107,9 @@ class AgentHarness
                     $trace[] = [
                         'phase' => 'remediation',
                         'summary' => "Post #{$post->id} ({$post->platform}) auto-remediated: score elevated to {$eval['overall_score']}/100.",
-                        'meta' => ['feedback_addressed' => $eval['feedback']],
+                        'meta' => [
+                            'feedback_addressed' => $eval['feedback'],
+                        ],
                     ];
                 }
             }
@@ -115,8 +125,8 @@ class AgentHarness
 
         AgentEvent::log(
             'harness_run',
-            "Agent Harness executed: ".count($posts)." post(s) verified with average score ".
-            (count($evaluations) ? round(array_sum(array_column($evaluations, 'score')) / count($evaluations)) : 0)."/100.",
+            'Agent Harness executed: ' . count($posts) . ' post(s) verified with average score ' .
+            (count($evaluations) ? round(array_sum(array_column($evaluations, 'score')) / count($evaluations)) : 0) . '/100.',
             $agent->id
         );
 
@@ -133,19 +143,19 @@ class AgentHarness
         try {
             $feedbackText = implode("\n- ", $eval['feedback']);
             $prompt = "The draft for {$post->platform} had these quality rubric deficiencies:\n- {$feedbackText}\n\n"
-                ."Original text:\n{$post->body}\n\n"
-                ."Rewrite this post in ".Prompts::name()."’s authentic voice, preserving the core developer takeaway while addressing every critique point. "
-                .'Output JSON: {"body": "clean text", "parts": []}';
+                . "Original text:\n{$post->body}\n\n"
+                . 'Rewrite this post in ' . Prompts::name() . '’s authentic voice, preserving the core developer takeaway while addressing every critique point. '
+                . 'Output JSON: {"body": "clean text", "parts": []}';
 
             $data = $this->llm->as('agent-remediate')->creativity(0.6)->json(
-                Prompts::voice()."\n\n".Prompts::writingRules(),
+                Prompts::voice() . "\n\n" . Prompts::writingRules(),
                 $prompt
             );
 
-            if (! empty($data['body'])) {
+            if (!empty($data['body'])) {
                 return [
-                    'body' => trim((string) $data['body']),
-                    'parts' => (array) ($data['parts'] ?? $post->parts),
+                    'body' => trim((string)$data['body']),
+                    'parts' => (array)($data['parts'] ?? $post->parts),
                 ];
             }
         } catch (\Throwable $e) {
@@ -155,4 +165,3 @@ class AgentHarness
         return null;
     }
 }
-

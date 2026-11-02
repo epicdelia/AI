@@ -73,7 +73,7 @@ class ViesClient
             $number = substr($clean, strlen($country));
         }
 
-        return [$country, $number, $country.$number];
+        return [$country, $number, $country . $number];
     }
 
     /**
@@ -81,7 +81,7 @@ class ViesClient
      */
     public static function matchesSyntax(string $country, string $number): bool
     {
-        if (! isset(self::VAT_REGEX[$country])) {
+        if (!isset(self::VAT_REGEX[$country])) {
             return false;
         }
 
@@ -95,7 +95,7 @@ class ViesClient
     {
         [$country, $number, $fullVat] = self::parse($vat, $countryCode);
 
-        if (! in_array($country, self::EU_COUNTRIES, true)) {
+        if (!in_array($country, self::EU_COUNTRIES, true)) {
             return [
                 'valid' => false,
                 'status' => 'NON_EU_COUNTRY',
@@ -110,7 +110,7 @@ class ViesClient
         }
 
         $syntaxValid = self::matchesSyntax($country, $number);
-        if (! $syntaxValid) {
+        if (!$syntaxValid) {
             return [
                 'valid' => false,
                 'status' => 'INVALID_SYNTAX',
@@ -125,7 +125,7 @@ class ViesClient
         }
 
         $cacheKey = "vies_check_{$country}_{$number}";
-        if (! $forceFresh && Cache::has($cacheKey)) {
+        if (!$forceFresh && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
 
@@ -138,8 +138,8 @@ class ViesClient
 
             if ($response->successful()) {
                 $data = $response->json();
-                $isValid = (bool) ($data['isValid'] ?? false);
-                $identifier = $data['requestIdentifier'] ?? ('VIES-'.strtoupper(Str::random(16)));
+                $isValid = (bool)($data['isValid'] ?? false);
+                $identifier = $data['requestIdentifier'] ?? ('VIES-' . strtoupper(Str::random(16)));
 
                 $result = [
                     'valid' => $isValid,
@@ -163,7 +163,7 @@ class ViesClient
         }
 
         // Graceful offline fallback
-        $fallbackToken = 'OFFLINE-'.strtoupper(substr(hash('sha256', "{$country}|{$number}|2026"), 0, 16));
+        $fallbackToken = 'OFFLINE-' . strtoupper(substr(hash('sha256', "{$country}|{$number}|2026"), 0, 16));
         $result = [
             'valid' => true,
             'fallback' => true,
@@ -184,4 +184,3 @@ class ViesClient
         return $result;
     }
 }
-

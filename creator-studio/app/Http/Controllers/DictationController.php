@@ -9,12 +9,17 @@ use App\Services\Llm;
 use Illuminate\Http\Request;
 use Throwable;
 
-/** Flow: push-to-talk dictation, ported from app.py into the studio. */
+/**
+ * Flow: push-to-talk dictation, ported from app.py into the studio.
+ */
 class DictationController extends Controller
 {
     public function show()
     {
-        return view('dictate', ['notes' => Note::latest()->paginate(10), 'styles' => array_keys(Dictation::STYLES)]);
+        return view('dictate', [
+            'notes' => Note::latest()->paginate(10),
+            'styles' => array_keys(Dictation::STYLES),
+        ]);
     }
 
     public function token(Dictation $dictation)
@@ -22,7 +27,9 @@ class DictationController extends Controller
         try {
             return response()->json($dictation->token());
         } catch (Throwable $e) {
-            return response()->json(['detail' => $e->getMessage()], 502);
+            return response()->json([
+                'detail' => $e->getMessage(),
+            ], 502);
         }
     }
 
@@ -30,26 +37,41 @@ class DictationController extends Controller
     {
         $data = $request->validate([
             'text' => 'required|string|max:20000',
-            'style' => 'nullable|in:'.implode(',', array_keys(Dictation::STYLES)),
-            'rewrite' => 'nullable|in:'.implode(',', array_keys(Dictation::REWRITES)),
+            'style' => 'nullable|in:' . implode(',', array_keys(Dictation::STYLES)),
+            'rewrite' => 'nullable|in:' . implode(',', array_keys(Dictation::REWRITES)),
         ]);
-        $prompt = ! empty($data['rewrite']) ? Dictation::rewritePrompt($data['rewrite']) : Dictation::systemPrompt($data['style'] ?? 'auto');
+        $prompt = !empty($data['rewrite']) ? Dictation::rewritePrompt($data['rewrite']) : Dictation::systemPrompt($data['style'] ?? 'auto');
+
         try {
-            return response()->json(['text' => $llm->chat($prompt, trim($data['text']), 90)]);
+            return response()->json([
+                'text' => $llm->chat($prompt, trim($data['text']), 90),
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['detail' => $e->getMessage()], 502);
+            return response()->json([
+                'detail' => $e->getMessage(),
+            ], 502);
         }
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate(['raw' => 'nullable|string|max:20000', 'polished' => 'required|string|max:40000', 'style' => 'nullable|string|max:20']);
-        $note = Note::create($data + ['style' => 'auto']);
+        $data = $request->validate([
+            'raw' => 'nullable|string|max:20000',
+            'polished' => 'required|string|max:40000',
+            'style' => 'nullable|string|max:20',
+        ]);
+        $note = Note::create($data + [
+            'style' => 'auto',
+        ]);
 
-        return response()->json(['id' => $note->id]);
+        return response()->json([
+            'id' => $note->id,
+        ]);
     }
 
-    /** Turn a dictated note into an idea on her picked list. */
+    /**
+     * Turn a dictated note into an idea on her picked list.
+     */
     public function toIdea(Note $note)
     {
         $lines = preg_split('/\R/', trim($note->polished));
@@ -70,4 +92,3 @@ class DictationController extends Controller
         return back();
     }
 }
-

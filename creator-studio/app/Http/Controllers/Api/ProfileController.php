@@ -9,18 +9,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Her profile photo (the header avatar). Private: only served to her signed-in browser. */
+/**
+ * Her profile photo (the header avatar). Private: only served to her signed-in browser.
+ */
 class ProfileController extends Controller
 {
     public function upload(Request $request): JsonResponse
     {
-        $request->validate(['photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144']]);
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
+        ]);
         if ($old = Setting::get('avatar')) {
             Storage::disk('local')->delete($old);
         }
         Setting::put('avatar', $request->file('photo')->store('profile', 'local'));
 
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+        ]);
     }
 
     public function show(): Response
@@ -28,7 +34,9 @@ class ProfileController extends Controller
         $path = Setting::get('avatar');
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
-        return Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, max-age=3600']);
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     public function destroy(): JsonResponse
@@ -38,6 +46,8 @@ class ProfileController extends Controller
         }
         Setting::put('avatar', null);
 
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+        ]);
     }
 }

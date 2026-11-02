@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\DB;
  */
 class Audience
 {
-    /** Public figures per network, used until the studio has a synced count for it. */
+    /**
+     * Public figures per network, used until the studio has a synced count for it.
+     */
     public const FALLBACK = [
         'youtube' => 22000,
         'instagram' => 384000,
@@ -22,23 +24,57 @@ class Audience
         'threads' => 15000,
     ];
 
-    /** Her public profiles, in the order the landing page shows them. */
+    /**
+     * Her public profiles, in the order the landing page shows them.
+     */
     public const PROFILES = [
-        'instagram' => ['label' => 'Instagram', 'handle' => '@tech.unicorn', 'url' => 'https://instagram.com/tech.unicorn', 'unit' => 'followers',
-            'blurb' => 'Daily tech news, AI experiments, and nomad engineering life in 60 seconds.'],
-        'youtube' => ['label' => 'YouTube', 'handle' => '@Tech.Unicorn', 'url' => 'https://youtube.com/@Tech.Unicorn', 'unit' => 'subscribers',
-            'blurb' => 'Deep dives, build-alongs, and coding challenges from beach cafés.'],
-        'linkedin' => ['label' => 'LinkedIn', 'handle' => 'Delia Lazarescu', 'url' => 'https://linkedin.com/in/delialazarescu', 'unit' => 'followers',
-            'blurb' => 'Career honesty, industry architecture takes, and lessons from Big Tech.'],
-        'tiktok' => ['label' => 'TikTok', 'handle' => '@tech.unicorn', 'url' => 'https://tiktok.com/@tech.unicorn', 'unit' => 'followers',
-            'blurb' => 'Short, sharp takes on building with AI and shipping fast.'],
-        'x' => ['label' => 'X', 'handle' => '@techunicorn_', 'url' => 'https://x.com/techunicorn_', 'unit' => 'followers',
-            'blurb' => 'Raw engineering notes, launches, and hot takes as they happen.'],
-        'threads' => ['label' => 'Threads', 'handle' => '@tech.unicorn', 'url' => 'https://threads.net/@tech.unicorn', 'unit' => 'followers',
-            'blurb' => 'Conversations about building in public and remote engineering.'],
+        'instagram' => [
+            'label' => 'Instagram',
+            'handle' => '@tech.unicorn',
+            'url' => 'https://instagram.com/tech.unicorn',
+            'unit' => 'followers',
+            'blurb' => 'Daily tech news, AI experiments, and nomad engineering life in 60 seconds.',
+        ],
+        'youtube' => [
+            'label' => 'YouTube',
+            'handle' => '@Tech.Unicorn',
+            'url' => 'https://youtube.com/@Tech.Unicorn',
+            'unit' => 'subscribers',
+            'blurb' => 'Deep dives, build-alongs, and coding challenges from beach cafés.',
+        ],
+        'linkedin' => [
+            'label' => 'LinkedIn',
+            'handle' => 'Delia Lazarescu',
+            'url' => 'https://linkedin.com/in/delialazarescu',
+            'unit' => 'followers',
+            'blurb' => 'Career honesty, industry architecture takes, and lessons from Big Tech.',
+        ],
+        'tiktok' => [
+            'label' => 'TikTok',
+            'handle' => '@tech.unicorn',
+            'url' => 'https://tiktok.com/@tech.unicorn',
+            'unit' => 'followers',
+            'blurb' => 'Short, sharp takes on building with AI and shipping fast.',
+        ],
+        'x' => [
+            'label' => 'X',
+            'handle' => '@techunicorn_',
+            'url' => 'https://x.com/techunicorn_',
+            'unit' => 'followers',
+            'blurb' => 'Raw engineering notes, launches, and hot takes as they happen.',
+        ],
+        'threads' => [
+            'label' => 'Threads',
+            'handle' => '@tech.unicorn',
+            'url' => 'https://threads.net/@tech.unicorn',
+            'unit' => 'followers',
+            'blurb' => 'Conversations about building in public and remote engineering.',
+        ],
     ];
 
-    /** The figure written into the landing page copy; the page swaps it for headline() when they differ. */
+    /**
+     * The figure written into the landing page copy; the page swaps it for headline() when they differ.
+     */
     public const CLAIM = '472K+';
 
     /**
@@ -56,8 +92,16 @@ class Audience
         foreach (self::FALLBACK as $platform => $fallback) {
             $row = $synced[$platform] ?? null;
             $out[$platform] = $row
-                ? ['count' => (int) $row->count, 'live' => true, 'source' => (string) $row->source]
-                : ['count' => $fallback, 'live' => false, 'source' => 'public'];
+                ? [
+                    'count' => (int)$row->count,
+                    'live' => true,
+                    'source' => (string)$row->source,
+                ]
+                : [
+                    'count' => $fallback,
+                    'live' => false,
+                    'source' => 'public',
+                ];
         }
 
         return $out;
@@ -82,7 +126,7 @@ class Audience
         $hidden = LandingFeed::keys('landing_reach_hidden');
         $visible = array_diff_key(self::counts(), array_flip($hidden));
 
-        return self::compact(array_sum(array_column($visible, 'count'))).'+';
+        return self::compact(array_sum(array_column($visible, 'count'))) . '+';
     }
 
     /**
@@ -105,7 +149,7 @@ class Audience
 
         $visibleTotal = 0;
         foreach ($counts as $key => $c) {
-            if (! in_array($key, $hidden, true)) {
+            if (!in_array($key, $hidden, true)) {
                 $visibleTotal += $c['count'];
             }
         }
@@ -117,18 +161,20 @@ class Audience
             $change = null;
             if ($c['live'] && $points->count() >= 2) {
                 $base = $points->last(fn ($r) => $r->recorded_on <= $since->toDateString()) ?? $points->first();
-                $change = (int) $points->last()->count - (int) $base->count;
+                $change = (int)$points->last()->count - (int)$base->count;
             }
             $mine = $posts->where('platform', $key);
             $rates = $mine->map(function ($p) {
                 $m = $p->metrics ?? [];
-                $views = (int) ($m['impressions'] ?? 0);
+                $views = (int)($m['impressions'] ?? 0);
 
-                return $views > 0 ? ((int) ($m['likes'] ?? 0) + (int) ($m['comments'] ?? 0) + (int) ($m['shares'] ?? 0) + (int) ($m['saves'] ?? 0)) / $views * 100 : null;
+                return $views > 0 ? ((int)($m['likes'] ?? 0) + (int)($m['comments'] ?? 0) + (int)($m['shares'] ?? 0) + (int)($m['saves'] ?? 0)) / $views * 100 : null;
             })->filter(fn ($r) => $r !== null)->sort()->values();
             $isHidden = in_array($key, $hidden, true);
 
-            $networks[] = ['key' => $key] + $profile + [
+            $networks[] = [
+                'key' => $key,
+            ] + $profile + [
                 'count' => $c['count'],
                 'count_label' => self::compact($c['count']),
                 'live' => $c['live'],
@@ -137,16 +183,16 @@ class Audience
                 'source' => $c['source'],
                 'change_30d' => $change,
                 // Up to 30 real points for the sparkline; never drawn from public figures.
-                'trend' => $c['live'] && $points->count() >= 2 ? $points->take(-30)->pluck('count')->map(fn ($n) => (int) $n)->values()->all() : [],
+                'trend' => $c['live'] && $points->count() >= 2 ? $points->take(-30)->pluck('count')->map(fn ($n) => (int)$n)->values()->all() : [],
                 'posts_30d' => $mine->count(),
                 // Median of at least 3 posts with views, else unknown.
                 'engagement_rate' => $rates->count() >= 3 ? round($rates[intdiv($rates->count(), 2)], 1) : null,
-                'share' => ! $isHidden && $visibleTotal > 0 ? round($c['count'] / $visibleTotal * 100, 1) : 0,
+                'share' => !$isHidden && $visibleTotal > 0 ? round($c['count'] / $visibleTotal * 100, 1) : 0,
                 'hidden' => $isHidden,
             ];
         }
 
-        $visible = array_values(array_filter($networks, fn ($n) => ! $n['hidden']));
+        $visible = array_values(array_filter($networks, fn ($n) => !$n['hidden']));
         $changes = array_filter(array_column($visible, 'change_30d'), fn ($v) => $v !== null);
 
         return [
@@ -162,9 +208,9 @@ class Audience
     public static function compact(int $n): string
     {
         return match (true) {
-            $n >= 1_000_000 => rtrim(rtrim(number_format($n / 1_000_000, 1), '0'), '.').'M',
-            $n >= 1_000 => round($n / 1_000).'K',
-            default => (string) $n,
+            $n >= 1_000_000 => rtrim(rtrim(number_format($n / 1_000_000, 1), '0'), '.') . 'M',
+            $n >= 1_000 => round($n / 1_000) . 'K',
+            default => (string)$n,
         };
     }
 }

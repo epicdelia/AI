@@ -15,8 +15,11 @@ class EnsureTwoFactor
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if ($user && $user->role()->requiresTwoFactor() && ! $user->hasTwoFactor()) {
-            return response()->json(['error' => 'Turn on two-factor sign-in first.', 'two_factor_setup_required' => true], 403);
+        if ($user && $user->role()->requiresTwoFactor() && !$user->hasTwoFactor()) {
+            return response()->json([
+                'error' => 'Turn on two-factor sign-in first.',
+                'two_factor_setup_required' => true,
+            ], 403);
         }
 
         return $next($request);

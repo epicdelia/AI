@@ -67,7 +67,9 @@ enum EngineEnum: string
         };
     }
 
-    /** Where to get a key, shown next to the key field in Settings. */
+    /**
+     * Where to get a key, shown next to the key field in Settings.
+     */
     public function keyUrl(): ?string
     {
         return match ($this) {
@@ -84,16 +86,20 @@ enum EngineEnum: string
         };
     }
 
-    /** The AssemblyAI gateway can reuse the dictation key, so a separate AI key is optional. */
+    /**
+     * The AssemblyAI gateway can reuse the dictation key, so a separate AI key is optional.
+     */
     public function canUseAssemblyKey(): bool
     {
         return $this === self::ASSEMBLYAI;
     }
 
-    /** Guess the engine from a base URL, for installs saved before engines existed. */
+    /**
+     * Guess the engine from a base URL, for installs saved before engines existed.
+     */
     public static function fromBaseUrl(?string $url): self
     {
-        $url = (string) $url;
+        $url = (string)$url;
         foreach (self::cases() as $case) {
             if ($case !== self::CUSTOM && $case->baseUrl() !== '' && str_starts_with(rtrim($url, '/'), $case->baseUrl())) {
                 return $case;
@@ -106,7 +112,9 @@ enum EngineEnum: string
         return $url === '' ? self::OPENAI : self::CUSTOM;
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public static function catalog(): array
     {
         return array_map(fn (self $e) => [

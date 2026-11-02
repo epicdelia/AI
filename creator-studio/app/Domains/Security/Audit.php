@@ -59,22 +59,26 @@ class Audit
                 'subject_id' => $subject?->getKey(),
                 'meta' => $meta ?: null,
                 'ip' => $request?->ip(),
-                'user_agent' => mb_substr((string) $request?->userAgent(), 0, 255),
+                'user_agent' => mb_substr((string)$request?->userAgent(), 0, 255),
                 'device' => $request ? self::device($request) : null,
             ]);
         }, null, true);
     }
 
-    /** Browser family + OS + the network (/24 for IPv4, /48 for IPv6): stable enough, not a tracker. */
+    /**
+     * Browser family + OS + the network (/24 for IPv4, /48 for IPv6): stable enough, not a tracker.
+     */
     public static function device(Request $request): string
     {
-        $ip = (string) $request->ip();
+        $ip = (string)$request->ip();
         $net = str_contains($ip, ':') ? implode(':', array_slice(explode(':', $ip), 0, 3)) : implode('.', array_slice(explode('.', $ip), 0, 3));
 
-        return hash('sha256', self::browser((string) $request->userAgent()).'|'.$net);
+        return hash('sha256', self::browser((string)$request->userAgent()) . '|' . $net);
     }
 
-    /** "Chrome on Windows"-style, from the user agent. */
+    /**
+     * "Chrome on Windows"-style, from the user agent.
+     */
     public static function browser(string $ua): string
     {
         $browser = match (true) {
@@ -97,19 +101,24 @@ class Audit
         return "{$browser} on {$os}";
     }
 
-    /** Record a sign-in; email the owner when it's from a device this account hasn't used before. */
+    /**
+     * Record a sign-in; email the owner when it's from a device this account hasn't used before.
+     */
     public static function signedIn(User $user, Request $request): void
     {
         $device = self::device($request);
         $known = AuditLog::where('user_id', $user->id)->where('action', 'login')->where('device', $device)->exists();
-        $first = ! AuditLog::where('user_id', $user->id)->where('action', 'login')->exists();
+        $first = !AuditLog::where('user_id', $user->id)->where('action', 'login')->exists();
         self::log('login', $user);
 
-        if (! $known && ! $first) {
+        if (!$known && !$first) {
             $when = now()->toDayDateTimeString();
-            AuthController::mail($user->email, 'New sign-in to your account',
-                "Your account was just signed in from a new device:\n\n".self::browser((string) $request->userAgent())."\nIP {$request->ip()}\n{$when} (server time)\n\n"
-                ."If this was you, there's nothing to do.\n\nIf it wasn't: reset your password at ".url('/login')." (Forgot password?), then use \"Sign out other devices\" in Account & security.");
+            AuthController::mail(
+                $user->email,
+                'New sign-in to your account',
+                "Your account was just signed in from a new device:\n\n" . self::browser((string)$request->userAgent()) . "\nIP {$request->ip()}\n{$when} (server time)\n\n"
+                . "If this was you, there's nothing to do.\n\nIf it wasn't: reset your password at " . url('/login') . ' (Forgot password?), then use "Sign out other devices" in Account & security.'
+            );
         }
     }
 }

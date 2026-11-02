@@ -3,13 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domains\Clients\DealFiles;
-use App\Domains\Clients\Models\ClientBrandVault;
-use App\Domains\Clients\Models\DeliverableAnnotation;
-use App\Domains\Deals\ContractSigner;
 use App\Domains\Security\Audit;
-use App\Domains\Security\Models\AuditLog;
 use App\Models\Deal;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +18,12 @@ class SecurityHardeningAndRoiTest extends TestCase
     {
         Storage::fake('local');
         $admin = $this->admin();
-        $deal = Deal::create(['brand_name' => 'Acme Corp', 'rate' => 5000, 'stage' => 'inquiry', 'user_id' => $admin->id]);
+        $deal = Deal::create([
+            'brand_name' => 'Acme Corp',
+            'rate' => 5000,
+            'stage' => 'inquiry',
+            'user_id' => $admin->id,
+        ]);
 
         // Real valid PNG binary header
         $pngContent = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4";
@@ -46,7 +46,12 @@ class SecurityHardeningAndRoiTest extends TestCase
     {
         Storage::fake('local');
         $admin = $this->admin();
-        $deal = Deal::create(['brand_name' => 'Acme Corp', 'rate' => 5000, 'stage' => 'inquiry', 'user_id' => $admin->id]);
+        $deal = Deal::create([
+            'brand_name' => 'Acme Corp',
+            'rate' => 5000,
+            'stage' => 'inquiry',
+            'user_id' => $admin->id,
+        ]);
 
         // Disguised PHP script with a .png extension
         $fakePng = UploadedFile::fake()->createWithContent('shell.png', "<?php system(\$_GET['cmd']); ?>");
@@ -59,7 +64,12 @@ class SecurityHardeningAndRoiTest extends TestCase
     {
         Storage::fake('local');
         $admin = $this->admin();
-        $deal = Deal::create(['brand_name' => 'Acme Corp', 'rate' => 5000, 'stage' => 'inquiry', 'user_id' => $admin->id]);
+        $deal = Deal::create([
+            'brand_name' => 'Acme Corp',
+            'rate' => 5000,
+            'stage' => 'inquiry',
+            'user_id' => $admin->id,
+        ]);
 
         $maliciousSvg = UploadedFile::fake()->createWithContent('xss.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
 
@@ -80,7 +90,10 @@ class SecurityHardeningAndRoiTest extends TestCase
             'proposal' => [
                 'title' => 'Q4 Developer Tool Showcase',
                 'summary' => 'Dedicated integration highlighting Stripe webhook reliability.',
-                'investment' => ['amount' => 12500, 'currency' => 'USD'],
+                'investment' => [
+                    'amount' => 12500,
+                    'currency' => 'USD',
+                ],
             ],
         ]);
 
@@ -116,7 +129,11 @@ class SecurityHardeningAndRoiTest extends TestCase
             'stage' => 'in_review',
             'user_id' => $client->id,
             'deliverables' => [
-                ['platform' => 'youtube', 'format' => 'Integration', 'status' => 'in_review'],
+                [
+                    'platform' => 'youtube',
+                    'format' => 'Integration',
+                    'status' => 'in_review',
+                ],
             ],
         ]);
 
@@ -156,7 +173,11 @@ class SecurityHardeningAndRoiTest extends TestCase
             'payment_status' => 'paid',
             'user_id' => $client->id,
             'deliverables' => [
-                ['platform' => 'youtube', 'format' => 'Full Video', 'status' => 'completed'],
+                [
+                    'platform' => 'youtube',
+                    'format' => 'Full Video',
+                    'status' => 'completed',
+                ],
             ],
         ]);
 
@@ -181,7 +202,10 @@ class SecurityHardeningAndRoiTest extends TestCase
             'stage' => 'contracted',
             'user_id' => $client->id,
             'deliverables' => [
-                ['platform' => 'youtube', 'format' => 'Sponsorship'],
+                [
+                    'platform' => 'youtube',
+                    'format' => 'Sponsorship',
+                ],
             ],
         ]);
 
@@ -196,10 +220,10 @@ class SecurityHardeningAndRoiTest extends TestCase
             'add_on' => 'paid_usage_90d',
         ])->assertStatus(201);
 
-        $this->assertSame(11500.0, (float) $applyRes->json('new_rate'));
+        $this->assertSame(11500.0, (float)$applyRes->json('new_rate'));
 
         $fresh = $deal->fresh();
-        $this->assertSame(11500.0, (float) $fresh->rate);
+        $this->assertSame(11500.0, (float)$fresh->rate);
         $this->assertCount(1, $fresh->add_ons);
         $this->assertSame('paid_usage_90d', $fresh->add_ons[0]['key']);
     }
@@ -215,9 +239,15 @@ class SecurityHardeningAndRoiTest extends TestCase
         $saveRes = $this->putJson('/api/portal/brand-vault', [
             'brand_name' => 'Postman Inc',
             'website' => 'https://postman.com',
-            'brand_colors' => ['primary' => '#FF6C37', 'accent' => '#000000'],
+            'brand_colors' => [
+                'primary' => '#FF6C37',
+                'accent' => '#000000',
+            ],
             'guidelines_markdown' => 'Focus on API-first development and automated test collections.',
-            'utm_params' => ['utm_source' => 'tech-unicorn', 'utm_medium' => 'video-sponsor'],
+            'utm_params' => [
+                'utm_source' => 'tech-unicorn',
+                'utm_medium' => 'video-sponsor',
+            ],
         ])->assertOk();
 
         $this->assertSame('Postman Inc', $saveRes->json('vault.brand_name'));
@@ -231,8 +261,14 @@ class SecurityHardeningAndRoiTest extends TestCase
 
     public function test_tenant_isolation_prevents_unauthorized_cross_client_access(): void
     {
-        $clientAlice = $this->client(['email' => 'alice@company-a.test', 'name' => 'Alice']);
-        $clientBob = $this->client(['email' => 'bob@company-b.test', 'name' => 'Bob']);
+        $clientAlice = $this->client([
+            'email' => 'alice@company-a.test',
+            'name' => 'Alice',
+        ]);
+        $clientBob = $this->client([
+            'email' => 'bob@company-b.test',
+            'name' => 'Bob',
+        ]);
 
         $dealAlice = Deal::create([
             'brand_name' => 'Company A',
@@ -245,7 +281,8 @@ class SecurityHardeningAndRoiTest extends TestCase
         $this->actingAs($clientBob);
         $this->getJson("/api/portal/requests/{$dealAlice->id}")->assertStatus(404);
         $this->getJson("/api/portal/requests/{$dealAlice->id}/roi")->assertStatus(404);
-        $this->postJson("/api/portal/requests/{$dealAlice->id}/annotations", ['body' => 'Intruder note'])->assertStatus(404);
+        $this->postJson("/api/portal/requests/{$dealAlice->id}/annotations", [
+            'body' => 'Intruder note',
+        ])->assertStatus(404);
     }
 }
-

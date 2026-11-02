@@ -29,7 +29,8 @@ class HookMatrixOptimizer
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Generate and evaluate the 6-archetype Hook Matrix.
@@ -55,9 +56,9 @@ class HookMatrixOptimizer
      */
     public function generateMatrix(SocialAgent $agent, array $params): array
     {
-        $topic = trim((string) ($params['topic'] ?? ''));
+        $topic = trim((string)($params['topic'] ?? ''));
         $platform = $params['platform'] ?? 'linkedin';
-        $context = trim((string) ($params['context'] ?? ''));
+        $context = trim((string)($params['context'] ?? ''));
 
         if (empty($topic)) {
             $topic = 'Distributed event queues vs database polling';
@@ -177,14 +178,14 @@ Return a valid JSON object matching this schema:
 SYS;
 
         $userPrompt = "Target Topic: {$topic}\nPlatform: {$platform}\n"
-            .($context ? "Existing Context / Draft:\n\"{$context}\"\n" : '');
+            . ($context ? "Existing Context / Draft:\n\"{$context}\"\n" : '');
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 700);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 700);
 
         try {
             $data = $this->llm->as('hook-matrix-agent')->creativity(0.6)->json($systemPrompt, $userPrompt);
 
-            if (! isset($data['matrix'], $data['winning_hook'])) {
+            if (!isset($data['matrix'], $data['winning_hook'])) {
                 throw new \RuntimeException('Invalid Hook Matrix response structure.');
             }
 
@@ -213,7 +214,7 @@ SYS;
                     'archetype' => 'contrarian',
                     'name' => 'Contrarian Paradigm Shift',
                     'hook_text' => "Most software architects get {$topic} completely backwards.",
-                    'lead_in' => "They follow outdated best practices designed for 2018 infrastructure instead of modern primitives.",
+                    'lead_in' => 'They follow outdated best practices designed for 2018 infrastructure instead of modern primitives.',
                     'predictive_virality_score' => 91,
                     'curiosity_tension' => 'High',
                     'retention_risk' => 'Low',
@@ -224,7 +225,7 @@ SYS;
                     'archetype' => 'post_mortem',
                     'name' => 'Disaster Post-Mortem',
                     'hook_text' => "How a single misconfigured setting in {$topic} took down production for 4 hours.",
-                    'lead_in' => "We were processing 80k req/s when the queue depth suddenly exploded to 4 million.",
+                    'lead_in' => 'We were processing 80k req/s when the queue depth suddenly exploded to 4 million.',
                     'predictive_virality_score' => 89,
                     'curiosity_tension' => 'Extreme',
                     'retention_risk' => 'Low',
@@ -235,7 +236,7 @@ SYS;
                     'archetype' => 'curiosity_gap',
                     'name' => 'Curiosity Gap / Insider Secret',
                     'hook_text' => "The hidden architectural trick behind {$topic} that senior staff engineers don't put in tutorials.",
-                    'lead_in' => "It takes less than 30 lines of code, but eliminates 90% of race conditions.",
+                    'lead_in' => 'It takes less than 30 lines of code, but eliminates 90% of race conditions.',
                     'predictive_virality_score' => 84,
                     'curiosity_tension' => 'High',
                     'retention_risk' => 'Medium',
@@ -246,7 +247,7 @@ SYS;
                     'archetype' => 'benchmark',
                     'name' => 'Counter-Intuitive Benchmark',
                     'hook_text' => "We benchmarked 3 different approaches to {$topic} under 100,000 req/s.",
-                    'lead_in' => "The slowest option was the industry-standard framework everyone recommends.",
+                    'lead_in' => 'The slowest option was the industry-standard framework everyone recommends.',
                     'predictive_virality_score' => 93,
                     'curiosity_tension' => 'Extreme',
                     'retention_risk' => 'Low',
@@ -257,7 +258,7 @@ SYS;
                     'archetype' => 'pain_relief',
                     'name' => 'Direct Developer Pain Relief',
                     'hook_text' => "If you're still manually wrestling with {$topic}, you're wasting 5+ hours every sprint.",
-                    'lead_in' => "Here is the exact automated pattern our team switched to last month.",
+                    'lead_in' => 'Here is the exact automated pattern our team switched to last month.',
                     'predictive_virality_score' => 81,
                     'curiosity_tension' => 'Medium',
                     'retention_risk' => 'Low',
@@ -268,7 +269,7 @@ SYS;
                     'archetype' => 'confession',
                     'name' => 'Vulnerable Confession',
                     'hook_text' => "I spent 4 weeks building a complex system for {$topic} before realizing I made a huge mistake.",
-                    'lead_in' => "Here is what happened—and what I would do differently today.",
+                    'lead_in' => 'Here is what happened—and what I would do differently today.',
                     'predictive_virality_score' => 87,
                     'curiosity_tension' => 'High',
                     'retention_risk' => 'Low',
@@ -289,4 +290,3 @@ SYS;
         ];
     }
 }
-

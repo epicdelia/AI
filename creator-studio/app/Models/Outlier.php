@@ -12,17 +12,14 @@ class Outlier extends Model
         'outlier_score', 'age_days', 'published_at', 'used',
     ];
 
-    protected function casts(): array
-    {
-        return ['published_at' => 'datetime', 'used' => 'boolean', 'outlier_score' => 'float', 'age_days' => 'float'];
-    }
-
     public function channel(): BelongsTo
     {
         return $this->belongsTo(Channel::class);
     }
 
-    /** One compact line for the AI: every field here costs tokens. */
+    /**
+     * One compact line for the AI: every field here costs tokens.
+     */
     public function compactLine(): string
     {
         return json_encode([
@@ -34,5 +31,14 @@ class Outlier extends Model
             'age_days' => $this->age_days,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
-}
 
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+            'used' => 'boolean',
+            'outlier_score' => 'float',
+            'age_days' => 'float',
+        ];
+    }
+}

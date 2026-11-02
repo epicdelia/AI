@@ -18,19 +18,21 @@ class Prompts
     public static function profile(): string
     {
         $lines = [
-            'Creator: '.self::name(),
-            Setting::get('niche') ? 'Channel niche: '.Setting::get('niche') : null,
-            Setting::get('audience') ? 'Audience: '.Setting::get('audience') : null,
-            Setting::get('angle') ? 'Her unfair advantages / angle: '.Setting::get('angle') : null,
-            Setting::get('tone_of_voice') ? 'Tone of voice: '.Setting::get('tone_of_voice') : null,
-            Setting::get('language') && strtolower(Setting::get('language')) !== 'english' ? 'Write in: '.Setting::get('language') : null,
-            Setting::get('specific_instructions') ? 'Her standing instructions (always follow): '.Setting::get('specific_instructions') : null,
+            'Creator: ' . self::name(),
+            Setting::get('niche') ? 'Channel niche: ' . Setting::get('niche') : null,
+            Setting::get('audience') ? 'Audience: ' . Setting::get('audience') : null,
+            Setting::get('angle') ? 'Her unfair advantages / angle: ' . Setting::get('angle') : null,
+            Setting::get('tone_of_voice') ? 'Tone of voice: ' . Setting::get('tone_of_voice') : null,
+            Setting::get('language') && strtolower(Setting::get('language')) !== 'english' ? 'Write in: ' . Setting::get('language') : null,
+            Setting::get('specific_instructions') ? 'Her standing instructions (always follow): ' . Setting::get('specific_instructions') : null,
         ];
 
         return implode("\n", array_filter($lines));
     }
 
-    /** Rules every piece of generated writing follows, matching the AI-tell linter. */
+    /**
+     * Rules every piece of generated writing follows, matching the AI-tell linter.
+     */
     public static function writingRules(): string
     {
         return <<<'TXT'
@@ -39,19 +41,7 @@ class Prompts
 - Never use: delve, game-changer, unprecedented, seamlessly, tapestry, testament to, unleash, buckle up, let's dive in, in conclusion, harness the power, ever-evolving, revolutionize.
 - Use contractions the way people talk (it's, don't, I'm).
 - Invent nothing: no stats, quotes, releases or personal stories. Where a personal story is needed write [YOUR STORY: what kind].
-TXT.self::brandRules();
-    }
-
-    /** Her brand kit's own rules: words she never uses and her usual call to action. */
-    private static function brandRules(): string
-    {
-        $words = \App\Http\Controllers\Api\BrandController::bannedWords();
-        $cta = trim((string) \App\Models\Setting::get('brand_cta', ''));
-
-        return ($words ? "
-- She never uses these words: ".implode(', ', $words).'.' : '')
-            .($cta !== '' ? "
-- Her usual call to action, when one fits: {$cta}" : '');
+TXT . self::brandRules();
     }
 
     public static function toolSystem(): string
@@ -59,8 +49,8 @@ TXT.self::brandRules();
         $name = self::name();
 
         return "You're {$name}'s writing assistant for her YouTube channel and socials. Write the way she'd say it.\n\n"
-            .self::profile()."\n\n".self::voice()."\n\n".self::writingRules()."\n\n"
-            ."Return Markdown only, with no preamble. When asked for several options, give each one its own \"## Option N\" heading.";
+            . self::profile() . "\n\n" . self::voice() . "\n\n" . self::writingRules() . "\n\n"
+            . 'Return Markdown only, with no preamble. When asked for several options, give each one its own "## Option N" heading.';
     }
 
     public static function chatSystem(string $context): string
@@ -84,23 +74,47 @@ TXT;
     public static function transcriptActions(): array
     {
         return [
-            'breakdown' => ['label' => 'Why it worked', 'prompt' => "Break down why this video works, for a creator who wants to make her own take on the premise (never a copy). Sections: ## The promise (title + first 30 seconds), ## Structure (chapter by chapter, with rough timing), ## Retention tricks (open loops, re-hooks, pattern breaks you can see), ## What's missing (gaps a better video could fill), ## Her angle (2 or 3 ways {name} could make a different, better video on this premise)."],
-            'summary' => ['label' => 'Summary', 'prompt' => 'Summarise the main idea in one short paragraph, then list the key points as bullets.'],
-            'tldr' => ['label' => 'TL;DR', 'prompt' => 'Write a TL;DR of three sentences or fewer.'],
-            'list' => ['label' => 'Key takeaways', 'prompt' => 'List the main ideas and takeaways as a numbered list, one line each.'],
-            'blog' => ['label' => 'Blog post', 'prompt' => 'Turn the transcript into a readable blog post with a title and a ## subheading for each section. Keep the speaker\'s meaning and facts. Remove filler.'],
-            'pros_cons' => ['label' => 'Pros & cons', 'prompt' => 'List the pros and cons of what the video argues or shows, under ## Pros and ## Cons.'],
-            'quotes' => ['label' => 'Quotable lines', 'prompt' => 'Pull the 5 to 10 most quotable or clip-worthy lines, exactly as said, each with a one-line note on why it would work as a Short or a social post.'],
-            'chapters' => ['label' => 'Chapters', 'prompt' => 'Propose YouTube chapter titles in order (no timestamps unless the transcript has them), each under 40 characters.'],
+            'breakdown' => [
+                'label' => 'Why it worked',
+                'prompt' => "Break down why this video works, for a creator who wants to make her own take on the premise (never a copy). Sections: ## The promise (title + first 30 seconds), ## Structure (chapter by chapter, with rough timing), ## Retention tricks (open loops, re-hooks, pattern breaks you can see), ## What's missing (gaps a better video could fill), ## Her angle (2 or 3 ways {name} could make a different, better video on this premise).",
+            ],
+            'summary' => [
+                'label' => 'Summary',
+                'prompt' => 'Summarise the main idea in one short paragraph, then list the key points as bullets.',
+            ],
+            'tldr' => [
+                'label' => 'TL;DR',
+                'prompt' => 'Write a TL;DR of three sentences or fewer.',
+            ],
+            'list' => [
+                'label' => 'Key takeaways',
+                'prompt' => 'List the main ideas and takeaways as a numbered list, one line each.',
+            ],
+            'blog' => [
+                'label' => 'Blog post',
+                'prompt' => 'Turn the transcript into a readable blog post with a title and a ## subheading for each section. Keep the speaker\'s meaning and facts. Remove filler.',
+            ],
+            'pros_cons' => [
+                'label' => 'Pros & cons',
+                'prompt' => 'List the pros and cons of what the video argues or shows, under ## Pros and ## Cons.',
+            ],
+            'quotes' => [
+                'label' => 'Quotable lines',
+                'prompt' => 'Pull the 5 to 10 most quotable or clip-worthy lines, exactly as said, each with a one-line note on why it would work as a Short or a social post.',
+            ],
+            'chapters' => [
+                'label' => 'Chapters',
+                'prompt' => 'Propose YouTube chapter titles in order (no timestamps unless the transcript has them), each under 40 characters.',
+            ],
         ];
     }
 
     public static function voice(): string
     {
-        $ex = trim((string) Setting::get('voice_excerpts'));
+        $ex = trim((string)Setting::get('voice_excerpts'));
 
         return $ex !== ''
-            ? "Real excerpts of how she talks (imitate the rhythm, not a description of it):\n\"\"\"\n".mb_substr($ex, 0, 9000)."\n\"\"\""
+            ? "Real excerpts of how she talks (imitate the rhythm, not a description of it):\n\"\"\"\n" . mb_substr($ex, 0, 9000) . "\n\"\"\""
             : 'No voice excerpts yet, so keep the language plain, spoken and conversational. Flag in your output that adding voice excerpts in Settings will make this sound more like her.';
     }
 
@@ -360,10 +374,10 @@ TXT;
         $name = self::name();
 
         return "You rewrite one of {$name}'s best-performing posts as a fresh post for the same platform and format. "
-            .'Keep the core idea and structure that made it work; change the hook, the example and the wording, so it reads new to people who saw the first one. '
-            ."Update anything that may be dated, or mark it [VERIFY]. Never copy a sentence from the original.\n\n"
-            .self::profile()."\n\n".self::voice()."\n\n".self::writingRules()."\n\n"
-            .'Output JSON: {"title": "short internal label", "body": "post text or caption", "parts": ["thread posts, slides or beats, only if the format has them"], "why": "one line: what you kept and what you changed"}';
+            . 'Keep the core idea and structure that made it work; change the hook, the example and the wording, so it reads new to people who saw the first one. '
+            . "Update anything that may be dated, or mark it [VERIFY]. Never copy a sentence from the original.\n\n"
+            . self::profile() . "\n\n" . self::voice() . "\n\n" . self::writingRules() . "\n\n"
+            . 'Output JSON: {"title": "short internal label", "body": "post text or caption", "parts": ["thread posts, slides or beats, only if the format has them"], "why": "one line: what you kept and what you changed"}';
     }
 
     public static function bioSystem(string $platform, string $what, int $limit): string
@@ -371,10 +385,10 @@ TXT;
         $name = self::name();
 
         return "Write 3 options for {$name}'s {$platform} {$what}, each at most {$limit} characters (count carefully; shorter is fine). "
-            .'Say who she helps and what they get, in her voice, specific to her niche. One may include a light personality line. '
-            ."No hashtag lists, no \"passionate about\", no emoji walls (at most 2).\n\n"
-            .self::profile()."\n\n".self::writingRules()."\n\n"
-            .'Output JSON: {"options": ["...", "...", "..."]}';
+            . 'Say who she helps and what they get, in her voice, specific to her niche. One may include a light personality line. '
+            . "No hashtag lists, no \"passionate about\", no emoji walls (at most 2).\n\n"
+            . self::profile() . "\n\n" . self::writingRules() . "\n\n"
+            . 'Output JSON: {"options": ["...", "...", "..."]}';
     }
 
     public static function mentorSystem(): string
@@ -397,5 +411,19 @@ Rules:
 
 Write the verdict in 120 words or fewer, in this order: the score so far ("Week N: shipped. 3 of 4, 1 missed"), the 7-day number against the baseline, next week's video (or the missing pick), then the one instruction. Plain text, warm but honest.
 TXT;
+    }
+
+    /**
+     * Her brand kit's own rules: words she never uses and her usual call to action.
+     */
+    private static function brandRules(): string
+    {
+        $words = \App\Http\Controllers\Api\BrandController::bannedWords();
+        $cta = trim((string)\App\Models\Setting::get('brand_cta', ''));
+
+        return ($words ? '
+- She never uses these words: ' . implode(', ', $words) . '.' : '')
+            . ($cta !== '' ? "
+- Her usual call to action, when one fits: {$cta}" : '');
     }
 }

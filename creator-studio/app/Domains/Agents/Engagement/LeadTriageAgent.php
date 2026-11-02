@@ -8,7 +8,6 @@ use App\Domains\Engagement\Models\EngagementItem;
 use App\Models\Deal;
 use App\Models\Setting;
 use App\Services\Llm;
-use App\Services\Prompts;
 use Throwable;
 
 /**
@@ -30,7 +29,8 @@ class LeadTriageAgent
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Triage incoming engagement messages for commercial lead value.
@@ -58,7 +58,7 @@ class LeadTriageAgent
     {
         $messages = $params['messages'] ?? [];
 
-        if (empty($messages) && ! empty($params['item_id'])) {
+        if (empty($messages) && !empty($params['item_id'])) {
             $item = EngagementItem::find($params['item_id']);
             if ($item) {
                 $messages[] = [
@@ -134,7 +134,7 @@ SYS;
             $messageList .= "[{$idx}] Author: {$m['author']} ({$m['platform']})\nText: \"{$m['text']}\"\n\n";
         }
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $messageList) / 4), 600);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $messageList) / 4), 600);
 
         try {
             $parsed = $this->llm->as('lead-triage-agent')->creativity(0.3)->json($systemPrompt, $messageList);
@@ -156,11 +156,11 @@ SYS;
             }
 
             $intent = $found['intent'] ?? 'general_audience';
-            $val = (int) ($found['estimated_value_usd'] ?? 0);
-            $score = (int) ($found['lead_score'] ?? 50);
+            $val = (int)($found['estimated_value_usd'] ?? 0);
+            $score = (int)($found['lead_score'] ?? 50);
 
             // Fallback heuristic if LLM did not classify
-            if (! $found) {
+            if (!$found) {
                 $textLower = strtolower($orig['text']);
                 if (preg_match('/(sponsor|partner|collab|rate card|media kit|budget)/i', $textLower)) {
                     $intent = 'sponsor_lead';
@@ -214,8 +214,8 @@ SYS;
      */
     public function escalateToDeal(SocialAgent $agent, array $leadData): Deal
     {
-        $brandName = trim((string) ($leadData['author'] ?? 'Inbound Lead'));
-        $rate = max(0, (float) ($leadData['estimated_value'] ?? 2500));
+        $brandName = trim((string)($leadData['author'] ?? 'Inbound Lead'));
+        $rate = max(0, (float)($leadData['estimated_value'] ?? 2500));
         $intent = $leadData['intent'] ?? 'sponsor_lead';
 
         $deliverables = match ($intent) {
@@ -240,4 +240,3 @@ SYS;
         return $deal;
     }
 }
-

@@ -24,4 +24,3 @@ class LegalController extends Controller
         return response()->json(LegalDocs::impressum());
     }
 }
-

@@ -65,12 +65,16 @@ class SubProcessorRegistry
     {
         $cleanEmail = strtolower(trim($email));
 
-        if (! filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
-            throw ValidationException::withMessages(['email' => 'Please provide a valid corporate email address.']);
+        if (!filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
+            throw ValidationException::withMessages([
+                'email' => 'Please provide a valid corporate email address.',
+            ]);
         }
 
         DB::table('sub_processor_subscribers')->updateOrInsert(
-            ['email' => $cleanEmail],
+            [
+                'email' => $cleanEmail,
+            ],
             [
                 'company_name' => $company ? trim($company) : null,
                 'subscribed_at' => now(),
@@ -108,4 +112,3 @@ class SubProcessorRegistry
         return $md;
     }
 }
-

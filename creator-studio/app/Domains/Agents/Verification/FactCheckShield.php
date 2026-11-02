@@ -17,7 +17,8 @@ class FactCheckShield
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Audit technical content for accuracy, hallucination risks, and empirical grounding.
@@ -40,7 +41,7 @@ class FactCheckShield
      */
     public function verify(SocialAgent $agent, array $params): array
     {
-        $text = trim((string) ($params['text'] ?? ''));
+        $text = trim((string)($params['text'] ?? ''));
         $platform = $params['platform'] ?? 'linkedin';
 
         if (empty($text)) {
@@ -90,17 +91,17 @@ SYS;
 
         $userPrompt = "Draft Content to Audit (Platform: {$platform}):\n\"{$text}\"";
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 600);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 600);
 
         try {
             $data = $this->llm->as('fact-check-agent')->creativity(0.2)->json($systemPrompt, $userPrompt);
 
-            if (! isset($data['credibility_score'], $data['claims_evaluated'])) {
+            if (!isset($data['credibility_score'], $data['claims_evaluated'])) {
                 throw new \RuntimeException('Invalid verification payload structure.');
             }
 
             return [
-                'credibility_score' => (int) $data['credibility_score'],
+                'credibility_score' => (int)$data['credibility_score'],
                 'status' => $data['status'] ?? ($data['credibility_score'] >= 80 ? 'pass' : 'warning'),
                 'claims_evaluated' => $data['claims_evaluated'],
                 'armored_text' => $data['armored_text'] ?? $text,
@@ -127,4 +128,3 @@ SYS;
         }
     }
 }
-

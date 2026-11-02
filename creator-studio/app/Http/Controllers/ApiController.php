@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Engine\Catalog\ModelCatalog;
-use App\Domains\Social\Models\SocialPost;
-use App\Http\Controllers\Api\AudienceController;
-use Illuminate\Support\Facades\Cache;
 use App\Domains\Engine\EngineManager;
-use App\Domains\Usage\UsageLimit;
-use App\Domains\Feeds\Models\FeedItem;
 use App\Domains\Engine\Enums\EngineEnum;
+use App\Domains\Feeds\Models\FeedItem;
+use App\Domains\Social\Models\SocialPost;
 use App\Domains\Usage\AiUsage;
+use App\Domains\Usage\UsageLimit;
+use App\Http\Controllers\Api\AudienceController;
 use App\Models\Channel;
 use App\Models\Deal;
 use App\Models\Idea;
@@ -24,17 +23,18 @@ use App\Models\User;
 use App\Models\Week;
 use App\Services\AiTellsLinter;
 use App\Services\BreakoutScanner;
-use App\Services\WeeklyCheckin;
 use App\Services\Dictation;
 use App\Services\Llm;
 use App\Services\NextStep;
 use App\Services\Prompts;
 use App\Services\ScriptStructure;
+use App\Services\WeeklyCheckin;
 use App\Services\YouTube;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 class ApiController extends Controller
@@ -47,6 +47,7 @@ class ApiController extends Controller
     {
         $dbConnected = true;
         $hasUsers = false;
+
         try {
             $hasUsers = User::count() > 0;
         } catch (Throwable) {
@@ -56,19 +57,19 @@ class ApiController extends Controller
         $user = $dbConnected ? Auth::user() : null;
         $admin = $user?->isAdmin() ?? false;
 
-        $rawName = Setting::get('nickname') ?: trim(explode(' ', (string) (Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]);
+        $rawName = Setting::get('nickname') ?: trim(explode(' ', (string)(Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]);
         if (empty($rawName) || strcasecmp($rawName, 'Dempsey') === 0) {
             $rawName = 'Delia';
         }
 
         return response()->json([
             'initialized' => $hasUsers,
-            'authenticated' => (bool) $user,
+            'authenticated' => (bool)$user,
             'db_connected' => $dbConnected,
             // Her studio's own settings (love notes, layout, tour) are only ever sent to her.
             'tour_done' => $admin ? Setting::has('tour_done') : null,
             // Login screen: her first name and whether love notes are on (nothing else before sign-in).
-            'welcome' => $hasUsers && ! $user ? [
+            'welcome' => $hasUsers && !$user ? [
                 'name' => $rawName,
                 'accent' => Setting::get('accent', 'rose'),
                 'love' => Setting::get('love_notes', '1') === '1',
@@ -79,19 +80,19 @@ class ApiController extends Controller
                 'enabled' => Setting::get('love_notes', '1') === '1',
                 'name' => $rawName,
                 'from' => Setting::get('love_from', 'Dempsey'),
-                'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) Setting::get('love_custom', ''))))),
+                'custom' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string)Setting::get('love_custom', ''))))),
             ] : null,
             'prefs' => $admin ? [
                 'nickname' => Setting::get('nickname', ''),
                 'accent' => Setting::get('accent', 'rose'),
                 'text_size' => Setting::get('text_size', 'default'),
                 'density' => Setting::get('density', 'comfortable'),
-                'nav_hidden' => json_decode((string) Setting::get('nav_hidden', '[]'), true) ?: [],
-                'dashboard_layout' => json_decode((string) Setting::get('dashboard_layout', ''), true) ?: null,
+                'nav_hidden' => json_decode((string)Setting::get('nav_hidden', '[]'), true) ?: [],
+                'dashboard_layout' => json_decode((string)Setting::get('dashboard_layout', ''), true) ?: null,
                 'motto' => Setting::get('motto', ''),
                 'start_page' => Setting::get('start_page', '/'),
                 'nav_mode' => Setting::get('nav_mode', 'top'),
-                'avatar' => (bool) Setting::get('avatar'),
+                'avatar' => (bool)Setting::get('avatar'),
             ] : null,
             'user' => $user?->toSession(),
         ]);
@@ -130,7 +131,7 @@ class ApiController extends Controller
             ->get();
 
         foreach ($activeDeals as $deal) {
-            if (! is_array($deal->deliverables)) {
+            if (!is_array($deal->deliverables)) {
                 continue;
             }
             foreach ($deal->deliverables as $deliv) {
@@ -139,15 +140,15 @@ class ApiController extends Controller
                 }
                 $days = null;
                 $dueLabel = null;
-                if (! empty($deliv['due_date'])) {
+                if (!empty($deliv['due_date'])) {
                     $dueDate = rescue(fn () => CarbonImmutable::parse($deliv['due_date']), null);
                     if ($dueDate) {
-                        $days = (int) now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
+                        $days = (int)now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
                         $dueLabel = match (true) {
                             $days > 1 => "Due in {$days} days",
                             $days === 1 => 'Due tomorrow',
                             $days === 0 => 'Due today',
-                            default => abs($days).'d past due',
+                            default => abs($days) . 'd past due',
                         };
                     }
                 }
@@ -195,18 +196,38 @@ class ApiController extends Controller
                 'id' => $p->id,
                 'platform' => $p->platform,
                 'format' => $p->format,
-                'title' => $p->title ?: mb_substr(strip_tags((string) $p->body), 0, 80),
+                'title' => $p->title ?: mb_substr(strip_tags((string)$p->body), 0, 80),
                 'scheduled_for' => $p->scheduled_for?->toIso8601String(),
                 'agent_name' => $p->socialAgent?->name ?? 'Social Agent',
             ])->values(),
         ];
 
         $setupChecks = [
-            ['key' => 'channel_id', 'label' => 'Your YouTube Channel', 'done' => Setting::has('channel_id')],
-            ['key' => 'youtube_api_key', 'label' => 'YouTube Data API Key', 'done' => Setting::has('youtube_api_key')],
-            ['key' => 'llm_api_key', 'label' => 'AI API Key (LLM)', 'done' => Llm::configured()],
-            ['key' => 'channels', 'label' => 'Competitor Channels Added', 'done' => Channel::exists()],
-            ['key' => 'goals', 'label' => '12-Week Video Plan', 'done' => $weeks->isNotEmpty()],
+            [
+                'key' => 'channel_id',
+                'label' => 'Your YouTube Channel',
+                'done' => Setting::has('channel_id'),
+            ],
+            [
+                'key' => 'youtube_api_key',
+                'label' => 'YouTube Data API Key',
+                'done' => Setting::has('youtube_api_key'),
+            ],
+            [
+                'key' => 'llm_api_key',
+                'label' => 'AI API Key (LLM)',
+                'done' => Llm::configured(),
+            ],
+            [
+                'key' => 'channels',
+                'label' => 'Competitor Channels Added',
+                'done' => Channel::exists(),
+            ],
+            [
+                'key' => 'goals',
+                'label' => '12-Week Video Plan',
+                'done' => $weeks->isNotEmpty(),
+            ],
         ];
 
         return response()->json([
@@ -255,7 +276,10 @@ class ApiController extends Controller
                 // Which landing-page services open inquiries asked about, most asked first.
                 'by_service' => Deal::where('stage', 'inquiry')->get(['deliverables'])
                     ->map(fn (Deal $d) => $d->deliverables[0]['service'] ?? null)->filter()
-                    ->countBy()->sortDesc()->map(fn ($n, $s) => ['service' => $s, 'count' => $n])->values(),
+                    ->countBy()->sortDesc()->map(fn ($n, $s) => [
+                        'service' => $s,
+                        'count' => $n,
+                    ])->values(),
             ],
         ]);
     }
@@ -278,36 +302,46 @@ class ApiController extends Controller
 
     public function storeChannels(Request $request): JsonResponse
     {
-        $request->validate(['handles' => 'required|string']);
+        $request->validate([
+            'handles' => 'required|string',
+        ]);
         $added = 0;
         $items = preg_split('/[\s,]+/', $request->input('handles'), -1, PREG_SPLIT_NO_EMPTY);
 
         foreach ($items as $raw) {
             $handle = Channel::normalize($raw);
-            if ($handle !== '' && ! Channel::where('handle', $handle)->exists()) {
-                Channel::create(['handle' => $handle]);
+            if ($handle !== '' && !Channel::where('handle', $handle)->exists()) {
+                Channel::create([
+                    'handle' => $handle,
+                ]);
                 $added++;
             }
         }
 
         return response()->json([
-            'message' => $added ? "Added {$added} competitor channel(s)." : "Channels already in list.",
+            'message' => $added ? "Added {$added} competitor channel(s)." : 'Channels already in list.',
             'channels' => Channel::withCount('outliers')->orderBy('handle')->get(),
         ]);
     }
 
     public function toggleChannel(Channel $channel): JsonResponse
     {
-        $channel->update(['active' => ! $channel->active]);
+        $channel->update([
+            'active' => !$channel->active,
+        ]);
 
-        return response()->json(['channel' => $channel]);
+        return response()->json([
+            'channel' => $channel,
+        ]);
     }
 
     public function deleteChannel(Channel $channel): JsonResponse
     {
         $channel->delete();
 
-        return response()->json(['message' => "Channel {$channel->handle} deleted."]);
+        return response()->json([
+            'message' => "Channel {$channel->handle} deleted.",
+        ]);
     }
 
     public function scanBreakouts(BreakoutScanner $scanner): JsonResponse
@@ -315,7 +349,9 @@ class ApiController extends Controller
         try {
             $created = $scanner->scan();
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], $e instanceof \RuntimeException && str_starts_with($e->getMessage(), 'Please add') ? 400 : 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], $e instanceof \RuntimeException && str_starts_with($e->getMessage(), 'Please add') ? 400 : 500);
         }
         Setting::put('last_run_scan', now()->toIso8601String());
 
@@ -330,7 +366,9 @@ class ApiController extends Controller
     {
         $outlier->delete();
 
-        return response()->json(['message' => 'Outlier dismissed.']);
+        return response()->json([
+            'message' => 'Outlier dismissed.',
+        ]);
     }
 
     // ==========================================
@@ -360,7 +398,7 @@ class ApiController extends Controller
     public function generateIdeas(Request $request, Llm $llm): JsonResponse
     {
         $signals = Outlier::where('used', false)->orderByDesc('outlier_score')->take(10)->get();
-        $extra = trim((string) $request->input('extra'));
+        $extra = trim((string)$request->input('extra'));
 
         $userPrompt = $signals->isEmpty()
             ? "No breakout signals in database today.\n"
@@ -381,7 +419,7 @@ class ApiController extends Controller
         $askLines = $asks->flatMap->compactLines();
         if ($askLines->isNotEmpty()) {
             $userPrompt .= "\nWhat viewers asked for in comments (her_video=true means her own audience, the strongest signal; cite the url as source_url and the need in why_now):\n"
-                .$askLines->implode("\n")."\n";
+                . $askLines->implode("\n") . "\n";
         }
 
         // Her own recent winners and duds, if My channel was opened recently (no extra API call).
@@ -391,23 +429,23 @@ class ApiController extends Controller
         if ($own->count() >= 3) {
             $fmt = fn ($v) => "- \"{$v['title']}\": {$v['score']}x her median";
             $userPrompt .= "\nHer own videos against her median (lean toward what her audience already rewards):\n"
-                .$own->take(3)->map($fmt)->implode("\n")."\n"
-                .($own->count() >= 5 ? $own->reverse()->take(2)->map($fmt)->implode("\n")."\n" : '');
+                . $own->take(3)->map($fmt)->implode("\n") . "\n"
+                . ($own->count() >= 5 ? $own->reverse()->take(2)->map($fmt)->implode("\n") . "\n" : '');
         }
 
         // What pays: content that brought website leads, and the problems those leads wrote about.
         $paying = collect(rescue(fn () => \App\Domains\Landing\RevenueAttribution::summary(180)['items'], [], false))->where('leads', '>', 0)->take(5);
         if ($paying->isNotEmpty()) {
             $userPrompt .= "\nHer content that brought website leads or paying clients (more like these grows her business, not just views):\n"
-                .$paying->map(fn ($i) => "- \"{$i['title']}\" ({$i['platform']}): {$i['leads']} lead(s), \${$i['paid']} paid")->implode("\n")."\n";
+                . $paying->map(fn ($i) => "- \"{$i['title']}\" ({$i['platform']}): {$i['leads']} lead(s), \${$i['paid']} paid")->implode("\n") . "\n";
         }
         $briefs = Deal::whereNotNull('source')->where('created_at', '>=', now()->subDays(90))->latest()->take(8)->pluck('notes')
-            ->map(fn ($n) => trim((string) preg_replace('/^.*Notes from client:\s*/s', '', (string) $n)))
-            ->filter(fn ($t) => mb_strlen($t) >= 30 && ! str_starts_with($t, 'None'))
-            ->map(fn ($t) => '- '.mb_substr(str_replace("\n", ' ', $t), 0, 220));
+            ->map(fn ($n) => trim((string)preg_replace('/^.*Notes from client:\s*/s', '', (string)$n)))
+            ->filter(fn ($t) => mb_strlen($t) >= 30 && !str_starts_with($t, 'None'))
+            ->map(fn ($t) => '- ' . mb_substr(str_replace("\n", ' ', $t), 0, 220));
         if ($briefs->isNotEmpty()) {
             $userPrompt .= "\nWhat recent website leads asked her to help with (her ideal clients' problems; a video that solves one attracts more of them):\n"
-                .$briefs->implode("\n")."\n";
+                . $briefs->implode("\n") . "\n";
         }
 
         if ($extra !== '') {
@@ -422,7 +460,9 @@ class ApiController extends Controller
         try {
             $data = $llm->as('ideas')->json(Prompts::ideasSystem(), $userPrompt);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         $brief = IdeaBrief::create([
@@ -437,23 +477,29 @@ class ApiController extends Controller
             }
             $idea = $brief->ideas()->create(collect($i)->only([
                 'title', 'thumbnail_text', 'premise', 'why_now', 'source_url', 'angle', 'format', 'effort', 'shelf_life', 'risk',
-            ])->map(fn ($v) => is_scalar($v) ? mb_substr((string) $v, 0, 2000) : null)->all());
+            ])->map(fn ($v) => is_scalar($v) ? mb_substr((string)$v, 0, 2000) : null)->all());
 
             $createdIdeas[] = $idea;
         }
 
-        Outlier::whereIn('id', $signals->pluck('id'))->update(['used' => true]);
-        FeedItem::whereIn('id', $news->pluck('id'))->update(['used' => true]);
-        AudienceInsight::whereIn('id', $asks->pluck('id'))->update(['used' => true]);
+        Outlier::whereIn('id', $signals->pluck('id'))->update([
+            'used' => true,
+        ]);
+        FeedItem::whereIn('id', $news->pluck('id'))->update([
+            'used' => true,
+        ]);
+        AudienceInsight::whereIn('id', $asks->pluck('id'))->update([
+            'used' => true,
+        ]);
 
         $sources = array_filter([
-            $signals->isNotEmpty() ? $signals->count().' breakout signal(s)' : null,
-            $news->isNotEmpty() ? $news->count().' news item(s)' : null,
-            $askLines->isNotEmpty() ? $askLines->count().' viewer request(s)' : null,
+            $signals->isNotEmpty() ? $signals->count() . ' breakout signal(s)' : null,
+            $news->isNotEmpty() ? $news->count() . ' news item(s)' : null,
+            $askLines->isNotEmpty() ? $askLines->count() . ' viewer request(s)' : null,
         ]);
 
         return response()->json([
-            'message' => count($createdIdeas).' new idea(s) generated'.($sources ? ' from '.implode(' and ', $sources).'.' : ' from your niche.'),
+            'message' => count($createdIdeas) . ' new idea(s) generated' . ($sources ? ' from ' . implode(' and ', $sources) . '.' : ' from your niche.'),
             'summary' => $data['summary'] ?? '',
             'created' => $createdIdeas,
         ]);
@@ -468,9 +514,14 @@ class ApiController extends Controller
             'source_url' => 'nullable|url|max:500',
         ]);
 
-        $idea = Idea::create($data + ['status' => 'picked']);
+        $idea = Idea::create($data + [
+            'status' => 'picked',
+        ]);
 
-        return response()->json(['idea' => $idea, 'message' => 'Idea added to Picked list.']);
+        return response()->json([
+            'idea' => $idea,
+            'message' => 'Idea added to Picked list.',
+        ]);
     }
 
     public function updateIdea(Request $request, Idea $idea): JsonResponse
@@ -491,14 +542,18 @@ class ApiController extends Controller
 
         $idea->update($data);
 
-        return response()->json(['idea' => $idea]);
+        return response()->json([
+            'idea' => $idea,
+        ]);
     }
 
     public function deleteIdea(Idea $idea): JsonResponse
     {
         $idea->delete();
 
-        return response()->json(['message' => 'Idea deleted.']);
+        return response()->json([
+            'message' => 'Idea deleted.',
+        ]);
     }
 
     // ==========================================
@@ -509,7 +564,9 @@ class ApiController extends Controller
     {
         $scripts = Script::with('idea')->latest('updated_at')->paginate(30);
 
-        return response()->json(['scripts' => $scripts]);
+        return response()->json([
+            'scripts' => $scripts,
+        ]);
     }
 
     public function createScript(Request $request, Llm $llm): JsonResponse
@@ -524,11 +581,13 @@ class ApiController extends Controller
         $title = $data['title'] ?? $idea?->title ?? 'Untitled Script';
         $body = '';
 
-        if ($idea && ! ($data['blank'] ?? false)) {
+        if ($idea && !($data['blank'] ?? false)) {
             try {
                 $body = $llm->as('script')->chat(Prompts::scriptSystem(), "The greenlit video idea:\n\n" . $idea->asMarkdown());
             } catch (Throwable $e) {
-                return response()->json(['error' => 'AI draft generation error: ' . $e->getMessage()], 500);
+                return response()->json([
+                    'error' => 'AI draft generation error: ' . $e->getMessage(),
+                ], 500);
             }
         }
 
@@ -538,7 +597,9 @@ class ApiController extends Controller
             'body' => $body,
         ]);
 
-        $idea?->update(['status' => 'scripted']);
+        $idea?->update([
+            'status' => 'scripted',
+        ]);
 
         return response()->json([
             'script' => $script,
@@ -549,7 +610,7 @@ class ApiController extends Controller
     public function getScript(Script $script): JsonResponse
     {
         $script->load(['idea', 'deals']);
-        $findings = AiTellsLinter::lint((string) $script->body);
+        $findings = AiTellsLinter::lint((string)$script->body);
 
         return response()->json([
             'script' => $script,
@@ -557,7 +618,7 @@ class ApiController extends Controller
             'has_hard' => AiTellsLinter::hasHard($findings),
             'word_count' => $script->wordCount(),
             'est_minutes' => $script->minutes(),
-            'structure' => ScriptStructure::analyse((string) $script->body),
+            'structure' => ScriptStructure::analyse((string)$script->body),
         ]);
     }
 
@@ -586,9 +647,9 @@ class ApiController extends Controller
                 . "Key points to cover:\n"
                 . "{$points}\n\n"
                 . "Call to action:\n"
-                . trim("{$link}\n{$coupon}")."\n";
+                . trim("{$link}\n{$coupon}") . "\n";
 
-            $script->body = trim((string) $script->body).$segment;
+            $script->body = trim((string)$script->body) . $segment;
             $script->save();
         }
 
@@ -615,19 +676,24 @@ class ApiController extends Controller
 
         $script->update($data);
 
-        return response()->json(['script' => $script, 'message' => 'Script saved.']);
+        return response()->json([
+            'script' => $script,
+            'message' => 'Script saved.',
+        ]);
     }
 
     public function deleteScript(Script $script): JsonResponse
     {
         $script->delete();
 
-        return response()->json(['message' => 'Script deleted.']);
+        return response()->json([
+            'message' => 'Script deleted.',
+        ]);
     }
 
     public function reviewScript(Script $script, Llm $llm): JsonResponse
     {
-        $findings = AiTellsLinter::lint((string) $script->body);
+        $findings = AiTellsLinter::lint((string)$script->body);
         if (AiTellsLinter::hasHard($findings)) {
             return response()->json([
                 'error' => 'Please resolve HARD linter errors (like banned AI cliches or em-dashes) before running AI review.',
@@ -641,7 +707,9 @@ class ApiController extends Controller
         try {
             $review = $llm->as('review')->chat(Prompts::reviewSystem(), $userPrompt);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         $script->update([
@@ -665,12 +733,19 @@ class ApiController extends Controller
         try {
             $post = $llm->as('substack')->chat(Prompts::substackSystem(), "Video title: {$script->title}\n\n{$source}");
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
-        $script->update(['substack' => $post]);
+        $script->update([
+            'substack' => $post,
+        ]);
 
-        return response()->json(['substack' => $post, 'message' => 'Substack article generated.']);
+        return response()->json([
+            'substack' => $post,
+            'message' => 'Substack article generated.',
+        ]);
     }
 
     public function editBriefScript(Script $script, Llm $llm): JsonResponse
@@ -678,17 +753,24 @@ class ApiController extends Controller
         try {
             $brief = $llm->as('edit_brief')->chat(Prompts::editBriefSystem(), "Title: {$script->title}\n\n{$script->body}");
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
-        $script->update(['edit_brief' => $brief]);
+        $script->update([
+            'edit_brief' => $brief,
+        ]);
 
-        return response()->json(['edit_brief' => $brief, 'message' => 'Editor brief generated.']);
+        return response()->json([
+            'edit_brief' => $brief,
+            'message' => 'Editor brief generated.',
+        ]);
     }
 
     public function lintText(Request $request): JsonResponse
     {
-        $text = (string) $request->input('text', '');
+        $text = (string)$request->input('text', '');
         $findings = AiTellsLinter::lint($text);
 
         return response()->json([
@@ -723,8 +805,10 @@ class ApiController extends Controller
             'replace' => 'nullable|boolean',
         ]);
 
-        if (Week::exists() && ! ($data['replace'] ?? false)) {
-            return response()->json(['error' => 'You already have an existing plan. Choose replace to reset.'], 400);
+        if (Week::exists() && !($data['replace'] ?? false)) {
+            return response()->json([
+                'error' => 'You already have an existing plan. Choose replace to reset.',
+            ], 400);
         }
 
         Week::query()->delete();
@@ -756,13 +840,16 @@ class ApiController extends Controller
             'note' => 'sometimes|nullable|string|max:2000',
         ]);
 
-        if (! empty($data['script_id']) && empty($data['video_title'])) {
+        if (!empty($data['script_id']) && empty($data['video_title'])) {
             $data['video_title'] = Script::find($data['script_id'])->title;
         }
 
         $week->update($data);
 
-        return response()->json(['week' => $week, 'message' => "Week {$week->number} updated."]);
+        return response()->json([
+            'week' => $week,
+            'message' => "Week {$week->number} updated.",
+        ]);
     }
 
     public function checkinGoals(WeeklyCheckin $checkin): JsonResponse
@@ -772,7 +859,9 @@ class ApiController extends Controller
         } catch (\RuntimeException $e) {
             $status = str_starts_with($e->getMessage(), "Couldn't fetch") ? 500 : 400;
 
-            return response()->json(['error' => $e->getMessage()], $status);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], $status);
         }
         Setting::put('last_run_checkin', now()->toIso8601String());
 
@@ -792,7 +881,9 @@ class ApiController extends Controller
         try {
             return response()->json($dictation->token());
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 502);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 502);
         }
     }
 
@@ -804,22 +895,28 @@ class ApiController extends Controller
             'rewrite' => 'nullable|in:' . implode(',', array_keys(Dictation::REWRITES)),
         ]);
 
-        $prompt = ! empty($data['rewrite'])
+        $prompt = !empty($data['rewrite'])
             ? Dictation::rewritePrompt($data['rewrite'])
             : Dictation::systemPrompt($data['style'] ?? 'auto');
 
         try {
             $cleaned = $llm->as('dictation')->chat($prompt, trim($data['text']), 90);
 
-            return response()->json(['polished' => $cleaned]);
+            return response()->json([
+                'polished' => $cleaned,
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 502);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 502);
         }
     }
 
     public function getNotes(): JsonResponse
     {
-        return response()->json(['notes' => Note::latest()->take(30)->get()]);
+        return response()->json([
+            'notes' => Note::latest()->take(30)->get(),
+        ]);
     }
 
     public function saveNote(Request $request): JsonResponse
@@ -830,9 +927,13 @@ class ApiController extends Controller
             'style' => 'nullable|string|max:20',
         ]);
 
-        $note = Note::create(['style' => $data['style'] ?? 'auto'] + $data);
+        $note = Note::create([
+            'style' => $data['style'] ?? 'auto',
+        ] + $data);
 
-        return response()->json(['note' => $note]);
+        return response()->json([
+            'note' => $note,
+        ]);
     }
 
     public function noteToIdea(Note $note): JsonResponse
@@ -856,7 +957,9 @@ class ApiController extends Controller
     {
         $note->delete();
 
-        return response()->json(['message' => 'Note deleted.']);
+        return response()->json([
+            'message' => 'Note deleted.',
+        ]);
     }
 
     // ==========================================
@@ -887,23 +990,29 @@ class ApiController extends Controller
 
     public function usage(Request $request): JsonResponse
     {
-        $days = max(1, min(365, (int) $request->query('days', 30)));
+        $days = max(1, min(365, (int)$request->query('days', 30)));
 
         return response()->json(AiUsage::summary($days));
     }
 
-    /** Settings → Automation: paused or not, today's AI spend per job against the cap, and what ran in the last 24 h. */
+    /**
+     * Settings → Automation: paused or not, today's AI spend per job against the cap, and what ran in the last 24 h.
+     */
     public function automations(): JsonResponse
     {
         $byJob = AiUsage::where('feature', 'like', 'auto:%')->where('created_at', '>=', now()->startOfDay())
-            ->selectRaw("feature, count(*) as calls, coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) as tokens")
+            ->selectRaw('feature, count(*) as calls, coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) as tokens')
             ->groupBy('feature')->get()
             ->groupBy(fn ($r) => explode(':', $r->feature)[1] ?? 'other')
-            ->map(fn ($rows, $job) => ['job' => $job, 'calls' => (int) $rows->sum('calls'), 'tokens' => (int) $rows->sum('tokens')])->values();
+            ->map(fn ($rows, $job) => [
+                'job' => $job,
+                'calls' => (int)$rows->sum('calls'),
+                'tokens' => (int)$rows->sum('tokens'),
+            ])->values();
 
         return response()->json([
             'paused' => Setting::get('schedule_enabled', '1') !== '1',
-            'cap' => (int) Setting::get('automation_daily_tokens', '') ?: null,
+            'cap' => (int)Setting::get('automation_daily_tokens', '') ?: null,
             'used_today' => Llm::automationTokensToday(),
             'by_job' => $byJob,
             'events' => \App\Domains\Agents\Models\AgentEvent::where('created_at', '>=', now()->subDay())->latest()->limit(50)
@@ -915,12 +1024,17 @@ class ApiController extends Controller
     {
         $wasRunning = Setting::get('schedule_enabled', '1') === '1';
         // Setting or clearing an API key (or app secret) needs the password from the last few minutes.
-        $touchesSecrets = collect(Setting::SECRET)->contains(fn ($k) => $request->filled($k) || $request->boolean('clear_'.$k));
-        if ($touchesSecrets && ! \App\Http\Middleware\EnsureFreshPassword::fresh($request)) {
-            return response()->json(['error' => 'Please enter your password again to change keys.', 'password_confirm_required' => true], 423);
+        $touchesSecrets = collect(Setting::SECRET)->contains(fn ($k) => $request->filled($k) || $request->boolean('clear_' . $k));
+        if ($touchesSecrets && !\App\Http\Middleware\EnsureFreshPassword::fresh($request)) {
+            return response()->json([
+                'error' => 'Please enter your password again to change keys.',
+                'password_confirm_required' => true,
+            ], 423);
         }
         if ($touchesSecrets) {
-            \App\Domains\Security\Audit::log('keys_changed', null, null, ['keys' => collect(Setting::SECRET)->filter(fn ($k) => $request->filled($k) || $request->boolean('clear_'.$k))->values()->all()]);
+            \App\Domains\Security\Audit::log('keys_changed', null, null, [
+                'keys' => collect(Setting::SECRET)->filter(fn ($k) => $request->filled($k) || $request->boolean('clear_' . $k))->values()->all(),
+            ]);
         }
 
         $data = $request->all();
@@ -929,17 +1043,17 @@ class ApiController extends Controller
             if (array_key_exists($k, $data)) {
                 $val = $data[$k];
                 if ($k === 'channel_id' && $val) {
-                    $val = Channel::normalize((string) $val);
+                    $val = Channel::normalize((string)$val);
                 }
-                Setting::put($k, $val !== '' ? (string) $val : null);
+                Setting::put($k, $val !== '' ? (string)$val : null);
             }
         }
 
         foreach (Setting::SECRET as $k) {
-            if (! empty($data['clear_' . $k])) {
+            if (!empty($data['clear_' . $k])) {
                 Setting::put($k, null);
-            } elseif (! empty($data[$k])) {
-                Setting::put($k, trim((string) $data[$k]));
+            } elseif (!empty($data[$k])) {
+                Setting::put($k, trim((string)$data[$k]));
             }
         }
 
@@ -947,7 +1061,9 @@ class ApiController extends Controller
             \App\Domains\Security\Audit::log($wasRunning ? 'automations_paused' : 'automations_resumed');
         }
 
-        return response()->json(['message' => 'Settings saved successfully.']);
+        return response()->json([
+            'message' => 'Settings saved successfully.',
+        ]);
     }
 
     public function testConnections(YouTube $yt, Llm $llm): JsonResponse
@@ -956,22 +1072,28 @@ class ApiController extends Controller
 
         // YouTube check
         try {
-            if (! Setting::has('youtube_api_key')) {
+            if (!Setting::has('youtube_api_key')) {
                 throw new \RuntimeException('No YouTube API key saved.');
             }
             $channel = Setting::get('channel_id');
             if ($channel) {
                 [, $title] = $yt->channelUploads($channel);
                 $results['youtube'] = [
-                    'ok' => (bool) $title,
+                    'ok' => (bool)$title,
                     'message' => $title ? "Connected. Channel found: {$title}" : "Key valid, but channel '{$channel}' not found.",
                 ];
             } else {
                 $yt->channelUploads('YouTube');
-                $results['youtube'] = ['ok' => true, 'message' => 'Key is valid. (Set your channel handle in settings)'];
+                $results['youtube'] = [
+                    'ok' => true,
+                    'message' => 'Key is valid. (Set your channel handle in settings)',
+                ];
             }
         } catch (Throwable $e) {
-            $results['youtube'] = ['ok' => false, 'message' => $e->getMessage()];
+            $results['youtube'] = [
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ];
         }
 
         // LLM check
@@ -981,20 +1103,31 @@ class ApiController extends Controller
             $reply = $llm->as('test')->chat('Reply with the single word OK.', 'Say OK.', 30);
             $results['llm'] = [
                 'ok' => true,
-                'message' => "Connected to {$engine->label()}, model '{$model}'. Test response: '".mb_substr($reply, 0, 40)."'",
+                'message' => "Connected to {$engine->label()}, model '{$model}'. Test response: '" . mb_substr($reply, 0, 40) . "'",
             ];
         } catch (Throwable $e) {
-            $results['llm'] = ['ok' => false, 'message' => $e->getMessage()];
+            $results['llm'] = [
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ];
         }
 
         // AssemblyAI check
         try {
             app(Dictation::class)->token();
-            $results['assemblyai'] = ['ok' => true, 'message' => 'Connected. Real-time streaming tokens functional.'];
+            $results['assemblyai'] = [
+                'ok' => true,
+                'message' => 'Connected. Real-time streaming tokens functional.',
+            ];
         } catch (Throwable $e) {
-            $results['assemblyai'] = ['ok' => false, 'message' => $e->getMessage()];
+            $results['assemblyai'] = [
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ];
         }
 
-        return response()->json(['checks' => $results]);
+        return response()->json([
+            'checks' => $results,
+        ]);
     }
 }

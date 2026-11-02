@@ -9,11 +9,6 @@ class Workflow extends Model
 {
     protected $fillable = ['name', 'active', 'nodes', 'runs_count', 'last_run_at'];
 
-    protected function casts(): array
-    {
-        return ['active' => 'boolean', 'nodes' => 'array', 'last_run_at' => 'datetime'];
-    }
-
     public function runs(): HasMany
     {
         return $this->hasMany(WorkflowRun::class);
@@ -22,5 +17,14 @@ class Workflow extends Model
     public function trigger(): ?array
     {
         return $this->nodes[0] ?? null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'active' => 'boolean',
+            'nodes' => 'array',
+            'last_run_at' => 'datetime',
+        ];
     }
 }

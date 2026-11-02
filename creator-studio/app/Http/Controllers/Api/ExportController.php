@@ -21,23 +21,29 @@ use Throwable;
 class ExportController extends Controller
 {
     private const SCRIPT_PARTS = [
-        'body' => 'Script', 'outline' => 'Plan', 'review' => 'AI review', 'fact_check' => 'Fact-check',
-        'transcript' => 'Recording transcript', 'substack' => 'Substack post', 'edit_brief' => 'Editor brief', 'publish_kit' => 'Publish kit',
+        'body' => 'Script',
+        'outline' => 'Plan',
+        'review' => 'AI review',
+        'fact_check' => 'Fact-check',
+        'transcript' => 'Recording transcript',
+        'substack' => 'Substack post',
+        'edit_brief' => 'Editor brief',
+        'publish_kit' => 'Publish kit',
     ];
 
     public function script(Request $request, Script $script): Response
     {
-        $parts = array_intersect(array_keys(self::SCRIPT_PARTS), explode(',', (string) $request->query('parts', 'body')));
+        $parts = array_intersect(array_keys(self::SCRIPT_PARTS), explode(',', (string)$request->query('parts', 'body')));
         $md = [];
         foreach ($parts as $part) {
             $value = $script->{$part};
             if ($part === 'outline' && is_array($value)) {
-                $value = collect($value['chapters'] ?? [])->map(fn ($c, $i) => ($i + 1).". **{$c['title']}**".(! empty($c['beat']) ? " · {$c['beat']}" : ''))->implode("\n");
+                $value = collect($value['chapters'] ?? [])->map(fn ($c, $i) => ($i + 1) . ". **{$c['title']}**" . (!empty($c['beat']) ? " · {$c['beat']}" : ''))->implode("\n");
             }
-            if (trim((string) $value) === '') {
+            if (trim((string)$value) === '') {
                 continue;
             }
-            $md[] = (count($parts) > 1 ? '# '.self::SCRIPT_PARTS[$part]."\n\n" : '').trim((string) $value);
+            $md[] = (count($parts) > 1 ? '# ' . self::SCRIPT_PARTS[$part] . "\n\n" : '') . trim((string)$value);
         }
 
         $content = implode("\n\n---\n\n", $md) ?: '(empty)';
@@ -49,13 +55,13 @@ class ExportController extends Controller
             );
         }
 
-        return $this->respond($request, $script->title, $content, (bool) $script->is_ai_assisted);
+        return $this->respond($request, $script->title, $content, (bool)$script->is_ai_assisted);
     }
 
     public function chat(Request $request, Conversation $conversation): Response
     {
         $name = \App\Models\Setting::get('creator_name') ?: (auth()->user()?->name ?: 'You');
-        $md = $conversation->messages->map(fn ($m) => ($m->role === 'user' ? "**{$name}:**" : '**Producer:**')."\n\n".trim($m->content))->implode("\n\n---\n\n");
+        $md = $conversation->messages->map(fn ($m) => ($m->role === 'user' ? "**{$name}:**" : '**Producer:**') . "\n\n" . trim($m->content))->implode("\n\n---\n\n");
 
         return $this->respond($request, $conversation->title, $md ?: '(no messages)', true);
     }
@@ -68,21 +74,23 @@ class ExportController extends Controller
     private function respond(Request $request, string $title, string $markdown, bool $isAi = false): Response
     {
         $format = in_array($request->query('format'), ['docx', 'md', 'txt'], true) ? $request->query('format') : 'docx';
-        $file = (Str::slug($title) ?: 'export').'.'.$format;
+        $file = (Str::slug($title) ?: 'export') . '.' . $format;
 
         try {
             [$bytes, $mime] = match ($format) {
                 'docx' => [DocxWriter::fromMarkdown($title, $markdown), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
                 'md' => ["# {$title}\n\n{$markdown}\n", 'text/markdown; charset=utf-8'],
-                'txt' => [$title."\n".str_repeat('=', mb_strlen($title))."\n\n".self::plain($markdown)."\n", 'text/plain; charset=utf-8'],
+                'txt' => [$title . "\n" . str_repeat('=', mb_strlen($title)) . "\n\n" . self::plain($markdown) . "\n", 'text/plain; charset=utf-8'],
             };
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
 
         $headers = [
             'Content-Type' => $mime,
-            'Content-Disposition' => 'attachment; filename="'.$file.'"',
+            'Content-Disposition' => 'attachment; filename="' . $file . '"',
             'Cache-Control' => 'no-store',
         ];
 
@@ -93,10 +101,12 @@ class ExportController extends Controller
         return response($bytes, 200, $headers);
     }
 
-    /** Markdown → readable plain text (MagicAI's generateTxt stripped tags the same way). */
+    /**
+     * Markdown → readable plain text (MagicAI's generateTxt stripped tags the same way).
+     */
     private static function plain(string $md): string
     {
-        $t = preg_replace('/^#{1,6}\s+(.*)$/m', "$1\n".'', $md);
+        $t = preg_replace('/^#{1,6}\s+(.*)$/m', "$1\n" . '', $md);
         $t = preg_replace('/\*\*([^*]+)\*\*|__([^_]+)__/', '$1$2', $t);
         $t = preg_replace('/(?<![*\w])\*([^*\n]+)\*/', '$1', $t);
         $t = preg_replace('/\[([^\]]+)\]\((https?:[^)]+)\)/', '$1 ($2)', $t);

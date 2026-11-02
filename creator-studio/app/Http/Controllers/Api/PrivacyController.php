@@ -21,7 +21,7 @@ class PrivacyController extends Controller
         $dealId = $request->query('deal_id');
         $deal = $dealId ? Deal::find($dealId) : null;
 
-        if (! $deal) {
+        if (!$deal) {
             $deal = new Deal([
                 'id' => 0,
                 'brand_name' => $request->query('company', 'Enterprise Partner'),
@@ -92,4 +92,3 @@ class PrivacyController extends Controller
         ]);
     }
 }
-

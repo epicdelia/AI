@@ -12,7 +12,9 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-/** OpenAI, Gemini, OpenRouter, DeepSeek, xAI, Perplexity, Together, AssemblyAI and custom servers. */
+/**
+ * OpenAI, Gemini, OpenRouter, DeepSeek, xAI, Perplexity, Together, AssemblyAI and custom servers.
+ */
 class OpenAiCompatibleDriver extends BaseDriver
 {
     public function chat(string $system, array $messages, array $options = []): ChatResult
@@ -28,6 +30,7 @@ class OpenAiCompatibleDriver extends BaseDriver
 
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
+
             throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
         $content = $resp->json('choices.0.message.content');
@@ -45,15 +48,20 @@ class OpenAiCompatibleDriver extends BaseDriver
 
     public function stream(string $system, array $messages, callable $onDelta, array $options = []): ChatResult
     {
-        $body = $this->body($system, $messages, $options) + ['stream' => true];
+        $body = $this->body($system, $messages, $options) + [
+            'stream' => true,
+        ];
         // Token usage in the final chunk; only OpenAI and OpenRouter document this option.
         if (in_array($this->engine, [EngineEnum::OPENAI, EngineEnum::OPENROUTER], true)) {
-            $body['stream_options'] = ['include_usage' => true];
+            $body['stream_options'] = [
+                'include_usage' => true,
+            ];
         }
 
         $resp = $this->send($body, $options, true);
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
+
             throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
 
@@ -90,22 +98,27 @@ class OpenAiCompatibleDriver extends BaseDriver
         return new ChatResult(trim($text), $in, $out, $model);
     }
 
-    /** Native function calling: `tools` in, `tool_calls` out (OpenAI, Gemini, OpenRouter, DeepSeek, xAI, Together...). */
+    /**
+     * Native function calling: `tools` in, `tool_calls` out (OpenAI, Gemini, OpenRouter, DeepSeek, xAI, Together...).
+     */
     public function toolChat(string $system, array $messages, array $tools, array $options = []): ToolTurn
     {
         if ($this->engine === EngineEnum::PERPLEXITY) {
             $tools = []; // Perplexity's API has no function calling: answer without tools.
         }
         $body = $this->body($system, [], $options);
-        $body['messages'] = array_merge([['role' => 'system', 'content' => $system]], self::toolMessages($messages));
+        $body['messages'] = array_merge([[
+            'role' => 'system',
+            'content' => $system,
+        ]], self::toolMessages($messages));
         if ($tools) {
-            $body['tools'] = array_map(fn($t) => [
+            $body['tools'] = array_map(fn ($t) => [
                 'type' => 'function',
                 'function' => [
                     'name' => $t['name'],
                     'description' => $t['description'],
                     'parameters' => $t['parameters'],
-                ]
+                ],
             ], $tools);
             $body['tool_choice'] = 'auto';
         }
@@ -114,18 +127,21 @@ class OpenAiCompatibleDriver extends BaseDriver
         if ($onDelta) {
             $body['stream'] = true;
             if (in_array($this->engine, [EngineEnum::OPENAI, EngineEnum::OPENROUTER], true)) {
-                $body['stream_options'] = ['include_usage' => true];
+                $body['stream_options'] = [
+                    'include_usage' => true,
+                ];
             }
         }
 
-        $resp = $this->send($body, $options, (bool) $onDelta);
+        $resp = $this->send($body, $options, (bool)$onDelta);
         // Some models/gateways don't do function calling: answer without tools instead of failing.
         if ($resp->status() === 400 && isset($body['tools']) && preg_match('/tool|function/i', $resp->body())) {
             unset($body['tools'], $body['tool_choice']);
-            $resp = $this->send($body, $options, (bool) $onDelta);
+            $resp = $this->send($body, $options, (bool)$onDelta);
         }
         if ($resp->failed()) {
             $msg = $resp->json('error.message') ?? $resp->json('error') ?? $resp->body();
+
             throw new RuntimeException("AI request failed ({$resp->status()}): " . self::clip($msg));
         }
         if ($onDelta) {
@@ -134,8 +150,12 @@ class OpenAiCompatibleDriver extends BaseDriver
 
         $calls = [];
         foreach ($resp->json('choices.0.message.tool_calls') ?? [] as $i => $c) {
-            $args = json_decode((string) ($c['function']['arguments'] ?? '{}'), true);
-            $call = ['id' => (string) ($c['id'] ?? 'call_' . $i), 'name' => (string) ($c['function']['name'] ?? ''), 'args' => is_array($args) ? $args : []];
+            $args = json_decode((string)($c['function']['arguments'] ?? '{}'), true);
+            $call = [
+                'id' => (string)($c['id'] ?? 'call_' . $i),
+                'name' => (string)($c['function']['name'] ?? ''),
+                'args' => is_array($args) ? $args : [],
+            ];
             if (isset($c['extra_content'])) {
                 $call['extra_content'] = $c['extra_content'];
             }
@@ -147,7 +167,7 @@ class OpenAiCompatibleDriver extends BaseDriver
             }
             $calls[] = $call;
         }
-        $text = trim((string) ($resp->json('choices.0.message.content') ?? ''));
+        $text = trim((string)($resp->json('choices.0.message.content') ?? ''));
         if ($text === '' && !$calls) {
             throw new RuntimeException('The AI returned an empty answer. Try again, or pick another model.');
         }
@@ -182,10 +202,16 @@ class OpenAiCompatibleDriver extends BaseDriver
             }
             foreach ($delta['tool_calls'] ?? [] as $n => $tc) {
                 $i = $tc['index'] ?? $n;
-                $parts[$i] ??= ['id' => '', 'name' => '', 'args' => '', 'extra_content' => null, 'thought_signature' => null];
+                $parts[$i] ??= [
+                    'id' => '',
+                    'name' => '',
+                    'args' => '',
+                    'extra_content' => null,
+                    'thought_signature' => null,
+                ];
                 $parts[$i]['id'] = ($tc['id'] ?? '') ?: $parts[$i]['id'];
-                $parts[$i]['name'] = $parts[$i]['name'] ?: (string) ($tc['function']['name'] ?? '');
-                $parts[$i]['args'] .= (string) ($tc['function']['arguments'] ?? '');
+                $parts[$i]['name'] = $parts[$i]['name'] ?: (string)($tc['function']['name'] ?? '');
+                $parts[$i]['args'] .= (string)($tc['function']['arguments'] ?? '');
                 if (isset($tc['extra_content'])) {
                     $parts[$i]['extra_content'] = $tc['extra_content'];
                 }
@@ -207,7 +233,11 @@ class OpenAiCompatibleDriver extends BaseDriver
         $calls = [];
         foreach (array_values($parts) as $i => $p) {
             $args = json_decode($p['args'] !== '' ? $p['args'] : '{}', true);
-            $call = ['id' => $p['id'] ?: 'call_' . $i, 'name' => $p['name'], 'args' => is_array($args) ? $args : []];
+            $call = [
+                'id' => $p['id'] ?: 'call_' . $i,
+                'name' => $p['name'],
+                'args' => is_array($args) ? $args : [],
+            ];
             if (!empty($p['extra_content'])) {
                 $call['extra_content'] = $p['extra_content'];
             }
@@ -226,13 +256,19 @@ class OpenAiCompatibleDriver extends BaseDriver
         return new ToolTurn(trim($text), $calls, $in, $out, $model);
     }
 
-    /** Neutral transcript → OpenAI chat messages (assistant tool_calls + role "tool" results). */
+    /**
+     * Neutral transcript → OpenAI chat messages (assistant tool_calls + role "tool" results).
+     */
     private static function toolMessages(array $messages): array
     {
         $out = [];
         foreach ($messages as $m) {
             if ($m['role'] === 'tool') {
-                $out[] = ['role' => 'tool', 'tool_call_id' => $m['tool_call_id'], 'content' => (string) $m['content']];
+                $out[] = [
+                    'role' => 'tool',
+                    'tool_call_id' => $m['tool_call_id'],
+                    'content' => (string)$m['content'],
+                ];
             } elseif ($m['role'] === 'assistant' && !empty($m['tool_calls'])) {
                 $out[] = [
                     'role' => 'assistant',
@@ -241,7 +277,10 @@ class OpenAiCompatibleDriver extends BaseDriver
                         $call = [
                             'id' => $c['id'],
                             'type' => 'function',
-                            'function' => ['name' => $c['name'], 'arguments' => json_encode((object) $c['args'])],
+                            'function' => [
+                                'name' => $c['name'],
+                                'arguments' => json_encode((object)$c['args']),
+                            ],
                         ];
                         if (!empty($c['extra_content'])) {
                             $call['extra_content'] = $c['extra_content'];
@@ -254,10 +293,14 @@ class OpenAiCompatibleDriver extends BaseDriver
                         }
 
                         return $call;
-                    }, $m['tool_calls'])
+                    }, $m['tool_calls']),
                 ];
             } else {
-                $out[] = self::message(['role' => $m['role'], 'content' => (string) $m['content'], 'images' => $m['images'] ?? []]);
+                $out[] = self::message([
+                    'role' => $m['role'],
+                    'content' => (string)$m['content'],
+                    'images' => $m['images'] ?? [],
+                ]);
             }
         }
 
@@ -273,7 +316,10 @@ class OpenAiCompatibleDriver extends BaseDriver
         $model = $this->model($options);
         $body = [
             'model' => $model,
-            'messages' => array_merge([['role' => 'system', 'content' => $system]], array_map([$this, 'message'], $messages)),
+            'messages' => array_merge([[
+                'role' => 'system',
+                'content' => $system,
+            ]], array_map([$this, 'message'], $messages)),
         ];
 
         $reasoning = ModelCatalog::isReasoning($this->engine, $model);
@@ -281,7 +327,7 @@ class OpenAiCompatibleDriver extends BaseDriver
             $body['temperature'] = $options['temperature'];
         }
         if (isset($options['max_tokens'])) {
-            $body[ModelCatalog::requiresMaxCompletionTokens($this->engine, $model) ? 'max_completion_tokens' : 'max_tokens'] = (int) $options['max_tokens'];
+            $body[ModelCatalog::requiresMaxCompletionTokens($this->engine, $model) ? 'max_completion_tokens' : 'max_tokens'] = (int)$options['max_tokens'];
         }
         if ($reasoning && ($effort = Setting::get('reasoning_effort'))) {
             $resolved = ModelCatalog::resolveEffort($this->engine, $model, $effort) ?? $effort;
@@ -291,25 +337,43 @@ class OpenAiCompatibleDriver extends BaseDriver
         return $body;
     }
 
-    /** Images become content parts (MagicAI's viaOpenAiWithImage used the same data-URI form). */
+    /**
+     * Images become content parts (MagicAI's viaOpenAiWithImage used the same data-URI form).
+     */
     private static function message(array $m): array
     {
         if (empty($m['images'])) {
-            return ['role' => $m['role'], 'content' => $m['content']];
+            return [
+                'role' => $m['role'],
+                'content' => $m['content'],
+            ];
         }
-        $parts = [['type' => 'text', 'text' => (string) $m['content']]];
+        $parts = [[
+            'type' => 'text',
+            'text' => (string)$m['content'],
+        ]];
         foreach ($m['images'] as $img) {
-            $parts[] = ['type' => 'image_url', 'image_url' => ['url' => "data:{$img['mime']};base64,{$img['data']}"]];
+            $parts[] = [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => "data:{$img['mime']};base64,{$img['data']}",
+                ],
+            ];
         }
 
-        return ['role' => $m['role'], 'content' => $parts];
+        return [
+            'role' => $m['role'],
+            'content' => $parts,
+        ];
     }
 
     private function send(array $body, array $options, bool $stream = false): Response
     {
         return $this->withKeyFailover(function (string $key) use ($body, $options, $stream) {
             // AssemblyAI's gateway wants the bare key; everyone else wants "Bearer <key>".
-            $headers = ['Authorization' => $this->engine === EngineEnum::ASSEMBLYAI ? $key : "Bearer {$key}"];
+            $headers = [
+                'Authorization' => $this->engine === EngineEnum::ASSEMBLYAI ? $key : "Bearer {$key}",
+            ];
             if ($this->engine === EngineEnum::OPENROUTER) {
                 $headers['X-Title'] = 'Creator Studio';
             }
@@ -318,7 +382,9 @@ class OpenAiCompatibleDriver extends BaseDriver
             }
             $http = Http::timeout($options['timeout'] ?? 180)->connectTimeout(10)->withHeaders($headers);
             if ($stream) {
-                $http = $http->withOptions(['stream' => true]);
+                $http = $http->withOptions([
+                    'stream' => true,
+                ]);
             }
 
             return $http->post($this->baseUrl() . '/chat/completions', $body);

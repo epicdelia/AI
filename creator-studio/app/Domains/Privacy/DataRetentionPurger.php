@@ -44,7 +44,7 @@ class DataRetentionPurger
         // 3. Mark deal as purged
         $deal->update([
             'retention_purged_at' => now(),
-            'notes' => trim(($deal->notes ? $deal->notes."\n" : '').'[GDPR Art. 17] Ephemeral creative files purged on '.now()->toIso8601String()),
+            'notes' => trim(($deal->notes ? $deal->notes . "\n" : '') . '[GDPR Art. 17] Ephemeral creative files purged on ' . now()->toIso8601String()),
         ]);
 
         Audit::log('deal_linked', $by, $deal, [

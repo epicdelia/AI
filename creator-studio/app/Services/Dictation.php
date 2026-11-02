@@ -47,30 +47,36 @@ TXT;
 
     public static function systemPrompt(string $style = 'auto'): string
     {
-        return self::CLEANUP_RULES.(self::STYLES[$style] ?? self::STYLES['auto'])."\nReturn only the text, with no preamble.";
+        return self::CLEANUP_RULES . (self::STYLES[$style] ?? self::STYLES['auto']) . "\nReturn only the text, with no preamble.";
     }
 
     public static function rewritePrompt(string $action): string
     {
-        return "You edit a short piece of writing.\n- ".self::REWRITES[$action]."\n"
-            ."- Keep the same language and the same Markdown formatting style.\n"
-            ."- Do not add new ideas, facts or details.\n"
-            .'Return only the rewritten text, with no preamble.';
+        return "You edit a short piece of writing.\n- " . self::REWRITES[$action] . "\n"
+            . "- Keep the same language and the same Markdown formatting style.\n"
+            . "- Do not add new ideas, facts or details.\n"
+            . 'Return only the rewritten text, with no preamble.';
     }
 
     public function token(): array
     {
         $key = Setting::get('assemblyai_api_key');
-        if (! $key) {
+        if (!$key) {
             throw new RuntimeException('No AssemblyAI key yet. Add one under Settings to use dictation.');
         }
-        $resp = Http::timeout(15)->withHeaders(['Authorization' => $key])
-            ->get(self::TOKEN_URL, ['expires_in_seconds' => 60]);
+        $resp = Http::timeout(15)->withHeaders([
+            'Authorization' => $key,
+        ])
+            ->get(self::TOKEN_URL, [
+                'expires_in_seconds' => 60,
+            ]);
         if ($resp->failed()) {
-            throw new RuntimeException("Streaming token request failed ({$resp->status()}): ".mb_substr($resp->body(), 0, 300));
+            throw new RuntimeException("Streaming token request failed ({$resp->status()}): " . mb_substr($resp->body(), 0, 300));
         }
 
-        return ['token' => $resp->json('token'), 'stream_url' => self::STREAM_URL];
+        return [
+            'token' => $resp->json('token'),
+            'stream_url' => self::STREAM_URL,
+        ];
     }
 }
-

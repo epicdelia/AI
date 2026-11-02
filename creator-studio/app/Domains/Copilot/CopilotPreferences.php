@@ -19,12 +19,18 @@ class CopilotPreferences
 {
     public const MAX_RULES = 15;
 
-    public function __construct(private Llm $llm) {}
+    public function __construct(
+        private Llm $llm
+    ) {
+    }
 
     public static function record(string $kind, string $detail): void
     {
         try {
-            CopilotSignal::create(['kind' => $kind, 'detail' => mb_substr($detail, 0, 1500)]);
+            CopilotSignal::create([
+                'kind' => $kind,
+                'detail' => mb_substr($detail, 0, 1500),
+            ]);
         } catch (Throwable) {
             // Learning is a nice-to-have; never break the action that produced the signal.
         }
@@ -32,10 +38,12 @@ class CopilotPreferences
 
     public static function rules(): string
     {
-        return trim((string) Setting::get('copilot_style_rules', ''));
+        return trim((string)Setting::get('copilot_style_rules', ''));
     }
 
-    /** "Remember that I never say 'guys'": added as a rule right away. */
+    /**
+     * "Remember that I never say 'guys'": added as a rule right away.
+     */
     public static function remember(string $rule): string
     {
         $rule = trim(preg_replace('/\s+/', ' ', $rule));
@@ -43,15 +51,19 @@ class CopilotPreferences
             return 'Nothing to remember.';
         }
         $lines = array_filter(preg_split('/\R/', self::rules()) ?: [], fn ($l) => trim($l) !== '');
-        $lines[] = '- '.ltrim($rule, '- ');
+        $lines[] = '- ' . ltrim($rule, '- ');
         Setting::put('copilot_style_rules', implode("\n", array_slice(array_values(array_unique($lines)), -self::MAX_RULES)));
         self::record('remember', $rule);
-        CopilotSignal::where('kind', 'remember')->update(['learned' => true]);
+        CopilotSignal::where('kind', 'remember')->update([
+            'learned' => true,
+        ]);
 
         return "Remembered: {$rule}";
     }
 
-    /** Turn unlearned signals into rules. Returns how many signals were used. */
+    /**
+     * Turn unlearned signals into rules. Returns how many signals were used.
+     */
     public function learn(int $minimum = 3): int
     {
         $signals = CopilotSignal::where('learned', false)->oldest()->take(60)->get();
@@ -72,11 +84,13 @@ JSON: {"rules": ["..."]}
 TXT, "Current rules:\n{$current}\n\nNew signals:\n{$list}");
 
         $rules = collect($out['rules'] ?? [])->filter(fn ($r) => is_string($r) && trim($r) !== '')
-            ->map(fn ($r) => '- '.ltrim(trim($r), '- '))->take(self::MAX_RULES)->implode("\n");
+            ->map(fn ($r) => '- ' . ltrim(trim($r), '- '))->take(self::MAX_RULES)->implode("\n");
         if ($rules !== '') {
             Setting::put('copilot_style_rules', $rules);
         }
-        CopilotSignal::whereIn('id', $signals->pluck('id'))->update(['learned' => true]);
+        CopilotSignal::whereIn('id', $signals->pluck('id'))->update([
+            'learned' => true,
+        ]);
         Setting::put('copilot_learned_at', now()->toIso8601String());
 
         return $signals->count();

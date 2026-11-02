@@ -15,7 +15,8 @@ class PreFlightSuite
     public function __construct(
         private AudioLoudnessAnalyzer $loudnessAnalyzer,
         private AdSuitabilityShield $adShield
-    ) {}
+    ) {
+    }
 
     /**
      * Run full pre-flight suite for an upload or draft.
@@ -39,7 +40,7 @@ class PreFlightSuite
         $scriptId = $params['script_id'] ?? null;
         $filePath = $params['file_path'] ?? null;
 
-        if ($uploadId && ! $filePath) {
+        if ($uploadId && !$filePath) {
             $upload = VideoUpload::find($uploadId);
             if ($upload) {
                 $filePath = $upload->path;
@@ -71,7 +72,7 @@ class PreFlightSuite
         // 3. Technical Compliance
         $resolution = $params['resolution'] ?? '3840x2160'; // 4K default for tech exports
         $aspectRatio = $params['aspect_ratio'] ?? '16:9';
-        $fps = (float) ($params['fps'] ?? 60.0);
+        $fps = (float)($params['fps'] ?? 60.0);
 
         $technicalNotes = [
             'is_uhd_ready' => str_contains($resolution, '3840') || str_contains($resolution, '2160'),
@@ -80,13 +81,16 @@ class PreFlightSuite
         ];
 
         return VideoCheck::updateOrCreate(
-            ['video_upload_id' => $uploadId, 'script_id' => $scriptId],
+            [
+                'video_upload_id' => $uploadId,
+                'script_id' => $scriptId,
+            ],
             [
                 'file_path' => $filePath,
                 'integrated_lufs' => $loudness['integrated_lufs'],
                 'true_peak_db' => $loudness['true_peak_db'],
                 'lufs_status' => $loudness['status'],
-                'loudness_summary' => $loudness['summary'].' '.$loudness['recommendation'],
+                'loudness_summary' => $loudness['summary'] . ' ' . $loudness['recommendation'],
                 'monetization_rating' => $adAudit['monetization_rating'],
                 'monetization_score' => $adAudit['monetization_score'],
                 'flagged_guidelines' => $adAudit['flagged_guidelines'],
@@ -102,4 +106,3 @@ class PreFlightSuite
         );
     }
 }
-

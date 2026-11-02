@@ -17,25 +17,39 @@ enum Role: string
     case Admin = 'admin';
     case Client = 'client';
 
-    /** The whole studio: every page and API she has (scripts, social, deals, settings…). */
+    /**
+     * The whole studio: every page and API she has (scripts, social, deals, settings…).
+     */
     public const STUDIO = 'studio';
 
-    /** The Clients page: client accounts, linking deals, invites, messaging clients. */
+    /**
+     * The Clients page: client accounts, linking deals, invites, messaging clients.
+     */
     public const CLIENTS_MANAGE = 'clients.manage';
 
-    /** A client's own requests (deals), proposals, deliverables and messages. */
+    /**
+     * A client's own requests (deals), proposals, deliverables and messages.
+     */
     public const PORTAL_REQUESTS = 'portal.requests';
 
-    /** A client's own payments and invoices. */
+    /**
+     * A client's own payments and invoices.
+     */
     public const PORTAL_BILLING = 'portal.billing';
 
-    /** A client's colleagues sharing their requests (only the team's owner adds or removes). */
+    /**
+     * A client's colleagues sharing their requests (only the team's owner adds or removes).
+     */
     public const PORTAL_TEAM = 'portal.team';
 
-    /** Their own profile, password, two-factor sign-in (everyone signed in). */
+    /**
+     * Their own profile, password, two-factor sign-in (everyone signed in).
+     */
     public const ACCOUNT = 'account';
 
-    /** @return list<string> */
+    /**
+     * @return list<string>
+     */
     public function abilities(): array
     {
         return match ($this) {
@@ -57,19 +71,25 @@ enum Role: string
         };
     }
 
-    /** Admins hold every key, secret and client record: they can't sign in without a second factor. */
+    /**
+     * Admins hold every key, secret and client record: they can't sign in without a second factor.
+     */
     public function requiresTwoFactor(): bool
     {
         return $this === self::Admin;
     }
 
-    /** Clients see their data matched by email, so their email must be proven first. */
+    /**
+     * Clients see their data matched by email, so their email must be proven first.
+     */
     public function requiresVerifiedEmail(): bool
     {
         return $this === self::Client;
     }
 
-    /** The only role public sign-up can ever create. */
+    /**
+     * The only role public sign-up can ever create.
+     */
     public static function forSignUp(): self
     {
         return self::Client;

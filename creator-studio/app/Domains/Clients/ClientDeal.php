@@ -15,7 +15,9 @@ use App\Models\Testimonial;
  */
 class ClientDeal
 {
-    /** The client's progress bar, in order. */
+    /**
+     * The client's progress bar, in order.
+     */
     public const STEPS = [
         'requested' => 'Requested',
         'proposal' => 'Proposal',
@@ -26,7 +28,9 @@ class ClientDeal
         'paid' => 'Paid',
     ];
 
-    /** Her stage → the client's step. `prospect` (a brand she might pitch) is never shown. */
+    /**
+     * Her stage → the client's step. `prospect` (a brand she might pitch) is never shown.
+     */
     private const STAGE_TO_STEP = [
         'inquiry' => 'requested',
         'pitching' => 'proposal',
@@ -39,10 +43,14 @@ class ClientDeal
         'paid' => 'paid',
     ];
 
-    /** Deliverable fields a client may see. */
+    /**
+     * Deliverable fields a client may see.
+     */
     private const DELIVERABLE_KEYS = ['format', 'platform', 'service', 'due_date', 'status', 'url'];
 
-    /** Stages a client may see their deal in. */
+    /**
+     * Stages a client may see their deal in.
+     */
     public static function visibleStages(): array
     {
         return array_values(array_diff(Deal::STAGES, ['prospect']));
@@ -51,7 +59,11 @@ class ClientDeal
     public static function status(Deal $deal): array
     {
         if ($deal->stage === 'lost') {
-            return ['key' => 'closed', 'label' => 'Closed', 'step' => null];
+            return [
+                'key' => 'closed',
+                'label' => 'Closed',
+                'step' => null,
+            ];
         }
         $step = self::STAGE_TO_STEP[$deal->stage] ?? 'requested';
         // A proposal that's been sent counts, even while she still calls it "inquiry".
@@ -59,22 +71,30 @@ class ClientDeal
             $step = 'proposal';
         }
 
-        return ['key' => $step, 'label' => self::STEPS[$step], 'step' => array_search($step, array_keys(self::STEPS), true)];
+        return [
+            'key' => $step,
+            'label' => self::STEPS[$step],
+            'step' => array_search($step, array_keys(self::STEPS), true),
+        ];
     }
 
-    /** Money is only shown once it's been put to them (a proposal, acceptance or invoice). */
+    /**
+     * Money is only shown once it's been put to them (a proposal, acceptance or invoice).
+     */
     public static function amountShown(Deal $deal): bool
     {
-        return (bool) $deal->proposal || $deal->accepted_at || in_array($deal->stage, ['contracted', 'production', 'in_review', 'scheduled', 'invoiced', 'paid'], true);
+        return (bool)$deal->proposal || $deal->accepted_at || in_array($deal->stage, ['contracted', 'production', 'in_review', 'scheduled', 'invoiced', 'paid'], true);
     }
 
     public static function canPay(Deal $deal): bool
     {
-        return $deal->payment_status !== 'paid' && $deal->stage !== 'lost' && (float) $deal->rate > 0
+        return $deal->payment_status !== 'paid' && $deal->stage !== 'lost' && (float)$deal->rate > 0
             && ($deal->accepted_at || $deal->stage === 'invoiced') && StripePaymentController::configured();
     }
 
-    /** The list view. */
+    /**
+     * The list view.
+     */
     public static function summary(Deal $deal): array
     {
         $p = $deal->proposal ?? [];
@@ -88,7 +108,7 @@ class ClientDeal
             'created_at' => $deal->created_at?->toIso8601String(),
             'updated_at' => ($deal->stage_changed_at ?? $deal->updated_at)?->toIso8601String(),
             'meeting_at' => $deal->meeting_at?->toIso8601String(),
-            'amount' => $shown ? (float) ($p['investment']['amount'] ?? $deal->rate) : null,
+            'amount' => $shown ? (float)($p['investment']['amount'] ?? $deal->rate) : null,
             'currency' => $p['investment']['currency'] ?? ($deal->currency ?: 'USD'),
             'payment_status' => $shown ? $deal->payment_status : null,
             'needs_you' => self::needsYou($deal),
@@ -96,18 +116,23 @@ class ClientDeal
         ];
     }
 
-    /** The detail view: everything in the summary plus proposal, deliverables and billing. */
+    /**
+     * The detail view: everything in the summary plus proposal, deliverables and billing.
+     */
     public static function detail(Deal $deal): array
     {
         $p = $deal->proposal;
         $review = Testimonial::where('deal_id', $deal->id)->where('status', 'requested')->whereNotNull('token')->value('token');
 
         return self::summary($deal) + [
-            'steps' => array_map(fn ($k, $v) => ['key' => $k, 'label' => $v], array_keys(self::STEPS), self::STEPS),
+            'steps' => array_map(fn ($k, $v) => [
+                'key' => $k,
+                'label' => $v,
+            ], array_keys(self::STEPS), self::STEPS),
             'proposal' => $p ? [
-                'markdown' => rescue(fn () => ProposalWriter::markdown($p), fn () => trim(($p['title'] ?? '')."
+                'markdown' => rescue(fn () => ProposalWriter::markdown($p), fn () => trim(($p['title'] ?? '') . '
 
-".($p['summary'] ?? '')), false),
+' . ($p['summary'] ?? '')), false),
                 'title' => $p['title'] ?? null,
             ] : null,
             'accepted_at' => $deal->accepted_at?->toIso8601String(),
@@ -123,10 +148,10 @@ class ClientDeal
             'payment_terms' => self::amountShown($deal) ? $deal->payment_terms : null,
             'invoiced_at' => $deal->invoiced_at?->toIso8601String(),
             'paid_at' => $deal->paid_at?->toIso8601String(),
-            'can_accept' => (bool) $p && ! $deal->accepted_at && $deal->stage !== 'lost',
+            'can_accept' => (bool)$p && !$deal->accepted_at && $deal->stage !== 'lost',
             'can_pay' => self::canPay($deal),
             'retainer' => $deal->subscription_status,
-            'review_url' => $review ? url('/review/'.$review) : null,
+            'review_url' => $review ? url('/review/' . $review) : null,
             'can_review_work' => self::canReviewWork($deal),
             'approved_at' => $deal->approved_at?->toIso8601String(),
             'timeline' => self::timeline($deal),
@@ -134,13 +159,15 @@ class ClientDeal
         ];
     }
 
-    /** What's waiting on the client: accept, pay, or review. */
+    /**
+     * What's waiting on the client: accept, pay, or review.
+     */
     public static function needsYou(Deal $deal): ?string
     {
         if ($deal->stage === 'lost') {
             return null;
         }
-        if ($deal->proposal && ! $deal->accepted_at) {
+        if ($deal->proposal && !$deal->accepted_at) {
             return 'Review and accept the proposal';
         }
         if (self::canReviewWork($deal)) {
@@ -156,18 +183,26 @@ class ClientDeal
         return null;
     }
 
-    /** Work waiting for the client's sign-off (her "In review" stage). */
+    /**
+     * Work waiting for the client's sign-off (her "In review" stage).
+     */
     public static function canReviewWork(Deal $deal): bool
     {
         return $deal->stage === 'in_review';
     }
 
-    /** What happened when, worded for the client (the request date if nothing else was logged). */
+    /**
+     * What happened when, worded for the client (the request date if nothing else was logged).
+     */
     public static function timeline(Deal $deal): array
     {
         $events = DealEvent::where('deal_id', $deal->id)->oldest()->get()->map->toRow()->all();
 
-        return $events ?: [['kind' => 'requested', 'label' => 'Request received', 'at' => $deal->created_at?->toIso8601String()]];
+        return $events ?: [[
+            'kind' => 'requested',
+            'label' => 'Request received',
+            'at' => $deal->created_at?->toIso8601String(),
+        ]];
     }
 
     private static function deliverables(Deal $deal): array
@@ -181,8 +216,8 @@ class ClientDeal
     private static function title(Deal $deal): string
     {
         foreach ($deal->deliverables ?? [] as $d) {
-            if (is_array($d) && ! empty($d['format'])) {
-                return preg_replace('/^Intro Call:\s*/', '', (string) $d['format']);
+            if (is_array($d) && !empty($d['format'])) {
+                return preg_replace('/^Intro Call:\s*/', '', (string)$d['format']);
             }
         }
 

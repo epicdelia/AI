@@ -79,7 +79,11 @@ class TaxCompliance
     public static function validateTaxId(?string $taxId, ?string $countryCode = null): array
     {
         if (empty($taxId)) {
-            return ['valid' => true, 'type' => null, 'formatted' => null];
+            return [
+                'valid' => true,
+                'type' => null,
+                'formatted' => null,
+            ];
         }
 
         $clean = strtoupper(trim(preg_replace('/[^a-zA-Z0-9-]/', '', $taxId)));
@@ -106,6 +110,7 @@ class TaxCompliance
         // UK VAT Check
         if (str_starts_with($clean, 'GB') || $country === 'GB') {
             $isValid = preg_match('/^GB[0-9]{9,12}$/', $clean) === 1;
+
             return [
                 'valid' => $isValid,
                 'type' => 'UK_VAT',
@@ -119,7 +124,7 @@ class TaxCompliance
             return [
                 'valid' => true,
                 'type' => 'US_EIN',
-                'formatted' => str_contains($clean, '-') ? $clean : substr($clean, 0, 2).'-'.substr($clean, 2),
+                'formatted' => str_contains($clean, '-') ? $clean : substr($clean, 0, 2) . '-' . substr($clean, 2),
                 'notice' => 'Services performed by non-US creator outside the United States. Form W-8BEN-E on file.',
             ];
         }
@@ -138,6 +143,7 @@ class TaxCompliance
             return false;
         }
         $info = self::validateTaxId($taxId, $countryCode);
+
         return ($info['valid'] ?? false) && ($info['type'] ?? '') === 'EU_VAT';
     }
 
@@ -148,10 +154,11 @@ class TaxCompliance
         }
         $clean = strtoupper(trim($taxId));
         $country = strtoupper(trim($countryCode ?? substr($clean, 0, 2)));
-        if (! in_array($country, self::EU_COUNTRIES, true) && ! in_array(substr($clean, 0, 2), self::EU_COUNTRIES, true)) {
+        if (!in_array($country, self::EU_COUNTRIES, true) && !in_array(substr($clean, 0, 2), self::EU_COUNTRIES, true)) {
             return null;
         }
         $info = self::validateTaxId($taxId, $country);
+
         return $info['notice'] ?? null;
     }
 
@@ -220,11 +227,11 @@ class TaxCompliance
 
         if ($clientIp) {
             $items['ip_address_logged'] = true;
-            $items['client_ip_subnet'] = substr($clientIp, 0, strrpos($clientIp, '.' ?: ':') ?: strlen($clientIp)).'.0';
+            $items['client_ip_subnet'] = substr($clientIp, 0, strrpos($clientIp, '.' ?: ':') ?: strlen($clientIp)) . '.0';
         }
 
         // Two pieces of non-conflicting commercial evidence satisfy the statutory test
-        $matched = ! empty($bCountry) && (! empty($cardCountry) ? ($bCountry === strtoupper(trim($cardCountry))) : true);
+        $matched = !empty($bCountry) && (!empty($cardCountry) ? ($bCountry === strtoupper(trim($cardCountry))) : true);
 
         return [
             'rule_of_two_satisfied' => $matched && count($items) >= 2,
@@ -237,11 +244,12 @@ class TaxCompliance
     {
         $ownerId = $user->teamOwnerId();
         $vault = ClientBrandVault::where('user_id', $ownerId)->first();
-        if (! $vault || ! $vault->tax_id) {
+        if (!$vault || !$vault->tax_id) {
             return null;
         }
 
         $res = self::validateTaxId($vault->tax_id, $vault->country_code);
+
         return $res['notice'] ?? null;
     }
 
@@ -251,20 +259,20 @@ class TaxCompliance
         $vault = ClientBrandVault::where('user_id', $owner->id)->first();
 
         $lines = [];
-        $lines[] = "**To:** ".($owner->company ?: $owner->name);
+        $lines[] = '**To:** ' . ($owner->company ?: $owner->name);
         $lines[] = "**Contact:** {$owner->name} ({$owner->email})";
 
         if ($vault?->tax_id) {
             $taxInfo = self::validateTaxId($vault->tax_id, $vault->country_code);
             $viesToken = $taxInfo['vies_request_identifier'] ?? $vault->vies_request_identifier;
-            $lines[] = "**Tax / VAT ID:** `{$taxInfo['formatted']}`".($taxInfo['type'] ? " ({$taxInfo['type']})" : '');
+            $lines[] = "**Tax / VAT ID:** `{$taxInfo['formatted']}`" . ($taxInfo['type'] ? " ({$taxInfo['type']})" : '');
             if ($viesToken) {
                 $lines[] = "**VIES Audit Token:** `{$viesToken}` (Verified)";
             }
         }
 
         if ($vault?->billing_address) {
-            $lines[] = "**Billing Address:** ".str_replace("\n", ', ', trim($vault->billing_address));
+            $lines[] = '**Billing Address:** ' . str_replace("\n", ', ', trim($vault->billing_address));
         }
 
         return implode("  \n", $lines);

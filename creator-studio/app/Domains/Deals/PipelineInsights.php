@@ -31,11 +31,19 @@ class PipelineInsights
         $groups = fn (callable $key, callable $label) => $deals->groupBy($key)->map(function ($g, $k) use ($label, $rate) {
             $w = $g->where('stage', 'paid');
 
-            return ['key' => $k, 'label' => $label($k), 'deals' => $g->count(), 'won' => $w->count(), 'lost' => $g->where('stage', 'lost')->count(),
-                'win_rate' => $rate($w, $g->where('stage', 'lost')), 'revenue' => round((float) $w->sum('rate'), 2), 'avg_won' => $w->count() ? round((float) $w->avg('rate')) : null];
+            return [
+                'key' => $k,
+                'label' => $label($k),
+                'deals' => $g->count(),
+                'won' => $w->count(),
+                'lost' => $g->where('stage', 'lost')->count(),
+                'win_rate' => $rate($w, $g->where('stage', 'lost')),
+                'revenue' => round((float)$w->sum('rate'), 2),
+                'avg_won' => $w->count() ? round((float)$w->avg('rate')) : null,
+            ];
         })->sortByDesc(fn ($r) => [$r['revenue'], $r['won'], $r['deals']])->values();
 
-        $brandPaid = $won->filter(fn ($d) => self::type($d) === 'brand')->pluck('rate')->map(fn ($v) => (float) $v)->all();
+        $brandPaid = $won->filter(fn ($d) => self::type($d) === 'brand')->pluck('rate')->map(fn ($v) => (float)$v)->all();
         $rateCard = rescue(fn () => DealCalculator::calculateRates(), null, false);
         $suggested = collect($rateCard['rates'] ?? [])->pluck('rate')->filter()->values();
 
@@ -48,13 +56,21 @@ class PipelineInsights
             'lost' => $lost->count(),
             'open' => $deals->whereNotIn('stage', Deal::NOT_PIPELINE)->count(),
             'win_rate' => $rate($won, $lost),
-            'revenue' => round((float) $won->sum('rate'), 2),
-            'avg_deal' => $won->count() ? round((float) $won->avg('rate')) : null,
-            'median_deal' => $won->count() ? round(YouTube::median($won->pluck('rate')->map(fn ($v) => (float) $v)->all())) : null,
-            'median_days_to_close' => $closeDays ? (int) round(YouTube::median($closeDays)) : null,
+            'revenue' => round((float)$won->sum('rate'), 2),
+            'avg_deal' => $won->count() ? round((float)$won->avg('rate')) : null,
+            'median_deal' => $won->count() ? round(YouTube::median($won->pluck('rate')->map(fn ($v) => (float)$v)->all())) : null,
+            'median_days_to_close' => $closeDays ? (int)round(YouTube::median($closeDays)) : null,
             'by_source' => $groups(fn ($d) => $d->source ?? 'manual', fn ($k) => $k === 'manual' ? 'Added by hand' : Attribution::label($k)),
-            'by_type' => $groups($type, fn ($k) => ['client' => 'Client work', 'brand' => 'Brand deals', 'speaking' => 'Speaking'][$k] ?? ucfirst($k)),
-            'lost_reasons' => $lost->groupBy(fn ($d) => $d->lost_reason ?: 'unknown')->map(fn ($g, $k) => ['reason' => $k, 'label' => Deal::LOST_REASONS[$k] ?? 'No reason given', 'count' => $g->count()])
+            'by_type' => $groups($type, fn ($k) => [
+                'client' => 'Client work',
+                'brand' => 'Brand deals',
+                'speaking' => 'Speaking',
+            ][$k] ?? ucfirst($k)),
+            'lost_reasons' => $lost->groupBy(fn ($d) => $d->lost_reason ?: 'unknown')->map(fn ($g, $k) => [
+                'reason' => $k,
+                'label' => Deal::LOST_REASONS[$k] ?? 'No reason given',
+                'count' => $g->count(),
+            ])
                 ->sortByDesc('count')->values(),
             'brand_rates' => [
                 'paid_median' => $brandPaid ? round(YouTube::median($brandPaid)) : null,
@@ -64,7 +80,9 @@ class PipelineInsights
         ];
     }
 
-    /** client (website services), brand (sponsorships) or speaking. */
+    /**
+     * client (website services), brand (sponsorships) or speaking.
+     */
     public static function type(Deal $d): string
     {
         $first = is_array($d->deliverables) ? ($d->deliverables[0] ?? []) : [];

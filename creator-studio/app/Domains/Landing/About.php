@@ -28,18 +28,32 @@ class About
         'countries' => 69,
         'story_url' => 'https://linkedin.com/in/delialazarescu',
         'milestones' => [
-            ['label' => 'Self-taught engineer', 'detail' => 'Learned to code on her own and got hired as a software engineer.'],
-            ['label' => 'Google', 'detail' => 'Wrote production code at Google.'],
-            ['label' => 'Independent founder', 'detail' => 'Left Big Tech to build AI-powered products for clients, from anywhere.'],
-            ['label' => 'Creator & speaker', 'detail' => 'Explains tech to a large community and on stage.'],
+            [
+                'label' => 'Self-taught engineer',
+                'detail' => 'Learned to code on her own and got hired as a software engineer.',
+            ],
+            [
+                'label' => 'Google',
+                'detail' => 'Wrote production code at Google.',
+            ],
+            [
+                'label' => 'Independent founder',
+                'detail' => 'Left Big Tech to build AI-powered products for clients, from anywhere.',
+            ],
+            [
+                'label' => 'Creator & speaker',
+                'detail' => 'Explains tech to a large community and on stage.',
+            ],
         ],
         'portrait' => null, // null = the bundled photo; otherwise an uploaded file under about/
     ];
 
-    /** Her saved copy over the defaults. */
+    /**
+     * Her saved copy over the defaults.
+     */
     public static function get(): array
     {
-        $saved = json_decode((string) Setting::get(self::SETTING, '{}'), true);
+        $saved = json_decode((string)Setting::get(self::SETTING, '{}'), true);
 
         return array_replace(self::DEFAULTS, is_array($saved) ? array_intersect_key($saved, self::DEFAULTS) : []);
     }
@@ -55,11 +69,13 @@ class About
     public static function portraitUrl(array $about): string
     {
         return $about['portrait'] && Storage::disk('local')->exists($about['portrait'])
-            ? '/landing/about-portrait?v='.substr(md5($about['portrait']), 0, 8)
+            ? '/landing/about-portrait?v=' . substr(md5($about['portrait']), 0, 8)
             : self::PORTRAIT_DEFAULT;
     }
 
-    /** The public section: her words plus live facts. */
+    /**
+     * The public section: her words plus live facts.
+     */
     public static function publicSection(): array
     {
         $about = self::get();
@@ -69,21 +85,29 @@ class About
 
         return [
             'headline' => $about['headline'],
-            'bio' => array_values(array_filter($about['bio'], fn ($p) => trim((string) $p) !== '')),
+            'bio' => array_values(array_filter($about['bio'], fn ($p) => trim((string)$p) !== '')),
             'thesis' => $about['thesis'],
             'thesis_detail' => $about['thesis_detail'],
             'now' => $about['now'],
             'location' => $about['location'],
             'story_url' => $about['story_url'],
-            'milestones' => array_values(array_filter($about['milestones'], fn ($m) => trim((string) ($m['label'] ?? '')) !== '')),
+            'milestones' => array_values(array_filter($about['milestones'], fn ($m) => trim((string)($m['label'] ?? '')) !== '')),
             'portrait_url' => self::portraitUrl($about),
             'facts' => [
-                'countries' => (int) $about['countries'],
+                'countries' => (int)$about['countries'],
                 'audience' => Audience::headline(),
-                'networks' => count(array_filter(Audience::reach()['networks'], fn ($n) => ! $n['hidden'])),
+                'networks' => count(array_filter(Audience::reach()['networks'], fn ($n) => !$n['hidden'])),
                 'talks' => $talks->count(),
-                'latest_talk' => $latest ? ['event' => $latest->event, 'kind' => $latest->kind_label, 'date' => $latest->date?->format('Y-m-d'), 'upcoming' => $latest->upcoming] : null,
-                'availability' => $availability['show'] ? ['status' => $availability['status'], 'label' => $availability['label']] : null,
+                'latest_talk' => $latest ? [
+                    'event' => $latest->event,
+                    'kind' => $latest->kind_label,
+                    'date' => $latest->date?->format('Y-m-d'),
+                    'upcoming' => $latest->upcoming,
+                ] : null,
+                'availability' => $availability['show'] ? [
+                    'status' => $availability['status'],
+                    'label' => $availability['label'],
+                ] : null,
             ],
         ];
     }

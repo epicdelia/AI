@@ -16,6 +16,11 @@ class AgentEvalReport extends Model
         'feedback',
     ];
 
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -24,10 +29,4 @@ class AgentEvalReport extends Model
             'overall_score' => 'integer',
         ];
     }
-
-    public function agent(): BelongsTo
-    {
-        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
-    }
 }
-

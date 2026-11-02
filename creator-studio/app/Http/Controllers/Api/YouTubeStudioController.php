@@ -25,7 +25,9 @@ use Throwable;
  */
 class YouTubeStudioController extends Controller
 {
-    /** Browser → studio chunk size (stays under PHP's default post size). */
+    /**
+     * Browser → studio chunk size (stays under PHP's default post size).
+     */
     public const RECEIVE_CHUNK = 4 * 1024 * 1024;
 
     public function index(): JsonResponse
@@ -43,23 +45,36 @@ class YouTubeStudioController extends Controller
         ]);
     }
 
-    /** Her recent videos, for picking one to title-test or A/B test. */
+    /**
+     * Her recent videos, for picking one to title-test or A/B test.
+     */
     public function videos(): JsonResponse
     {
         try {
             $token = YouTubeStudio::token();
-            $ch = Http::withToken($token)->get('https://www.googleapis.com/youtube/v3/channels', ['part' => 'contentDetails', 'mine' => 'true'])->json('items.0');
+            $ch = Http::withToken($token)->get('https://www.googleapis.com/youtube/v3/channels', [
+                'part' => 'contentDetails',
+                'mine' => 'true',
+            ])->json('items.0');
             $playlist = $ch['contentDetails']['relatedPlaylists']['uploads'] ?? null;
-            $items = $playlist ? Http::withToken($token)->get('https://www.googleapis.com/youtube/v3/playlistItems', ['part' => 'snippet', 'playlistId' => $playlist, 'maxResults' => 15])->json('items') ?? [] : [];
+            $items = $playlist ? Http::withToken($token)->get('https://www.googleapis.com/youtube/v3/playlistItems', [
+                'part' => 'snippet',
+                'playlistId' => $playlist,
+                'maxResults' => 15,
+            ])->json('items') ?? [] : [];
 
-            return response()->json(['videos' => array_map(fn ($i) => [
-                'id' => $i['snippet']['resourceId']['videoId'] ?? null,
-                'title' => $i['snippet']['title'] ?? '',
-                'published_at' => $i['snippet']['publishedAt'] ?? null,
-                'thumb' => $i['snippet']['thumbnails']['default']['url'] ?? null,
-            ], $items)]);
+            return response()->json([
+                'videos' => array_map(fn ($i) => [
+                    'id' => $i['snippet']['resourceId']['videoId'] ?? null,
+                    'title' => $i['snippet']['title'] ?? '',
+                    'published_at' => $i['snippet']['publishedAt'] ?? null,
+                    'thumb' => $i['snippet']['thumbnails']['default']['url'] ?? null,
+                ], $items),
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -85,15 +100,21 @@ class YouTubeStudioController extends Controller
         try {
             $check = $suite->run($data);
 
-            return response()->json(['check' => $check->load(['deal', 'videoUpload'])]);
+            return response()->json([
+                'check' => $check->load(['deal', 'videoUpload']),
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
     public function getCheck(VideoCheck $check): JsonResponse
     {
-        return response()->json(['check' => $check->load(['deal', 'videoUpload'])]);
+        return response()->json([
+            'check' => $check->load(['deal', 'videoUpload']),
+        ]);
     }
 
     // ==========================================
@@ -127,9 +148,13 @@ class YouTubeStudioController extends Controller
                 $data['variants']
             );
 
-            return response()->json(['ab_test' => $test], 201);
+            return response()->json([
+                'ab_test' => $test,
+            ], 201);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -146,9 +171,13 @@ class YouTubeStudioController extends Controller
         try {
             $updated = $optimizer->recordPerformance($abTest, $data['observations']);
 
-            return response()->json(['ab_test' => $updated]);
+            return response()->json([
+                'ab_test' => $updated,
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -161,9 +190,13 @@ class YouTubeStudioController extends Controller
         try {
             $concluded = $optimizer->conclude($abTest, $data['winner_index'] ?? null);
 
-            return response()->json(['ab_test' => $concluded]);
+            return response()->json([
+                'ab_test' => $concluded,
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -172,9 +205,13 @@ class YouTubeStudioController extends Controller
         try {
             $stopped = $optimizer->stop($abTest);
 
-            return response()->json(['ab_test' => $stopped]);
+            return response()->json([
+                'ab_test' => $stopped,
+            ]);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -193,49 +230,75 @@ class YouTubeStudioController extends Controller
             'publish_at' => ['nullable', 'required_if:privacy,scheduled', 'date', 'after:now'],
             'script_id' => ['nullable', 'integer', 'exists:scripts,id'],
             'thumbnail_media_id' => ['nullable', 'integer', 'exists:media_files,id'],
-            'bytes' => ['required', 'integer', 'min:1', 'max:'.(256 * 1024 * 1024 * 1024)],
+            'bytes' => ['required', 'integer', 'min:1', 'max:' . (256 * 1024 * 1024 * 1024)],
             'mime' => ['required', 'string', 'regex:/^video\//'],
         ]);
-        if (! SocialAccount::where('platform', 'youtube')->where('status', 'connected')->exists()) {
-            return response()->json(['error' => 'Connect YouTube first (Connections → YouTube).'], 422);
+        if (!SocialAccount::where('platform', 'youtube')->where('status', 'connected')->exists()) {
+            return response()->json([
+                'error' => 'Connect YouTube first (Connections → YouTube).',
+            ], 422);
         }
-        $path = 'youtube-uploads/'.Str::uuid().'.bin';
+        $path = 'youtube-uploads/' . Str::uuid() . '.bin';
         Storage::disk('local')->put($path, '');
-        $u = VideoUpload::create($data + ['path' => $path, 'status' => 'receiving']);
+        $u = VideoUpload::create($data + [
+            'path' => $path,
+            'status' => 'receiving',
+        ]);
 
-        return response()->json(['upload' => $u, 'chunk' => self::RECEIVE_CHUNK], 201);
+        return response()->json([
+            'upload' => $u,
+            'chunk' => self::RECEIVE_CHUNK,
+        ], 201);
     }
 
-    /** One piece of the file from her browser, appended in order. */
+    /**
+     * One piece of the file from her browser, appended in order.
+     */
     public function chunk(Request $request, VideoUpload $upload): JsonResponse
     {
         if ($upload->status !== 'receiving') {
-            return response()->json(['error' => 'This upload isn’t waiting for data.'], 409);
+            return response()->json([
+                'error' => 'This upload isn’t waiting for data.',
+            ], 409);
         }
-        $offset = (int) $request->query('offset', -1);
-        if ($offset !== (int) $upload->received) {
-            return response()->json(['error' => 'Out of order.', 'received' => $upload->received], 409);
+        $offset = (int)$request->query('offset', -1);
+        if ($offset !== (int)$upload->received) {
+            return response()->json([
+                'error' => 'Out of order.',
+                'received' => $upload->received,
+            ], 409);
         }
         $data = $request->getContent();
         if ($data === '' || strlen($data) > self::RECEIVE_CHUNK || $upload->received + strlen($data) > $upload->bytes) {
-            return response()->json(['error' => 'Bad chunk size.'], 422);
+            return response()->json([
+                'error' => 'Bad chunk size.',
+            ], 422);
         }
         $fh = fopen(Storage::disk('local')->path($upload->path), 'ab');
         fwrite($fh, $data);
         fclose($fh);
         $received = $upload->received + strlen($data);
-        $upload->update(['received' => $received, 'status' => $received >= $upload->bytes ? 'queued' : 'receiving']);
+        $upload->update([
+            'received' => $received,
+            'status' => $received >= $upload->bytes ? 'queued' : 'receiving',
+        ]);
 
-        return response()->json(['upload' => $upload->fresh()]);
+        return response()->json([
+            'upload' => $upload->fresh(),
+        ]);
     }
 
-    /** Send queued uploads to YouTube for a little while (the page calls this while it's open). */
+    /**
+     * Send queued uploads to YouTube for a little while (the page calls this while it's open).
+     */
     public function drain(): JsonResponse
     {
         @set_time_limit(90);
         YouTubeStudio::drainUploads(25);
 
-        return response()->json(['uploads' => VideoUpload::latest()->limit(20)->get()]);
+        return response()->json([
+            'uploads' => VideoUpload::latest()->limit(20)->get(),
+        ]);
     }
 
     public function cancelUpload(VideoUpload $upload): JsonResponse
@@ -243,7 +306,9 @@ class YouTubeStudioController extends Controller
         Storage::disk('local')->delete($upload->path);
         $upload->delete();
 
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+        ]);
     }
 
     public function startTest(Request $request): JsonResponse
@@ -255,25 +320,38 @@ class YouTubeStudioController extends Controller
             'hours' => ['required', 'integer', Rule::in([12, 24, 48])],
             'rounds' => ['required', 'integer', 'min:1', 'max:3'],
         ]);
+
         try {
-            return response()->json(['test' => YouTubeStudio::startTest($data['video_id'], $data['titles'], $data['hours'], $data['rounds'])], 201);
+            return response()->json([
+                'test' => YouTubeStudio::startTest($data['video_id'], $data['titles'], $data['hours'], $data['rounds']),
+            ], 201);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
-    /** Stop early: the original title goes back. */
+    /**
+     * Stop early: the original title goes back.
+     */
     public function stopTest(TitleTest $test): JsonResponse
     {
         if ($test->status === 'running') {
             try {
                 YouTubeStudio::setTitle($test->video_id, $test->original_title, YouTubeStudio::token());
             } catch (Throwable $e) {
-                return response()->json(['error' => $e->getMessage()], 422);
+                return response()->json([
+                    'error' => $e->getMessage(),
+                ], 422);
             }
-            $test->update(['status' => 'stopped']);
+            $test->update([
+                'status' => 'stopped',
+            ]);
         }
 
-        return response()->json(['test' => $test->fresh()]);
+        return response()->json([
+            'test' => $test->fresh(),
+        ]);
     }
 }

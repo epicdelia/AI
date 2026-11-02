@@ -15,7 +15,9 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
-    /** What a visitor (or a signed-in client) can ask for. */
+    /**
+     * What a visitor (or a signed-in client) can ask for.
+     */
     public const PROJECT_LABELS = [
         'mvp_build' => 'MVP Build (2-4 Weeks)',
         'retainer' => 'Advisory Retainer ($3,500/mo)',
@@ -25,7 +27,9 @@ class BookingController extends Controller
         'other' => 'General Project Discussion',
     ];
 
-    /** Her rule-of-thumb value per project type, for the pipeline (never shown to the client). */
+    /**
+     * Her rule-of-thumb value per project type, for the pipeline (never shown to the client).
+     */
     public const PROJECT_RATES = [
         'mvp_build' => 12000,
         'retainer' => 3500,
@@ -35,7 +39,9 @@ class BookingController extends Controller
         'other' => 1500,
     ];
 
-    /** Open intro-call times for the landing page (empty when she hasn't turned them on). */
+    /**
+     * Open intro-call times for the landing page (empty when she hasn't turned them on).
+     */
     public function slots(): JsonResponse
     {
         return response()->json(BookingSlots::open());
@@ -51,7 +57,7 @@ class BookingController extends Controller
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:150',
             'company' => 'nullable|string|max:150',
-            'project_type' => 'required|string|in:'.implode(',', array_keys(self::PROJECT_LABELS)),
+            'project_type' => 'required|string|in:' . implode(',', array_keys(self::PROJECT_LABELS)),
             'slot' => 'nullable|date',
             'preferred_date' => 'required_without:slot|nullable|string|max:50',
             'preferred_time' => 'required_without:slot|nullable|string|max:50',
@@ -61,22 +67,27 @@ class BookingController extends Controller
         $service = ($data['service'] ?? null) ?: null;
 
         $meetingAt = null;
-        if (! empty($data['slot'])) {
+        if (!empty($data['slot'])) {
             $meetingAt = rescue(fn () => CarbonImmutable::parse($data['slot'])->utc(), null, false);
-            if (! $meetingAt || ! BookingSlots::isOpen($meetingAt)) {
-                return response()->json(['message' => 'That time was just taken. Please pick another one.', 'errors' => ['slot' => ['That time is no longer open.']]], 422);
+            if (!$meetingAt || !BookingSlots::isOpen($meetingAt)) {
+                return response()->json([
+                    'message' => 'That time was just taken. Please pick another one.',
+                    'errors' => [
+                        'slot' => ['That time is no longer open.'],
+                    ],
+                ], 422);
             }
         }
 
-        $company = ($data['company'] ?? null) ?: ($data['name'].' Inquiry');
+        $company = ($data['company'] ?? null) ?: ($data['name'] . ' Inquiry');
         $label = self::PROJECT_LABELS[$data['project_type']] ?? 'Intro Call';
         $estRate = self::PROJECT_RATES[$data['project_type']] ?? 2000;
-        $bookingRef = 'CAL-'.strtoupper(Str::random(6));
+        $bookingRef = 'CAL-' . strtoupper(Str::random(6));
         $from = Attribution::resolve($data['attribution'] ?? null, $request->getHost());
 
         $tz = Setting::get('timezone') ?: 'UTC';
         $when = $meetingAt
-            ? $meetingAt->setTimezone($tz)->format('D j M Y, H:i T').' ('.$meetingAt->format('H:i').' UTC)'
+            ? $meetingAt->setTimezone($tz)->format('D j M Y, H:i T') . ' (' . $meetingAt->format('H:i') . ' UTC)'
             : "{$data['preferred_date']} at {$data['preferred_time']}";
 
         $deal = Deal::create([
@@ -88,16 +99,21 @@ class BookingController extends Controller
             'currency' => 'USD',
             'payment_status' => 'pending',
             'deliverables' => [
-                array_filter(['platform' => 'meeting', 'format' => 'Intro Call: '.$label, 'service' => $service, 'project_type' => $data['project_type']]),
+                array_filter([
+                    'platform' => 'meeting',
+                    'format' => 'Intro Call: ' . $label,
+                    'service' => $service,
+                    'project_type' => $data['project_type'],
+                ]),
             ],
-            'key_talking_points' => ($meetingAt ? 'Booked' : 'Requested').": {$when}. Topic: {$label}",
-            'notes' => "Intro call ".($meetingAt ? 'booked' : 'requested')." via website (ref {$bookingRef}). ".($meetingAt ? 'Send a calendar invite.' : 'Confirm the time by email.').' Notes from client: '.(($data['notes'] ?? null) ?: 'None provided.'),
+            'key_talking_points' => ($meetingAt ? 'Booked' : 'Requested') . ": {$when}. Topic: {$label}",
+            'notes' => 'Intro call ' . ($meetingAt ? 'booked' : 'requested') . " via website (ref {$bookingRef}). " . ($meetingAt ? 'Send a calendar invite.' : 'Confirm the time by email.') . ' Notes from client: ' . (($data['notes'] ?? null) ?: 'None provided.'),
             'meeting_at' => $meetingAt,
             'source' => $from['source'],
             'attribution' => $from['attribution'],
         ]);
 
-        AgentEvent::log('lead', ($meetingAt ? 'Intro call booked' : 'Intro call request').": {$data['name']} ({$data['email']}), ".($service ?: $label).", {$when}.");
+        AgentEvent::log('lead', ($meetingAt ? 'Intro call booked' : 'Intro call request') . ": {$data['name']} ({$data['email']}), " . ($service ?: $label) . ", {$when}.");
 
         // Nothing is sent from here: she confirms the slot herself, so the visitor is told exactly that.
         return response()->json([

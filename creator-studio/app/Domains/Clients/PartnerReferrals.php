@@ -31,16 +31,20 @@ class PartnerReferrals
 
         $clean = preg_replace('/[^a-z0-9]/', '', strtolower($user->company ?: $user->name));
         $prefix = substr($clean ?: 'partner', 0, 10);
-        $code = $prefix.'-'.strtolower(Str::random(6));
+        $code = $prefix . '-' . strtolower(Str::random(6));
 
-        $user->forceFill(['referral_code' => $code])->saveQuietly();
+        $user->forceFill([
+            'referral_code' => $code,
+        ])->saveQuietly();
+
         return $code;
     }
 
     public static function linkFor(User $user): string
     {
         $code = self::ensureCode($user);
-        return url('/?ref=partner-'.$code);
+
+        return url('/?ref=partner-' . $code);
     }
 
     public static function summary(User $user): array
@@ -55,13 +59,13 @@ class PartnerReferrals
                 'id' => $d->id,
                 'brand_name' => $d->brand_name,
                 'status' => $d->payment_status === 'paid' ? 'Completed' : 'In Progress',
-                'credit_earned' => (float) $d->referral_credit_earned,
+                'credit_earned' => (float)$d->referral_credit_earned,
                 'created_at' => $d->created_at?->toIso8601String(),
             ])
             ->values();
 
-        $totalEarned = (float) Deal::where('referral_partner_id', $ownerId)->sum('referral_credit_earned');
-        $availableBalance = (float) ($user->referral_credits ?? 0.00);
+        $totalEarned = (float)Deal::where('referral_partner_id', $ownerId)->sum('referral_credit_earned');
+        $availableBalance = (float)($user->referral_credits ?? 0.00);
 
         return [
             'referral_code' => $code,
@@ -76,24 +80,26 @@ class PartnerReferrals
 
     public static function attributePayment(Deal $deal): void
     {
-        if (! $deal->referral_partner_id || (float) $deal->referral_credit_earned > 0) {
+        if (!$deal->referral_partner_id || (float)$deal->referral_credit_earned > 0) {
             return;
         }
 
         $referrer = User::find($deal->referral_partner_id);
-        if (! $referrer) {
+        if (!$referrer) {
             return;
         }
 
-        $credit = max(self::REWARD_FIXED_AMOUNT, round((float) $deal->rate * self::REWARD_PERCENT, 2));
+        $credit = max(self::REWARD_FIXED_AMOUNT, round((float)$deal->rate * self::REWARD_PERCENT, 2));
 
-        $deal->update(['referral_credit_earned' => $credit]);
+        $deal->update([
+            'referral_credit_earned' => $credit,
+        ]);
         $referrer->increment('referral_credits', $credit);
 
         Audit::log('deal_linked', $referrer, $deal, [
             'referral_reward' => $credit,
             'brand' => $deal->brand_name,
         ]);
-        AgentEvent::log('lead', "Partner reward unlocked: {$referrer->name} earned $".number_format($credit)." credit from {$deal->brand_name}.");
+        AgentEvent::log('lead', "Partner reward unlocked: {$referrer->name} earned $" . number_format($credit) . " credit from {$deal->brand_name}.");
     }
 }

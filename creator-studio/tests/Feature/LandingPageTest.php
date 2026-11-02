@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Deal;
 use App\Models\Setting;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -77,7 +76,11 @@ class LandingPageTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJson(['status' => 'requested', 'paid' => false, 'package_id' => 'retainer']);
+        $response->assertJson([
+            'status' => 'requested',
+            'paid' => false,
+            'package_id' => 'retainer',
+        ]);
         $this->assertArrayNotHasKey('receipt_id', $response->json());
         $this->assertStringContainsString('nothing was charged', $response->json('message'));
 
@@ -89,13 +92,20 @@ class LandingPageTest extends TestCase
             'paid_at' => null,
             'rate' => 3500.00,
         ]);
-        $this->assertDatabaseHas('agent_events', ['type' => 'lead']);
+        $this->assertDatabaseHas('agent_events', [
+            'type' => 'lead',
+        ]);
     }
 
     public function test_checkout_with_stripe_redirects_and_stays_unpaid_until_the_webhook(): void
     {
         Setting::put('stripe_secret_key', 'sk_test_123');
-        Http::fake(['api.stripe.com/*' => Http::response(['id' => 'cs_test_1', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_1'])]);
+        Http::fake([
+            'api.stripe.com/*' => Http::response([
+                'id' => 'cs_test_1',
+                'url' => 'https://checkout.stripe.com/c/pay/cs_test_1',
+            ]),
+        ]);
 
         $response = $this->postJson('/api/stripe/checkout-session', [
             'package_id' => 'advisory_session',
@@ -103,37 +113,71 @@ class LandingPageTest extends TestCase
             'customer_email' => 'jane@example.com',
         ]);
 
-        $response->assertOk()->assertJson(['status' => 'redirect', 'paid' => false, 'checkout_url' => 'https://checkout.stripe.com/c/pay/cs_test_1']);
+        $response->assertOk()->assertJson([
+            'status' => 'redirect',
+            'paid' => false,
+            'checkout_url' => 'https://checkout.stripe.com/c/pay/cs_test_1',
+        ]);
         $deal = Deal::findOrFail($response->json('deal_id'));
         $this->assertSame('pending', $deal->payment_status);
-        Http::assertSent(fn($req) => ($req->data()['success_url'] ?? null) === url('/?payment=success&deal=' . $deal->id));
+        Http::assertSent(fn ($req) => ($req->data()['success_url'] ?? null) === url('/?payment=success&deal=' . $deal->id));
     }
 
     public function test_stripe_failure_falls_back_to_an_invoice_request(): void
     {
         Setting::put('stripe_secret_key', 'sk_test_123');
-        Http::fake(['api.stripe.com/*' => Http::response(['error' => ['message' => 'Invalid API Key']], 401)]);
+        Http::fake([
+            'api.stripe.com/*' => Http::response([
+                'error' => [
+                    'message' => 'Invalid API Key',
+                ],
+            ], 401),
+        ]);
 
         $this->postJson('/api/stripe/checkout-session', [
             'package_id' => 'retainer',
             'customer_name' => 'Jane Doe',
             'customer_email' => 'jane@example.com',
-        ])->assertOk()->assertJson(['status' => 'requested', 'paid' => false]);
+        ])->assertOk()->assertJson([
+            'status' => 'requested',
+            'paid' => false,
+        ]);
 
-        $this->assertDatabaseMissing('deals', ['payment_status' => 'paid']);
+        $this->assertDatabaseMissing('deals', [
+            'payment_status' => 'paid',
+        ]);
     }
 
     public function test_webhook_requires_a_valid_signature_before_marking_paid(): void
     {
-        $deal = Deal::create(['brand_name' => 'Acme', 'stage' => 'inquiry', 'rate' => 500, 'currency' => 'USD', 'payment_status' => 'pending']);
-        $payload = json_encode(['type' => 'checkout.session.completed', 'data' => ['object' => ['payment_status' => 'paid', 'metadata' => ['deal_id' => $deal->id]]]]);
-        $post = fn(?string $sig) => $this->call(
+        $deal = Deal::create([
+            'brand_name' => 'Acme',
+            'stage' => 'inquiry',
+            'rate' => 500,
+            'currency' => 'USD',
+            'payment_status' => 'pending',
+        ]);
+        $payload = json_encode([
+            'type' => 'checkout.session.completed',
+            'data' => [
+                'object' => [
+                    'payment_status' => 'paid',
+                    'metadata' => [
+                        'deal_id' => $deal->id,
+                    ],
+                ],
+            ],
+        ]);
+        $post = fn (?string $sig) => $this->call(
             'POST',
             '/api/stripe/webhook',
             [],
             [],
             [],
-            array_filter(['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $sig]),
+            array_filter([
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_STRIPE_SIGNATURE' => $sig,
+            ]),
             $payload
         );
 
@@ -153,7 +197,9 @@ class LandingPageTest extends TestCase
         $this->assertSame('paid', $deal->stage);
         $this->assertSame('paid', $deal->payment_status);
         $this->assertNotNull($deal->paid_at);
-        $this->assertDatabaseHas('agent_events', ['type' => 'payment']);
+        $this->assertDatabaseHas('agent_events', [
+            'type' => 'payment',
+        ]);
     }
 
     public function test_booking_intro_call_creates_deal_and_is_honest_about_confirmation(): void
@@ -186,12 +232,20 @@ class LandingPageTest extends TestCase
         ]);
         $deal = Deal::where('contact_email', 'sarah@skynet-defense.com')->first();
         $this->assertStringContainsString($response->json('booking_ref'), $deal->notes);
-        $this->assertDatabaseHas('agent_events', ['type' => 'lead']);
+        $this->assertDatabaseHas('agent_events', [
+            'type' => 'lead',
+        ]);
     }
 
     public function test_public_lead_endpoints_are_rate_limited(): void
     {
-        $body = ['name' => 'Spam', 'email' => 'spam@example.com', 'project_type' => 'other', 'preferred_date' => '2026-11-15', 'preferred_time' => '15:00 UTC'];
+        $body = [
+            'name' => 'Spam',
+            'email' => 'spam@example.com',
+            'project_type' => 'other',
+            'preferred_date' => '2026-11-15',
+            'preferred_time' => '15:00 UTC',
+        ];
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/booking', $body)->assertOk();
         }
@@ -209,10 +263,27 @@ class LandingPageTest extends TestCase
             'preferred_date' => '2026-11-15',
             'preferred_time' => '15:00 UTC',
         ])->assertOk();
-        Deal::create(['brand_name' => 'Paid Co', 'stage' => 'paid', 'rate' => 500, 'currency' => 'USD', 'payment_status' => 'paid', 'paid_at' => now()]);
-        Deal::create(['brand_name' => 'Signed Co', 'stage' => 'contracted', 'rate' => 5000, 'currency' => 'USD', 'payment_status' => 'pending']);
+        Deal::create([
+            'brand_name' => 'Paid Co',
+            'stage' => 'paid',
+            'rate' => 500,
+            'currency' => 'USD',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        Deal::create([
+            'brand_name' => 'Signed Co',
+            'stage' => 'contracted',
+            'rate' => 5000,
+            'currency' => 'USD',
+            'payment_status' => 'pending',
+        ]);
 
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]));
 
         $inbound = $this->getJson('/api/dashboard')->assertOk()->json('inbound');
         $this->assertSame(1, $inbound['new_inquiries']);
@@ -227,7 +298,7 @@ class LandingPageTest extends TestCase
 
     public function test_service_card_bookings_are_grouped_by_service_on_the_dashboard(): void
     {
-        $book = fn(string $email, ?string $service) => $this->postJson('/api/booking', array_filter([
+        $book = fn (string $email, ?string $service) => $this->postJson('/api/booking', array_filter([
             'name' => 'Lead',
             'email' => $email,
             'project_type' => 'consulting',
@@ -244,10 +315,20 @@ class LandingPageTest extends TestCase
         $this->assertSame('Technical Consulting', $deal->deliverables[0]['service']);
         $this->assertArrayNotHasKey('service', Deal::where('contact_email', 'd@example.com')->first()->deliverables[0]);
 
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]));
         $this->assertSame([
-            ['service' => 'Technical Consulting', 'count' => 2],
-            ['service' => 'Speaking & Workshops', 'count' => 1],
+            [
+                'service' => 'Technical Consulting',
+                'count' => 2,
+            ],
+            [
+                'service' => 'Speaking & Workshops',
+                'count' => 1,
+            ],
         ], $this->getJson('/api/dashboard')->json('inbound.by_service'));
         $messages = collect($this->getJson('/api/agents/notifications')->json('events'))->pluck('message')->implode(' ');
         $this->assertStringContainsString('Technical Consulting', $messages);
@@ -266,9 +347,16 @@ class LandingPageTest extends TestCase
             ])->assertOk();
         }
 
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]));
         $dash = $this->getJson('/api/dashboard')->json();
-        $this->assertSame(['service' => 'Let us build: An app or MVP', 'count' => 2], $dash['inbound']['by_service'][0]);
+        $this->assertSame([
+            'service' => 'Let us build: An app or MVP',
+            'count' => 2,
+        ], $dash['inbound']['by_service'][0]);
         $this->assertSame(1, $dash['speaking']['requests'], 'The keynote tile counts as a speaking request');
     }
 }

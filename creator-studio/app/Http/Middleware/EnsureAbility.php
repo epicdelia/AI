@@ -17,8 +17,10 @@ class EnsureAbility
     {
         $user = $request->user();
         foreach ($abilities as $ability) {
-            if (! $user || ! $user->hasAbility($ability)) {
-                return response()->json(['error' => 'You don’t have access to this.'], 403);
+            if (!$user || !$user->hasAbility($ability)) {
+                return response()->json([
+                    'error' => 'You don’t have access to this.',
+                ], 403);
             }
         }
 

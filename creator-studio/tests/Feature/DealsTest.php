@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domains\Copilot\CopilotTools;
 use App\Models\Deal;
 use App\Models\Setting;
-use App\Models\User;
 use App\Services\Llm;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +18,11 @@ class DealsTest extends TestCase
         parent::setUp();
         Setting::flush();
         Setting::put('creator_name', 'Delia Lazarescu');
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]));
     }
 
     protected function tearDown(): void
@@ -39,8 +42,14 @@ class DealsTest extends TestCase
             'rate' => 3000,
             'currency' => 'USD',
             'deliverables' => [
-                ['platform' => 'youtube', 'format' => 'integration_60s'],
-                ['platform' => 'linkedin', 'format' => 'post'],
+                [
+                    'platform' => 'youtube',
+                    'format' => 'integration_60s',
+                ],
+                [
+                    'platform' => 'linkedin',
+                    'format' => 'post',
+                ],
             ],
             'coupon_code' => 'TECHUNICORN20',
             'tracking_url' => 'https://supabase.com/?ref=techunicorn',
@@ -91,7 +100,9 @@ class DealsTest extends TestCase
 
         // 4. Delete deal
         $this->deleteJson("/api/deals/{$dealId}")->assertOk();
-        $this->assertDatabaseMissing('deals', ['id' => $dealId]);
+        $this->assertDatabaseMissing('deals', [
+            'id' => $dealId,
+        ]);
     }
 
     public function test_deals_rate_card_endpoint(): void
@@ -147,8 +158,8 @@ class DealsTest extends TestCase
 
         Llm::$fake = fn () => json_encode([
             'transition_in' => "When managing large codebases, keeping your notes organized is key. That's why today's video is sponsored by Notion.",
-            'script_body' => "I use Notion every single day to track feature architecture. Check the link below with code UNICORN.",
-            'transition_out' => "Now back to the third design pattern.",
+            'script_body' => 'I use Notion every single day to track feature architecture. Check the link below with code UNICORN.',
+            'transition_out' => 'Now back to the third design pattern.',
             'checklist' => ['Sprint organization mentioned', 'Link in description CTA'],
         ]);
 
@@ -208,7 +219,10 @@ class DealsTest extends TestCase
             'coupon_code' => 'UNICORN35',
             'tracking_url' => 'https://supabase.com/?ref=techunicorn',
             'deliverables' => [
-                ['platform' => 'youtube', 'format' => 'integration_60s'],
+                [
+                    'platform' => 'youtube',
+                    'format' => 'integration_60s',
+                ],
             ],
             'published_at' => now()->subDays(3),
         ]);
@@ -226,4 +240,3 @@ class DealsTest extends TestCase
         $this->assertNotEmpty($report['executive_summary']);
     }
 }
-

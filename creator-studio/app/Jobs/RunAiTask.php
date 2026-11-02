@@ -19,37 +19,59 @@ use Throwable;
  */
 class RunAiTask implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
 
-    public int $timeout = 600;
-
-    public int $tries = 1;
-
-    /** kind => [controller, action]: what may run in the background. */
+    /**
+     * kind => [controller, action]: what may run in the background.
+     */
     public const KINDS = [
         'ideas.generate' => [ApiController::class, 'generateIdeas'],
         'breakouts.scan' => [ApiController::class, 'scanBreakouts'],
     ];
 
-    public function __construct(public string $taskId) {}
+    public int $timeout = 600;
+
+    public int $tries = 1;
+
+    public function __construct(
+        public string $taskId
+    ) {
+    }
 
     public function handle(): void
     {
         $task = AiTask::find($this->taskId);
-        if (! $task || $task->status !== 'queued') {
+        if (!$task || $task->status !== 'queued') {
             return;
         }
-        $task->update(['status' => 'running']);
+        $task->update([
+            'status' => 'running',
+        ]);
+
         try {
             [$class, $method] = self::KINDS[$task->kind];
             $request = Request::create('/', 'POST', $task->payload ?? []);
             app()->instance('request', $request);
             /** @var JsonResponse $response */
-            $response = app()->call([app($class), $method], ['request' => $request]);
+            $response = app()->call([app($class), $method], [
+                'request' => $request,
+            ]);
             $ok = $response->getStatusCode() < 400;
-            $task->update(['status' => $ok ? 'done' : 'failed', 'result' => $response->getData(true), 'http_status' => $response->getStatusCode()]);
+            $task->update([
+                'status' => $ok ? 'done' : 'failed',
+                'result' => $response->getData(true),
+                'http_status' => $response->getStatusCode(),
+            ]);
         } catch (Throwable $e) {
-            $task->update(['status' => 'failed', 'result' => ['error' => $e->getMessage()], 'http_status' => 500]);
+            $task->update([
+                'status' => 'failed',
+                'result' => [
+                    'error' => $e->getMessage(),
+                ],
+                'http_status' => 500,
+            ]);
         }
     }
 }

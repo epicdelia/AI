@@ -19,7 +19,9 @@ use Carbon\CarbonImmutable;
  */
 class NextStep
 {
-    /** @return array{key: string, title: string, detail: string, action: string, link: string, script_id: ?int}|null */
+    /**
+     * @return array{key: string, title: string, detail: string, action: string, link: string, script_id: ?int}|null
+     */
     public static function current(): ?array
     {
         // 1. Highest financial urgency: Urgent brand sponsorship deliverables due in <= 3 days or overdue
@@ -37,7 +39,7 @@ class NextStep
         if ($week && $week->status === 'shipped') {
             $next = Week::where('number', $week->number + 1)->first();
 
-            if ($next && ! $next->video_title) {
+            if ($next && !$next->video_title) {
                 return self::step('pick', "Week {$week->number} shipped. Pick next week’s video", 'Choose it now, while the momentum’s there.', 'Open Ideas', '/ideas');
             }
 
@@ -48,19 +50,19 @@ class NextStep
         $script = $week?->script ?? Script::whereIn('status', ['draft', 'reviewed', 'filmed'])->latest('updated_at')->first();
         $due = $week ? self::due($week) : '';
 
-        if (! $script) {
+        if (!$script) {
             if (Idea::where('status', 'picked')->exists()) {
                 return self::step('pick', 'Pick this week’s video and draft it', trim("You have picked ideas waiting. {$due}"), 'Open Ideas', '/ideas');
             }
 
-            if (Week::exists() || ! Idea::exists()) {
+            if (Week::exists() || !Idea::exists()) {
                 return self::step('ideas', 'Get ideas for this week’s video', trim("Nothing is picked yet. {$due}"), 'Get fresh ideas', '/ideas');
             }
 
             return self::pendingAgentDraft();
         }
 
-        $body = (string) $script->body;
+        $body = (string)$script->body;
         $link = "/scripts/{$script->id}";
         $name = "“{$script->title}”";
 
@@ -89,7 +91,7 @@ class NextStep
             return self::step('gaps', "Fill {$what} in {$name}", 'Only you can write those. Then it’s ready to film.', 'Fill them', $link, $script->id);
         }
         if ($script->status === 'reviewed') {
-            return self::step('film', "Film {$name}", trim('About '.ScriptStructure::clock(ScriptStructure::analyse($body)['total_seconds'])." to read. The teleprompter is next to the script’s tabs. {$due}"), 'Open the script', $link, $script->id);
+            return self::step('film', "Film {$name}", trim('About ' . ScriptStructure::clock(ScriptStructure::analyse($body)['total_seconds']) . " to read. The teleprompter is next to the script’s tabs. {$due}"), 'Open the script', $link, $script->id);
         }
 
         // Filmed.
@@ -101,7 +103,7 @@ class NextStep
         $deals = Deal::whereIn('stage', ['contracted', 'production', 'in_review'])->get();
 
         foreach ($deals as $deal) {
-            if (! is_array($deal->deliverables)) {
+            if (!is_array($deal->deliverables)) {
                 continue;
             }
 
@@ -111,11 +113,11 @@ class NextStep
                 }
 
                 $dueDate = rescue(fn () => CarbonImmutable::parse($deliv['due_date']), null);
-                if (! $dueDate) {
+                if (!$dueDate) {
                     continue;
                 }
 
-                $days = (int) now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
+                $days = (int)now(Setting::get('timezone'))->startOfDay()->diffInDays($dueDate->startOfDay(), false);
                 if ($days <= 3) {
                     $platform = ucfirst($deliv['platform'] ?? 'video');
                     $format = $deliv['format'] ?? 'deliverable';
@@ -123,10 +125,10 @@ class NextStep
                         $days > 1 => "Due in {$days} days.",
                         $days === 1 => 'Due tomorrow.',
                         $days === 0 => 'Due today.',
-                        default => 'Past due by '.abs($days).' day(s).',
+                        default => 'Past due by ' . abs($days) . ' day(s).',
                     };
 
-                    $link = $deal->script_id ? "/scripts/{$deal->script_id}" : "/deals";
+                    $link = $deal->script_id ? "/scripts/{$deal->script_id}" : '/deals';
 
                     return self::step(
                         'deal_deliverable',
@@ -147,11 +149,11 @@ class NextStep
     {
         $due = rescue(fn () => FollowUps::due(), collect(), false);
         $top = $due->first();
-        if (! $top) {
+        if (!$top) {
             return null;
         }
         $deal = $top['deal'];
-        $more = $due->count() > 1 ? ' '.($due->count() - 1).' more in Deals.' : '';
+        $more = $due->count() > 1 ? ' ' . ($due->count() - 1) . ' more in Deals.' : '';
         $quiet = $top['kind'] === 'kit_opened' ? "{$top['reason']}." : "{$top['reason']}: {$top['days']} days quiet.";
 
         return self::step('follow_up', "Follow up with {$deal->brand_name}", trim("{$quiet} The studio drafts it, you send it.{$more}"), 'Draft the follow-up', "/deals?follow-up={$deal->id}");
@@ -163,7 +165,7 @@ class NextStep
         if ($count > 0) {
             return self::step(
                 'agent_approval',
-                "Review {$count} post draft".($count === 1 ? '' : 's')." from your AI agent",
+                "Review {$count} post draft" . ($count === 1 ? '' : 's') . ' from your AI agent',
                 'Your autonomous agent generated fresh drafts based on breakout signals. Approve or tweak them.',
                 'Review drafts',
                 '/agents'
@@ -175,18 +177,25 @@ class NextStep
 
     private static function due(Week $week): string
     {
-        $days = (int) now(Setting::get('timezone'))->startOfDay()->diffInDays($week->due_date->copy()->startOfDay(), false);
+        $days = (int)now(Setting::get('timezone'))->startOfDay()->diffInDays($week->due_date->copy()->startOfDay(), false);
 
         return match (true) {
             $days > 1 => "Due in {$days} days.",
             $days === 1 => 'Due tomorrow.',
             $days === 0 => 'Due today.',
-            default => 'Past due by '.abs($days).' day(s).',
+            default => 'Past due by ' . abs($days) . ' day(s).',
         };
     }
 
     private static function step(string $key, string $title, string $detail, string $action, string $link, ?int $scriptId = null): array
     {
-        return ['key' => $key, 'title' => $title, 'detail' => $detail, 'action' => $action, 'link' => $link, 'script_id' => $scriptId];
+        return [
+            'key' => $key,
+            'title' => $title,
+            'detail' => $detail,
+            'action' => $action,
+            'link' => $link,
+            'script_id' => $scriptId,
+        ];
     }
 }

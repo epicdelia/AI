@@ -10,7 +10,6 @@ use App\Domains\Agents\Models\SwarmMission;
 use App\Services\AiTellsLinter;
 use App\Services\Llm;
 use App\Services\Prompts;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -26,7 +25,8 @@ class AgentSwarm
         private ToolRegistry $tools,
         private AgentEpisodicMemory $memory,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Initialize a new Swarm Mission from a creator goal.
@@ -37,24 +37,24 @@ class AgentSwarm
         $memoryContext = $this->memory->buildMemoryContext($agent);
 
         $prompt = "Goal: {$goal}\n"
-            ."Target Networks: ".implode(', ', $platforms)."\n\n"
-            ."Decompose this goal into 4 to 5 sequential worker agent steps with explicit handoffs.\n"
-            ."Allowed Worker Roles:\n"
-            ."- signal_scout: retrieves competitor outliers and RSS news via tool registry\n"
-            ."- angle_strategist: crafts unique contrarian angles and numeric hooks\n"
-            ."- platform_copywriter: drafts native content for target networks\n"
-            ."- grounding_auditor: audits draft claims against gathered signals\n"
-            ."- compliance_officer: checks FTC disclosures and AI tells\n\n"
-            ."Output JSON:\n"
-            ."{\n"
-            ."  \"title\": \"Short mission title\",\n"
-            ."  \"steps\": [\n"
-            ."    {\"id\": \"step_1\", \"agent\": \"signal_scout\", \"task\": \"Scan breakouts on ...\", \"handoff_to\": \"angle_strategist\"},\n"
-            ."    {\"id\": \"step_2\", \"agent\": \"angle_strategist\", \"task\": \"Formulate 3 contrarian angles\", \"handoff_to\": \"platform_copywriter\"},\n"
-            ."    {\"id\": \"step_3\", \"agent\": \"platform_copywriter\", \"task\": \"Draft native posts for ...\", \"handoff_to\": \"grounding_auditor\"},\n"
-            ."    {\"id\": \"step_4\", \"agent\": \"grounding_auditor\", \"task\": \"Verify claims and remove buzzwords\", \"handoff_to\": null}\n"
-            ."  ]\n"
-            ."}";
+            . 'Target Networks: ' . implode(', ', $platforms) . "\n\n"
+            . "Decompose this goal into 4 to 5 sequential worker agent steps with explicit handoffs.\n"
+            . "Allowed Worker Roles:\n"
+            . "- signal_scout: retrieves competitor outliers and RSS news via tool registry\n"
+            . "- angle_strategist: crafts unique contrarian angles and numeric hooks\n"
+            . "- platform_copywriter: drafts native content for target networks\n"
+            . "- grounding_auditor: audits draft claims against gathered signals\n"
+            . "- compliance_officer: checks FTC disclosures and AI tells\n\n"
+            . "Output JSON:\n"
+            . "{\n"
+            . "  \"title\": \"Short mission title\",\n"
+            . "  \"steps\": [\n"
+            . "    {\"id\": \"step_1\", \"agent\": \"signal_scout\", \"task\": \"Scan breakouts on ...\", \"handoff_to\": \"angle_strategist\"},\n"
+            . "    {\"id\": \"step_2\", \"agent\": \"angle_strategist\", \"task\": \"Formulate 3 contrarian angles\", \"handoff_to\": \"platform_copywriter\"},\n"
+            . "    {\"id\": \"step_3\", \"agent\": \"platform_copywriter\", \"task\": \"Draft native posts for ...\", \"handoff_to\": \"grounding_auditor\"},\n"
+            . "    {\"id\": \"step_4\", \"agent\": \"grounding_auditor\", \"task\": \"Verify claims and remove buzzwords\", \"handoff_to\": null}\n"
+            . "  ]\n"
+            . '}';
 
         $this->guardrails->recordTokens(mb_strlen($prompt) / 4, 300);
 
@@ -67,10 +67,30 @@ class AgentSwarm
             $data = [
                 'title' => mb_substr($goal, 0, 40),
                 'steps' => [
-                    ['id' => 'step_1', 'agent' => 'signal_scout', 'task' => 'Gather recent outlier signals and technical news.', 'handoff_to' => 'angle_strategist'],
-                    ['id' => 'step_2', 'agent' => 'angle_strategist', 'task' => 'Find the unique contrarian engineering angle.', 'handoff_to' => 'platform_copywriter'],
-                    ['id' => 'step_3', 'agent' => 'platform_copywriter', 'task' => 'Draft native posts for '.implode(', ', $platforms), 'handoff_to' => 'grounding_auditor'],
-                    ['id' => 'step_4', 'agent' => 'grounding_auditor', 'task' => 'Audit facts, eliminate corporate buzzwords, verify disclosures.', 'handoff_to' => null],
+                    [
+                        'id' => 'step_1',
+                        'agent' => 'signal_scout',
+                        'task' => 'Gather recent outlier signals and technical news.',
+                        'handoff_to' => 'angle_strategist',
+                    ],
+                    [
+                        'id' => 'step_2',
+                        'agent' => 'angle_strategist',
+                        'task' => 'Find the unique contrarian engineering angle.',
+                        'handoff_to' => 'platform_copywriter',
+                    ],
+                    [
+                        'id' => 'step_3',
+                        'agent' => 'platform_copywriter',
+                        'task' => 'Draft native posts for ' . implode(', ', $platforms),
+                        'handoff_to' => 'grounding_auditor',
+                    ],
+                    [
+                        'id' => 'step_4',
+                        'agent' => 'grounding_auditor',
+                        'task' => 'Audit facts, eliminate corporate buzzwords, verify disclosures.',
+                        'handoff_to' => null,
+                    ],
                 ],
             ];
         }
@@ -96,7 +116,7 @@ class AgentSwarm
             'steps' => $formattedSteps,
             'context' => [
                 'platforms' => $platforms,
-                'memory_injected' => ! empty($memoryContext),
+                'memory_injected' => !empty($memoryContext),
             ],
             'result' => null,
         ]);
@@ -111,7 +131,9 @@ class AgentSwarm
         $idx = $mission->current_step;
 
         if ($idx >= count($steps)) {
-            $mission->update(['status' => 'completed']);
+            $mission->update([
+                'status' => 'completed',
+            ]);
 
             return $mission;
         }
@@ -119,7 +141,10 @@ class AgentSwarm
         $step = $steps[$idx];
         $step['status'] = 'running';
         $steps[$idx] = $step;
-        $mission->update(['steps' => $steps, 'status' => 'running']);
+        $mission->update([
+            'steps' => $steps,
+            'status' => 'running',
+        ]);
 
         $agent = $mission->agent;
         $context = $mission->context ?? [];
@@ -153,7 +178,9 @@ class AgentSwarm
             ]);
         } catch (Throwable $e) {
             $step['status'] = 'failed';
-            $step['output'] = ['error' => $e->getMessage()];
+            $step['output'] = [
+                'error' => $e->getMessage(),
+            ];
             $steps[$idx] = $step;
             $mission->update([
                 'steps' => $steps,
@@ -178,15 +205,26 @@ class AgentSwarm
 
     private function executeSignalScout(string $task): array
     {
-        $this->guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 3]);
+        $this->guardrails->recordAndValidateToolCall('fetch_breakouts', [
+            'limit' => 3,
+        ]);
         $breakouts = $this->tools->fetchBreakouts(3);
 
-        $this->guardrails->recordAndValidateToolCall('fetch_news_feeds', ['limit' => 3]);
+        $this->guardrails->recordAndValidateToolCall('fetch_news_feeds', [
+            'limit' => 3,
+        ]);
         $news = $this->tools->fetchNewsFeeds(3);
 
         return [
-            'breakouts' => $breakouts->map(fn ($b) => ['title' => $b->title, 'multiplier' => $b->outlier_score, 'why' => $b->why_it_worked])->all(),
-            'news' => $news->map(fn ($n) => ['title' => $n->title, 'source' => $n->source])->all(),
+            'breakouts' => $breakouts->map(fn ($b) => [
+                'title' => $b->title,
+                'multiplier' => $b->outlier_score,
+                'why' => $b->why_it_worked,
+            ])->all(),
+            'news' => $news->map(fn ($n) => [
+                'title' => $n->title,
+                'source' => $n->source,
+            ])->all(),
         ];
     }
 
@@ -194,13 +232,13 @@ class AgentSwarm
     {
         $signals = json_encode($context['signal_scout'] ?? [], JSON_PRETTY_PRINT);
         $prompt = "Signals observed:\n{$signals}\n\nTask: {$task}\n"
-            ."Propose 2 sharp, contrarian practitioner angles that challenge conventional wisdom without hype.\n"
-            ."Output JSON: {\"angles\": [{\"headline\": \"...\", \"hook\": \"...\", \"rationale\": \"...\"}]}";
+            . "Propose 2 sharp, contrarian practitioner angles that challenge conventional wisdom without hype.\n"
+            . 'Output JSON: {"angles": [{"headline": "...", "hook": "...", "rationale": "..."}]}';
 
         $this->guardrails->recordTokens(mb_strlen($prompt) / 4, 250);
 
         return $this->llm->as('swarm-angle-strategist')->creativity(0.7)->json(
-            Prompts::voice()."\n\nPersona: Engineering strategist.",
+            Prompts::voice() . "\n\nPersona: Engineering strategist.",
             $prompt
         );
     }
@@ -212,14 +250,14 @@ class AgentSwarm
         $memoryContext = $this->memory->buildMemoryContext($agent);
 
         $prompt = "Selected Angles:\n{$angles}\n\n{$memoryContext}\n\nTask: {$task}\n"
-            ."Draft native social posts for: ".implode(', ', $platforms).". "
-            ."Line 1 must be a concrete hook. Zero corporate fluff or em-dashes.\n"
-            ."Output JSON: {\"posts\": [{\"platform\": \"...\", \"body\": \"...\", \"parts\": []}]}";
+            . 'Draft native social posts for: ' . implode(', ', $platforms) . '. '
+            . "Line 1 must be a concrete hook. Zero corporate fluff or em-dashes.\n"
+            . 'Output JSON: {"posts": [{"platform": "...", "body": "...", "parts": []}]}';
 
         $this->guardrails->recordTokens(mb_strlen($prompt) / 4, 400);
 
         $res = $this->llm->as('swarm-copywriter')->creativity(0.6)->json(
-            Prompts::voice()."\n\n".Prompts::writingRules(),
+            Prompts::voice() . "\n\n" . Prompts::writingRules(),
             $prompt
         );
 
@@ -227,12 +265,14 @@ class AgentSwarm
         foreach ($res['posts'] ?? [] as $p) {
             $posts[] = [
                 'platform' => $p['platform'] ?? 'linkedin',
-                'body' => $this->guardrails->sanitizeContent(trim((string) ($p['body'] ?? ''))),
-                'parts' => (array) ($p['parts'] ?? []),
+                'body' => $this->guardrails->sanitizeContent(trim((string)($p['body'] ?? ''))),
+                'parts' => (array)($p['parts'] ?? []),
             ];
         }
 
-        return ['posts' => $posts];
+        return [
+            'posts' => $posts,
+        ];
     }
 
     private function executeGroundingAuditor(string $task, array $context): array
@@ -254,7 +294,9 @@ class AgentSwarm
             ];
         }
 
-        return ['audited_posts' => $audited];
+        return [
+            'audited_posts' => $audited,
+        ];
     }
 
     private function executeComplianceOfficer(string $task, array $context): array
@@ -267,9 +309,8 @@ class AgentSwarm
 
     private function executeGenericWorker(string $agentRole, string $task, array $context): array
     {
-        $prompt = "Role: {$agentRole}\nTask: {$task}\nContext: ".json_encode($context, JSON_PRETTY_PRINT)."\nOutput JSON: {\"summary\": \"...\"}";
+        $prompt = "Role: {$agentRole}\nTask: {$task}\nContext: " . json_encode($context, JSON_PRETTY_PRINT) . "\nOutput JSON: {\"summary\": \"...\"}";
 
         return $this->llm->as('swarm-worker')->creativity(0.5)->json('You are a specialized worker agent in a swarm.', $prompt);
     }
 }
-

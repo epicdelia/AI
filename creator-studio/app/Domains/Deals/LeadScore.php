@@ -13,22 +13,31 @@ class LeadScore
 {
     private const FREE_MAIL = ['gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me', 'protonmail.com', 'gmx.com', 'yandex.com', 'mail.com'];
 
-    private const TYPE_POINTS = ['mvp_build' => 25, 'retainer' => 22, 'brand_deal' => 20, 'speaking' => 15, 'consulting' => 12, 'other' => 0];
+    private const TYPE_POINTS = [
+        'mvp_build' => 25,
+        'retainer' => 22,
+        'brand_deal' => 20,
+        'speaking' => 15,
+        'consulting' => 12,
+        'other' => 0,
+    ];
 
-    /** @return array{score: int, label: string, reasons: list<string>, basis: string}|null */
+    /**
+     * @return array{score: int, label: string, reasons: list<string>, basis: string}|null
+     */
     public static function for(Deal $deal): ?array
     {
-        if (! $deal->source || ! in_array($deal->stage, ['inquiry', 'pitching', 'negotiating'], true)) {
+        if (!$deal->source || !in_array($deal->stage, ['inquiry', 'pitching', 'negotiating'], true)) {
             return null; // only website leads still being won
         }
         $score = 10;
         $why = [];
-        $domain = strtolower((string) substr(strrchr((string) $deal->contact_email, '@') ?: '', 1));
-        if ($domain !== '' && ! in_array($domain, self::FREE_MAIL, true)) {
+        $domain = strtolower((string)substr(strrchr((string)$deal->contact_email, '@') ?: '', 1));
+        if ($domain !== '' && !in_array($domain, self::FREE_MAIL, true)) {
             $score += 20;
             $why[] = "work email (@{$domain})";
         }
-        if ($deal->brand_name && ! str_ends_with($deal->brand_name, ' Inquiry')) {
+        if ($deal->brand_name && !str_ends_with($deal->brand_name, ' Inquiry')) {
             $score += 8;
             $why[] = 'named a company';
         }
@@ -43,8 +52,8 @@ class LeadScore
                 $why[] = str_replace('_', ' ', $type);
             }
         }
-        $brief = (string) preg_replace('/^.*Notes from client:\s*/s', '', (string) $deal->notes);
-        if (mb_strlen($brief) >= 120 && ! str_starts_with($brief, 'None')) {
+        $brief = (string)preg_replace('/^.*Notes from client:\s*/s', '', (string)$deal->notes);
+        if (mb_strlen($brief) >= 120 && !str_starts_with($brief, 'None')) {
             $score += 12;
             $why[] = 'a real brief';
         }
@@ -56,7 +65,7 @@ class LeadScore
             $score += 8;
             $why[] = 'booked a call';
         }
-        if (! empty($deal->attribution['item'])) {
+        if (!empty($deal->attribution['item'])) {
             $score += 4;
             $why[] = 'came from your content';
         }

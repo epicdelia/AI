@@ -14,19 +14,52 @@ class Marquee
 {
     public const SETTING = 'landing_marquee';
 
-    /** Sections a phrase can jump to. */
-    public const TARGETS = ['services' => 'Services', 'youtube' => 'Content', 'process' => 'How it works', 'pricing' => 'Pricing', 'reach' => 'Reach', 'speaking' => 'On Stage', 'about' => 'About', 'contact' => 'Contact'];
+    /**
+     * Sections a phrase can jump to.
+     */
+    public const TARGETS = [
+        'services' => 'Services',
+        'youtube' => 'Content',
+        'process' => 'How it works',
+        'pricing' => 'Pricing',
+        'reach' => 'Reach',
+        'speaking' => 'On Stage',
+        'about' => 'About',
+        'contact' => 'Contact',
+    ];
 
-    public const SPEEDS = ['slow' => 60, 'normal' => 40, 'fast' => 26]; // seconds per loop
+    public const SPEEDS = [
+        'slow' => 60,
+        'normal' => 40,
+        'fast' => 26,
+    ]; // seconds per loop
 
     public const DEFAULTS = [
         'items' => [
-            ['label' => 'Vibecoded Apps', 'target' => 'services'],
-            ['label' => 'Content Creation', 'target' => 'youtube'],
-            ['label' => 'Speaking & Keynotes', 'target' => 'speaking'],
-            ['label' => 'AI Integration', 'target' => 'services'],
-            ['label' => 'Brand Partnerships', 'target' => 'pricing'],
-            ['label' => 'Technical Advisory', 'target' => 'pricing'],
+            [
+                'label' => 'Vibecoded Apps',
+                'target' => 'services',
+            ],
+            [
+                'label' => 'Content Creation',
+                'target' => 'youtube',
+            ],
+            [
+                'label' => 'Speaking & Keynotes',
+                'target' => 'speaking',
+            ],
+            [
+                'label' => 'AI Integration',
+                'target' => 'services',
+            ],
+            [
+                'label' => 'Brand Partnerships',
+                'target' => 'pricing',
+            ],
+            [
+                'label' => 'Technical Advisory',
+                'target' => 'pricing',
+            ],
         ],
         'show_live' => true,
         'speed' => 'normal',
@@ -34,7 +67,7 @@ class Marquee
 
     public static function get(): array
     {
-        $saved = json_decode((string) Setting::get(self::SETTING, '{}'), true);
+        $saved = json_decode((string)Setting::get(self::SETTING, '{}'), true);
 
         return array_replace(self::DEFAULTS, is_array($saved) ? array_intersect_key($saved, self::DEFAULTS) : []);
     }
@@ -47,42 +80,73 @@ class Marquee
         return $m;
     }
 
-    /** Facts from her own data, each pointing at the section that backs it up. */
+    /**
+     * Facts from her own data, each pointing at the section that backs it up.
+     */
     public static function liveFacts(): array
     {
-        $facts = [['label' => Audience::headline().' people follow along', 'target' => 'reach', 'icon' => 'users']];
+        $facts = [[
+            'label' => Audience::headline() . ' people follow along',
+            'target' => 'reach',
+            'icon' => 'users',
+        ]];
 
         $a = ClientJourney::availability();
         if ($a['show']) {
-            $facts[] = ['label' => $a['label'], 'target' => 'process', 'icon' => $a['status'] === 'open' ? 'zap' : 'clock', 'status' => $a['status']];
+            $facts[] = [
+                'label' => $a['label'],
+                'target' => 'process',
+                'icon' => $a['status'] === 'open' ? 'zap' : 'clock',
+                'status' => $a['status'],
+            ];
         }
 
         $talks = Talk::ordered();
         $next = $talks->filter->upcoming->sortBy('date')->first();
         $latest = $next ?? $talks->filter(fn ($t) => $t->date)->sortByDesc('date')->first();
         if ($latest) {
-            $facts[] = ['label' => ($next ? 'Next on stage: ' : 'Latest talk: ').$latest->event, 'target' => 'speaking', 'icon' => 'mic'];
+            $facts[] = [
+                'label' => ($next ? 'Next on stage: ' : 'Latest talk: ') . $latest->event,
+                'target' => 'speaking',
+                'icon' => 'mic',
+            ];
         }
 
         $video = rescue(fn () => LandingFeed::get()['platforms']['youtube'][0] ?? null, null, false);
         if ($video && (LandingFeed::get()['sources']['youtube'] ?? '') === 'live') {
-            $facts[] = ['label' => 'New video: '.mb_strimwidth($video['title'], 0, 60, '…'), 'target' => 'youtube', 'icon' => 'play'];
+            $facts[] = [
+                'label' => 'New video: ' . mb_strimwidth($video['title'], 0, 60, '…'),
+                'target' => 'youtube',
+                'icon' => 'play',
+            ];
         }
 
-        $countries = (int) (About::get()['countries'] ?? 0);
+        $countries = (int)(About::get()['countries'] ?? 0);
         if ($countries) {
-            $facts[] = ['label' => "Shipped from {$countries} countries", 'target' => 'about', 'icon' => 'globe'];
+            $facts[] = [
+                'label' => "Shipped from {$countries} countries",
+                'target' => 'about',
+                'icon' => 'globe',
+            ];
         }
 
         return $facts;
     }
 
-    /** What the band shows: her phrases with a live fact after every second one. */
+    /**
+     * What the band shows: her phrases with a live fact after every second one.
+     */
     public static function items(): array
     {
         $m = self::get();
-        $phrases = array_values(array_filter(array_map(fn ($i) => ['label' => trim((string) ($i['label'] ?? '')), 'target' => $i['target'] ?? 'services', 'kind' => 'phrase'], $m['items']), fn ($i) => $i['label'] !== ''));
-        $facts = $m['show_live'] ? array_map(fn ($f) => $f + ['kind' => 'live'], self::liveFacts()) : [];
+        $phrases = array_values(array_filter(array_map(fn ($i) => [
+            'label' => trim((string)($i['label'] ?? '')),
+            'target' => $i['target'] ?? 'services',
+            'kind' => 'phrase',
+        ], $m['items']), fn ($i) => $i['label'] !== ''));
+        $facts = $m['show_live'] ? array_map(fn ($f) => $f + [
+            'kind' => 'live',
+        ], self::liveFacts()) : [];
 
         $out = [];
         foreach ($phrases as $i => $p) {
@@ -99,11 +163,19 @@ class Marquee
     {
         $m = self::get();
 
-        return ['items' => self::items(), 'duration' => self::SPEEDS[$m['speed']] ?? self::SPEEDS['normal']];
+        return [
+            'items' => self::items(),
+            'duration' => self::SPEEDS[$m['speed']] ?? self::SPEEDS['normal'],
+        ];
     }
 
     public static function dashboard(): array
     {
-        return self::get() + ['targets' => self::TARGETS, 'speeds' => array_keys(self::SPEEDS), 'live' => self::liveFacts(), 'preview' => self::items()];
+        return self::get() + [
+            'targets' => self::TARGETS,
+            'speeds' => array_keys(self::SPEEDS),
+            'live' => self::liveFacts(),
+            'preview' => self::items(),
+        ];
     }
 }

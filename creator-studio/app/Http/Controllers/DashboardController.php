@@ -54,4 +54,3 @@ class DashboardController extends Controller
         return $n;
     }
 }
-

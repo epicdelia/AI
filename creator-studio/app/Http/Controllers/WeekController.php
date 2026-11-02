@@ -13,7 +13,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Throwable;
 
-/** The weekly commitment scoreboard and mentor check-in (MENTOR.md + channel_stats.py). */
+/**
+ * The weekly commitment scoreboard and mentor check-in (MENTOR.md + channel_stats.py).
+ */
 class WeekController extends Controller
 {
     public function index()
@@ -26,7 +28,9 @@ class WeekController extends Controller
         ]);
     }
 
-    /** Lay out N weeks starting on a given Monday. Replaces the plan only if asked to. */
+    /**
+     * Lay out N weeks starting on a given Monday. Replaces the plan only if asked to.
+     */
     public function plan(Request $request)
     {
         $data = $request->validate([
@@ -34,8 +38,10 @@ class WeekController extends Controller
             'count' => 'required|integer|min:1|max:52',
             'replace' => 'nullable|boolean',
         ]);
-        if (Week::exists() && ! $request->boolean('replace')) {
-            return back()->withErrors(['plan' => 'You already have a plan. Tick "replace my current plan" to start over.']);
+        if (Week::exists() && !$request->boolean('replace')) {
+            return back()->withErrors([
+                'plan' => 'You already have a plan. Tick "replace my current plan" to start over.',
+            ]);
         }
         Week::query()->delete();
         $start = CarbonImmutable::parse($data['start']);
@@ -53,7 +59,7 @@ class WeekController extends Controller
     public function update(Request $request, Week $week)
     {
         $data = $request->validate([
-            'status' => 'sometimes|in:'.implode(',', Week::STATUSES),
+            'status' => 'sometimes|in:' . implode(',', Week::STATUSES),
             'script_id' => 'sometimes|nullable|exists:scripts,id',
             'video_title' => 'sometimes|nullable|string|max:200',
             'youtube_url' => 'sometimes|nullable|url|max:300',
@@ -61,7 +67,7 @@ class WeekController extends Controller
             'views_7d' => 'sometimes|nullable|integer|min:0',
             'note' => 'sometimes|nullable|string|max:2000',
         ]);
-        if (! empty($data['script_id']) && empty($data['video_title'])) {
+        if (!empty($data['script_id']) && empty($data['video_title'])) {
             $data['video_title'] = Script::find($data['script_id'])->title;
         }
         $week->update($data);
@@ -69,16 +75,22 @@ class WeekController extends Controller
         return back()->with('status', "Week {$week->number} updated.");
     }
 
-    /** Weekly check-in: pull her uploads, score past weeks, then ask the mentor for a verdict. */
+    /**
+     * Weekly check-in: pull her uploads, score past weeks, then ask the mentor for a verdict.
+     */
     public function checkin(YouTube $yt, Llm $llm)
     {
         $weeks = Week::orderBy('number')->get();
         if ($weeks->isEmpty()) {
-            return back()->withErrors(['checkin' => 'Set up your weekly plan first.']);
+            return back()->withErrors([
+                'checkin' => 'Set up your weekly plan first.',
+            ]);
         }
         $channel = Setting::get('channel_id');
-        if (! $channel) {
-            return back()->withErrors(['checkin' => 'Add your channel ID or handle in Settings first.']);
+        if (!$channel) {
+            return back()->withErrors([
+                'checkin' => 'Add your channel ID or handle in Settings first.',
+            ]);
         }
         $tz = Setting::get('timezone');
         $today = CarbonImmutable::now($tz)->toDateString();
@@ -87,7 +99,9 @@ class WeekController extends Controller
             $uploads = collect($yt->uploadsSince($channel, CarbonImmutable::parse($weeks->first()->start_date)->subDays(7)))
                 ->where('long_form', true)->values();
         } catch (Throwable $e) {
-            return back()->withErrors(['checkin' => "Couldn't fetch your uploads, so nothing was scored: {$e->getMessage()}"]);
+            return back()->withErrors([
+                'checkin' => "Couldn't fetch your uploads, so nothing was scored: {$e->getMessage()}",
+            ]);
         }
 
         $claimed = $weeks->pluck('youtube_url')->filter()->all();
@@ -98,7 +112,7 @@ class WeekController extends Controller
             $video = $uploads->first(function ($v) use ($start, $due, $tz, $claimed, $week) {
                 $day = $v['published_at']->setTimezone($tz)->toDateString();
 
-                return $day >= $start && $day <= $due && (! in_array($v['url'], $claimed, true) || $v['url'] === $week->youtube_url);
+                return $day >= $start && $day <= $due && (!in_array($v['url'], $claimed, true) || $v['url'] === $week->youtube_url);
             });
             if ($video && in_array($week->status, ['pending', 'missed'], true)) {
                 $week->fill([
@@ -108,7 +122,7 @@ class WeekController extends Controller
                     'published_on' => $video['published'],
                 ]);
                 $claimed[] = $video['url'];
-            } elseif (! $video && $week->status === 'pending' && $due < $today) {
+            } elseif (!$video && $week->status === 'pending' && $due < $today) {
                 $week->status = 'missed';
             }
             // Views at 7 days: recorded the first time a check-in sees the video at 7+ days old.
@@ -126,19 +140,24 @@ class WeekController extends Controller
         if ($scoredWeek && Llm::configured()) {
             $next = $weeks->firstWhere('number', $scoredWeek->number + 1);
             $board = $weeks->map(fn ($w) => "Week {$w->number} ({$w->start_date->format('M j')} to {$w->due_date->format('M j')}): {$w->status}"
-                .($w->video_title ? ", \"{$w->video_title}\"" : '')
-                .($w->views_7d !== null ? ", {$w->views_7d} views at 7 days" : '')
-                .($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
+                . ($w->video_title ? ", \"{$w->video_title}\"" : '')
+                . ($w->views_7d !== null ? ", {$w->views_7d} views at 7 days" : '')
+                . ($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
             $nextLine = $next ? ($next->video_title ? "Next week's video: \"{$next->video_title}\"" : "Next week's video: NOT PICKED YET") : 'This was the last week of the plan.';
             $recent = $uploads->map(fn ($v) => "{$v['published']}: \"{$v['title']}\", {$v['views']} views after {$v['age_days']} days")->implode("\n");
+
             try {
-                $verdict = $llm->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nHer recent long-form uploads:\n".($recent ?: 'none'));
-                $scoredWeek->update(['verdict' => $verdict]);
+                $verdict = $llm->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nHer recent long-form uploads:\n" . ($recent ?: 'none'));
+                $scoredWeek->update([
+                    'verdict' => $verdict,
+                ]);
             } catch (Throwable $e) {
-                return back()->with('status', 'Scoreboard updated.')->withErrors(['checkin' => "The mentor verdict failed: {$e->getMessage()}"]);
+                return back()->with('status', 'Scoreboard updated.')->withErrors([
+                    'checkin' => "The mentor verdict failed: {$e->getMessage()}",
+                ]);
             }
         }
 
-        return back()->with('status', 'Check-in done. Scoreboard updated'.($verdict ? ' and your mentor left a verdict.' : '.'));
+        return back()->with('status', 'Check-in done. Scoreboard updated' . ($verdict ? ' and your mentor left a verdict.' : '.'));
     }
 }

@@ -15,9 +15,15 @@ use Throwable;
  */
 class WeeklyCheckin
 {
-    public function __construct(private YouTube $yt, private Llm $llm) {}
+    public function __construct(
+        private YouTube $yt,
+        private Llm $llm
+    ) {
+    }
 
-    /** @return array{verdict: ?string} */
+    /**
+     * @return array{verdict: ?string}
+     */
     public function run(): array
     {
         $weeks = Week::orderBy('number')->get();
@@ -26,7 +32,7 @@ class WeeklyCheckin
         }
 
         $channel = Setting::get('channel_id');
-        if (! $channel) {
+        if (!$channel) {
             throw new RuntimeException('Add your channel handle or ID in Settings.');
         }
 
@@ -48,7 +54,7 @@ class WeeklyCheckin
             $video = $uploads->first(function ($v) use ($start, $due, $tz, $claimed, $week) {
                 $day = $v['published_at']->setTimezone($tz)->toDateString();
 
-                return $day >= $start && $day <= $due && (! in_array($v['url'], $claimed, true) || $v['url'] === $week->youtube_url);
+                return $day >= $start && $day <= $due && (!in_array($v['url'], $claimed, true) || $v['url'] === $week->youtube_url);
             });
 
             if ($video && in_array($week->status, ['pending', 'missed'], true)) {
@@ -59,7 +65,7 @@ class WeeklyCheckin
                     'published_on' => $video['published'],
                 ]);
                 $claimed[] = $video['url'];
-            } elseif (! $video && $week->status === 'pending' && $due < $today) {
+            } elseif (!$video && $week->status === 'pending' && $due < $today) {
                 $week->status = 'missed';
             }
 
@@ -78,9 +84,9 @@ class WeeklyCheckin
         if ($scoredWeek && Llm::configured()) {
             $next = $weeks->firstWhere('number', $scoredWeek->number + 1);
             $board = $weeks->map(fn ($w) => "Week {$w->number} ({$w->start_date->format('M j')} to {$w->due_date->format('M j')}): {$w->status}"
-                .($w->video_title ? ", \"{$w->video_title}\"" : '')
-                .($w->views_7d !== null ? ", {$w->views_7d} views at 7 days" : '')
-                .($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
+                . ($w->video_title ? ", \"{$w->video_title}\"" : '')
+                . ($w->views_7d !== null ? ", {$w->views_7d} views at 7 days" : '')
+                . ($w->note ? ", her note: {$w->note}" : ''))->implode("\n");
             $nextLine = $next ? ($next->video_title ? "Next week's video: \"{$next->video_title}\"" : "Next week's video: NOT PICKED YET") : 'This was the final scheduled week.';
             $recent = $uploads->map(fn ($v) => "{$v['published']}: \"{$v['title']}\", {$v['views']} views after {$v['age_days']} days")->implode("\n");
             // Same-age pace from the daily snapshots: an early warning before day 7.
@@ -94,13 +100,17 @@ class WeeklyCheckin
             }
 
             try {
-                $verdict = $this->llm->as('mentor')->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nRecent long-form uploads:\n".($recent ?: 'none'));
-                $scoredWeek->update(['verdict' => $verdict]);
+                $verdict = $this->llm->as('mentor')->chat(Prompts::mentorSystem(), "Today: {$today}\nScoring week {$scoredWeek->number}.\n\nScoreboard:\n{$board}\n\n{$nextLine}\n\nRecent long-form uploads:\n" . ($recent ?: 'none'));
+                $scoredWeek->update([
+                    'verdict' => $verdict,
+                ]);
             } catch (Throwable) {
                 // The scoreboard is updated even if the mentor call fails.
             }
         }
 
-        return ['verdict' => $verdict];
+        return [
+            'verdict' => $verdict,
+        ];
     }
 }

@@ -26,37 +26,50 @@ class Memory
         'they', 'what', 'about', 'just', 'like', 'its', "it's", 'can', 'all', 'how', 'why', 'when', 'who', 'did', 'does', 'our', 'out',
         'has', 'had', 'will', 'would', 'there', 'their', 'them', 'then', 'than', 'into', 'some', 'any', 'more', 'very', 'really'];
 
-    public function __construct(private Embeddings $embeddings) {}
+    public function __construct(
+        private Embeddings $embeddings
+    ) {
+    }
 
-    /** The text Memory stores for each kind of source, or null if it shouldn't be indexed. */
+    /**
+     * The text Memory stores for each kind of source, or null if it shouldn't be indexed.
+     */
     public static function sourcesFor(Model $model): array
     {
         return match (true) {
             $model instanceof Script => array_filter([
-                'script' => trim((string) $model->body) !== '' ? [$model->title, $model->body] : null,
-                'transcript' => trim((string) $model->transcript) !== '' ? [$model->title.' (what I said on camera)', $model->transcript] : null,
+                'script' => trim((string)$model->body) !== '' ? [$model->title, $model->body] : null,
+                'transcript' => trim((string)$model->transcript) !== '' ? [$model->title . ' (what I said on camera)', $model->transcript] : null,
             ]),
-            $model instanceof Document => ['document' => [$model->title, $model->content]],
-            $model instanceof Note => ['note' => [mb_substr(strtok(trim($model->polished), "\n") ?: 'Dictated note', 0, 120), $model->polished]],
-            $model instanceof Idea => ['idea' => [$model->title, $model->asMarkdown()]],
+            $model instanceof Document => [
+                'document' => [$model->title, $model->content],
+            ],
+            $model instanceof Note => [
+                'note' => [mb_substr(strtok(trim($model->polished), "\n") ?: 'Dictated note', 0, 120), $model->polished],
+            ],
+            $model instanceof Idea => [
+                'idea' => [$model->title, $model->asMarkdown()],
+            ],
             default => [],
         };
     }
 
-    /** Index (or re-index) one model. Unchanged text is skipped. Returns chunks written. */
+    /**
+     * Index (or re-index) one model. Unchanged text is skipped. Returns chunks written.
+     */
     public function index(Model $model): int
     {
         $written = 0;
         $kinds = self::sourcesFor($model);
         $allKinds = $model instanceof Script ? ['script', 'transcript'] : array_keys($kinds);
         foreach ($allKinds as $kind) {
-            if (! isset($kinds[$kind])) {
+            if (!isset($kinds[$kind])) {
                 $this->forget($kind, $model->getKey());
 
                 continue;
             }
             [$title, $text] = $kinds[$kind];
-            $written += $this->indexText($kind, $model->getKey(), (string) $title, (string) $text);
+            $written += $this->indexText($kind, $model->getKey(), (string)$title, (string)$text);
         }
 
         return $written;
@@ -65,7 +78,7 @@ class Memory
     public function indexText(string $type, int $id, string $title, string $text): int
     {
         $text = trim($text);
-        $hash = sha1($title."\n".$text.'|'.(Embeddings::model() ?? 'keywords'));
+        $hash = sha1($title . "\n" . $text . '|' . (Embeddings::model() ?? 'keywords'));
         $existing = MemoryChunk::where('source_type', $type)->where('source_id', $id)->first();
         if ($existing && $existing->hash === $hash) {
             return 0;
@@ -87,9 +100,14 @@ class Memory
         $this->forget($type, $id);
         foreach ($chunks as $i => $content) {
             MemoryChunk::create([
-                'source_type' => $type, 'source_id' => $id, 'title' => mb_substr($title, 0, 255), 'position' => $i,
-                'content' => $content, 'vector' => isset($vectors[$i]) ? json_encode($vectors[$i]) : null,
-                'model' => isset($vectors[$i]) ? $model : null, 'hash' => $hash,
+                'source_type' => $type,
+                'source_id' => $id,
+                'title' => mb_substr($title, 0, 255),
+                'position' => $i,
+                'content' => $content,
+                'vector' => isset($vectors[$i]) ? json_encode($vectors[$i]) : null,
+                'model' => isset($vectors[$i]) ? $model : null,
+                'hash' => $hash,
             ]);
         }
 
@@ -109,7 +127,9 @@ class Memory
         }
     }
 
-    /** Overlapping windows, cut at whitespace so words aren't split. */
+    /**
+     * Overlapping windows, cut at whitespace so words aren't split.
+     */
     public static function chunk(string $text): array
     {
         $text = trim(preg_replace("/[ \t]+/u", ' ', $text));
@@ -146,7 +166,7 @@ class Memory
     public function search(string $query, int $limit = 5, array $types = [], ?array $exclude = null): array
     {
         $query = trim($query);
-        if ($query === '' || ! MemoryChunk::exists()) {
+        if ($query === '' || !MemoryChunk::exists()) {
             return [];
         }
         $q = MemoryChunk::query();
@@ -154,7 +174,7 @@ class Memory
             $q->whereIn('source_type', $types);
         }
         if ($exclude) { // [type, id] of the item being worked on, so it doesn't find itself
-            $q->whereNot(fn ($w) => $w->whereIn('source_type', (array) $exclude[0])->where('source_id', $exclude[1]));
+            $q->whereNot(fn ($w) => $w->whereIn('source_type', (array)$exclude[0])->where('source_id', $exclude[1]));
         }
 
         $terms = self::terms($query);
@@ -169,13 +189,16 @@ class Memory
 
         $scored = [];
         foreach ($q->get() as $chunk) {
-            $kw = self::keywordScore($terms, $chunk->title.' '.$chunk->content);
+            $kw = self::keywordScore($terms, $chunk->title . ' ' . $chunk->content);
             $vec = $queryVector && $chunk->vector ? Embeddings::cosine($queryVector, $chunk->vectorArray()) : null;
             $score = $vec !== null ? $vec + 0.05 * min($kw, 4) : $kw;
             if ($vec === null && $kw <= 0) {
                 continue;
             }
-            $scored[] = ['chunk' => $chunk, 'score' => $score];
+            $scored[] = [
+                'chunk' => $chunk,
+                'score' => $score,
+            ];
         }
         usort($scored, fn ($a, $b) => $b['score'] <=> $a['score']);
 
@@ -183,13 +206,17 @@ class Memory
         $out = [];
         foreach ($scored as $row) {
             $c = $row['chunk'];
-            $key = $c->source_type.':'.$c->source_id;
+            $key = $c->source_type . ':' . $c->source_id;
             if (isset($out[$key])) {
                 continue;
             }
             $out[$key] = [
-                'source_type' => $c->source_type, 'source_id' => $c->source_id, 'title' => $c->title,
-                'content' => $c->content, 'score' => round($row['score'], 4), 'semantic' => $queryVector !== null && $c->vector !== null,
+                'source_type' => $c->source_type,
+                'source_id' => $c->source_id,
+                'title' => $c->title,
+                'content' => $c->content,
+                'score' => round($row['score'], 4),
+                'semantic' => $queryVector !== null && $c->vector !== null,
             ];
             if (count($out) >= $limit) {
                 break;
@@ -199,15 +226,17 @@ class Memory
         return array_values($out);
     }
 
-    /** Matches as a prompt block, MagicAI-style ("content\n\n\n" per match), with titles. */
+    /**
+     * Matches as a prompt block, MagicAI-style ("content\n\n\n" per match), with titles.
+     */
     public function context(string $query, int $limit = 4, array $types = [], ?array $exclude = null, int $minScore = 0): string
     {
         $hits = array_filter($this->search($query, $limit, $types, $exclude), fn ($h) => $h['semantic'] ? $h['score'] >= 0.3 : $h['score'] >= max(1, $minScore));
-        if (! $hits) {
+        if (!$hits) {
             return '';
         }
 
-        return implode("\n\n\n", array_map(fn ($h) => "[{$h['source_type']}: {$h['title']}]\n".mb_substr($h['content'], 0, 1500), $hits));
+        return implode("\n\n\n", array_map(fn ($h) => "[{$h['source_type']}: {$h['title']}]\n" . mb_substr($h['content'], 0, 1500), $hits));
     }
 
     public static function terms(string $text): array
@@ -217,24 +246,9 @@ class Memory
         return array_values(array_unique(array_diff($m[0], self::STOPWORDS)));
     }
 
-    private static function keywordScore(array $terms, string $text): float
-    {
-        if (! $terms) {
-            return 0;
-        }
-        $hay = mb_strtolower($text);
-        $score = 0.0;
-        foreach ($terms as $t) {
-            $n = mb_substr_count($hay, $t);
-            if ($n > 0) {
-                $score += 1 + log($n); // presence matters most, repeats a little
-            }
-        }
-
-        return $score;
-    }
-
-    /** Index everything (used by `studio:memory` and after changing the embeddings provider). */
+    /**
+     * Index everything (used by `studio:memory` and after changing the embeddings provider).
+     */
     public function reindexAll(): int
     {
         $n = 0;
@@ -247,5 +261,22 @@ class Memory
         }
 
         return $n;
+    }
+
+    private static function keywordScore(array $terms, string $text): float
+    {
+        if (!$terms) {
+            return 0;
+        }
+        $hay = mb_strtolower($text);
+        $score = 0.0;
+        foreach ($terms as $t) {
+            $n = mb_substr_count($hay, $t);
+            if ($n > 0) {
+                $score += 1 + log($n); // presence matters most, repeats a little
+            }
+        }
+
+        return $score;
     }
 }

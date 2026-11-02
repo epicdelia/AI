@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 use Throwable;
 
-/** My channel: her videos against her own median, and what her viewers ask for in the comments. */
+/**
+ * My channel: her videos against her own median, and what her viewers ask for in the comments.
+ */
 class AudienceController extends Controller
 {
     public const CACHE_MINUTES = 30;
@@ -27,15 +29,18 @@ class AudienceController extends Controller
         $report = null;
         $error = null;
 
-        if (! $channel || ! Setting::has('youtube_api_key')) {
-            $error = ! $channel ? 'Add your channel handle or ID in Settings.' : 'Add a YouTube Data API key in Settings.';
+        if (!$channel || !Setting::has('youtube_api_key')) {
+            $error = !$channel ? 'Add your channel handle or ID in Settings.' : 'Add a YouTube Data API key in Settings.';
         } else {
             $key = self::cacheKey($channel);
             if ($request->boolean('refresh')) {
                 Cache::forget($key);
             }
+
             try {
-                $report = Cache::remember($key, now()->addMinutes(self::CACHE_MINUTES), fn () => $yt->channelReport($channel) + ['fetched_at' => now()->toIso8601String()]);
+                $report = Cache::remember($key, now()->addMinutes(self::CACHE_MINUTES), fn () => $yt->channelReport($channel) + [
+                    'fetched_at' => now()->toIso8601String(),
+                ]);
             } catch (Throwable $e) {
                 $error = $e->getMessage();
             }
@@ -52,16 +57,25 @@ class AudienceController extends Controller
         ]);
     }
 
-    /** Read a video's comments (hers, or any video link) and keep what viewers asked for. */
+    /**
+     * Read a video's comments (hers, or any video link) and keep what viewers asked for.
+     */
     public function comments(Request $request, CommentMiner $miner): JsonResponse
     {
-        $data = $request->validate(['url' => 'required|string|max:500', 'title' => 'nullable|string|max:250']);
+        $data = $request->validate([
+            'url' => 'required|string|max:500',
+            'title' => 'nullable|string|max:250',
+        ]);
         $videoId = YouTubeTranscript::videoId($data['url']);
-        if (! $videoId) {
-            return response()->json(['error' => 'That doesn’t look like a YouTube video link.'], 422);
+        if (!$videoId) {
+            return response()->json([
+                'error' => 'That doesn’t look like a YouTube video link.',
+            ], 422);
         }
-        if (! Setting::has('youtube_api_key')) {
-            return response()->json(['error' => 'Reading comments needs a YouTube Data API key in Settings.'], 422);
+        if (!Setting::has('youtube_api_key')) {
+            return response()->json([
+                'error' => 'Reading comments needs a YouTube Data API key in Settings.',
+            ], 422);
         }
 
         $channel = Setting::get('channel_id');
@@ -71,9 +85,13 @@ class AudienceController extends Controller
         try {
             $insight = $miner->mine($videoId, $data['title'] ?? null, $own);
         } catch (RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         $n = count($insight->items ?? []);
@@ -84,50 +102,75 @@ class AudienceController extends Controller
         ]);
     }
 
-    /** Reply drafts for the newest unanswered comments on a video (nothing is posted). */
+    /**
+     * Reply drafts for the newest unanswered comments on a video (nothing is posted).
+     */
     public function replies(Request $request, ReplyDrafter $drafter): JsonResponse
     {
-        $data = $request->validate(['url' => 'required|string|max:500', 'title' => 'nullable|string|max:250']);
+        $data = $request->validate([
+            'url' => 'required|string|max:500',
+            'title' => 'nullable|string|max:250',
+        ]);
         $videoId = YouTubeTranscript::videoId($data['url']);
-        if (! $videoId) {
-            return response()->json(['error' => 'That doesn’t look like a YouTube video link.'], 422);
+        if (!$videoId) {
+            return response()->json([
+                'error' => 'That doesn’t look like a YouTube video link.',
+            ], 422);
         }
-        if (! Setting::has('youtube_api_key')) {
-            return response()->json(['error' => 'Reading comments needs a YouTube Data API key in Settings.'], 422);
+        if (!Setting::has('youtube_api_key')) {
+            return response()->json([
+                'error' => 'Reading comments needs a YouTube Data API key in Settings.',
+            ], 422);
         }
+
         try {
             $replies = $drafter->draft($videoId, $data['title'] ?? null);
         } catch (RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
-        return response()->json(['video_id' => $videoId, 'replies' => $replies]);
+        return response()->json([
+            'video_id' => $videoId,
+            'replies' => $replies,
+        ]);
     }
 
-    /** Record today's numbers now (same as the daily studio:stats job). */
+    /**
+     * Record today's numbers now (same as the daily studio:stats job).
+     */
     public function snapshot(VideoStats $stats): JsonResponse
     {
         try {
             $n = $stats->snapshot();
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
         Setting::put('last_run_stats', now()->toIso8601String());
 
-        return response()->json(['message' => "Recorded today’s numbers for {$n} video(s)."]);
+        return response()->json([
+            'message' => "Recorded today’s numbers for {$n} video(s).",
+        ]);
     }
 
     public function destroy(AudienceInsight $insight): JsonResponse
     {
         $insight->delete();
 
-        return response()->json(['message' => 'Removed.']);
+        return response()->json([
+            'message' => 'Removed.',
+        ]);
     }
 
     public static function cacheKey(string $channel): string
     {
-        return 'audience:report:'.strtolower($channel);
+        return 'audience:report:' . strtolower($channel);
     }
 }

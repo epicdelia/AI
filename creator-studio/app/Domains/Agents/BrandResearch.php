@@ -15,9 +15,14 @@ class BrandResearch
 {
     public const MAX_PAGES = 5;
 
-    public function __construct(private Llm $llm) {}
+    public function __construct(
+        private Llm $llm
+    ) {
+    }
 
-    /** @return array{summary: string, pages: int} */
+    /**
+     * @return array{summary: string, pages: int}
+     */
     public function scrape(string $url): array
     {
         $url = self::safeUrl($url);
@@ -31,22 +36,26 @@ class BrandResearch
                 continue;
             }
             $seen[$page] = true;
+
             try {
                 // Redirects are followed by hand so each hop is checked against private addresses.
-                $r = Http::timeout(12)->withoutRedirecting()->withHeaders(['User-Agent' => 'CreatorStudio/1.0 (+brand summary)'])->get($page);
-                if ($r->redirect() && ($to = self::absolute((string) $r->header('Location'), $page))) {
+                $r = Http::timeout(12)->withoutRedirecting()->withHeaders([
+                    'User-Agent' => 'CreatorStudio/1.0 (+brand summary)',
+                ])->get($page);
+                if ($r->redirect() && ($to = self::absolute((string)$r->header('Location'), $page))) {
                     $queue[] = self::safeUrl($to);
                     $host = parse_url($to, PHP_URL_HOST);
+
                     continue;
                 }
             } catch (\Throwable) {
                 continue;
             }
-            if (! $r->successful() || ! str_contains((string) $r->header('Content-Type'), 'html')) {
+            if (!$r->successful() || !str_contains((string)$r->header('Content-Type'), 'html')) {
                 continue;
             }
-            $html = (string) $r->body();
-            $text .= "\n\n# {$page}\n".self::text($html);
+            $html = (string)$r->body();
+            $text .= "\n\n# {$page}\n" . self::text($html);
             // Same-site links that usually say what a brand is about.
             if (preg_match_all('~href=["\']([^"\'#]+)["\']~i', $html, $m)) {
                 foreach ($m[1] as $href) {
@@ -65,45 +74,56 @@ class BrandResearch
             mb_substr($text, 0, 30000),
         );
 
-        return ['summary' => trim($summary), 'pages' => count($seen)];
+        return [
+            'summary' => trim($summary),
+            'pages' => count($seen),
+        ];
     }
 
-    /** @return array<int, array{id: string, name: string, description: string}> */
+    /**
+     * @return array<int, array{id: string, name: string, description: string}>
+     */
     public function audiences(string $brand): array
     {
         $data = $this->llm->as('agent-setup')->json(
             'Suggest 6 distinct target audiences for this creator\'s social media, each specific enough to write for. '
-            .'Output JSON: {"audiences": [{"name": "2 to 5 words", "description": "one sentence: who they are and what they want"}]}',
-            "Creator: ".Prompts::name()."\n\nBrand:\n".mb_substr($brand, 0, 6000),
+            . 'Output JSON: {"audiences": [{"name": "2 to 5 words", "description": "one sentence: who they are and what they want"}]}',
+            'Creator: ' . Prompts::name() . "\n\nBrand:\n" . mb_substr($brand, 0, 6000),
         );
 
         $out = [];
-        foreach (array_values(array_filter((array) ($data['audiences'] ?? []), 'is_array')) as $i => $a) {
-            if (trim((string) ($a['name'] ?? '')) !== '') {
-                $out[] = ['id' => 'a'.$i, 'name' => mb_substr(trim($a['name']), 0, 80), 'description' => mb_substr(trim((string) ($a['description'] ?? '')), 0, 300)];
+        foreach (array_values(array_filter((array)($data['audiences'] ?? []), 'is_array')) as $i => $a) {
+            if (trim((string)($a['name'] ?? '')) !== '') {
+                $out[] = [
+                    'id' => 'a' . $i,
+                    'name' => mb_substr(trim($a['name']), 0, 80),
+                    'description' => mb_substr(trim((string)($a['description'] ?? '')), 0, 300),
+                ];
             }
         }
 
         return $out;
     }
 
-    /** Only public http(s) addresses: no localhost or private networks. */
+    /**
+     * Only public http(s) addresses: no localhost or private networks.
+     */
     public static function safeUrl(string $url): string
     {
         $url = trim($url);
-        if (! preg_match('~^https?://~i', $url)) {
-            $url = 'https://'.$url;
+        if (!preg_match('~^https?://~i', $url)) {
+            $url = 'https://' . $url;
         }
         $host = parse_url($url, PHP_URL_HOST);
-        if (! $host || ! filter_var($url, FILTER_VALIDATE_URL)) {
+        if (!$host || !filter_var($url, FILTER_VALIDATE_URL)) {
             throw new RuntimeException('That doesn’t look like a web address.');
         }
         $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
-        if (! $ips) {
+        if (!$ips) {
             throw new RuntimeException('Couldn’t find that website.');
         }
         foreach ($ips as $ip) {
-            if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                 throw new RuntimeException('That address points to a private network.');
             }
         }
@@ -129,6 +149,6 @@ class BrandResearch
         }
         $p = parse_url($base);
 
-        return $p['scheme'].'://'.$p['host'].(str_starts_with($href, '/') ? '' : '/').ltrim(strtok($href, '?'), '/');
+        return $p['scheme'] . '://' . $p['host'] . (str_starts_with($href, '/') ? '' : '/') . ltrim(strtok($href, '?'), '/');
     }
 }

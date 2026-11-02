@@ -19,25 +19,25 @@ class PostCampaignReport
         $product = $deal->brand_name;
 
         // Base metrics derived from deal rate and deliverables
-        $rate = (float) ($deal->rate ?: 3000);
+        $rate = (float)($deal->rate ?: 3000);
         $currency = $deal->currency ?: 'USD';
 
         // Calculate performance reach benchmarked to creator reach
         // (Typically 30k-70k views for integrations, with high engagement for dev audiences)
-        $views = max(18500, (int) round(($rate / 75) * 1000 * (1 + (($deal->id % 7) * 0.08))));
-        $impressions = (int) round($views * 9.5);
+        $views = max(18500, (int)round(($rate / 75) * 1000 * (1 + (($deal->id % 7) * 0.08))));
+        $impressions = (int)round($views * 9.5);
         $ctr = round(3.2 + (($deal->id % 5) * 0.35), 2);
-        $clicks = (int) round(($impressions * ($ctr / 100)) * 0.38);
-        $likes = (int) round($views * 0.058);
-        $commentsCount = (int) round($views * 0.0092);
-        $shares = (int) round($views * 0.024);
-        $watchHours = (int) round(($views * 6.7) / 60);
+        $clicks = (int)round(($impressions * ($ctr / 100)) * 0.38);
+        $likes = (int)round($views * 0.058);
+        $commentsCount = (int)round($views * 0.0092);
+        $shares = (int)round($views * 0.024);
+        $watchHours = (int)round(($views * 6.7) / 60);
         $effectiveCpm = round(($rate / ($views / 1000)), 2);
 
         $deliverables = is_array($deal->deliverables) ? $deal->deliverables : [];
         $deliverableList = [];
         foreach ($deliverables as $d) {
-            $name = is_string($d) ? $d : (($d['platform'] ?? '').' '.($d['format'] ?? ''));
+            $name = is_string($d) ? $d : (($d['platform'] ?? '') . ' ' . ($d['format'] ?? ''));
             $deliverableList[] = [
                 'title' => ucwords(trim($name)),
                 'status' => 'Verified Live',
@@ -87,9 +87,9 @@ class PostCampaignReport
             'brand_name' => $brand,
             'creator_name' => $creatorName,
             'creator_handle' => $creatorHandle,
-            'report_id' => 'REP-'.str_pad((string) $deal->id, 5, '0', STR_PAD_LEFT),
+            'report_id' => 'REP-' . str_pad((string)$deal->id, 5, '0', STR_PAD_LEFT),
             'generated_at' => now()->format('F j, Y'),
-            'campaign_dates' => ($deal->published_at ? $deal->published_at->format('M j') : now()->subDays(7)->format('M j')).' – '.now()->format('M j, Y'),
+            'campaign_dates' => ($deal->published_at ? $deal->published_at->format('M j') : now()->subDays(7)->format('M j')) . ' – ' . now()->format('M j, Y'),
             'financials' => [
                 'rate' => $rate,
                 'currency' => $currency,
@@ -115,17 +115,44 @@ class PostCampaignReport
             'deliverables' => $deliverableList,
             'audience_demographics' => [
                 'seniority' => [
-                    ['label' => 'Staff / Senior Engineer', 'pct' => 44],
-                    ['label' => 'Tech Lead / Eng Manager', 'pct' => 28],
-                    ['label' => 'Mid-Level Full Stack Dev', 'pct' => 18],
-                    ['label' => 'Founder / CTO', 'pct' => 10],
+                    [
+                        'label' => 'Staff / Senior Engineer',
+                        'pct' => 44,
+                    ],
+                    [
+                        'label' => 'Tech Lead / Eng Manager',
+                        'pct' => 28,
+                    ],
+                    [
+                        'label' => 'Mid-Level Full Stack Dev',
+                        'pct' => 18,
+                    ],
+                    [
+                        'label' => 'Founder / CTO',
+                        'pct' => 10,
+                    ],
                 ],
                 'geographies' => [
-                    ['country' => 'United States', 'pct' => 44],
-                    ['country' => 'United Kingdom', 'pct' => 14],
-                    ['country' => 'Germany', 'pct' => 10],
-                    ['country' => 'Canada', 'pct' => 8],
-                    ['country' => 'Other Tech Hubs', 'pct' => 24],
+                    [
+                        'country' => 'United States',
+                        'pct' => 44,
+                    ],
+                    [
+                        'country' => 'United Kingdom',
+                        'pct' => 14,
+                    ],
+                    [
+                        'country' => 'Germany',
+                        'pct' => 10,
+                    ],
+                    [
+                        'country' => 'Canada',
+                        'pct' => 8,
+                    ],
+                    [
+                        'country' => 'Other Tech Hubs',
+                        'pct' => 24,
+                    ],
                 ],
             ],
             'viewer_feedback' => $sampleComments,
@@ -133,4 +160,3 @@ class PostCampaignReport
         ];
     }
 }
-

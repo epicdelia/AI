@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Idea;
 use App\Models\Script;
 use App\Models\Setting;
-use App\Models\User;
 use App\Models\Week;
 use App\Services\NextStep;
 use App\Services\ScriptStructure;
@@ -20,13 +19,11 @@ class StructureNextStepTest extends TestCase
     {
         parent::setUp();
         Setting::flush();
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
-    }
-
-    /** $n spoken words (150 = one minute). */
-    private static function words(int $n): string
-    {
-        return trim(str_repeat('word ', $n));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'd@example.com',
+            'password' => 'secret123',
+        ]));
     }
 
     // ---------------------------------------------------------------- structure
@@ -69,7 +66,10 @@ class StructureNextStepTest extends TestCase
         $this->assertSame(3, $byKind['long']['line']);
         $this->assertSame(2, $byKind['visual']['line'], 'the stretch starts at the first spoken line');
         $this->assertSame(5, $byKind['gaps']['line']);
-        $this->assertSame(['story' => 1, 'verify' => 1], $s['placeholders']);
+        $this->assertSame([
+            'story' => 1,
+            'verify' => 1,
+        ], $s['placeholders']);
         $this->assertSame(array_column($s['flags'], 'line'), collect($s['flags'])->sortBy('line')->pluck('line')->all(), 'sorted by line');
         $this->assertSame(500 + 2, $s['sections'][1]['words'], 'bracketed placeholders are not spoken words');
     }
@@ -84,68 +84,120 @@ class StructureNextStepTest extends TestCase
 
     public function test_script_and_lint_endpoints_include_structure(): void
     {
-        $script = Script::create(['title' => 'T', 'body' => "## Cold open\n".self::words(20)]);
+        $script = Script::create([
+            'title' => 'T',
+            'body' => "## Cold open\n" . self::words(20),
+        ]);
         $this->getJson("/api/scripts/{$script->id}")->assertOk()->assertJsonPath('structure.sections.0.title', 'Cold open');
-        $this->postJson('/api/scripts/lint', ['text' => "## A\n".self::words(10)])->assertOk()->assertJsonPath('structure.sections.0.words', 10);
-    }
-
-    // ---------------------------------------------------------------- next step
-
-    private function plan(): Week
-    {
-        return Week::create(['number' => 1, 'start_date' => now()->subDays(2)->toDateString(), 'due_date' => now()->addDays(4)->toDateString()]);
+        $this->postJson('/api/scripts/lint', [
+            'text' => "## A\n" . self::words(10),
+        ])->assertOk()->assertJsonPath('structure.sections.0.words', 10);
     }
 
     public function test_next_step_walks_the_pipeline(): void
     {
         $this->assertSame('ideas', NextStep::current()['key'], 'nothing at all: get ideas');
         $week = $this->plan();
-        Idea::create(['title' => 'An idea', 'status' => 'picked']);
+        Idea::create([
+            'title' => 'An idea',
+            'status' => 'picked',
+        ]);
         $this->assertSame('pick', NextStep::current()['key']);
         $this->assertStringContainsString('Due in 4 days', NextStep::current()['detail']);
 
-        $script = Script::create(['title' => 'Inbox week', 'body' => 'just a start']);
-        $week->update(['script_id' => $script->id]);
+        $script = Script::create([
+            'title' => 'Inbox week',
+            'body' => 'just a start',
+        ]);
+        $week->update([
+            'script_id' => $script->id,
+        ]);
         $this->assertSame('draft', NextStep::current()['key']);
 
-        $script->update(['body' => "## Cold open\n".self::words(200)."\nA dash — here.\n[YOUR STORY: why]"]);
+        $script->update([
+            'body' => "## Cold open\n" . self::words(200) . "\nA dash — here.\n[YOUR STORY: why]",
+        ]);
         $step = NextStep::current();
         $this->assertSame('lint', $step['key']);
         $this->assertSame("/scripts/{$script->id}", $step['link']);
 
-        $script->update(['body' => "## Cold open\n".self::words(200)."\n[YOUR STORY: why]"]);
+        $script->update([
+            'body' => "## Cold open\n" . self::words(200) . "\n[YOUR STORY: why]",
+        ]);
         $this->assertSame('review', NextStep::current()['key']);
         $this->assertStringEndsWith('?tab=review', NextStep::current()['link']);
 
-        $script->update(['status' => 'reviewed']);
+        $script->update([
+            'status' => 'reviewed',
+        ]);
         $this->assertSame('gaps', NextStep::current()['key']);
         $this->assertStringContainsString('1 [YOUR STORY]', NextStep::current()['title']);
 
-        $script->update(['body' => "## Cold open\n".self::words(200)]);
+        $script->update([
+            'body' => "## Cold open\n" . self::words(200),
+        ]);
         $this->assertSame('film', NextStep::current()['key']);
         $this->assertStringContainsString('1:20 to read', NextStep::current()['detail']);
 
-        $script->update(['status' => 'filmed']);
+        $script->update([
+            'status' => 'filmed',
+        ]);
         $this->assertStringEndsWith('?tab=package', NextStep::current()['link']);
 
-        $script->update(['status' => 'published']);
+        $script->update([
+            'status' => 'published',
+        ]);
         $this->assertSame('checkin', NextStep::current()['key']);
 
-        $week->update(['status' => 'shipped']);
+        $week->update([
+            'status' => 'shipped',
+        ]);
         $this->assertNull(NextStep::current(), 'shipped and no next week planned');
-        Week::create(['number' => 2, 'start_date' => now()->addDays(5)->toDateString(), 'due_date' => now()->addDays(11)->toDateString()]);
-        Week::where('number', 1)->update(['due_date' => now()->addDays(4)->toDateString()]);
+        Week::create([
+            'number' => 2,
+            'start_date' => now()->addDays(5)->toDateString(),
+            'due_date' => now()->addDays(11)->toDateString(),
+        ]);
+        Week::where('number', 1)->update([
+            'due_date' => now()->addDays(4)->toDateString(),
+        ]);
         $this->assertSame('pick', NextStep::current()['key'], 'shipped: pick next week’s video');
     }
 
     public function test_without_a_week_link_it_follows_the_latest_script(): void
     {
         $this->plan();
-        Script::create(['title' => 'Old', 'body' => self::words(300), 'status' => 'reviewed']);
+        Script::create([
+            'title' => 'Old',
+            'body' => self::words(300),
+            'status' => 'reviewed',
+        ]);
         $this->travel(1)->minutes();
-        $latest = Script::create(['title' => 'Newer', 'body' => 'tiny']);
+        $latest = Script::create([
+            'title' => 'Newer',
+            'body' => 'tiny',
+        ]);
         $this->assertSame($latest->id, NextStep::current()['script_id']);
 
         $this->getJson('/api/dashboard')->assertOk()->assertJsonPath('next_step.key', 'draft');
+    }
+
+    /**
+     * $n spoken words (150 = one minute).
+     */
+    private static function words(int $n): string
+    {
+        return trim(str_repeat('word ', $n));
+    }
+
+    // ---------------------------------------------------------------- next step
+
+    private function plan(): Week
+    {
+        return Week::create([
+            'number' => 1,
+            'start_date' => now()->subDays(2)->toDateString(),
+            'due_date' => now()->addDays(4)->toDateString(),
+        ]);
     }
 }

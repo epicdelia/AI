@@ -18,7 +18,8 @@ class PromptOptimizer
     public function __construct(
         private Llm $llm,
         private BenchmarkHarness $benchmark
-    ) {}
+    ) {
+    }
 
     /**
      * Run an optimization cycle for the agent's core system prompt.
@@ -47,7 +48,7 @@ class PromptOptimizer
         $weakAreas = [];
         foreach (['hook', 'voice', 'retention', 'cliche_freedom', 'safety'] as $factor) {
             $scores = array_column($rubrics, $factor);
-            if (! empty($scores) && (array_sum($scores) / count($scores)) < 80) {
+            if (!empty($scores) && (array_sum($scores) / count($scores)) < 80) {
                 $weakAreas[] = $factor;
             }
         }
@@ -56,25 +57,25 @@ class PromptOptimizer
 
         // 2. Meta-prompt to generate improved system prompt candidate
         $metaPrompt = "Current Agent Prompt:\n\"{$currentPrompt}\"\n\n"
-            ."Benchmark Performance Score: {$baselineScore}/100\n"
-            ."Weak Rubric Dimensions: ".(! empty($weakAreas) ? implode(', ', $weakAreas) : 'hook and tone consistency')."\n\n"
-            ."Analyze why the agent produces low scores in these dimensions. "
-            ."Propose an optimized system prompt that explicitly enforces constraints (e.g. opening with numbers, banning filler phrases, forcing authentic practitioner tone). "
-            ."Output JSON:\n"
-            ."{\n"
-            ."  \"changes_summary\": \"What was added/fixed (1-2 sentences)\",\n"
-            ."  \"optimized_prompt\": \"The refined prompt text\"\n"
-            ."}";
+            . "Benchmark Performance Score: {$baselineScore}/100\n"
+            . 'Weak Rubric Dimensions: ' . (!empty($weakAreas) ? implode(', ', $weakAreas) : 'hook and tone consistency') . "\n\n"
+            . 'Analyze why the agent produces low scores in these dimensions. '
+            . 'Propose an optimized system prompt that explicitly enforces constraints (e.g. opening with numbers, banning filler phrases, forcing authentic practitioner tone). '
+            . "Output JSON:\n"
+            . "{\n"
+            . "  \"changes_summary\": \"What was added/fixed (1-2 sentences)\",\n"
+            . "  \"optimized_prompt\": \"The refined prompt text\"\n"
+            . '}';
 
         try {
             $proposal = $this->llm->as('prompt-optimizer')->creativity(0.4)->json(
                 'You are an automated prompt optimization engine (DSPy-style). You edit system prompts to maximize objective benchmark rubric scores.',
                 $metaPrompt
             );
-            $candidatePrompt = trim((string) ($proposal['optimized_prompt'] ?? $currentPrompt));
-            $summary = trim((string) ($proposal['changes_summary'] ?? 'Automated optimization'));
+            $candidatePrompt = trim((string)($proposal['optimized_prompt'] ?? $currentPrompt));
+            $summary = trim((string)($proposal['changes_summary'] ?? 'Automated optimization'));
         } catch (Throwable $e) {
-            $candidatePrompt = $currentPrompt."\n\nRule: Always lead with a concrete metric or result in the first sentence. Avoid all corporate buzzwords.";
+            $candidatePrompt = $currentPrompt . "\n\nRule: Always lead with a concrete metric or result in the first sentence. Avoid all corporate buzzwords.";
             $summary = 'Injected explicit hook anchor and buzzword elimination rules.';
         }
 
@@ -97,7 +98,9 @@ class PromptOptimizer
         $newVer = $latestVer + 1;
 
         if ($improved) {
-            AgentPromptVersion::where('social_agent_id', $agent->id)->update(['is_active' => false]);
+            AgentPromptVersion::where('social_agent_id', $agent->id)->update([
+                'is_active' => false,
+            ]);
         }
 
         $record = AgentPromptVersion::create([
@@ -124,4 +127,3 @@ class PromptOptimizer
         ];
     }
 }
-

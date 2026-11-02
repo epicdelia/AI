@@ -11,16 +11,6 @@ class DeliverableAnnotation extends Model
 {
     protected $guarded = [];
 
-    protected function casts(): array
-    {
-        return [
-            'timecode_seconds' => 'float',
-            'deliverable_index' => 'integer',
-            'page_or_slide' => 'integer',
-            'resolved_at' => 'datetime',
-        ];
-    }
-
     public function deal(): BelongsTo
     {
         return $this->belongsTo(Deal::class);
@@ -51,8 +41,18 @@ class DeliverableAnnotation extends Model
             'resolved_at' => $this->resolved_at?->toIso8601String(),
             'resolved_by' => $this->resolver?->name,
             'author' => $this->user?->name ?: ($this->user?->isAdmin() ? 'Studio' : 'Client'),
-            'from_admin' => (bool) ($this->user?->isAdmin()),
+            'from_admin' => (bool)($this->user?->isAdmin()),
             'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'timecode_seconds' => 'float',
+            'deliverable_index' => 'integer',
+            'page_or_slide' => 'integer',
+            'resolved_at' => 'datetime',
         ];
     }
 }

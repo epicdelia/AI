@@ -128,7 +128,7 @@ MARKDOWN;
     {
         $timestamp = now();
         $rawDoc = self::dpaMarkdown($deal);
-        $signaturePayload = "{$deal->id}|{$deal->brand_name}|{$signerName}|{$signerEmail}|{$ipAddress}|{$timestamp->toIso8601String()}|".hash('sha256', $rawDoc);
+        $signaturePayload = "{$deal->id}|{$deal->brand_name}|{$signerName}|{$signerEmail}|{$ipAddress}|{$timestamp->toIso8601String()}|" . hash('sha256', $rawDoc);
         $signatureHash = hash('sha256', $signaturePayload);
 
         $deal->update([

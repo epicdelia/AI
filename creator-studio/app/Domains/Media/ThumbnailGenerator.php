@@ -27,7 +27,9 @@ class ThumbnailGenerator
 
     public const MAX_REFERENCES = 4;
 
-    /** @var callable|null test hook: fn(string $provider, string $prompt, array $refs): string (image bytes) */
+    /**
+     * @var callable|null test hook: fn(string, string, array): string (image bytes)
+     */
     public static $fake = null;
 
     public static function providers(): array
@@ -46,28 +48,30 @@ class ThumbnailGenerator
         return in_array($pref, $available, true) ? $pref : ($available[0] ?? null);
     }
 
-    /** MagicAI's buildPrompt() attributes plus thumbnail rules. */
+    /**
+     * MagicAI's buildPrompt() attributes plus thumbnail rules.
+     */
     public static function prompt(array $o): string
     {
         $parts = [
             'A YouTube thumbnail, 16:9, designed to be readable at small size on a phone.',
-            'Scene: '.trim((string) $o['concept']),
+            'Scene: ' . trim((string)$o['concept']),
         ];
-        if (! empty($o['text'])) {
-            $parts[] = 'Large bold text on the image, exactly: "'.trim($o['text']).'". Maximum 5 words, high contrast, never covering the face.';
+        if (!empty($o['text'])) {
+            $parts[] = 'Large bold text on the image, exactly: "' . trim($o['text']) . '". Maximum 5 words, high contrast, never covering the face.';
         } else {
             $parts[] = 'No text on the image.';
         }
-        if (! empty($o['use_photos'])) {
+        if (!empty($o['use_photos'])) {
             $parts[] = 'The person in the reference photo(s) is the creator: keep her face and likeness accurate, with an expressive, readable expression.';
         }
         $attrs = array_filter([
-            ! empty($o['style']) ? "{$o['style']} style" : null,
-            ! empty($o['lighting']) ? "{$o['lighting']} lighting" : null,
-            ! empty($o['mood']) ? "{$o['mood']} mood" : null,
+            !empty($o['style']) ? "{$o['style']} style" : null,
+            !empty($o['lighting']) ? "{$o['lighting']} lighting" : null,
+            !empty($o['mood']) ? "{$o['mood']} mood" : null,
         ]);
         if ($attrs) {
-            $parts[] = implode(', ', $attrs).'.';
+            $parts[] = implode(', ', $attrs) . '.';
         }
         $parts[] = 'One clear focal point, bold colour contrast, uncluttered background.';
 
@@ -80,13 +84,13 @@ class ThumbnailGenerator
     public function generate(array $o): MediaFile
     {
         $provider = $o['provider'] ?? self::defaultProvider();
-        if (! self::$fake && (! $provider || ! in_array($provider, self::providers(), true))) {
+        if (!self::$fake && (!$provider || !in_array($provider, self::providers(), true))) {
             throw new RuntimeException('Thumbnail mockups need an OpenAI key (or a fal.ai key) in Settings.');
         }
         $provider ??= 'openai';
         UsageLimit::ensure('image', 1);
-        $refs = ! empty($o['use_photos']) ? MediaFile::where('kind', 'photo')->latest()->take(self::MAX_REFERENCES)->get() : collect();
-        if (! empty($o['use_photos']) && $refs->isEmpty()) {
+        $refs = !empty($o['use_photos']) ? MediaFile::where('kind', 'photo')->latest()->take(self::MAX_REFERENCES)->get() : collect();
+        if (!empty($o['use_photos']) && $refs->isEmpty()) {
             throw new RuntimeException('Upload a photo of yourself first (Package tab → Your photos).');
         }
         if ($refs->isNotEmpty() && $provider !== 'openai') {
@@ -98,6 +102,7 @@ class ThumbnailGenerator
 
         @set_time_limit(300);
         $started = microtime(true);
+
         try {
             $bytes = self::$fake ? (self::$fake)($provider, $prompt, $refs->all())
                 : ($provider === 'openai' ? $this->openai($model, $prompt, $refs->all(), $o['quality'] ?? 'medium') : $this->fal($prompt));
@@ -116,51 +121,87 @@ class ThumbnailGenerator
             'provider' => $provider,
             'model' => $model,
             'prompt' => $prompt,
-            'meta' => ['concept' => $o['concept'], 'text' => $o['text'] ?? null, 'with_photos' => $refs->count()],
+            'meta' => [
+                'concept' => $o['concept'],
+                'text' => $o['text'] ?? null,
+                'with_photos' => $refs->count(),
+            ],
         ]);
     }
 
-    /** /images/generations, or /images/edits (multipart, image[]) when reference photos are given. */
+    /**
+     * @return array{0: string, 1: string} extension and MIME from the magic bytes
+     */
+    public static function sniff(string $bytes): array
+    {
+        return match (true) {
+            str_starts_with($bytes, "\x89PNG") => ['png', 'image/png'],
+            str_starts_with($bytes, "\xFF\xD8") => ['jpg', 'image/jpeg'],
+            str_starts_with($bytes, 'RIFF') && substr($bytes, 8, 4) === 'WEBP' => ['webp', 'image/webp'],
+            default => throw new RuntimeException('The image service returned something that isn’t an image.'),
+        };
+    }
+
+    /**
+     * /images/generations, or /images/edits (multipart, image[]) when reference photos are given.
+     */
     private function openai(string $model, string $prompt, array $refs, string $quality): string
     {
         $quality = in_array($quality, ['low', 'medium', 'high', 'auto'], true) ? $quality : 'medium';
-        $http = Http::timeout(240)->connectTimeout(10)->withToken((string) OpenAiKey::get());
+        $http = Http::timeout(240)->connectTimeout(10)->withToken((string)OpenAiKey::get());
 
         if ($refs) {
             foreach ($refs as $i => $ref) {
-                $http = $http->attach('image[]', $ref->contents(), "ref{$i}.".pathinfo($ref->path, PATHINFO_EXTENSION));
+                $http = $http->attach('image[]', $ref->contents(), "ref{$i}." . pathinfo($ref->path, PATHINFO_EXTENSION));
             }
             $resp = $http->post('https://api.openai.com/v1/images/edits', [
-                'model' => $model, 'prompt' => $prompt, 'n' => 1, 'size' => '1536x1024', 'quality' => $quality,
+                'model' => $model,
+                'prompt' => $prompt,
+                'n' => 1,
+                'size' => '1536x1024',
+                'quality' => $quality,
             ]);
         } else {
             $resp = $http->post('https://api.openai.com/v1/images/generations', [
-                'model' => $model, 'prompt' => $prompt, 'n' => 1, 'size' => '1536x1024', 'quality' => $quality,
-                'output_format' => 'webp', 'background' => 'opaque',
+                'model' => $model,
+                'prompt' => $prompt,
+                'n' => 1,
+                'size' => '1536x1024',
+                'quality' => $quality,
+                'output_format' => 'webp',
+                'background' => 'opaque',
             ]);
         }
 
         if ($resp->failed()) {
-            throw new RuntimeException("Image generation failed ({$resp->status()}): ".mb_substr((string) ($resp->json('error.message') ?? $resp->body()), 0, 250));
+            throw new RuntimeException("Image generation failed ({$resp->status()}): " . mb_substr((string)($resp->json('error.message') ?? $resp->body()), 0, 250));
         }
         $b64 = $resp->json('data.0.b64_json');
-        if (! $b64) {
+        if (!$b64) {
             throw new RuntimeException('The image service returned no image.');
         }
 
         return base64_decode($b64);
     }
 
-    /** fal.run synchronous endpoint: returns an image URL, which is downloaded and stored. */
+    /**
+     * fal.run synchronous endpoint: returns an image URL, which is downloaded and stored.
+     */
     private function fal(string $prompt): string
     {
-        $resp = Http::timeout(180)->withHeaders(['Authorization' => 'Key '.Setting::get('fal_api_key')])
-            ->post('https://fal.run/'.self::FAL_MODEL, ['prompt' => $prompt, 'image_size' => 'landscape_16_9', 'num_images' => 1]);
+        $resp = Http::timeout(180)->withHeaders([
+            'Authorization' => 'Key ' . Setting::get('fal_api_key'),
+        ])
+            ->post('https://fal.run/' . self::FAL_MODEL, [
+                'prompt' => $prompt,
+                'image_size' => 'landscape_16_9',
+                'num_images' => 1,
+            ]);
         if ($resp->failed()) {
-            throw new RuntimeException("fal.ai failed ({$resp->status()}): ".mb_substr((string) ($resp->json('detail') ? json_encode($resp->json('detail')) : $resp->body()), 0, 250));
+            throw new RuntimeException("fal.ai failed ({$resp->status()}): " . mb_substr((string)($resp->json('detail') ? json_encode($resp->json('detail')) : $resp->body()), 0, 250));
         }
         $url = $resp->json('images.0.url');
-        if (! $url) {
+        if (!$url) {
             throw new RuntimeException('fal.ai returned no image.');
         }
         if (str_starts_with($url, 'data:')) {
@@ -174,24 +215,18 @@ class ThumbnailGenerator
         return $img->body();
     }
 
-    /** @return array{0: string, 1: string} extension and MIME from the magic bytes */
-    public static function sniff(string $bytes): array
-    {
-        return match (true) {
-            str_starts_with($bytes, "\x89PNG") => ['png', 'image/png'],
-            str_starts_with($bytes, "\xFF\xD8") => ['jpg', 'image/jpeg'],
-            str_starts_with($bytes, 'RIFF') && substr($bytes, 8, 4) === 'WEBP' => ['webp', 'image/webp'],
-            default => throw new RuntimeException('The image service returned something that isn’t an image.'),
-        };
-    }
-
     private function record(string $provider, string $model, float $started, ?string $error = null): void
     {
         try {
             AiUsage::create([
-                'feature' => 'thumbnail', 'engine' => $provider, 'model' => $model, 'unit' => 'image', 'quantity' => $error ? 0 : 1,
-                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
-                'ok' => $error === null, 'error' => $error ? mb_substr($error, 0, 250) : null,
+                'feature' => 'thumbnail',
+                'engine' => $provider,
+                'model' => $model,
+                'unit' => 'image',
+                'quantity' => $error ? 0 : 1,
+                'duration_ms' => (int)round((microtime(true) - $started) * 1000),
+                'ok' => $error === null,
+                'error' => $error ? mb_substr($error, 0, 250) : null,
             ]);
         } catch (Throwable) {
         }

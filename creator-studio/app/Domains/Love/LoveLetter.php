@@ -12,6 +12,10 @@ class LoveLetter extends Model
 
     protected function casts(): array
     {
-        return ['body' => 'encrypted', 'unlocked_at' => 'datetime', 'opened_at' => 'datetime'];
+        return [
+            'body' => 'encrypted',
+            'unlocked_at' => 'datetime',
+            'opened_at' => 'datetime',
+        ];
     }
 }

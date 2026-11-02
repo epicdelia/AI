@@ -13,13 +13,19 @@ class ChapterAligner
     public const MIN_GAP = 10;     // YouTube wants each chapter to be 10 seconds or longer
     public const MIN_SCORE = 0.35; // share of a section's opening words that must be found
 
-    /** @return array<int, array{start: int, end: ?int, words: array<int, string>}> */
+    /**
+     * @return array<int, array{start: int, end: ?int, words: array<int, string>}>
+     */
     public static function blocks(string $transcript): array
     {
         preg_match_all('/\[(?:(\d+):)?(\d{1,2}):(\d{2})\]\s*([^\[]*)/u', $transcript, $m, PREG_SET_ORDER);
         $blocks = [];
         foreach ($m as $b) {
-            $blocks[] = ['start' => (int) $b[1] * 3600 + (int) $b[2] * 60 + (int) $b[3], 'end' => null, 'words' => self::words($b[4], 1)];
+            $blocks[] = [
+                'start' => (int)$b[1] * 3600 + (int)$b[2] * 60 + (int)$b[3],
+                'end' => null,
+                'words' => self::words($b[4], 1),
+            ];
         }
         foreach ($blocks as $i => &$b) {
             $b['end'] = $blocks[$i + 1]['start'] ?? null;
@@ -28,7 +34,9 @@ class ChapterAligner
         return $blocks;
     }
 
-    /** Lower-case words of at least $min letters (short words match everywhere, so they're noise). */
+    /**
+     * Lower-case words of at least $min letters (short words match everywhere, so they're noise).
+     */
     public static function words(string $text, int $min = 4): array
     {
         preg_match_all('/[\p{L}\p{N}\']+/u', mb_strtolower($text), $m);
@@ -44,7 +52,7 @@ class ChapterAligner
     {
         $structure = ScriptStructure::analyse($body);
         $sections = array_values(array_filter($structure['sections'], fn ($s) => $s['words'] > 0));
-        $blocks = self::blocks((string) $transcript);
+        $blocks = self::blocks((string)$transcript);
 
         if (count($blocks) >= 3 && count($sections) >= 3) {
             $lines = [];
@@ -59,18 +67,30 @@ class ChapterAligner
                 if ($k > 0) {
                     $matched++;
                 }
-                $lines[] = ScriptStructure::clock($time).' '.ScriptStructure::chapterTitle($sec['title']);
+                $lines[] = ScriptStructure::clock($time) . ' ' . ScriptStructure::chapterTitle($sec['title']);
                 $last = $time;
             }
             if (count($lines) >= 3) {
-                return ['source' => 'transcript', 'chapters' => implode("\n", $lines), 'matched' => $matched, 'sections' => count($sections)];
+                return [
+                    'source' => 'transcript',
+                    'chapters' => implode("\n", $lines),
+                    'matched' => $matched,
+                    'sections' => count($sections),
+                ];
             }
         }
 
-        return ['source' => 'estimate', 'chapters' => $structure['chapters'], 'matched' => 0, 'sections' => count($sections)];
+        return [
+            'source' => 'estimate',
+            'chapters' => $structure['chapters'],
+            'matched' => 0,
+            'sections' => count($sections),
+        ];
     }
 
-    /** Seconds where these words start, searching blocks from $from onward (advanced on a match). */
+    /**
+     * Seconds where these words start, searching blocks from $from onward (advanced on a match).
+     */
     private static function find(array $want, array $blocks, int &$from): ?int
     {
         if (count($want) < 2) {
@@ -106,6 +126,6 @@ class ChapterAligner
         }
         $span = ($b['end'] ?? $b['start'] + 30) - $b['start'];
 
-        return $b['start'] + (int) floor($span * $pos / max(1, count($b['words'])));
+        return $b['start'] + (int)floor($span * $pos / max(1, count($b['words'])));
     }
 }

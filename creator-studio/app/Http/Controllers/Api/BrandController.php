@@ -10,14 +10,26 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Brand kit: colours, font, logo, words to avoid and her usual call to action. */
+/**
+ * Brand kit: colours, font, logo, words to avoid and her usual call to action.
+ */
 class BrandController extends Controller
 {
-    public const FONTS = ['system' => 'System', 'Poppins' => 'Poppins', 'Montserrat' => 'Montserrat', 'Playfair Display' => 'Playfair Display', 'DM Sans' => 'DM Sans', 'Space Grotesk' => 'Space Grotesk'];
+    public const FONTS = [
+        'system' => 'System',
+        'Poppins' => 'Poppins',
+        'Montserrat' => 'Montserrat',
+        'Playfair Display' => 'Playfair Display',
+        'DM Sans' => 'DM Sans',
+        'Space Grotesk' => 'Space Grotesk',
+    ];
 
     public function show(): JsonResponse
     {
-        return response()->json(['brand' => self::kit(), 'fonts' => self::FONTS]);
+        return response()->json([
+            'brand' => self::kit(),
+            'fonts' => self::FONTS,
+        ]);
     }
 
     public static function kit(): array
@@ -29,7 +41,7 @@ class BrandController extends Controller
             'banned_words' => Setting::get('brand_banned_words', ''),
             'cta' => Setting::get('brand_cta', ''),
             'hashtags' => Setting::get('brand_hashtags', ''),
-            'logo' => (bool) Setting::get('brand_logo'),
+            'logo' => (bool)Setting::get('brand_logo'),
         ];
     }
 
@@ -50,18 +62,24 @@ class BrandController extends Controller
         Setting::put('brand_cta', $data['cta'] ?? null);
         Setting::put('brand_hashtags', $data['hashtags'] ?? null);
 
-        return response()->json(['brand' => self::kit()]);
+        return response()->json([
+            'brand' => self::kit(),
+        ]);
     }
 
     public function uploadLogo(Request $request): JsonResponse
     {
-        $request->validate(['logo' => ['required', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:4096']]);
+        $request->validate([
+            'logo' => ['required', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:4096'],
+        ]);
         if ($old = Setting::get('brand_logo')) {
             Storage::disk('local')->delete($old);
         }
         Setting::put('brand_logo', $request->file('logo')->store('brand', 'local'));
 
-        return response()->json(['brand' => self::kit()]);
+        return response()->json([
+            'brand' => self::kit(),
+        ]);
     }
 
     public function logo(): Response
@@ -69,7 +87,10 @@ class BrandController extends Controller
         $path = Setting::get('brand_logo');
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
-        return Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, max-age=3600', 'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'"]);
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, max-age=3600',
+            'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'",
+        ]);
     }
 
     public function deleteLogo(): JsonResponse
@@ -79,12 +100,16 @@ class BrandController extends Controller
         }
         Setting::put('brand_logo', null);
 
-        return response()->json(['brand' => self::kit()]);
+        return response()->json([
+            'brand' => self::kit(),
+        ]);
     }
 
-    /** Words she never wants in her posts, as a list. */
+    /**
+     * Words she never wants in her posts, as a list.
+     */
     public static function bannedWords(): array
     {
-        return array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', (string) Setting::get('brand_banned_words', '')))));
+        return array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', (string)Setting::get('brand_banned_words', '')))));
     }
 }

@@ -5,9 +5,7 @@ namespace Tests\Feature;
 use App\Domains\Ai\AiTransparency;
 use App\Domains\Clients\TaxCompliance;
 use App\Domains\Clients\ViesClient;
-use App\Models\Deal;
 use App\Models\Script;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -43,7 +41,9 @@ class EuAiActAndVatComplianceTest extends TestCase
 
         // Second check must be fulfilled from cache (Http fake not called again)
         Http::fake([
-            'https://ec.europa.eu/taxation_customs/vies/rest-api/*' => Http::response(['error' => 'Should not hit'], 500),
+            'https://ec.europa.eu/taxation_customs/vies/rest-api/*' => Http::response([
+                'error' => 'Should not hit',
+            ], 500),
         ]);
 
         $cachedRes = ViesClient::check('DE123456789', 'DE');

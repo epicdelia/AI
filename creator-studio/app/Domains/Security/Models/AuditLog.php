@@ -7,17 +7,14 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** One security-relevant action: who, what, on what, from where (see Audit). */
+/**
+ * One security-relevant action: who, what, on what, from where (see Audit).
+ */
 class AuditLog extends Model
 {
     public const UPDATED_AT = null;
 
     protected $fillable = ['user_id', 'action', 'subject_type', 'subject_id', 'meta', 'ip', 'user_agent', 'device'];
-
-    protected function casts(): array
-    {
-        return ['meta' => 'array'];
-    }
 
     public function user(): BelongsTo
     {
@@ -34,8 +31,15 @@ class AuditLog extends Model
             'subject' => $this->subject_type ? "{$this->subject_type} #{$this->subject_id}" : null,
             'meta' => $this->meta,
             'ip' => $this->ip,
-            'browser' => Audit::browser((string) $this->user_agent),
+            'browser' => Audit::browser((string)$this->user_agent),
             'at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
         ];
     }
 }

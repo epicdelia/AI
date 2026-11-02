@@ -24,14 +24,23 @@ class IndexMemory implements ShouldQueue
 
     public int $tries = 2;
 
-    /** @param class-string<\Illuminate\Database\Eloquent\Model> $class */
-    public function __construct(public string $class, public int $id, public bool $delete = false) {}
+    /**
+     * @param class-string<\Illuminate\Database\Eloquent\Model> $class
+     */
+    public function __construct(
+        public string $class,
+        public int $id,
+        public bool $delete = false
+    ) {
+    }
 
     public function handle(Memory $memory): void
     {
         try {
             if ($this->delete) {
-                $memory->forgetModel((new $this->class)->forceFill(['id' => $this->id]));
+                $memory->forgetModel((new $this->class())->forceFill([
+                    'id' => $this->id,
+                ]));
 
                 return;
             }

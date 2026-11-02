@@ -18,7 +18,7 @@ class ClientWebhookDispatcher
 {
     public static function dispatch(Deal $deal, string $eventType, string $title, string $message, ?string $actionUrl = null): bool
     {
-        if (! $deal->user_id) {
+        if (!$deal->user_id) {
             return false;
         }
 
@@ -26,12 +26,12 @@ class ClientWebhookDispatcher
         $vault = ClientBrandVault::where('user_id', $ownerId)->first();
         $webhookUrl = $vault?->slack_webhook_url;
 
-        if (! $webhookUrl || ! filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
+        if (!$webhookUrl || !filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
             return false;
         }
 
         $creator = Prompts::name();
-        $actionUrl ??= url('/requests/'.$deal->id);
+        $actionUrl ??= url('/requests/' . $deal->id);
 
         $payload = [
             'text' => "[{$creator} Studio] {$title}",
@@ -60,7 +60,7 @@ class ClientWebhookDispatcher
                         ],
                         [
                             'type' => 'mrkdwn',
-                            'text' => "*Status:*\n".strtoupper($deal->stage),
+                            'text' => "*Status:*\n" . strtoupper($deal->stage),
                         ],
                     ],
                 ],
@@ -84,6 +84,7 @@ class ClientWebhookDispatcher
 
         try {
             $response = Http::timeout(5)->post($webhookUrl, $payload);
+
             return $response->successful();
         } catch (Throwable) {
             return false;
@@ -92,8 +93,11 @@ class ClientWebhookDispatcher
 
     public static function testPing(string $webhookUrl, User $user): array
     {
-        if (! filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
-            return ['ok' => false, 'message' => 'Please enter a valid webhook URL.'];
+        if (!filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
+            return [
+                'ok' => false,
+                'message' => 'Please enter a valid webhook URL.',
+            ];
         }
 
         $creator = Prompts::name();
@@ -121,12 +125,21 @@ class ClientWebhookDispatcher
         try {
             $res = Http::timeout(5)->post($webhookUrl, $payload);
             if ($res->successful()) {
-                return ['ok' => true, 'message' => 'Test message sent to Slack successfully!'];
+                return [
+                    'ok' => true,
+                    'message' => 'Test message sent to Slack successfully!',
+                ];
             }
-            return ['ok' => false, 'message' => "Slack returned HTTP {$res->status()}: {$res->body()}"];
+
+            return [
+                'ok' => false,
+                'message' => "Slack returned HTTP {$res->status()}: {$res->body()}",
+            ];
         } catch (Throwable $e) {
-            return ['ok' => false, 'message' => "Connection failed: {$e->getMessage()}"];
+            return [
+                'ok' => false,
+                'message' => "Connection failed: {$e->getMessage()}",
+            ];
         }
     }
 }
-

@@ -8,7 +8,6 @@ use App\Domains\Agents\Hooks\HookMatrixOptimizer;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Verification\FactCheckShield;
-use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\Outlier;
 use App\Models\Script;
@@ -169,10 +168,10 @@ class AgenticRoiFeaturesTest extends TestCase
                     'title' => 'Zero-Downtime Event Sagas',
                     'hook_tweet' => "Microservices without asynchronous event queues are just slow monoliths with network lag.\n\nHere's how to build event-driven sagas that survive network partitions: 🧵👇",
                     'thread_tweets' => [
-                        "1/ Never perform distributed multi-table transactions across service boundaries.",
-                        "2/ Instead, adopt the Saga pattern with compensating rollback transactions.",
-                        "3/ Every message must carry an idempotent deduplication key.",
-                        "4/ Bookmark this for your team's next distributed systems review."
+                        '1/ Never perform distributed multi-table transactions across service boundaries.',
+                        '2/ Instead, adopt the Saga pattern with compensating rollback transactions.',
+                        '3/ Every message must carry an idempotent deduplication key.',
+                        "4/ Bookmark this for your team's next distributed systems review.",
                     ],
                 ],
                 'short_form' => [
@@ -191,8 +190,18 @@ class AgenticRoiFeaturesTest extends TestCase
                 'carousel' => [
                     'title' => 'The 7 Laws of Event-Driven Systems',
                     'slides' => [
-                        ['slide_number' => 1, 'headline' => 'Event-Driven Systems Blueprint', 'body' => '7 practical rules', 'visual_cue' => 'Cover card'],
-                        ['slide_number' => 2, 'headline' => '1. Idempotency is Non-Negotiable', 'body' => 'Deduplicate at the consumer', 'visual_cue' => 'Diagram'],
+                        [
+                            'slide_number' => 1,
+                            'headline' => 'Event-Driven Systems Blueprint',
+                            'body' => '7 practical rules',
+                            'visual_cue' => 'Cover card',
+                        ],
+                        [
+                            'slide_number' => 2,
+                            'headline' => '1. Idempotency is Non-Negotiable',
+                            'body' => 'Deduplicate at the consumer',
+                            'visual_cue' => 'Diagram',
+                        ],
                     ],
                 ],
             ]);
@@ -377,7 +386,7 @@ class AgenticRoiFeaturesTest extends TestCase
                         'suggested_correction' => null,
                     ],
                 ],
-                'armored_text' => "Standard unoptimized PostgreSQL installations often bottleneck at 5,000 writes/sec without connection pooling. Meanwhile, Python 3.13 introduces experimental free-threaded execution without the GIL.",
+                'armored_text' => 'Standard unoptimized PostgreSQL installations often bottleneck at 5,000 writes/sec without connection pooling. Meanwhile, Python 3.13 introduces experimental free-threaded execution without the GIL.',
                 'disclaimers_recommended' => ['Benchmarks tested on dedicated NVMe instances.'],
             ]);
         };
@@ -405,17 +414,41 @@ class AgenticRoiFeaturesTest extends TestCase
     {
         Llm::$fake = function () {
             return json_encode([
-                'analysis' => ['brand_name' => 'MCP Sponsor', 'product_name' => 'DevTool', 'brand_fit_score' => 90, 'conflicts_detected' => [], 'requested_deliverables' => []],
-                'tiered_packages' => ['tier_1_essential' => ['name' => 'Midroll', 'rate' => 2500, 'deliverables' => '60s', 'cpm' => 45, 'rationale' => 'Test']],
-                'negotiation_email' => ['subject' => 'Partnership', 'body' => 'Body', 'call_to_action' => 'Reply'],
-                'contract_stipulations' => ['usage_rights' => '30 days'],
+                'analysis' => [
+                    'brand_name' => 'MCP Sponsor',
+                    'product_name' => 'DevTool',
+                    'brand_fit_score' => 90,
+                    'conflicts_detected' => [],
+                    'requested_deliverables' => [],
+                ],
+                'tiered_packages' => [
+                    'tier_1_essential' => [
+                        'name' => 'Midroll',
+                        'rate' => 2500,
+                        'deliverables' => '60s',
+                        'cpm' => 45,
+                        'rationale' => 'Test',
+                    ],
+                ],
+                'negotiation_email' => [
+                    'subject' => 'Partnership',
+                    'body' => 'Body',
+                    'call_to_action' => 'Reply',
+                ],
+                'contract_stipulations' => [
+                    'usage_rights' => '30 days',
+                ],
             ]);
         };
 
         $server = app(McpServer::class);
 
         // 1. Tool listing includes all 10 tools now
-        $listRes = $server->handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list']);
+        $listRes = $server->handle([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/list',
+        ]);
         $toolNames = collect($listRes['result']['tools'])->pluck('name')->all();
 
         $this->assertContains('analyze_sponsor_inquiry', $toolNames);
@@ -431,7 +464,9 @@ class AgenticRoiFeaturesTest extends TestCase
             'method' => 'tools/call',
             'params' => [
                 'name' => 'analyze_sponsor_inquiry',
-                'arguments' => ['inbound_text' => 'Hi, we want to sponsor Delia.'],
+                'arguments' => [
+                    'inbound_text' => 'Hi, we want to sponsor Delia.',
+                ],
             ],
         ]);
         $this->assertFalse($callRes['result']['isError']);

@@ -10,6 +10,8 @@ class CopilotMessage extends Model
 
     protected function casts(): array
     {
-        return ['meta' => 'array'];
+        return [
+            'meta' => 'array',
+        ];
     }
 }

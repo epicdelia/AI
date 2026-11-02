@@ -24,14 +24,6 @@ class SocialAgent extends Model
         'approval', 'active', 'lessons', 'learned_at', 'last_run_at', 'next_run_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'platforms' => 'array', 'post_types' => 'array', 'options' => 'array', 'lessons' => 'array',
-            'active' => 'boolean', 'learned_at' => 'datetime', 'last_run_at' => 'datetime', 'next_run_at' => 'datetime',
-        ];
-    }
-
     public function posts(): HasMany
     {
         return $this->hasMany(SocialPost::class, 'social_agent_id');
@@ -85,5 +77,19 @@ class SocialAgent extends Model
         $agent->exists = false;
 
         return $agent;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'platforms' => 'array',
+            'post_types' => 'array',
+            'options' => 'array',
+            'lessons' => 'array',
+            'active' => 'boolean',
+            'learned_at' => 'datetime',
+            'last_run_at' => 'datetime',
+            'next_run_at' => 'datetime',
+        ];
     }
 }

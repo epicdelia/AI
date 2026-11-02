@@ -11,7 +11,7 @@ class PathTraversalTest extends TestCase
         $this->get('/images/speaking/head-start-2024.jpg')->assertOk();
 
         foreach (['..%2F..%2F.env', '..%2F..%2Fcomposer.json', '../../composer.json', '..%2Findex.php', 'speaking%2F..%2F..%2F..%2F.env'] as $evil) {
-            $this->get('/images/'.$evil)->assertNotFound();
+            $this->get('/images/' . $evil)->assertNotFound();
         }
     }
 }

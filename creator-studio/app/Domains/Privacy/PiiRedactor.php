@@ -43,7 +43,7 @@ class PiiRedactor
                 $uniqueMatches = array_unique($matches[0]);
                 foreach ($uniqueMatches as $match) {
                     $prefix = substr($match, 0, min(7, strlen($match)));
-                    $mask = $prefix.str_repeat('*', max(6, strlen($match) - strlen($prefix)));
+                    $mask = $prefix . str_repeat('*', max(6, strlen($match) - strlen($prefix)));
                     $sanitized = str_replace($match, "[REDACTED_{$type}:{$mask}]", $sanitized);
                     $count++;
                     $foundTypes[] = $type;
@@ -76,4 +76,3 @@ class PiiRedactor
         return false;
     }
 }
-

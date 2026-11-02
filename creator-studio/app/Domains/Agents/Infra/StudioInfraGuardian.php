@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * StudioInfraGuardian
- *
  * High ROI Feature: Unified Infrastructure, Terraform, Helm & App Health Guardian.
  * Audits all operational subsystems and provides actionable status diagnostics.
  */
@@ -27,6 +25,7 @@ class StudioInfraGuardian
         // 1. Database Health Check
         $databaseStatus = 'unknown';
         $dbDriver = config('database.default');
+
         try {
             DB::connection()->getPdo();
             $databaseStatus = 'healthy';
@@ -36,6 +35,7 @@ class StudioInfraGuardian
 
         // 2. Cache & Storage Health Check
         $cacheStatus = 'healthy';
+
         try {
             Cache::put('guardian_ping', $timestamp, 10);
             $cacheVal = Cache::get('guardian_ping');
@@ -47,6 +47,7 @@ class StudioInfraGuardian
         }
 
         $storageStatus = 'healthy';
+
         try {
             $testFile = 'guardian_test_' . time() . '.tmp';
             Storage::disk('local')->put($testFile, 'ok');
@@ -118,4 +119,3 @@ class StudioInfraGuardian
         ];
     }
 }
-

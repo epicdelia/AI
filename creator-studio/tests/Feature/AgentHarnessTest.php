@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Agents\Harness\AgentHarness;
-use App\Domains\Agents\Harness\BenchmarkHarness;
 use App\Domains\Agents\Harness\QualityEvaluator;
 use App\Domains\Agents\Harness\ToolRegistry;
 use App\Domains\Agents\Models\AgentEvalReport;
@@ -37,7 +35,11 @@ class AgentHarnessTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 10:00', 'UTC'));
 
-        $this->user = $this->admin(['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([
@@ -64,7 +66,10 @@ class AgentHarnessTest extends TestCase
         $this->assertGreaterThanOrEqual(6, count($tools));
 
         // Seed sample data for each tool
-        $channel = Channel::create(['handle' => '@codemaster', 'title' => 'Code Master']);
+        $channel = Channel::create([
+            'handle' => '@codemaster',
+            'title' => 'Code Master',
+        ]);
         Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'abc_123',
@@ -77,7 +82,10 @@ class AgentHarnessTest extends TestCase
             'published_at' => now()->subDay(),
         ]);
 
-        $feed = Feed::create(['title' => 'Dev News', 'url' => 'https://example.com/rss']);
+        $feed = Feed::create([
+            'title' => 'Dev News',
+            'url' => 'https://example.com/rss',
+        ]);
         FeedItem::create([
             'feed_id' => $feed->id,
             'guid' => 'item-harness-1',
@@ -99,7 +107,10 @@ class AgentHarnessTest extends TestCase
             'url' => 'https://youtube.com/watch?v=vid-harness-1',
             'summary' => 'Audience asking about testing agent quality in production.',
             'items' => [
-                ['kind' => 'question', 'text' => 'How do you test agent quality in production?'],
+                [
+                    'kind' => 'question',
+                    'text' => 'How do you test agent quality in production?',
+                ],
             ],
         ]);
 
@@ -107,24 +118,36 @@ class AgentHarnessTest extends TestCase
             'brand_name' => 'Supabase',
             'stage' => 'contracted',
             'deliverables' => [
-                ['platform' => 'linkedin', 'format' => 'post', 'status' => 'pending'],
+                [
+                    'platform' => 'linkedin',
+                    'format' => 'post',
+                    'status' => 'pending',
+                ],
             ],
             'key_talking_points' => 'Open source Firebase alternative with Postgres.',
         ]);
 
-        $breakouts = $registry->executeTool('fetch_breakouts', ['limit' => 5]);
+        $breakouts = $registry->executeTool('fetch_breakouts', [
+            'limit' => 5,
+        ]);
         $this->assertCount(1, $breakouts);
         $this->assertEquals('Why PHP 8.4 is Fast', $breakouts[0]->title);
 
-        $rss = $registry->executeTool('fetch_news_feeds', ['limit' => 5]);
+        $rss = $registry->executeTool('fetch_news_feeds', [
+            'limit' => 5,
+        ]);
         $this->assertCount(1, $rss);
         $this->assertEquals('JIT Compilers Deep Dive', $rss[0]->title);
 
-        $scripts = $registry->executeTool('fetch_recent_scripts', ['limit' => 5]);
+        $scripts = $registry->executeTool('fetch_recent_scripts', [
+            'limit' => 5,
+        ]);
         $this->assertCount(1, $scripts);
         $this->assertEquals('Building Autonomous AI Systems', $scripts[0]->title);
 
-        $asks = $registry->executeTool('fetch_audience_asks', ['limit' => 5]);
+        $asks = $registry->executeTool('fetch_audience_asks', [
+            'limit' => 5,
+        ]);
         $this->assertCount(1, $asks);
         $this->assertEquals('vid-harness-1', $asks[0]->video_id);
 
@@ -132,7 +155,9 @@ class AgentHarnessTest extends TestCase
         $this->assertCount(1, $sponsors);
         $this->assertEquals('Supabase', $sponsors[0]->brand_name);
 
-        $slot = $registry->executeTool('find_optimal_slot', ['platform' => 'linkedin']);
+        $slot = $registry->executeTool('find_optimal_slot', [
+            'platform' => 'linkedin',
+        ]);
         $this->assertIsArray($slot);
     }
 
@@ -161,7 +186,7 @@ class AgentHarnessTest extends TestCase
     public function test_benchmark_endpoint_runs_standardized_test_suite(): void
     {
         Llm::$fake = function (string $system, string $user) {
-            return "Here is a crisp, direct engineering takeaway with zero corporate jargon and clear actionable architecture points.";
+            return 'Here is a crisp, direct engineering takeaway with zero corporate jargon and clear actionable architecture points.';
         };
 
         $response = $this->postJson("/api/agents/{$this->agent->id}/harness/benchmark");

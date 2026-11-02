@@ -19,13 +19,17 @@ use Illuminate\Validation\Rule;
 use RuntimeException;
 use Throwable;
 
-/** Social: posts for LinkedIn, Instagram, X and YouTube, the calendar, repurposing and her numbers. */
+/**
+ * Social: posts for LinkedIn, Instagram, X and YouTube, the calendar, repurposing and her numbers.
+ */
 class SocialController extends Controller
 {
     public function meta(): JsonResponse
     {
         return response()->json([
-            'platforms' => Platforms::catalog(), 'statuses' => Platforms::STATUSES, 'progress' => self::progress(),
+            'platforms' => Platforms::catalog(),
+            'statuses' => Platforms::STATUSES,
+            'progress' => self::progress(),
             'brand_color' => Setting::get('brand_color', '#d8487e'),
             'brand' => BrandController::kit(),
             'demo' => DemoContent::count(),
@@ -54,60 +58,95 @@ class SocialController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request, true);
-        $post = SocialPost::create($data + ['status' => 'draft', 'source' => 'manual']);
+        $post = SocialPost::create($data + [
+            'status' => 'draft',
+            'source' => 'manual',
+        ]);
 
-        return response()->json(['post' => $post, 'checks' => self::checks($post)]);
+        return response()->json([
+            'post' => $post,
+            'checks' => self::checks($post),
+        ]);
     }
 
     public function show(SocialPost $post): JsonResponse
     {
-        return response()->json(['post' => $post->load('script:id,title'), 'checks' => self::checks($post)]);
+        return response()->json([
+            'post' => $post->load('script:id,title'),
+            'checks' => self::checks($post),
+        ]);
     }
 
     public function update(Request $request, SocialPost $post): JsonResponse
     {
         $post->update($this->validated($request, false, $post));
 
-        return response()->json(['post' => $post->fresh()->load('script:id,title'), 'checks' => self::checks($post)]);
+        return response()->json([
+            'post' => $post->fresh()->load('script:id,title'),
+            'checks' => self::checks($post),
+        ]);
     }
 
     public function destroy(SocialPost $post): JsonResponse
     {
         $post->delete();
 
-        return response()->json(['message' => 'Post deleted.']);
+        return response()->json([
+            'message' => 'Post deleted.',
+        ]);
     }
 
-    /** A copy for another platform/format (the text is kept; she rewrites it there). */
+    /**
+     * A copy for another platform/format (the text is kept; she rewrites it there).
+     */
     public function duplicate(Request $request, SocialPost $post): JsonResponse
     {
-        $data = $request->validate(['platform' => ['required', Rule::in(array_keys(Platforms::PLATFORMS))], 'format' => 'required|string']);
-        if (! Platforms::valid($data['platform'], $data['format'])) {
-            return response()->json(['error' => 'That format doesn’t exist on that platform.'], 422);
+        $data = $request->validate([
+            'platform' => ['required', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'format' => 'required|string',
+        ]);
+        if (!Platforms::valid($data['platform'], $data['format'])) {
+            return response()->json([
+                'error' => 'That format doesn’t exist on that platform.',
+            ], 422);
         }
         $copy = $post->replicate(['status', 'scheduled_for', 'posted_at', 'url', 'metrics']);
-        $copy->fill($data + ['status' => 'draft', 'source' => 'manual']);
+        $copy->fill($data + [
+            'status' => 'draft',
+            'source' => 'manual',
+        ]);
         if (Platforms::FORMATS[$data['platform']][$data['format']][1] === null && $copy->parts) {
             $copy->body = trim(implode("\n\n", array_filter([$copy->body, implode("\n\n", $copy->parts)])));
             $copy->parts = [];
         }
         $copy->save();
 
-        return response()->json(['post' => $copy->fresh()]);
+        return response()->json([
+            'post' => $copy->fresh(),
+        ]);
     }
 
-    /** Live checks while she types (nothing saved). */
+    /**
+     * Live checks while she types (nothing saved).
+     */
     public function check(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'platform' => ['required', Rule::in(array_keys(Platforms::PLATFORMS))], 'format' => 'required|string',
-            'body' => 'nullable|string|max:60000', 'parts' => 'nullable|array|max:40', 'parts.*' => 'nullable|string|max:30000',
+            'platform' => ['required', Rule::in(array_keys(Platforms::PLATFORMS))],
+            'format' => 'required|string',
+            'body' => 'nullable|string|max:60000',
+            'parts' => 'nullable|array|max:40',
+            'parts.*' => 'nullable|string|max:30000',
         ]);
-        if (! Platforms::valid($data['platform'], $data['format'])) {
-            return response()->json(['error' => 'Unknown format.'], 422);
+        if (!Platforms::valid($data['platform'], $data['format'])) {
+            return response()->json([
+                'error' => 'Unknown format.',
+            ], 422);
         }
 
-        return response()->json(['checks' => Platforms::check($data['platform'], $data['format'], $data['body'] ?? '', $data['parts'] ?? [])]);
+        return response()->json([
+            'checks' => Platforms::check($data['platform'], $data['format'], $data['body'] ?? '', $data['parts'] ?? []),
+        ]);
     }
 
     public function repurpose(Request $request, Repurposer $repurposer): JsonResponse
@@ -130,43 +169,59 @@ class SocialController extends Controller
                 $scriptId = $s->id;
                 $text = $data['source'] === 'transcript' ? ($s->transcript ?: $s->body) : $s->body;
 
-                return [$s->title, (string) $text];
+                return [$s->title, (string)$text];
             })(),
-            'document' => (fn ($d) => [$d->title, (string) $d->content])(Document::findOrFail($data['id'] ?? 0)),
-            'note' => (fn ($n) => [mb_substr(strtok(trim($n->polished), "\n") ?: 'Dictated note', 0, 120), (string) $n->polished])(Note::findOrFail($data['id'] ?? 0)),
-            'text' => [$data['title'] ?? 'My notes', (string) ($data['text'] ?? '')],
+            'document' => (fn ($d) => [$d->title, (string)$d->content])(Document::findOrFail($data['id'] ?? 0)),
+            'note' => (fn ($n) => [mb_substr(strtok(trim($n->polished), "\n") ?: 'Dictated note', 0, 120), (string)$n->polished])(Note::findOrFail($data['id'] ?? 0)),
+            'text' => [$data['title'] ?? 'My notes', (string)($data['text'] ?? '')],
         };
 
         try {
-            $posts = $repurposer->run($title, $text, $data['targets'], $scriptId, trim((string) ($data['extra'] ?? '')));
+            $posts = $repurposer->run($title, $text, $data['targets'], $scriptId, trim((string)($data['extra'] ?? '')));
         } catch (RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         return response()->json([
-            'posts' => collect($posts)->map(fn ($p) => $p->toArray() + ['checks' => self::checks($p)]),
-            'message' => count($posts).' draft(s) ready.',
+            'posts' => collect($posts)->map(fn ($p) => $p->toArray() + [
+                'checks' => self::checks($p),
+            ]),
+            'message' => count($posts) . ' draft(s) ready.',
         ]);
     }
 
-    /** Load example posts for every network (no-op if they're already there). */
+    /**
+     * Load example posts for every network (no-op if they're already there).
+     */
     public function demo(): JsonResponse
     {
         $n = DemoContent::seed();
 
-        return response()->json(['message' => $n ? "Added {$n} demo posts across your networks." : 'Demo posts are already loaded.', 'demo' => DemoContent::count()]);
+        return response()->json([
+            'message' => $n ? "Added {$n} demo posts across your networks." : 'Demo posts are already loaded.',
+            'demo' => DemoContent::count(),
+        ]);
     }
 
     public function removeDemo(): JsonResponse
     {
         $n = DemoContent::remove();
 
-        return response()->json(['message' => "Removed {$n} demo post(s).", 'demo' => 0]);
+        return response()->json([
+            'message' => "Removed {$n} demo post(s).",
+            'demo' => 0,
+        ]);
     }
 
-    /** What the dashboard composer shows: the model in use and whether an AI key is set. */
+    /**
+     * What the dashboard composer shows: the model in use and whether an AI key is set.
+     */
     public function composerMeta(): JsonResponse
     {
         $engine = app(\App\Domains\Engine\EngineManager::class)->current();
@@ -201,7 +256,10 @@ class SocialController extends Controller
         $images = [];
         foreach ($data['images'] ?? [] as $uri) {
             if (preg_match('#^data:(image/(?:png|jpe?g|webp|gif));base64,(.+)$#s', $uri, $m)) {
-                $images[] = ['mime' => $m[1], 'data' => $m[2]];
+                $images[] = [
+                    'mime' => $m[1],
+                    'data' => $m[2],
+                ];
             }
         }
         if ($images) {
@@ -209,34 +267,47 @@ class SocialController extends Controller
                 $desc = $llm->as('compose_vision')->see('Describe each image in one or two plain sentences for someone writing a social post about it: what is shown, any readable text, the mood. No guesses about who people are.', 'Describe these images.', $images, 120);
                 $source .= "\n\nImages she attached (to post with it):\n{$desc}";
             } catch (Throwable $e) {
-                $note = 'The images weren’t described ('.$e->getMessage().'), so the drafts are written from your text only.';
+                $note = 'The images weren’t described (' . $e->getMessage() . '), so the drafts are written from your text only.';
             }
         }
 
         try {
-            $posts = $repurposer->run(mb_substr(strtok($prompt, "\n") ?: 'Composer', 0, 80), $source, $data['targets'], null, trim((string) ($data['extra'] ?? '')), 3);
+            $posts = $repurposer->run(mb_substr(strtok($prompt, "\n") ?: 'Composer', 0, 80), $source, $data['targets'], null, trim((string)($data['extra'] ?? '')), 3);
             if (($data['status'] ?? 'draft') === 'idea') {
                 foreach ($posts as $p) {
-                    $p->update(['status' => 'idea']);
+                    $p->update([
+                        'status' => 'idea',
+                    ]);
                 }
             }
         } catch (RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         return response()->json([
-            'posts' => collect($posts)->map(fn ($p) => $p->toArray() + ['checks' => self::checks($p)]),
-            'message' => count($posts).' draft(s) ready.',
+            'posts' => collect($posts)->map(fn ($p) => $p->toArray() + [
+                'checks' => self::checks($p),
+            ]),
+            'message' => count($posts) . ' draft(s) ready.',
             'note' => $note,
         ]);
     }
 
-    /** Posts in a time range (by scheduled or posted time), unscheduled drafts, and her YouTube dates. */
+    /**
+     * Posts in a time range (by scheduled or posted time), unscheduled drafts, and her YouTube dates.
+     */
     public function calendar(Request $request): JsonResponse
     {
-        $data = $request->validate(['from' => 'required|date', 'to' => 'required|date|after:from']);
+        $data = $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date|after:from',
+        ]);
         $from = CarbonImmutable::parse($data['from'])->utc();
         $to = CarbonImmutable::parse($data['to'])->utc();
 
@@ -247,16 +318,35 @@ class SocialController extends Controller
 
         $youtube = collect();
         foreach (Week::with('script:id,title,status')->whereBetween('due_date', [$from->toDateString(), $to->toDateString()])->get() as $w) {
-            $youtube->push(['kind' => 'due', 'date' => $w->due_date->toDateString(), 'title' => $w->video_title ?: "Week {$w->number} video", 'status' => $w->status, 'link' => $w->script_id ? "/scripts/{$w->script_id}" : '/goals']);
+            $youtube->push([
+                'kind' => 'due',
+                'date' => $w->due_date->toDateString(),
+                'title' => $w->video_title ?: "Week {$w->number} video",
+                'status' => $w->status,
+                'link' => $w->script_id ? "/scripts/{$w->script_id}" : '/goals',
+            ]);
         }
         foreach (Script::whereBetween('published_on', [$from->toDateString(), $to->toDateString()])->get(['id', 'title', 'published_on']) as $s) {
-            $youtube->push(['kind' => 'published', 'date' => $s->published_on->toDateString(), 'title' => $s->title, 'status' => 'published', 'link' => "/scripts/{$s->id}"]);
+            $youtube->push([
+                'kind' => 'published',
+                'date' => $s->published_on->toDateString(),
+                'title' => $s->title,
+                'status' => 'published',
+                'link' => "/scripts/{$s->id}",
+            ]);
         }
 
-        return response()->json(['posts' => $posts, 'unscheduled' => $unscheduled, 'youtube' => $youtube->values(), 'progress' => self::progress()]);
+        return response()->json([
+            'posts' => $posts,
+            'unscheduled' => $unscheduled,
+            'youtube' => $youtube->values(),
+            'progress' => self::progress(),
+        ]);
     }
 
-    /** Her logged numbers for one platform: best posts and the last 30 days. */
+    /**
+     * Her logged numbers for one platform: best posts and the last 30 days.
+     */
     public function stats(Request $request): JsonResponse
     {
         $platform = $request->query('platform');
@@ -264,7 +354,10 @@ class SocialController extends Controller
             ->where('posted_at', '>=', now()->subDays(90))->latest('posted_at')->get();
         $withNumbers = $posted->filter(fn ($p) => $p->engagement !== null);
         $rates = $withNumbers->pluck('engagement.rate')->filter(fn ($r) => $r !== null);
-        $byFormat = $withNumbers->groupBy('format')->map(fn ($g) => ['posts' => $g->count(), 'avg_engagement' => (int) round($g->avg('engagement.total'))]);
+        $byFormat = $withNumbers->groupBy('format')->map(fn ($g) => [
+            'posts' => $g->count(),
+            'avg_engagement' => (int)round($g->avg('engagement.total')),
+        ]);
 
         return response()->json([
             'posted_30d' => $posted->where('posted_at', '>=', now()->subDays(30))->count(),
@@ -276,7 +369,9 @@ class SocialController extends Controller
         ]);
     }
 
-    /** This week (Monday to Sunday, her timezone): posted or scheduled per platform against her targets. */
+    /**
+     * This week (Monday to Sunday, her timezone): posted or scheduled per platform against her targets.
+     */
     public static function progress(): array
     {
         $tz = Setting::get('timezone', 'Europe/London');
@@ -284,11 +379,16 @@ class SocialController extends Controller
         $end = $start->addWeek();
         $out = [];
         foreach (array_keys(Platforms::PLATFORMS) as $p) {
-            $target = (int) Setting::get("cadence_{$p}", '0');
+            $target = (int)Setting::get("cadence_{$p}", '0');
             $q = SocialPost::where('platform', $p);
             $posted = (clone $q)->where('status', 'posted')->whereBetween('posted_at', [$start, $end])->count();
             $scheduled = (clone $q)->where('status', 'scheduled')->whereBetween('scheduled_for', [$start, $end])->count();
-            $out[$p] = ['label' => Platforms::PLATFORMS[$p]['label'], 'target' => $target, 'posted' => $posted, 'scheduled' => $scheduled];
+            $out[$p] = [
+                'label' => Platforms::PLATFORMS[$p]['label'],
+                'target' => $target,
+                'posted' => $posted,
+                'scheduled' => $scheduled,
+            ];
         }
 
         return $out;
@@ -321,17 +421,19 @@ class SocialController extends Controller
         ]);
         $platform = $data['platform'] ?? $post?->platform;
         $format = $data['format'] ?? $post?->format;
-        if (! Platforms::valid((string) $platform, (string) $format)) {
-            abort(response()->json(['error' => 'That format doesn’t exist on that platform.'], 422));
+        if (!Platforms::valid((string)$platform, (string)$format)) {
+            abort(response()->json([
+                'error' => 'That format doesn’t exist on that platform.',
+            ], 422));
         }
         if (array_key_exists('parts', $data)) {
-            $data['parts'] = array_values(array_map(fn ($p) => (string) $p, array_filter($data['parts'] ?? [], fn ($p) => $p !== null)));
+            $data['parts'] = array_values(array_map(fn ($p) => (string)$p, array_filter($data['parts'] ?? [], fn ($p) => $p !== null)));
         }
         if (array_key_exists('metrics', $data)) {
             $data['metrics'] = array_intersect_key($data['metrics'] ?? [], array_flip(SocialPost::METRICS)) ?: null;
         }
         foreach (['scheduled_for', 'posted_at'] as $k) {
-            if (! empty($data[$k])) {
+            if (!empty($data[$k])) {
                 $data[$k] = CarbonImmutable::parse($data[$k])->utc();
             }
         }

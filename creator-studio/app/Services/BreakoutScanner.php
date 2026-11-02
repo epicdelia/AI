@@ -9,12 +9,19 @@ use App\Models\Setting;
 use Carbon\CarbonImmutable;
 use RuntimeException;
 
-/** Scan the active watchlist for breakout videos (used by the Scan button and the daily schedule). */
+/**
+ * Scan the active watchlist for breakout videos (used by the Scan button and the daily schedule).
+ */
 class BreakoutScanner
 {
-    public function __construct(private YouTube $yt) {}
+    public function __construct(
+        private YouTube $yt
+    ) {
+    }
 
-    /** @return int new breakouts found */
+    /**
+     * @return int new breakouts found
+     */
     public function scan(): int
     {
         $channels = Channel::where('active', true)->get();
@@ -52,7 +59,7 @@ class BreakoutScanner
                 'title' => $v['title'],
                 'url' => $v['url'],
                 'views' => $v['views'],
-                'channel_median' => (int) $v['channel_median'],
+                'channel_median' => (int)$v['channel_median'],
                 'outlier_score' => $v['outlier_score'],
                 'age_days' => round($v['age_days'], 1),
                 'published_at' => CarbonImmutable::parse($v['published_at']),

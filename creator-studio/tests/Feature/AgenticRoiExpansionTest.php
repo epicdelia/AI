@@ -6,11 +6,9 @@ use App\Domains\Agents\Deals\BrandPitchSynthesizer;
 use App\Domains\Agents\Deals\DealFulfillmentGuardian;
 use App\Domains\Agents\Guardrails\PlatformAlgorithmShield;
 use App\Domains\Agents\Harness\SprintOrchestrator;
-use App\Domains\Agents\Harness\ToolRegistry;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Optimization\EvergreenRecycler;
-use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\Script;
 use App\Models\Setting;
@@ -78,7 +76,10 @@ class AgenticRoiExpansionTest extends TestCase
                     'compliance_score' => 96,
                     'status' => 'approved',
                     'checks' => [
-                        'deliverable_coverage' => ['status' => 'verified', 'details' => 'Full 60s dedicated midroll with branching demo.'],
+                        'deliverable_coverage' => [
+                            'status' => 'verified',
+                            'details' => 'Full 60s dedicated midroll with branching demo.',
+                        ],
                         'talking_points_checklist' => [
                             'Serverless Postgres branching' => true,
                             'Scale-to-zero compute' => true,
@@ -190,9 +191,24 @@ class AgenticRoiExpansionTest extends TestCase
                     ],
                 ],
                 'tiered_packages' => [
-                    'midroll_spotlight' => ['name' => 'Video Midroll', 'rate' => 2500, 'deliverables' => '60s YouTube midroll', 'cpm' => 45],
-                    'omnichannel_synergy' => ['name' => 'Omnichannel Synergy', 'rate' => 4200, 'deliverables' => 'YouTube + LinkedIn + X Thread', 'cpm' => 38],
-                    'full_category_takeover' => ['name' => 'Category Takeover', 'rate' => 7500, 'deliverables' => 'Dedicated Video + Usage Rights', 'cpm' => 32],
+                    'midroll_spotlight' => [
+                        'name' => 'Video Midroll',
+                        'rate' => 2500,
+                        'deliverables' => '60s YouTube midroll',
+                        'cpm' => 45,
+                    ],
+                    'omnichannel_synergy' => [
+                        'name' => 'Omnichannel Synergy',
+                        'rate' => 4200,
+                        'deliverables' => 'YouTube + LinkedIn + X Thread',
+                        'cpm' => 38,
+                    ],
+                    'full_category_takeover' => [
+                        'name' => 'Category Takeover',
+                        'rate' => 7500,
+                        'deliverables' => 'Dedicated Video + Usage Rights',
+                        'cpm' => 32,
+                    ],
                 ],
                 'outbound_email' => [
                     'subject' => 'Delia (@Tech.Unicorn) × Supabase — Realtime Benchmark Video Concept',
@@ -340,7 +356,7 @@ class AgenticRoiExpansionTest extends TestCase
         $shield = app(PlatformAlgorithmShield::class);
         $result = $shield->auditAndArmor($this->agent, [
             'platform' => 'linkedin',
-            'content' => "Check out our repo https://github.com/example/saga-benchmark #code #dev #tech #ai #software #eng #systems",
+            'content' => 'Check out our repo https://github.com/example/saga-benchmark #code #dev #tech #ai #software #eng #systems',
         ]);
 
         $this->assertEquals(94, $result['algorithm_reach_score']);
@@ -440,7 +456,30 @@ class AgenticRoiExpansionTest extends TestCase
                 return json_encode([
                     'compliance_score' => 98,
                     'status' => 'approved',
-                    'checks' => ['deliverable_coverage' => ['status' => 'verified', 'details' => 'ok'], 'talking_points_checklist' => ['tp1' => true], 'ftc_disclosure' => ['compliant' => true, 'detected_phrase' => '#ad', 'notes' => 'ok'], 'tracking_and_promo' => ['compliant' => true, 'promo_detected' => true, 'link_detected' => true], 'competitor_conflicts' => ['has_conflict' => false, 'conflicting_brands' => [], 'details' => 'none']],
+                    'checks' => [
+                        'deliverable_coverage' => [
+                            'status' => 'verified',
+                            'details' => 'ok',
+                        ],
+                        'talking_points_checklist' => [
+                            'tp1' => true,
+                        ],
+                        'ftc_disclosure' => [
+                            'compliant' => true,
+                            'detected_phrase' => '#ad',
+                            'notes' => 'ok',
+                        ],
+                        'tracking_and_promo' => [
+                            'compliant' => true,
+                            'promo_detected' => true,
+                            'link_detected' => true,
+                        ],
+                        'competitor_conflicts' => [
+                            'has_conflict' => false,
+                            'conflicting_brands' => [],
+                            'details' => 'none',
+                        ],
+                    ],
                     'missing_mandatories' => [],
                     'suggested_remedies' => [],
                     'armored_disclosure_snippet' => 'Sponsored by Brand.',
@@ -452,27 +491,52 @@ class AgenticRoiExpansionTest extends TestCase
                     'algorithm_reach_score' => 95,
                     'risk_level' => 'safe',
                     'penalties_detected' => [],
-                    'dwell_time_assessment' => ['opening_hook_power' => 'Strong', 'cutoff_character_count' => 120, 'tension_score' => 95],
+                    'dwell_time_assessment' => [
+                        'opening_hook_power' => 'Strong',
+                        'cutoff_character_count' => 120,
+                        'tension_score' => 95,
+                    ],
                     'armored_content' => 'Armored text',
                     'first_comment_prompt' => null,
                     'optimization_summary' => 'Clean',
                 ]);
             }
+
             return json_encode([
                 'target_brand' => 'TargetCorp',
                 'audience_synergy_score' => 95,
                 'developer_demographic_fit' => 'Engineers',
                 'integration_concepts' => [],
-                'tiered_packages' => ['midroll_spotlight' => ['name' => 'Midroll', 'rate' => 2500, 'deliverables' => '60s', 'cpm' => 45]],
-                'outbound_email' => ['subject' => 'Partnership', 'recipient_title' => 'DevRel', 'body' => 'Body', 'call_to_action' => 'Call'],
-                'roi_projection' => ['estimated_impressions' => 50000, 'estimated_developer_clicks' => 2000, 'target_cpa_benchmark' => '$1.50'],
+                'tiered_packages' => [
+                    'midroll_spotlight' => [
+                        'name' => 'Midroll',
+                        'rate' => 2500,
+                        'deliverables' => '60s',
+                        'cpm' => 45,
+                    ],
+                ],
+                'outbound_email' => [
+                    'subject' => 'Partnership',
+                    'recipient_title' => 'DevRel',
+                    'body' => 'Body',
+                    'call_to_action' => 'Call',
+                ],
+                'roi_projection' => [
+                    'estimated_impressions' => 50000,
+                    'estimated_developer_clicks' => 2000,
+                    'target_cpa_benchmark' => '$1.50',
+                ],
             ]);
         };
 
         $server = app(McpServer::class);
 
         // 1. Check MCP tool listing includes all tools (at least 20 tools now)
-        $listRes = $server->handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list']);
+        $listRes = $server->handle([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/list',
+        ]);
         $toolNames = collect($listRes['result']['tools'])->pluck('name')->all();
 
         $this->assertContains('audit_deal_fulfillment', $toolNames);

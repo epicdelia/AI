@@ -26,37 +26,58 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LandingPageController extends Controller
 {
-    /** Old addresses (/techunicorn, /landing-page) point to the one landing page, keeping ?book= etc. */
+    /**
+     * Old addresses (/techunicorn, /landing-page) point to the one landing page, keeping ?book= etc.
+     */
     public function show(Request $request): RedirectResponse
     {
         $query = $request->getQueryString();
 
-        return redirect('/'.($query ? '?'.$query : ''), 301);
+        return redirect('/' . ($query ? '?' . $query : ''), 301);
     }
 
-    /** "Content & Social Channels": YouTube, Instagram, TikTok, X and Threads. */
+    /**
+     * "Content & Social Channels": YouTube, Instagram, TikTok, X and Threads.
+     */
     public function socialFeed(): JsonResponse
     {
         return response()->json(LandingFeed::get())->header('Cache-Control', 'public, max-age=60');
     }
 
-    /** Just the YouTube part (kept for older pages). */
+    /**
+     * Just the YouTube part (kept for older pages).
+     */
     public function youtubeVideos(): JsonResponse
     {
         $feed = LandingFeed::get();
 
-        return response()->json(['channel' => $feed['channel'], 'source' => $feed['sources']['youtube'], 'videos' => $feed['platforms']['youtube']]);
+        return response()->json([
+            'channel' => $feed['channel'],
+            'source' => $feed['sources']['youtube'],
+            'videos' => $feed['platforms']['youtube'],
+        ]);
     }
 
-    /** "How it works": whether a build slot is open (counts only, set from her dashboard). */
+    /**
+     * "How it works": whether a build slot is open (counts only, set from her dashboard).
+     */
     public function availability(): JsonResponse
     {
         $a = ClientJourney::availability();
 
-        return response()->json($a['show'] ? ['show' => true, 'status' => $a['status'], 'open' => $a['open'], 'label' => $a['label']] : ['show' => false]);
+        return response()->json($a['show'] ? [
+            'show' => true,
+            'status' => $a['status'],
+            'open' => $a['open'],
+            'label' => $a['label'],
+        ] : [
+            'show' => false,
+        ]);
     }
 
-    /** The hero: her headline and intro with real numbers, status pill and four stats. */
+    /**
+     * The hero: her headline and intro with real numbers, status pill and four stats.
+     */
     public function hero(): JsonResponse
     {
         return response()->json(Hero::publicSection())->header('Cache-Control', 'public, max-age=60');
@@ -76,15 +97,17 @@ class LandingPageController extends Controller
             'cta' => 'required|string|max:40',
             'show_status' => 'required|boolean',
             'stats' => 'required|array|size:4',
-            'stats.*' => 'distinct|string|in:'.implode(',', Hero::STATS),
+            'stats.*' => 'distinct|string|in:' . implode(',', Hero::STATS),
         ]);
-        $data['reassurance'] = trim((string) ($data['reassurance'] ?? ''));
+        $data['reassurance'] = trim((string)($data['reassurance'] ?? ''));
         Hero::save($data);
 
         return response()->json(Hero::dashboard());
     }
 
-    /** The band above the footer: her phrases and live facts, at her speed. */
+    /**
+     * The band above the footer: her phrases and live facts, at her speed.
+     */
     public function marquee(): JsonResponse
     {
         return response()->json(Marquee::publicData())->header('Cache-Control', 'public, max-age=60');
@@ -100,23 +123,35 @@ class LandingPageController extends Controller
         $data = $request->validate([
             'items' => 'present|array|max:12',
             'items.*.label' => 'nullable|string|max:40',
-            'items.*.target' => 'required|string|in:'.implode(',', array_keys(Marquee::TARGETS)),
+            'items.*.target' => 'required|string|in:' . implode(',', array_keys(Marquee::TARGETS)),
             'show_live' => 'required|boolean',
-            'speed' => 'required|string|in:'.implode(',', array_keys(Marquee::SPEEDS)),
+            'speed' => 'required|string|in:' . implode(',', array_keys(Marquee::SPEEDS)),
         ]);
-        $data['items'] = array_values(array_filter(array_map(fn ($i) => ['label' => trim((string) ($i['label'] ?? '')), 'target' => $i['target']], $data['items']), fn ($i) => $i['label'] !== ''));
-        if (! $data['items'] && ! $data['show_live']) {
-            return response()->json(['message' => 'Keep at least one phrase or the live facts.', 'errors' => ['items' => ['Add a phrase or turn on live facts.']]], 422);
+        $data['items'] = array_values(array_filter(array_map(fn ($i) => [
+            'label' => trim((string)($i['label'] ?? '')),
+            'target' => $i['target'],
+        ], $data['items']), fn ($i) => $i['label'] !== ''));
+        if (!$data['items'] && !$data['show_live']) {
+            return response()->json([
+                'message' => 'Keep at least one phrase or the live facts.',
+                'errors' => [
+                    'items' => ['Add a phrase or turn on live facts.'],
+                ],
+            ], 422);
         }
         Marquee::save($data);
 
         return response()->json(Marquee::dashboard());
     }
 
-    /** "Brand Partners & Stages": her brands, then the stages from her talks. */
+    /**
+     * "Brand Partners & Stages": her brands, then the stages from her talks.
+     */
     public function partners(): JsonResponse
     {
-        return response()->json(['items' => Partners::items()])->header('Cache-Control', 'public, max-age=60');
+        return response()->json([
+            'items' => Partners::items(),
+        ])->header('Cache-Control', 'public, max-age=60');
     }
 
     public function partnersEdit(): JsonResponse
@@ -135,7 +170,10 @@ class LandingPageController extends Controller
             'hidden_stages.*' => 'string|max:150',
         ]);
         $data['brands'] = array_values(array_filter(array_map(
-            fn ($b) => ['name' => trim((string) ($b['name'] ?? '')), 'url' => trim((string) ($b['url'] ?? ''))],
+            fn ($b) => [
+                'name' => trim((string)($b['name'] ?? '')),
+                'url' => trim((string)($b['url'] ?? '')),
+            ],
             $data['brands'],
         ), fn ($b) => $b['name'] !== ''));
         Partners::save($data);
@@ -143,12 +181,17 @@ class LandingPageController extends Controller
         return response()->json(Partners::dashboard());
     }
 
-    /** "04: Packages & Pricing": the cards, with her prices, live audience and build-slot availability. */
+    /**
+     * "04: Packages & Pricing": the cards, with her prices, live audience and build-slot availability.
+     */
     public function pricing(): JsonResponse
     {
         $secret = Setting::get('stripe_secret_key') ?: env('STRIPE_SECRET_KEY');
 
-        return response()->json(['plans' => Pricing::publicPlans(), 'stripe_configured' => (bool) $secret])
+        return response()->json([
+            'plans' => Pricing::publicPlans(),
+            'stripe_configured' => (bool)$secret,
+        ])
             ->header('Cache-Control', 'public, max-age=60');
     }
 
@@ -166,25 +209,39 @@ class LandingPageController extends Controller
             'plans.*.popular' => 'sometimes|boolean',
         ]);
         $plans = array_intersect_key($data['plans'], Pricing::PLANS);
-        if (! array_filter($plans, fn ($p) => $p['visible'])) {
-            return response()->json(['message' => 'Keep at least one package on your website.', 'errors' => ['plans' => ['Keep at least one package visible.']]], 422);
+        if (!array_filter($plans, fn ($p) => $p['visible'])) {
+            return response()->json([
+                'message' => 'Keep at least one package on your website.',
+                'errors' => [
+                    'plans' => ['Keep at least one package visible.'],
+                ],
+            ], 422);
         }
 
         return response()->json(Pricing::save($plans));
     }
 
-    /** "01: About": her words plus live facts (audience, latest talk, build-slot availability). */
+    /**
+     * "01: About": her words plus live facts (audience, latest talk, build-slot availability).
+     */
     public function about(): JsonResponse
     {
         return response()->json(About::publicSection())->header('Cache-Control', 'public, max-age=60');
     }
 
-    /** The dashboard's "About you" editor. */
+    /**
+     * The dashboard's "About you" editor.
+     */
     public function aboutEdit(): JsonResponse
     {
         $about = About::get();
 
-        return response()->json(['about' => $about + ['portrait_url' => About::portraitUrl($about)], 'preview' => About::publicSection()]);
+        return response()->json([
+            'about' => $about + [
+                'portrait_url' => About::portraitUrl($about),
+            ],
+            'preview' => About::publicSection(),
+        ]);
     }
 
     public function aboutSave(Request $request): JsonResponse
@@ -203,23 +260,32 @@ class LandingPageController extends Controller
             'milestones.*.label' => 'nullable|string|max:60',
             'milestones.*.detail' => 'nullable|string|max:200',
         ]);
-        $data['bio'] = array_values(array_map(fn ($p) => trim((string) $p), $data['bio']));
-        $data['milestones'] = array_values(array_map(fn ($m) => ['label' => trim((string) ($m['label'] ?? '')), 'detail' => trim((string) ($m['detail'] ?? ''))], $data['milestones']));
+        $data['bio'] = array_values(array_map(fn ($p) => trim((string)$p), $data['bio']));
+        $data['milestones'] = array_values(array_map(fn ($m) => [
+            'label' => trim((string)($m['label'] ?? '')),
+            'detail' => trim((string)($m['detail'] ?? '')),
+        ], $data['milestones']));
         foreach (['thesis', 'thesis_detail', 'now', 'location', 'story_url'] as $k) {
-            $data[$k] = trim((string) ($data[$k] ?? ''));
+            $data[$k] = trim((string)($data[$k] ?? ''));
         }
         About::save($data);
 
         return $this->aboutEdit();
     }
 
-    /** Her own portrait for the About section (JPEG, PNG or WebP up to 8 MB). */
+    /**
+     * Her own portrait for the About section (JPEG, PNG or WebP up to 8 MB).
+     */
     public function aboutPortrait(Request $request): JsonResponse
     {
-        $file = $request->validate(['image' => 'required|file|mimes:jpg,jpeg,png,webp|max:8192'])['image'];
+        $file = $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp|max:8192',
+        ])['image'];
         $old = About::get()['portrait'];
-        $path = $file->storeAs('about', \Illuminate\Support\Str::uuid().'.'.strtolower($file->getClientOriginalExtension() ?: 'jpg'), 'local');
-        About::save(['portrait' => $path]);
+        $path = $file->storeAs('about', \Illuminate\Support\Str::uuid() . '.' . strtolower($file->getClientOriginalExtension() ?: 'jpg'), 'local');
+        About::save([
+            'portrait' => $path,
+        ]);
         if ($old) {
             Storage::disk('local')->delete($old);
         }
@@ -230,7 +296,9 @@ class LandingPageController extends Controller
     public function aboutPortraitReset(): JsonResponse
     {
         $old = About::get()['portrait'];
-        About::save(['portrait' => null]);
+        About::save([
+            'portrait' => null,
+        ]);
         if ($old) {
             Storage::disk('local')->delete($old);
         }
@@ -243,24 +311,34 @@ class LandingPageController extends Controller
         $path = About::get()['portrait'];
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
-        return Storage::disk('local')->response($path, null, ['Cache-Control' => 'public, max-age=86400']);
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 
-    /** "On Stage": her talks (featured, upcoming, past), stats from that list, and her talk topics. */
+    /**
+     * "On Stage": her talks (featured, upcoming, past), stats from that list, and her talk topics.
+     */
     public function talks(): JsonResponse
     {
         return response()->json(Talk::publicSection())->header('Cache-Control', 'public, max-age=60');
     }
 
-    /** An uploaded stage photo, only for a talk that's on the page. */
+    /**
+     * An uploaded stage photo, only for a talk that's on the page.
+     */
     public function talkImage(Talk $talk): Response
     {
-        abort_unless($talk->visible && $talk->image && ! str_starts_with($talk->image, '/') && Storage::disk('local')->exists($talk->image), 404);
+        abort_unless($talk->visible && $talk->image && !str_starts_with($talk->image, '/') && Storage::disk('local')->exists($talk->image), 404);
 
-        return Storage::disk('local')->response($talk->image, null, ['Cache-Control' => 'public, max-age=86400']);
+        return Storage::disk('local')->response($talk->image, null, [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 
-    /** Her dashboard's "Speaking": next talk, stats, and speaking requests from the website. */
+    /**
+     * Her dashboard's "Speaking": next talk, stats, and speaking requests from the website.
+     */
     public static function speaking(): array
     {
         $talks = Talk::where('visible', true)->get();
@@ -271,8 +349,11 @@ class LandingPageController extends Controller
             'stats' => Talk::stats($talks),
             'requests' => $requests->count(),
             'latest_requests' => $requests->sortByDesc('created_at')->take(3)->map(fn ($d) => [
-                'id' => $d->id, 'name' => $d->contact_name ?: $d->brand_name, 'company' => $d->brand_name,
-                'when' => $d->key_talking_points, 'created_at' => $d->created_at,
+                'id' => $d->id,
+                'name' => $d->contact_name ?: $d->brand_name,
+                'company' => $d->brand_name,
+                'when' => $d->key_talking_points,
+                'created_at' => $d->created_at,
             ])->values(),
         ];
     }
@@ -297,32 +378,41 @@ class LandingPageController extends Controller
         ]);
     }
 
-    /** A visitor opened an item (sent with sendBeacon, so the link itself is never delayed). */
+    /**
+     * A visitor opened an item (sent with sendBeacon, so the link itself is never delayed).
+     */
     public function click(Request $request): Response
     {
         $data = $request->validate([
             'key' => ['required', 'string', 'regex:/^(yt:[\w-]{11}|post:\d{1,10}|profile:[a-z]{1,12})$/'],
-            'platform' => 'required|string|in:'.implode(',', array_unique([...array_keys(LandingFeed::PLATFORMS), ...array_keys(Audience::PROFILES)])),
+            'platform' => 'required|string|in:' . implode(',', array_unique([...array_keys(LandingFeed::PLATFORMS), ...array_keys(Audience::PROFILES)])),
         ]);
         LandingFeed::recordClick($data['key'], $data['platform']);
 
         return response()->noContent();
     }
 
-    /** First image of a post shown on the landing page (the post is already public on the network). */
+    /**
+     * First image of a post shown on the landing page (the post is already public on the network).
+     */
     public function thumb(SocialPost $post): Response
     {
-        $visible = collect(LandingFeed::get()['platforms'])->flatten(1)->contains('key', 'post:'.$post->id);
-        $image = collect($post->media ?? [])->first(fn ($m) => str_starts_with((string) ($m['mime'] ?? ''), 'image/'));
+        $visible = collect(LandingFeed::get()['platforms'])->flatten(1)->contains('key', 'post:' . $post->id);
+        $image = collect($post->media ?? [])->first(fn ($m) => str_starts_with((string)($m['mime'] ?? ''), 'image/'));
         $file = $visible && $image ? MediaFile::find($image['id']) : null;
         abort_unless($file && Storage::disk('local')->exists($file->path), 404);
 
-        return Storage::disk('local')->response($file->path, null, ['Content-Type' => $file->mime, 'Cache-Control' => 'public, max-age=3600']);
+        return Storage::disk('local')->response($file->path, null, [
+            'Content-Type' => $file->mime,
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 
     // ---------------------------------------------------------------- her dashboard
 
-    /** Everything the feed could show (hidden items flagged), with clicks per item. */
+    /**
+     * Everything the feed could show (hidden items flagged), with clicks per item.
+     */
     public function content(): JsonResponse
     {
         $feed = LandingFeed::build(withHidden: true);
@@ -333,10 +423,14 @@ class LandingPageController extends Controller
             }
         }
 
-        return response()->json($feed + ['summary' => self::summary()]);
+        return response()->json($feed + [
+            'summary' => self::summary(),
+        ]);
     }
 
-    /** Pin or hide items; the public page updates straight away. */
+    /**
+     * Pin or hide items; the public page updates straight away.
+     */
     public function curate(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -352,21 +446,27 @@ class LandingPageController extends Controller
         return $this->content();
     }
 
-    /** How many builds she takes on at once (0 hides availability on the landing page). */
+    /**
+     * How many builds she takes on at once (0 hides availability on the landing page).
+     */
     public function saveCapacity(Request $request): JsonResponse
     {
-        $data = $request->validate(['capacity' => 'required|integer|min:0|max:10']);
-        Setting::put('build_capacity', (string) $data['capacity']);
+        $data = $request->validate([
+            'capacity' => 'required|integer|min:0|max:10',
+        ]);
+        Setting::put('build_capacity', (string)$data['capacity']);
 
         return response()->json(ClientJourney::summary());
     }
 
-    /** Show or hide networks in "Reach & Content" (at least one stays visible). */
+    /**
+     * Show or hide networks in "Reach & Content" (at least one stays visible).
+     */
     public function saveReach(Request $request): JsonResponse
     {
         $data = $request->validate([
             'hidden' => 'present|array|max:5',
-            'hidden.*' => 'string|in:'.implode(',', array_keys(Audience::PROFILES)),
+            'hidden.*' => 'string|in:' . implode(',', array_keys(Audience::PROFILES)),
         ]);
         Setting::put('landing_reach_hidden', json_encode(array_values(array_unique($data['hidden']))));
         LandingFeed::forget();
@@ -374,7 +474,9 @@ class LandingPageController extends Controller
         return response()->json(self::reach());
     }
 
-    /** Her dashboard's "Public reach": what visitors see per network, plus profile opens in 30 days. */
+    /**
+     * Her dashboard's "Public reach": what visitors see per network, plus profile opens in 30 days.
+     */
     public static function reach(): array
     {
         $reach = Audience::reach();
@@ -394,13 +496,23 @@ class LandingPageController extends Controller
         return $this->content();
     }
 
-    /** The dashboard card: what's live per network and what visitors open. */
+    /**
+     * The dashboard card: what's live per network and what visitors open.
+     */
     public static function summary(): array
     {
         $feed = LandingFeed::get();
         $week = LandingFeed::clicks(7);
-        $items = collect($feed['platforms'])->flatMap(fn ($list, $platform) => collect($list)->map(fn ($i) => $i + ['platform' => $platform]));
-        $top = $items->map(fn ($i) => ['key' => $i['key'], 'platform' => $i['platform'], 'title' => $i['title'], 'url' => $i['url'], 'clicks' => $week[$i['key']] ?? 0])
+        $items = collect($feed['platforms'])->flatMap(fn ($list, $platform) => collect($list)->map(fn ($i) => $i + [
+            'platform' => $platform,
+        ]));
+        $top = $items->map(fn ($i) => [
+            'key' => $i['key'],
+            'platform' => $i['platform'],
+            'title' => $i['title'],
+            'url' => $i['url'],
+            'clicks' => $week[$i['key']] ?? 0,
+        ])
             ->filter(fn ($i) => $i['clicks'] > 0)->sortByDesc('clicks')->take(3)->values();
 
         return [

@@ -23,7 +23,8 @@ class AdversarialDebate
         private Llm $llm,
         private AgentEpisodicMemory $memory,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Conduct an adversarial red-team debate on a topic or draft.
@@ -48,17 +49,17 @@ class AdversarialDebate
         // Round 1: Creator Advocate (Thesis)
         if (empty($initialDraft)) {
             $genPrompt = "Topic: {$topic}\n\n{$memoryContext}\n\n"
-                ."Draft a provocative practitioner take for {$platform}. Line 1 must be a sharp hook. "
-                ."Output JSON: {\"body\": \"...\", \"parts\": []}";
+                . "Draft a provocative practitioner take for {$platform}. Line 1 must be a sharp hook. "
+                . 'Output JSON: {"body": "...", "parts": []}';
 
             $this->guardrails->recordTokens(mb_strlen($genPrompt) / 4, 250);
 
             try {
                 $genRes = $this->llm->as('advocate-agent')->creativity(0.7)->json(
-                    Prompts::voice()."\n\nPersona: Confident practitioner for ".Prompts::name().".",
+                    Prompts::voice() . "\n\nPersona: Confident practitioner for " . Prompts::name() . '.',
                     $genPrompt
                 );
-                $thesisBody = trim((string) ($genRes['body'] ?? ''));
+                $thesisBody = trim((string)($genRes['body'] ?? ''));
             } catch (Throwable $e) {
                 $thesisBody = "Most engineering teams overcomplicate their stack by choosing distributed systems before validating product-market fit.\n\nHere is how we scaled to 50k users on a single VPS.";
             }
@@ -75,12 +76,12 @@ class AdversarialDebate
 
         // Round 2: Red-Team Cynic Agent (Attack)
         $attackPrompt = "Candidate Post:\n\"{$thesisBody}\"\n\n"
-            ."Act as a cynical, hyper-critical Senior Staff Engineer and skeptical audience member. "
-            ."Ruthlessly attack this draft:\n"
-            ."1. What claims sound exaggerated, clickbaity, or unsubstantiated?\n"
-            ."2. What edge-cases or counter-arguments is the author glossing over?\n"
-            ."3. Where does it sound arrogant or like generic advice?\n"
-            ."Output JSON: {\"objections\": [\"...\"], \"counter_evidence\": \"...\"}";
+            . 'Act as a cynical, hyper-critical Senior Staff Engineer and skeptical audience member. '
+            . "Ruthlessly attack this draft:\n"
+            . "1. What claims sound exaggerated, clickbaity, or unsubstantiated?\n"
+            . "2. What edge-cases or counter-arguments is the author glossing over?\n"
+            . "3. Where does it sound arrogant or like generic advice?\n"
+            . 'Output JSON: {"objections": ["..."], "counter_evidence": "..."}';
 
         $this->guardrails->recordTokens(mb_strlen($attackPrompt) / 4, 300);
 
@@ -89,8 +90,8 @@ class AdversarialDebate
                 'You are an adversarial red-team code auditor and skeptical technical reviewer. Your job is to tear down weak arguments and uncover hidden flaws.',
                 $attackPrompt
             );
-            $objections = (array) ($attack['objections'] ?? ['Lacks concrete boundary conditions for when this fails.']);
-            $counterEvidence = (string) ($attack['counter_evidence'] ?? 'High-availability requirements preclude single node designs.');
+            $objections = (array)($attack['objections'] ?? ['Lacks concrete boundary conditions for when this fails.']);
+            $counterEvidence = (string)($attack['counter_evidence'] ?? 'High-availability requirements preclude single node designs.');
         } catch (Throwable $e) {
             $objections = ['Does not address multi-region failover or disaster recovery constraints.'];
             $counterEvidence = 'A single VPS is a single point of failure.';
@@ -100,19 +101,19 @@ class AdversarialDebate
             'round' => 2,
             'agent' => 'Red-Team Cynic',
             'role' => 'Attacks unstated assumptions, exaggerations, and technical edge-cases',
-            'content' => "Objections:\n- ".implode("\n- ", $objections)."\n\nCounter-Evidence: {$counterEvidence}",
+            'content' => "Objections:\n- " . implode("\n- ", $objections) . "\n\nCounter-Evidence: {$counterEvidence}",
         ];
 
         // Round 3: Creator Defense Agent (Nuance & Rebuttal)
         $defensePrompt = "Candidate Thesis:\n\"{$thesisBody}\"\n\n"
-            ."Red-Team Attacks:\n".implode("\n- ", $objections)."\n\n"
-            ."Provide a grounded, humble technical defense: concede valid constraints while reaffirming the core practitioner insight.";
+            . "Red-Team Attacks:\n" . implode("\n- ", $objections) . "\n\n"
+            . 'Provide a grounded, humble technical defense: concede valid constraints while reaffirming the core practitioner insight.';
 
         $this->guardrails->recordTokens(mb_strlen($defensePrompt) / 4, 250);
 
         try {
             $defense = $this->llm->as('advocate-defense')->creativity(0.5)->chat(
-                Prompts::voice()."\n\nPersona: Senior practitioner responding to critical review.",
+                Prompts::voice() . "\n\nPersona: Senior practitioner responding to critical review.",
                 $defensePrompt
             );
         } catch (Throwable $e) {
@@ -128,24 +129,24 @@ class AdversarialDebate
 
         // Round 4: Arbiter Judge Agent (Battle-Hardened Synthesis)
         $arbiterPrompt = "Original Thesis:\n\"{$thesisBody}\"\n\n"
-            ."Red-Team Attacks:\n".implode("\n- ", $objections)."\n\n"
-            ."Defense Arguments:\n\"{$defense}\"\n\n"
-            ."Synthesize the complete debate into a final, armored post for {$platform}. "
-            ."Incorporate the technical nuance and proactively neutralize the red-team's objections so a reader cannot poke holes in it. "
-            ."Keep line 1 punchy. Output JSON: {\"body\": \"...\", \"parts\": [], \"confidence_score\": 0-100}";
+            . "Red-Team Attacks:\n" . implode("\n- ", $objections) . "\n\n"
+            . "Defense Arguments:\n\"{$defense}\"\n\n"
+            . "Synthesize the complete debate into a final, armored post for {$platform}. "
+            . "Incorporate the technical nuance and proactively neutralize the red-team's objections so a reader cannot poke holes in it. "
+            . 'Keep line 1 punchy. Output JSON: {"body": "...", "parts": [], "confidence_score": 0-100}';
 
         $this->guardrails->recordTokens(mb_strlen($arbiterPrompt) / 4, 350);
 
         try {
             $arbiterRes = $this->llm->as('arbiter-judge')->creativity(0.4)->json(
-                Prompts::voice()."\n\n".Prompts::writingRules()."\n\nPersona: Arbiter of truth and clarity.",
+                Prompts::voice() . "\n\n" . Prompts::writingRules() . "\n\nPersona: Arbiter of truth and clarity.",
                 $arbiterPrompt
             );
-            $armoredBody = $this->guardrails->sanitizeContent(trim((string) ($arbiterRes['body'] ?? $thesisBody)));
-            $armoredParts = (array) ($arbiterRes['parts'] ?? []);
-            $confidence = (int) ($arbiterRes['confidence_score'] ?? 90);
+            $armoredBody = $this->guardrails->sanitizeContent(trim((string)($arbiterRes['body'] ?? $thesisBody)));
+            $armoredParts = (array)($arbiterRes['parts'] ?? []);
+            $confidence = (int)($arbiterRes['confidence_score'] ?? 90);
         } catch (Throwable $e) {
-            $armoredBody = $this->guardrails->sanitizeContent($thesisBody."\n\n(Note: This applies to single-region services before multi-AZ clustering is justified.)");
+            $armoredBody = $this->guardrails->sanitizeContent($thesisBody . "\n\n(Note: This applies to single-region services before multi-AZ clustering is justified.)");
             $armoredParts = [];
             $confidence = 85;
         }
@@ -169,4 +170,3 @@ class AdversarialDebate
         ];
     }
 }
-

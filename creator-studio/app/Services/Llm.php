@@ -19,8 +19,20 @@ use Throwable;
  */
 class Llm
 {
-    /** @var callable|null test hook: fn(string $system, string $user): string */
+    /**
+     * @var callable|null test hook: fn(string, string): string
+     */
     public static $fake = null;
+
+    /**
+     * @var callable|null test hook for agentTurn: fn(string, array, array): ToolTurn
+     */
+    public static $toolFake = null;
+
+    /**
+     * Set while a scheduled job runs (routes/console.php): its AI calls count against the daily automation budget.
+     */
+    public static ?string $automation = null;
 
     private string $feature = 'general';
 
@@ -28,11 +40,9 @@ class Llm
 
     private ?string $modelOverride = null;
 
-    /** @var callable|null test hook for agentTurn: fn(string $system, array $messages, array $tools): ToolTurn */
-    public static $toolFake = null;
-
-    public function __construct(private ?EngineManager $engines = null)
-    {
+    public function __construct(
+        private ?EngineManager $engines = null
+    ) {
         $this->engines ??= app(EngineManager::class);
     }
 
@@ -43,29 +53,18 @@ class Llm
         return Setting::has('llm_api_key') || $engine->canUseAssemblyKey() && Setting::has('assemblyai_api_key');
     }
 
-    /** Set while a scheduled job runs (routes/console.php): its AI calls count against the daily automation budget. */
-    public static ?string $automation = null;
-
-    /** Today's AI tokens spent by scheduled jobs (agents, workflows, scans…). */
+    /**
+     * Today's AI tokens spent by scheduled jobs (agents, workflows, scans…).
+     */
     public static function automationTokensToday(): int
     {
-        return (int) AiUsage::where('feature', 'like', 'auto:%')->where('created_at', '>=', now()->startOfDay())
+        return (int)AiUsage::where('feature', 'like', 'auto:%')->where('created_at', '>=', now()->startOfDay())
             ->selectRaw('coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) as t')->value('t');
     }
 
-    /** Automations stop for the day at her cap (Settings → Automation); her own requests never do. */
-    private static function ensureAutomationBudget(): void
-    {
-        if (self::$automation === null) {
-            return;
-        }
-        $cap = (int) Setting::get('automation_daily_tokens', '');
-        if ($cap > 0 && self::automationTokensToday() >= $cap) {
-            throw new RuntimeException('Today’s AI budget for automations ('.number_format($cap).' tokens) is used up. They resume tomorrow, or raise it in Settings → Automation.');
-        }
-    }
-
-    /** Label the next calls for usage stats: $llm->as('ideas')->json(...). */
+    /**
+     * Label the next calls for usage stats: $llm->as('ideas')->json(...).
+     */
     public function as(string $feature): static
     {
         $clone = clone $this;
@@ -74,7 +73,9 @@ class Llm
         return $clone;
     }
 
-    /** 0 = precise, 1 = creative. Ignored by models that don't support it. */
+    /**
+     * 0 = precise, 1 = creative. Ignored by models that don't support it.
+     */
     public function creativity(?float $value): static
     {
         $clone = clone $this;
@@ -85,7 +86,10 @@ class Llm
 
     public function chat(string $system, string $user, int $timeout = 180): string
     {
-        return $this->converse($system, [['role' => 'user', 'content' => $user]], $timeout);
+        return $this->converse($system, [[
+            'role' => 'user',
+            'content' => $user,
+        ]], $timeout);
     }
 
     /**
@@ -97,14 +101,20 @@ class Llm
     {
         $engine = $this->engines->current();
         $model = Setting::get('llm_model') ?: $engine->defaultModel();
-        if (! self::$fake && ! ModelCatalog::supportsVision($engine, $model)) {
+        if (!self::$fake && !ModelCatalog::supportsVision($engine, $model)) {
             throw new RuntimeException("{$engine->label()} model '{$model}' can't look at images. Pick a vision model in Settings (e.g. GPT-4.1, GPT-5, Claude or Gemini).");
         }
 
-        return $this->converse($system, [['role' => 'user', 'content' => $text, 'images' => $images]], $timeout);
+        return $this->converse($system, [[
+            'role' => 'user',
+            'content' => $text,
+            'images' => $images,
+        ]], $timeout);
     }
 
-    /** @param array<int, array{role: string, content: string, images?: array}> $messages */
+    /**
+     * @param array<int, array{role: string, content: string, images?: array}> $messages
+     */
     public function converse(string $system, array $messages, int $timeout = 180): string
     {
         UsageLimit::ensure('token');
@@ -118,7 +128,11 @@ class Llm
         @set_time_limit($timeout + 30);
         $engine = $this->engines->current();
         $started = microtime(true);
-        $options = ['timeout' => $timeout] + ($this->temperature !== null ? ['temperature' => $this->temperature] : []);
+        $options = [
+            'timeout' => $timeout,
+        ] + ($this->temperature !== null ? [
+            'temperature' => $this->temperature,
+        ] : []);
 
         try {
             $result = $this->engines->driver($engine)->chat($system, $messages, $options);
@@ -156,7 +170,11 @@ class Llm
         @set_time_limit($timeout + 30);
         $engine = $this->engines->current();
         $started = microtime(true);
-        $options = ['timeout' => $timeout] + ($this->temperature !== null ? ['temperature' => $this->temperature] : []);
+        $options = [
+            'timeout' => $timeout,
+        ] + ($this->temperature !== null ? [
+            'temperature' => $this->temperature,
+        ] : []);
 
         try {
             $result = $this->engines->driver($engine)->stream($system, $messages, $onDelta, $options);
@@ -171,7 +189,9 @@ class Llm
         return $result->text;
     }
 
-    /** Use a specific model for the next calls (the Copilot's model picker); null = Settings. */
+    /**
+     * Use a specific model for the next calls (the Copilot's model picker); null = Settings.
+     */
     public function model(?string $model): static
     {
         $clone = clone $this;
@@ -206,10 +226,19 @@ class Llm
         // "anthropic|claude-sonnet-5-5" picks another provider (with its own key); a bare id stays on the Settings engine.
         [$engine, $model] = EngineKeys::parse($this->modelOverride);
         $started = microtime(true);
-        $options = ['timeout' => $timeout, 'max_tokens' => 4000]
-            + ($model ? ['model' => $model] : [])
-            + ($engine !== $this->engines->current() ? ['api_key' => EngineKeys::for($engine)] : [])
-            + ($onDelta ? ['on_delta' => $onDelta] : []);
+        $options = [
+            'timeout' => $timeout,
+            'max_tokens' => 4000,
+        ]
+            + ($model ? [
+                'model' => $model,
+            ] : [])
+            + ($engine !== $this->engines->current() ? [
+                'api_key' => EngineKeys::for($engine),
+            ] : [])
+            + ($onDelta ? [
+                'on_delta' => $onDelta,
+            ] : []);
 
         try {
             $turn = $this->engines->driver($engine)->toolChat($system, $messages, $tools, $options);
@@ -223,10 +252,12 @@ class Llm
         return $turn;
     }
 
-    /** Ask for JSON and decode it, tolerating ```json fences and chatter around the object. */
+    /**
+     * Ask for JSON and decode it, tolerating ```json fences and chatter around the object.
+     */
     public function json(string $system, string $user): array
     {
-        $text = $this->chat($system."\n\nReply with valid JSON only, no markdown fences, no commentary.", $user);
+        $text = $this->chat($system . "\n\nReply with valid JSON only, no markdown fences, no commentary.", $user);
         $text = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', trim($text));
         $start = strpos($text, '{');
         $end = strrpos($text, '}');
@@ -234,23 +265,37 @@ class Llm
             throw new RuntimeException('The AI answer was not JSON. Try again.');
         }
         $data = json_decode(substr($text, $start, $end - $start + 1), true);
-        if (! is_array($data)) {
+        if (!is_array($data)) {
             throw new RuntimeException('The AI answer was not valid JSON. Try again.');
         }
 
         return $data;
     }
 
+    /**
+     * Automations stop for the day at her cap (Settings → Automation); her own requests never do.
+     */
+    private static function ensureAutomationBudget(): void
+    {
+        if (self::$automation === null) {
+            return;
+        }
+        $cap = (int)Setting::get('automation_daily_tokens', '');
+        if ($cap > 0 && self::automationTokensToday() >= $cap) {
+            throw new RuntimeException('Today’s AI budget for automations (' . number_format($cap) . ' tokens) is used up. They resume tomorrow, or raise it in Settings → Automation.');
+        }
+    }
+
     private function record(EngineEnum $engine, ?string $model, ?int $in, ?int $out, float $started, ?string $error = null): void
     {
         try {
             AiUsage::create([
-                'feature' => self::$automation ? mb_substr('auto:'.self::$automation.($this->feature ? ':'.$this->feature : ''), 0, 60) : $this->feature,
+                'feature' => self::$automation ? mb_substr('auto:' . self::$automation . ($this->feature ? ':' . $this->feature : ''), 0, 60) : $this->feature,
                 'engine' => $engine->value,
                 'model' => $model ?? (Setting::get('llm_model') ?: $engine->defaultModel()),
                 'input_tokens' => $in,
                 'output_tokens' => $out,
-                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+                'duration_ms' => (int)round((microtime(true) - $started) * 1000),
                 'ok' => $error === null,
                 'error' => $error ? mb_substr($error, 0, 250) : null,
             ]);

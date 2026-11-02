@@ -7,7 +7,6 @@ use App\Domains\Agents\Memory\AgentEpisodicMemory;
 use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Social\Models\SocialPost;
-use App\Domains\Social\Platforms;
 use App\Domains\Social\PostScorer;
 use App\Domains\Social\SocialScheduler;
 use App\Models\Script;
@@ -29,7 +28,8 @@ class TransmediaCascade
         private AgentGuardrails $guardrails,
         private AgentEpisodicMemory $memory,
         private PostScorer $scorer
-    ) {}
+    ) {
+    }
 
     /**
      * Generate a full transmedia cascade across 5 distinct media formats.
@@ -49,10 +49,10 @@ class TransmediaCascade
      */
     public function generate(SocialAgent $agent, array $params): array
     {
-        $topic = trim((string) ($params['topic'] ?? ''));
+        $topic = trim((string)($params['topic'] ?? ''));
         $script = null;
 
-        if (! empty($params['script_id'])) {
+        if (!empty($params['script_id'])) {
             $script = Script::find($params['script_id']);
             if ($script && empty($topic)) {
                 $topic = $script->title;
@@ -65,7 +65,7 @@ class TransmediaCascade
 
         $sourceContext = '';
         if ($script) {
-            $sourceContext = "Script Outline & Notes:\n".mb_substr((string) ($script->outline ?: $script->notes), 0, 3000)."\n\n";
+            $sourceContext = "Script Outline & Notes:\n" . mb_substr((string)($script->outline ?: $script->notes), 0, 3000) . "\n\n";
         }
 
         $creatorName = Prompts::name();
@@ -141,14 +141,14 @@ Return a valid JSON object matching this exact schema:
 SYS;
 
         $userPrompt = "Core Subject: {$topic}\n\n{$sourceContext}"
-            .(! empty($params['notes']) ? "Additional Notes: {$params['notes']}\n" : '');
+            . (!empty($params['notes']) ? "Additional Notes: {$params['notes']}\n" : '');
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 900);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 900);
 
         try {
             $raw = $this->llm->as('transmedia-cascade')->creativity(0.6)->json($systemPrompt, $userPrompt);
 
-            if (! isset($raw['linkedin'], $raw['x_thread'], $raw['short_form'])) {
+            if (!isset($raw['linkedin'], $raw['x_thread'], $raw['short_form'])) {
                 throw new \RuntimeException('Incomplete transmedia cascade payload.');
             }
         } catch (Throwable $e) {
@@ -156,7 +156,7 @@ SYS;
         }
 
         // Post-processing: Quality linting and scoring
-        $liBody = (string) ($raw['linkedin']['body'] ?? '');
+        $liBody = (string)($raw['linkedin']['body'] ?? '');
         $liLints = AiTellsLinter::lint($liBody);
         $raw['linkedin']['platform'] = 'linkedin';
         $raw['linkedin']['ai_tells_count'] = count($liLints);
@@ -167,8 +167,8 @@ SYS;
             'parts' => [],
         ])['score'] ?? 85;
 
-        $xHook = (string) ($raw['x_thread']['hook_tweet'] ?? '');
-        $xTweets = (array) ($raw['x_thread']['thread_tweets'] ?? []);
+        $xHook = (string)($raw['x_thread']['hook_tweet'] ?? '');
+        $xTweets = (array)($raw['x_thread']['thread_tweets'] ?? []);
         $raw['x_thread']['platform'] = 'x';
         $raw['x_thread']['ai_tells_count'] = count(AiTellsLinter::lint($xHook));
         $raw['x_thread']['score'] = $this->scorer->score([
@@ -190,7 +190,7 @@ SYS;
     /**
      * Batch-schedule the social assets from a generated cascade into the creator's social calendar.
      *
-     * @param  array{
+     * @param  array $agent{
      *     cascade: array,
      *     platforms_to_schedule?: array<int, string>
      * }  $params
@@ -209,20 +209,20 @@ SYS;
         $auto = $agent->approval === 'auto';
 
         // 1. LinkedIn Post
-        if (in_array('linkedin', $platforms, true) && ! empty($cascade['linkedin']['body'])) {
+        if (in_array('linkedin', $platforms, true) && !empty($cascade['linkedin']['body'])) {
             $slot = SocialScheduler::nextSlot('linkedin', null, null, $taken);
             $post = SocialPost::create([
                 'platform' => 'linkedin',
                 'format' => 'post',
-                'title' => mb_substr((string) ($cascade['linkedin']['title'] ?? 'LinkedIn Thought Leadership'), 0, 200),
-                'body' => trim((string) $cascade['linkedin']['body']),
+                'title' => mb_substr((string)($cascade['linkedin']['title'] ?? 'LinkedIn Thought Leadership'), 0, 200),
+                'body' => trim((string)$cascade['linkedin']['body']),
                 'parts' => [],
                 'status' => $auto ? 'scheduled' : 'draft',
                 'scheduled_for' => $slot['at'],
                 'source' => 'transmedia_cascade',
                 'social_agent_id' => $agent->id,
                 'approval' => $auto ? 'approved' : 'pending',
-                'agent_original' => trim((string) $cascade['linkedin']['body']),
+                'agent_original' => trim((string)$cascade['linkedin']['body']),
                 'notes' => "Part of Transmedia Cascade.\nSlot: {$slot['reason']}",
             ]);
             $taken->push($post);
@@ -230,15 +230,15 @@ SYS;
         }
 
         // 2. X Thread
-        if (in_array('x', $platforms, true) && ! empty($cascade['x_thread']['hook_tweet'])) {
+        if (in_array('x', $platforms, true) && !empty($cascade['x_thread']['hook_tweet'])) {
             $slot = SocialScheduler::nextSlot('x', null, null, $taken);
-            $hook = trim((string) $cascade['x_thread']['hook_tweet']);
-            $tweets = (array) ($cascade['x_thread']['thread_tweets'] ?? []);
+            $hook = trim((string)$cascade['x_thread']['hook_tweet']);
+            $tweets = (array)($cascade['x_thread']['thread_tweets'] ?? []);
 
             $post = SocialPost::create([
                 'platform' => 'x',
                 'format' => 'thread',
-                'title' => mb_substr((string) ($cascade['x_thread']['title'] ?? 'X Viral Thread'), 0, 200),
+                'title' => mb_substr((string)($cascade['x_thread']['title'] ?? 'X Viral Thread'), 0, 200),
                 'body' => $hook,
                 'parts' => $tweets,
                 'status' => $auto ? 'scheduled' : 'draft',
@@ -246,7 +246,7 @@ SYS;
                 'source' => 'transmedia_cascade',
                 'social_agent_id' => $agent->id,
                 'approval' => $auto ? 'approved' : 'pending',
-                'agent_original' => trim($hook."\n\n".implode("\n\n", $tweets)),
+                'agent_original' => trim($hook . "\n\n" . implode("\n\n", $tweets)),
                 'notes' => "Part of Transmedia Cascade.\nSlot: {$slot['reason']}",
             ]);
             $taken->push($post);
@@ -254,16 +254,16 @@ SYS;
         }
 
         // 3. Short-Form Video draft
-        if (in_array('tiktok', $platforms, true) && ! empty($cascade['short_form']['script_body'])) {
+        if (in_array('tiktok', $platforms, true) && !empty($cascade['short_form']['script_body'])) {
             $slot = SocialScheduler::nextSlot('tiktok', null, null, $taken);
-            $body = trim((string) $cascade['short_form']['script_body']);
+            $body = trim((string)$cascade['short_form']['script_body']);
 
             $post = SocialPost::create([
                 'platform' => 'tiktok',
                 'format' => 'video',
-                'title' => mb_substr((string) ($cascade['short_form']['title'] ?? 'Short-Form Video Script'), 0, 200),
+                'title' => mb_substr((string)($cascade['short_form']['title'] ?? 'Short-Form Video Script'), 0, 200),
                 'body' => $body,
-                'parts' => (array) ($cascade['short_form']['on_screen_cues'] ?? []),
+                'parts' => (array)($cascade['short_form']['on_screen_cues'] ?? []),
                 'status' => 'draft', // Short-form videos always require filming review
                 'scheduled_for' => $slot['at'],
                 'source' => 'transmedia_cascade',
@@ -278,7 +278,7 @@ SYS;
 
         AgentEvent::log(
             'drafted',
-            "Transmedia Cascade scheduled ".count($createdPosts)." post(s) into calendar for {$agent->name}.",
+            'Transmedia Cascade scheduled ' . count($createdPosts) . " post(s) into calendar for {$agent->name}.",
             $agent->id
         );
 
@@ -301,7 +301,7 @@ SYS;
                     "2/ The Hidden Cost:\nNetwork partitions, clock drift, and distributed consensus overhead consume more dev hours than feature delivery.",
                     "3/ The Antidote:\nBuild modular monoliths with asynchronous event boundaries before breaking into microservices.",
                     "4/ Key Rule:\nIf you can't describe your failure recovery in 2 sentences, your architecture is already brittle.",
-                    "5/ Summary:\nKeep it simple until the numbers force you to evolve. Bookmark this thread if you're architecting your next service."
+                    "5/ Summary:\nKeep it simple until the numbers force you to evolve. Bookmark this thread if you're architecting your next service.",
                 ],
             ],
             'short_form' => [
@@ -315,21 +315,55 @@ SYS;
                 'title' => "The Engineer's Guide to {$topic}",
                 'executive_summary' => "A practical breakdown of how to design reliable systems around {$topic} without unnecessary infrastructure complexity.",
                 'deep_dive' => "## The Architectural Dilemma\n\nWhen scaling systems, the default instinct is often to distribute components prematurely...",
-                'action_item' => "Audit your slowest query or pipeline this week. Identify if network hops or locks are the bottleneck.",
+                'action_item' => 'Audit your slowest query or pipeline this week. Identify if network hops or locks are the bottleneck.',
             ],
             'carousel' => [
-                'title' => "7 Rules of Modern Architecture",
+                'title' => '7 Rules of Modern Architecture',
                 'slides' => [
-                    ['slide_number' => 1, 'headline' => "The Architecture Blueprint: {$topic}", 'body' => "7 practical lessons every tech lead should know.", 'visual_cue' => "High contrast title card"],
-                    ['slide_number' => 2, 'headline' => "1. The Premature Distribution Trap", 'body' => "Why microservices add latency before they add scale.", 'visual_cue' => "Monolith vs Microservices graphic"],
-                    ['slide_number' => 3, 'headline' => "2. Idempotency Over Locking", 'body' => "How safe retries beat distributed locks every time.", 'visual_cue' => "Retry queue diagram"],
-                    ['slide_number' => 4, 'headline' => "3. Observability First", 'body' => "If you can't trace the request across hops, you're flying blind.", 'visual_cue' => "Distributed trace mockup"],
-                    ['slide_number' => 5, 'headline' => "4. Eventual Consistency Realities", 'body' => "Accept that state sync takes non-zero milliseconds.", 'visual_cue' => "Timeline diagram"],
-                    ['slide_number' => 6, 'headline' => "5. Failure Domain Isolation", 'body' => "Keep secondary features from bringing down checkout.", 'visual_cue' => "Bulkhead pattern icon"],
-                    ['slide_number' => 7, 'headline' => "Save This Guide", 'body' => "Follow @Tech.Unicorn for weekly engineering deep-dives.", 'visual_cue' => "Bookmark & share icon"],
+                    [
+                        'slide_number' => 1,
+                        'headline' => "The Architecture Blueprint: {$topic}",
+                        'body' => '7 practical lessons every tech lead should know.',
+                        'visual_cue' => 'High contrast title card',
+                    ],
+                    [
+                        'slide_number' => 2,
+                        'headline' => '1. The Premature Distribution Trap',
+                        'body' => 'Why microservices add latency before they add scale.',
+                        'visual_cue' => 'Monolith vs Microservices graphic',
+                    ],
+                    [
+                        'slide_number' => 3,
+                        'headline' => '2. Idempotency Over Locking',
+                        'body' => 'How safe retries beat distributed locks every time.',
+                        'visual_cue' => 'Retry queue diagram',
+                    ],
+                    [
+                        'slide_number' => 4,
+                        'headline' => '3. Observability First',
+                        'body' => "If you can't trace the request across hops, you're flying blind.",
+                        'visual_cue' => 'Distributed trace mockup',
+                    ],
+                    [
+                        'slide_number' => 5,
+                        'headline' => '4. Eventual Consistency Realities',
+                        'body' => 'Accept that state sync takes non-zero milliseconds.',
+                        'visual_cue' => 'Timeline diagram',
+                    ],
+                    [
+                        'slide_number' => 6,
+                        'headline' => '5. Failure Domain Isolation',
+                        'body' => 'Keep secondary features from bringing down checkout.',
+                        'visual_cue' => 'Bulkhead pattern icon',
+                    ],
+                    [
+                        'slide_number' => 7,
+                        'headline' => 'Save This Guide',
+                        'body' => 'Follow @Tech.Unicorn for weekly engineering deep-dives.',
+                        'visual_cue' => 'Bookmark & share icon',
+                    ],
                 ],
             ],
         ];
     }
 }
-

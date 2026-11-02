@@ -5,7 +5,6 @@ namespace App\Domains\Clients;
 use App\Domains\Social\Models\SocialPost;
 use App\Models\Deal;
 use App\Models\LandingClick;
-use App\Models\Payment;
 use App\Models\Script;
 use Illuminate\Support\Facades\DB;
 
@@ -19,7 +18,7 @@ class ClientAnalytics
     public static function forDeal(Deal $deal): array
     {
         $deliverables = collect($deal->deliverables ?? [])->filter(fn ($d) => is_array($d))->values();
-        $rate = (float) ($deal->proposal['investment']['amount'] ?? $deal->rate);
+        $rate = (float)($deal->proposal['investment']['amount'] ?? $deal->rate);
         $currency = $deal->proposal['investment']['currency'] ?? ($deal->currency ?: 'USD');
 
         // 1. Gather live impressions and engagements from linked social posts or video scripts
@@ -32,14 +31,14 @@ class ClientAnalytics
         if ($deal->social_post_id) {
             $post = SocialPost::find($deal->social_post_id);
             if ($post) {
-                $postImpressions = (int) ($post->impressions ?? 0);
-                $postEngagements = (int) (($post->likes ?? 0) + ($post->comments ?? 0) + ($post->shares ?? 0));
+                $postImpressions = (int)($post->impressions ?? 0);
+                $postEngagements = (int)(($post->likes ?? 0) + ($post->comments ?? 0) + ($post->shares ?? 0));
                 $impressions += $postImpressions;
                 $engagements += $postEngagements;
                 $items[] = [
                     'platform' => $post->platform,
                     'type' => 'post',
-                    'title' => mb_substr($post->title ?: (string) $post->body, 0, 80),
+                    'title' => mb_substr($post->title ?: (string)$post->body, 0, 80),
                     'views' => $postImpressions,
                     'engagements' => $postEngagements,
                     'url' => $post->url,
@@ -55,8 +54,8 @@ class ClientAnalytics
                 $ytId = $m[1] ?? null;
                 if ($ytId) {
                     $stats = DB::table('video_stats')->where('video_id', $ytId)->orderByDesc('captured_on')->first();
-                    $vidViews = (int) ($stats->views ?? 0);
-                    $vidEngagements = (int) (($stats->likes ?? 0) + ($stats->comments ?? 0));
+                    $vidViews = (int)($stats->views ?? 0);
+                    $vidEngagements = (int)(($stats->likes ?? 0) + ($stats->comments ?? 0));
                     $views += $vidViews;
                     $impressions += $vidViews;
                     $engagements += $vidEngagements;
@@ -75,7 +74,7 @@ class ClientAnalytics
         // 2. Tracked referral link clicks
         $trackedClicks = 0;
         if (class_exists(LandingClick::class)) {
-            $trackedClicks = (int) LandingClick::where(function ($q) use ($deal) {
+            $trackedClicks = (int)LandingClick::where(function ($q) use ($deal) {
                 $q->where('ref', 'like', "%deal-{$deal->id}%")
                     ->orWhere('ref', 'like', "%kit-{$deal->id}%");
                 if ($deal->coupon_code) {
@@ -87,9 +86,9 @@ class ClientAnalytics
         // If no explicit tracking logs yet, provide realistic lower bound estimates from deliverable metadata
         if ($impressions === 0 && in_array($deal->stage, ['scheduled', 'invoiced', 'paid'], true)) {
             $impressions = max(1250, count($deliverables) * 8500);
-            $engagements = (int) ($impressions * 0.052);
+            $engagements = (int)($impressions * 0.052);
             $views = $impressions;
-            $trackedClicks = max(18, (int) ($impressions * 0.016));
+            $trackedClicks = max(18, (int)($impressions * 0.016));
         }
 
         // 3. Financial efficiency calculations
@@ -136,11 +135,18 @@ class ClientAnalytics
                 'eligible' => true,
                 'offer' => 'Early Renewal Advantage: Lock in current rate card and priority sprint placement for your next campaign.',
                 'suggested_packages' => [
-                    ['id' => 'sprint_q', 'name' => 'Quarterly Partner Sprint (3 Content Placements)', 'discount_percent' => 15],
-                    ['id' => 'retainer_monthly', 'name' => 'Monthly Brand Anchor Retainer', 'discount_percent' => 20],
+                    [
+                        'id' => 'sprint_q',
+                        'name' => 'Quarterly Partner Sprint (3 Content Placements)',
+                        'discount_percent' => 15,
+                    ],
+                    [
+                        'id' => 'retainer_monthly',
+                        'name' => 'Monthly Brand Anchor Retainer',
+                        'discount_percent' => 20,
+                    ],
                 ],
             ],
         ];
     }
 }
-

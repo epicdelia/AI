@@ -16,9 +16,14 @@ use Throwable;
  */
 class MorningPipeline
 {
-    public function __construct(private CallPrep $prep) {}
+    public function __construct(
+        private CallPrep $prep
+    ) {
+    }
 
-    /** @return array{prepped: int, calls: int, follow_ups: int, message: ?string} */
+    /**
+     * @return array{prepped: int, calls: int, follow_ups: int, message: ?string}
+     */
     public function run(?CarbonImmutable $now = null): array
     {
         $now ??= CarbonImmutable::now();
@@ -27,7 +32,7 @@ class MorningPipeline
 
         $prepped = 0;
         if (Llm::configured()) {
-            foreach ($calls->filter(fn ($d) => ! $d->prep_at || $d->prep_at->lt($now->subDays(3))) as $deal) {
+            foreach ($calls->filter(fn ($d) => !$d->prep_at || $d->prep_at->lt($now->subDays(3))) as $deal) {
                 try {
                     $this->prep->brief($deal);
                     $prepped++;
@@ -43,20 +48,25 @@ class MorningPipeline
         if (($calls->isNotEmpty() || $due->isNotEmpty()) && Setting::get('pipeline_briefed_on') !== $day) {
             $parts = [];
             if ($calls->isNotEmpty()) {
-                $parts[] = ($calls->count() === 1 ? '1 intro call' : "{$calls->count()} intro calls").': '
-                    .$calls->map(fn ($d) => "{$d->brand_name} at ".$d->meeting_at->setTimezone($tz)->format('H:i'))->implode(', ')
-                    .($prepped ? ' (prep briefs ready in Deals)' : '');
+                $parts[] = ($calls->count() === 1 ? '1 intro call' : "{$calls->count()} intro calls") . ': '
+                    . $calls->map(fn ($d) => "{$d->brand_name} at " . $d->meeting_at->setTimezone($tz)->format('H:i'))->implode(', ')
+                    . ($prepped ? ' (prep briefs ready in Deals)' : '');
             }
             if ($due->isNotEmpty()) {
-                $money = $due->sum(fn ($r) => (float) $r['deal']->rate);
-                $parts[] = "{$due->count()} follow-up".($due->count() === 1 ? '' : 's').' due'.($money > 0 ? ' ($'.number_format($money).' in play)' : '')
-                    .': '.$due->take(3)->map(fn ($r) => $r['deal']->brand_name)->implode(', ').($due->count() > 3 ? '…' : '');
+                $money = $due->sum(fn ($r) => (float)$r['deal']->rate);
+                $parts[] = "{$due->count()} follow-up" . ($due->count() === 1 ? '' : 's') . ' due' . ($money > 0 ? ' ($' . number_format($money) . ' in play)' : '')
+                    . ': ' . $due->take(3)->map(fn ($r) => $r['deal']->brand_name)->implode(', ') . ($due->count() > 3 ? '…' : '');
             }
-            $message = 'Today: '.implode('. ', $parts).'.';
+            $message = 'Today: ' . implode('. ', $parts) . '.';
             AgentEvent::log('lead', $message);
             Setting::put('pipeline_briefed_on', $day);
         }
 
-        return ['prepped' => $prepped, 'calls' => $calls->count(), 'follow_ups' => $due->count(), 'message' => $message];
+        return [
+            'prepped' => $prepped,
+            'calls' => $calls->count(),
+            'follow_ups' => $due->count(),
+            'message' => $message,
+        ];
     }
 }

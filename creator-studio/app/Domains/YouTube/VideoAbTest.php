@@ -23,6 +23,20 @@ class VideoAbTest extends Model
         'error',
     ];
 
+    public function isConcluded(): bool
+    {
+        return in_array($this->status, ['concluded', 'stopped'], true);
+    }
+
+    public function winnerVariant(): ?array
+    {
+        if ($this->winner_index === null || !is_array($this->variants)) {
+            return null;
+        }
+
+        return $this->variants[$this->winner_index] ?? null;
+    }
+
     protected function casts(): array
     {
         return [
@@ -34,19 +48,4 @@ class VideoAbTest extends Model
             'concluded_at' => 'datetime',
         ];
     }
-
-    public function isConcluded(): bool
-    {
-        return in_array($this->status, ['concluded', 'stopped'], true);
-    }
-
-    public function winnerVariant(): ?array
-    {
-        if ($this->winner_index === null || ! is_array($this->variants)) {
-            return null;
-        }
-
-        return $this->variants[$this->winner_index] ?? null;
-    }
 }
-

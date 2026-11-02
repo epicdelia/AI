@@ -19,7 +19,7 @@ class EngineManager extends Manager
     {
         $saved = Setting::get('llm_engine', '');
 
-        return EngineEnum::tryFrom((string) $saved) ?? EngineEnum::fromBaseUrl(Setting::get('llm_base_url'));
+        return EngineEnum::tryFrom((string)$saved) ?? EngineEnum::fromBaseUrl(Setting::get('llm_base_url'));
     }
 
     public function getDefaultDriver(): string

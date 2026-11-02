@@ -10,13 +10,17 @@ class ClipProject extends Model
 {
     protected $fillable = ['script_id', 'source_url', 'project_id', 'status', 'options', 'clips', 'error', 'checked_at'];
 
-    protected function casts(): array
-    {
-        return ['options' => 'array', 'clips' => 'array', 'checked_at' => 'datetime'];
-    }
-
     public function script(): BelongsTo
     {
         return $this->belongsTo(Script::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'options' => 'array',
+            'clips' => 'array',
+            'checked_at' => 'datetime',
+        ];
     }
 }

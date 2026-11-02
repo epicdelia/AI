@@ -14,4 +14,3 @@ class IdeaBrief extends Model
         return $this->hasMany(Idea::class);
     }
 }
-

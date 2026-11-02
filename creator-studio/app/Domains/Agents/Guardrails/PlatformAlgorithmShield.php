@@ -6,7 +6,6 @@ use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Social\Platforms;
 use App\Domains\Social\PostScorer;
 use App\Services\Llm;
-use App\Services\Prompts;
 
 /**
  * Autonomous Platform Algorithm Shield & Feed Optimization Auditor.
@@ -47,12 +46,12 @@ class PlatformAlgorithmShield
      */
     public function auditAndArmor(SocialAgent $agent, array $params): array
     {
-        $platform = strtolower((string) ($params['platform'] ?? 'linkedin'));
-        $content = trim((string) ($params['content'] ?? ''));
-        $title = (string) ($params['title'] ?? '');
+        $platform = strtolower((string)($params['platform'] ?? 'linkedin'));
+        $content = trim((string)($params['content'] ?? ''));
+        $title = (string)($params['title'] ?? '');
 
         // Heuristic pre-checks for instant detection
-        $hasExternalUrl = (bool) preg_match('/https?:\/\/[^\s]+/i', $content);
+        $hasExternalUrl = (bool)preg_match('/https?:\/\/[^\s]+/i', $content);
         $hashtagCount = preg_match_all('/#[\w]+/u', $content);
         $firstParagraph = explode("\n", $content)[0] ?? '';
 
@@ -116,10 +115,14 @@ TEXT;
         }
 
         if (!is_array($data) || !isset($data['algorithm_reach_score'])) {
-            return self::withPostScore($this->fallbackArmor($platform, $content, $hasExternalUrl, $hashtagCount) + ['score_source' => 'rules'], $platform, $content);
+            return self::withPostScore($this->fallbackArmor($platform, $content, $hasExternalUrl, $hashtagCount) + [
+                'score_source' => 'rules',
+            ], $platform, $content);
         }
 
-        return self::withPostScore($data + ['score_source' => 'ai_estimate'], $platform, $content);
+        return self::withPostScore($data + [
+            'score_source' => 'ai_estimate',
+        ], $platform, $content);
     }
 
     /**
@@ -129,15 +132,24 @@ TEXT;
      */
     private static function withPostScore(array $result, string $platform, string $content): array
     {
-        if (! isset(Platforms::PLATFORMS[$platform])) {
-            return $result + ['post_score' => null, 'armored_post_score' => null];
+        if (!isset(Platforms::PLATFORMS[$platform])) {
+            return $result + [
+                'post_score' => null,
+                'armored_post_score' => null,
+            ];
         }
         $scorer = app(PostScorer::class);
         $pick = fn (array $s) => array_intersect_key($s, array_flip(['score', 'label', 'basis', 'history', 'needed', 'predicted', 'usual', 'metric']));
-        $result['post_score'] = rescue(fn () => $pick($scorer->score(['platform' => $platform, 'body' => $content])), null, false);
-        $armored = trim((string) ($result['armored_content'] ?? ''));
+        $result['post_score'] = rescue(fn () => $pick($scorer->score([
+            'platform' => $platform,
+            'body' => $content,
+        ])), null, false);
+        $armored = trim((string)($result['armored_content'] ?? ''));
         $result['armored_post_score'] = $armored !== '' && $armored !== $content
-            ? rescue(fn () => $pick($scorer->score(['platform' => $platform, 'body' => $armored])), null, false)
+            ? rescue(fn () => $pick($scorer->score([
+                'platform' => $platform,
+                'body' => $armored,
+            ])), null, false)
             : $result['post_score'];
 
         return $result;

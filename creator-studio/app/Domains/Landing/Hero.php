@@ -14,7 +14,9 @@ class Hero
 {
     public const SETTING = 'landing_hero';
 
-    /** Stats she can show (pick four): number, label, the section that backs it, and whether it's live. */
+    /**
+     * Stats she can show (pick four): number, label, the section that backs it, and whether it's live.
+     */
     public const STATS = ['audience', 'countries', 'mvp', 'google', 'talks', 'slots', 'networks'];
 
     public const DEFAULTS = [
@@ -28,7 +30,7 @@ class Hero
 
     public static function get(): array
     {
-        $saved = json_decode((string) Setting::get(self::SETTING, '{}'), true);
+        $saved = json_decode((string)Setting::get(self::SETTING, '{}'), true);
 
         return array_replace(self::DEFAULTS, is_array($saved) ? array_intersect_key($saved, self::DEFAULTS) : []);
     }
@@ -41,32 +43,81 @@ class Hero
         return $h;
     }
 
-    /** Every stat with its current value. */
+    /**
+     * Every stat with its current value.
+     */
     public static function statCatalog(): array
     {
         $about = About::get();
         $reach = Audience::reach();
         $talks = Talk::ordered();
         $a = ClientJourney::availability();
-        $visibleNetworks = count(array_filter($reach['networks'], fn ($n) => ! $n['hidden']));
+        $visibleNetworks = count(array_filter($reach['networks'], fn ($n) => !$n['hidden']));
 
         return [
-            'audience' => ['value' => Audience::headline(), 'count' => Audience::total(), 'label' => 'Combined audience across platforms', 'target' => 'reach', 'live' => true],
-            'countries' => ['value' => (string) $about['countries'], 'count' => (int) $about['countries'], 'label' => 'Countries traveled and worked from', 'target' => 'about', 'live' => false],
-            'mvp' => ['value' => '2-4', 'unit' => 'wks', 'label' => 'Idea to shipped production MVP', 'target' => 'process', 'live' => false],
-            'google' => ['value' => 'ex-G', 'label' => 'Google engineering background', 'target' => 'about', 'live' => false],
-            'talks' => ['value' => (string) $talks->count(), 'count' => $talks->count(), 'label' => $talks->count() === 1 ? 'Talk on stages worldwide' : 'Talks on stages worldwide', 'target' => 'speaking', 'live' => true],
+            'audience' => [
+                'value' => Audience::headline(),
+                'count' => Audience::total(),
+                'label' => 'Combined audience across platforms',
+                'target' => 'reach',
+                'live' => true,
+            ],
+            'countries' => [
+                'value' => (string)$about['countries'],
+                'count' => (int)$about['countries'],
+                'label' => 'Countries traveled and worked from',
+                'target' => 'about',
+                'live' => false,
+            ],
+            'mvp' => [
+                'value' => '2-4',
+                'unit' => 'wks',
+                'label' => 'Idea to shipped production MVP',
+                'target' => 'process',
+                'live' => false,
+            ],
+            'google' => [
+                'value' => 'ex-G',
+                'label' => 'Google engineering background',
+                'target' => 'about',
+                'live' => false,
+            ],
+            'talks' => [
+                'value' => (string)$talks->count(),
+                'count' => $talks->count(),
+                'label' => $talks->count() === 1 ? 'Talk on stages worldwide' : 'Talks on stages worldwide',
+                'target' => 'speaking',
+                'live' => true,
+            ],
             'slots' => $a['show']
-                ? ['value' => (string) $a['open'], 'count' => $a['open'], 'label' => $a['open'] === 1 ? 'Build slot open right now' : ($a['open'] ? 'Build slots open right now' : 'Builds in progress: join the waitlist'), 'target' => 'pricing', 'live' => true, 'status' => $a['status']]
+                ? [
+                    'value' => (string)$a['open'],
+                    'count' => $a['open'],
+                    'label' => $a['open'] === 1 ? 'Build slot open right now' : ($a['open'] ? 'Build slots open right now' : 'Builds in progress: join the waitlist'),
+                    'target' => 'pricing',
+                    'live' => true,
+                    'status' => $a['status'],
+                ]
                 : null,
-            'networks' => ['value' => (string) $visibleNetworks, 'count' => $visibleNetworks, 'label' => 'Networks where she publishes', 'target' => 'reach', 'live' => true],
+            'networks' => [
+                'value' => (string)$visibleNetworks,
+                'count' => $visibleNetworks,
+                'label' => 'Networks where she publishes',
+                'target' => 'reach',
+                'live' => true,
+            ],
         ];
     }
 
-    /** {countries} and {audience} from her real numbers. */
+    /**
+     * {countries} and {audience} from her real numbers.
+     */
     public static function fill(string $text): string
     {
-        return strtr($text, ['{countries}' => (string) About::get()['countries'], '{audience}' => Audience::headline()]);
+        return strtr($text, [
+            '{countries}' => (string)About::get()['countries'],
+            '{audience}' => Audience::headline(),
+        ]);
     }
 
     public static function publicSection(): array
@@ -75,8 +126,10 @@ class Hero
         $catalog = self::statCatalog();
         $stats = [];
         foreach ($h['stats'] as $key) {
-            if (! empty($catalog[$key])) {
-                $stats[] = ['key' => $key] + $catalog[$key];
+            if (!empty($catalog[$key])) {
+                $stats[] = [
+                    'key' => $key,
+                ] + $catalog[$key];
             }
         }
         // Always four tiles: top up with the defaults if a picked one isn't available (e.g. slots hidden).
@@ -84,8 +137,10 @@ class Hero
             if (count($stats) >= 4) {
                 break;
             }
-            if (! in_array($key, array_column($stats, 'key'), true)) {
-                $stats[] = ['key' => $key] + $catalog[$key];
+            if (!in_array($key, array_column($stats, 'key'), true)) {
+                $stats[] = [
+                    'key' => $key,
+                ] + $catalog[$key];
             }
         }
 
@@ -95,10 +150,13 @@ class Hero
         if ($h['show_status']) {
             $parts = array_filter([
                 $a['show'] ? ($a['status'] === 'open' ? 'Booking new projects' : 'Fully booked: join the waitlist') : null,
-                trim((string) $about['location']) ? 'Now in '.trim($about['location']) : null,
+                trim((string)$about['location']) ? 'Now in ' . trim($about['location']) : null,
             ]);
             if ($parts) {
-                $status = ['text' => implode(' · ', $parts), 'state' => $a['show'] ? $a['status'] : 'info'];
+                $status = [
+                    'text' => implode(' · ', $parts),
+                    'state' => $a['show'] ? $a['status'] : 'info',
+                ];
             }
         }
 
@@ -117,7 +175,13 @@ class Hero
         $catalog = self::statCatalog();
 
         return self::get() + [
-            'catalog' => array_map(fn ($k) => ['key' => $k, 'label' => $catalog[$k]['label'] ?? 'Build slots (hidden: no capacity set)', 'value' => $catalog[$k]['value'] ?? '-', 'live' => $catalog[$k]['live'] ?? true, 'available' => ! empty($catalog[$k])], self::STATS),
+            'catalog' => array_map(fn ($k) => [
+                'key' => $k,
+                'label' => $catalog[$k]['label'] ?? 'Build slots (hidden: no capacity set)',
+                'value' => $catalog[$k]['value'] ?? '-',
+                'live' => $catalog[$k]['live'] ?? true,
+                'available' => !empty($catalog[$k]),
+            ], self::STATS),
             'preview' => self::publicSection(),
         ];
     }

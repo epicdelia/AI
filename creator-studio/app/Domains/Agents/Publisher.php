@@ -16,7 +16,9 @@ use Throwable;
  */
 class Publisher
 {
-    /** @return array{published: int, failed: int} */
+    /**
+     * @return array{published: int, failed: int}
+     */
     public static function due(): array
     {
         $published = $failed = 0;
@@ -29,33 +31,58 @@ class Publisher
         foreach ($posts as $post) {
             $account = $accounts[$post->platform] ?? null;
             $provider = isset(Connections::PROVIDERS[$post->platform]) ? Connections::provider($post->platform) : null;
-            if (! $account || ! $provider?->canPublish()) {
+            if (!$account || !$provider?->canPublish()) {
                 continue; // she posts this one herself (the due queue reminds her)
             }
+
             try {
                 $r = self::publish($post, $account);
-                AgentEvent::log('published', 'Published on '.Platforms::PLATFORMS[$post->platform]['label'].': '.mb_substr((string) ($post->title ?: $post->body), 0, 90),
-                    $post->social_agent_id, $post->id, $post->platform);
+                AgentEvent::log(
+                    'published',
+                    'Published on ' . Platforms::PLATFORMS[$post->platform]['label'] . ': ' . mb_substr((string)($post->title ?: $post->body), 0, 90),
+                    $post->social_agent_id,
+                    $post->id,
+                    $post->platform
+                );
                 $published++;
             } catch (Throwable $e) {
-                $post->update(['status' => 'draft', 'approval' => 'pending', 'publish_error' => mb_substr($e->getMessage(), 0, 500)]);
-                AgentEvent::log('failed', 'Couldn’t publish on '.Platforms::PLATFORMS[$post->platform]['label'].': '.$e->getMessage().' It’s back in your approvals.',
-                    $post->social_agent_id, $post->id, $post->platform);
+                $post->update([
+                    'status' => 'draft',
+                    'approval' => 'pending',
+                    'publish_error' => mb_substr($e->getMessage(), 0, 500),
+                ]);
+                AgentEvent::log(
+                    'failed',
+                    'Couldn’t publish on ' . Platforms::PLATFORMS[$post->platform]['label'] . ': ' . $e->getMessage() . ' It’s back in your approvals.',
+                    $post->social_agent_id,
+                    $post->id,
+                    $post->platform
+                );
                 $failed++;
             }
         }
 
-        return ['published' => $published, 'failed' => $failed];
+        return [
+            'published' => $published,
+            'failed' => $failed,
+        ];
     }
 
-    /** Publish one post now (also used by "Publish now"). */
+    /**
+     * Publish one post now (also used by "Publish now").
+     */
     public static function publish(SocialPost $post, ?SocialAccount $account = null): array
     {
         $account ??= SocialAccount::where('platform', $post->platform)->firstOrFail();
         $provider = Connections::provider($post->platform);
         $r = $provider->publish($account, Connections::token($account), $post);
-        $post->update(['status' => 'posted', 'posted_at' => now(), 'external_id' => $r['external_id'] ?: null,
-            'url' => $r['url'] ?? $post->url, 'publish_error' => null]);
+        $post->update([
+            'status' => 'posted',
+            'posted_at' => now(),
+            'external_id' => $r['external_id'] ?: null,
+            'url' => $r['url'] ?? $post->url,
+            'publish_error' => null,
+        ]);
 
         return $r;
     }

@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Domains\Clients\ClientComplianceAuditor;
-use App\Domains\Clients\ClientWebhookDispatcher;
 use App\Domains\Clients\Models\ClientBrandVault;
 use App\Domains\Clients\PartnerReferrals;
 use App\Domains\Clients\TaxCompliance;
 use App\Domains\Deals\ProposalTiers;
 use App\Models\Deal;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -89,7 +87,9 @@ class EuComplianceAndEnterpriseTest extends TestCase
 
     public function test_gdpr_article_20_data_export_produces_structured_json(): void
     {
-        $client = $this->client(['company' => 'Acme EU Corp']);
+        $client = $this->client([
+            'company' => 'Acme EU Corp',
+        ]);
         $deal = Deal::create([
             'brand_name' => 'Acme EU Corp',
             'rate' => 7500,
@@ -110,7 +110,7 @@ class EuComplianceAndEnterpriseTest extends TestCase
         $response = $this->actingAs($client)->getJson('/api/account/export');
 
         $response->assertOk()
-            ->assertHeader('Content-Disposition', 'attachment; filename="gdpr-data-export-user-'.$client->id.'.json"')
+            ->assertHeader('Content-Disposition', 'attachment; filename="gdpr-data-export-user-' . $client->id . '.json"')
             ->assertJsonStructure([
                 'export_metadata' => ['standard', 'regulation', 'exported_at', 'user_id', 'data_controller'],
                 'profile' => ['id', 'name', 'email', 'company', 'role'],
@@ -198,7 +198,9 @@ class EuComplianceAndEnterpriseTest extends TestCase
         ]);
 
         Http::fake([
-            'https://hooks.slack.com/*' => Http::response(['ok' => true], 200),
+            'https://hooks.slack.com/*' => Http::response([
+                'ok' => true,
+            ], 200),
         ]);
 
         $response = $this->actingAs($client)->postJson('/api/portal/webhook/test', [
@@ -212,8 +214,14 @@ class EuComplianceAndEnterpriseTest extends TestCase
 
     public function test_partner_referrals_generation_and_credit_attribution(): void
     {
-        $referrer = $this->client(['email' => 'partner@agency.test', 'name' => 'Agency Partner']);
-        $referredUser = $this->client(['email' => 'client@startup.test', 'name' => 'Startup Buyer']);
+        $referrer = $this->client([
+            'email' => 'partner@agency.test',
+            'name' => 'Agency Partner',
+        ]);
+        $referredUser = $this->client([
+            'email' => 'client@startup.test',
+            'name' => 'Startup Buyer',
+        ]);
 
         // Verify referral code generation
         $code = PartnerReferrals::codeFor($referrer);
@@ -232,7 +240,7 @@ class EuComplianceAndEnterpriseTest extends TestCase
         ]);
 
         // Referrer credits start at 0
-        $this->assertSame(0, (int) $referrer->referral_credits);
+        $this->assertSame(0, (int)$referrer->referral_credits);
 
         // Deal is marked as paid, which triggers PartnerReferrals::attributePayment via Model booted hook
         $deal->payment_status = 'paid';
@@ -243,8 +251,8 @@ class EuComplianceAndEnterpriseTest extends TestCase
         $deal->refresh();
 
         // Fixed minimum $1,000 credit awarded
-        $this->assertEquals(1000, (int) $deal->referral_credit_earned);
-        $this->assertEquals(1000, (int) $referrer->referral_credits);
+        $this->assertEquals(1000, (int)$deal->referral_credit_earned);
+        $this->assertEquals(1000, (int)$referrer->referral_credits);
 
         // Test API endpoint for partner referrals
         $portalResponse = $this->actingAs($referrer)->getJson('/api/portal/referrals');

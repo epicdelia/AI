@@ -18,12 +18,18 @@ class BlockBots
 
     public function handle(Request $request, Closure $next): Response
     {
-        $trap = trim((string) $request->input('website', ''));
+        $trap = trim((string)$request->input('website', ''));
         $ms = $request->input('_t');
-        if ($trap !== '' || (is_numeric($ms) && (int) $ms < self::MIN_MS)) {
-            logger()->info('Blocked a bot form post', ['path' => $request->path(), 'ip' => $request->ip()]);
+        if ($trap !== '' || (is_numeric($ms) && (int)$ms < self::MIN_MS)) {
+            logger()->info('Blocked a bot form post', [
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
 
-            return response()->json(['ok' => true, 'message' => 'Thanks! We’ll be in touch.'], 202);
+            return response()->json([
+                'ok' => true,
+                'message' => 'Thanks! We’ll be in touch.',
+            ], 202);
         }
 
         return $next($request);

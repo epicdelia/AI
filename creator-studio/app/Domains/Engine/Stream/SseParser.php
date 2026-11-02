@@ -20,7 +20,7 @@ class SseParser
         $event = null;
         $data = [];
 
-        while (! $body->eof()) {
+        while (!$body->eof()) {
             $buffer .= $body->read(8192);
             while (($pos = strpos($buffer, "\n")) !== false) {
                 $line = rtrim(substr($buffer, 0, $pos), "\r");

@@ -25,7 +25,8 @@ class AgentTreeSearch
         private ToolRegistry $tools,
         private AgentEpisodicMemory $memory,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Execute Language Agent Tree Search to discover the globally optimal post trajectory.
@@ -41,7 +42,7 @@ class AgentTreeSearch
     {
         $platform = $params['platform'] ?? 'linkedin';
         $topic = $params['topic'] ?? 'Software engineering architecture';
-        $branchFactor = max(2, min(4, (int) ($params['branches_per_level'] ?? 3)));
+        $branchFactor = max(2, min(4, (int)($params['branches_per_level'] ?? 3)));
 
         $nodes = [];
         $edges = [];
@@ -55,7 +56,9 @@ class AgentTreeSearch
             'label' => mb_substr($topic, 0, 40),
             'depth' => 0,
             'score' => 100,
-            'data' => ['topic' => $topic],
+            'data' => [
+                'topic' => $topic,
+            ],
         ];
 
         // 1. Level 1: Propose Divergent Strategic Angles (Exploration)
@@ -75,7 +78,10 @@ class AgentTreeSearch
                 'score' => 80,
                 'data' => $angle,
             ];
-            $edges[] = ['from' => $rootId, 'to' => $nodeId];
+            $edges[] = [
+                'from' => $rootId,
+                'to' => $nodeId,
+            ];
         }
 
         // 2. Level 2: Expand Angles into Concrete Draft Candidates (Expansion)
@@ -90,7 +96,7 @@ class AgentTreeSearch
                 // 3. External Verifier Scoring & Pruning (AiTellsLinter + QualityEvaluator)
                 $verification = $this->evaluateDraftNode($draft, $platform);
                 $score = $verification['overall_score'];
-                $hasHardTells = ! empty($verification['hard_tells']);
+                $hasHardTells = !empty($verification['hard_tells']);
 
                 $isPruned = $score < 70 || $hasHardTells;
 
@@ -98,14 +104,17 @@ class AgentTreeSearch
                     'id' => $draftId,
                     'parent' => $parentAngleId,
                     'type' => 'draft',
-                    'label' => mb_substr($draft['body'], 0, 35).'...',
+                    'label' => mb_substr($draft['body'], 0, 35) . '...',
                     'depth' => 2,
                     'score' => $score,
                     'is_pruned' => $isPruned,
                     'verification' => $verification,
                     'data' => $draft,
                 ];
-                $edges[] = ['from' => $parentAngleId, 'to' => $draftId];
+                $edges[] = [
+                    'from' => $parentAngleId,
+                    'to' => $draftId,
+                ];
 
                 if ($isPruned) {
                     $prunedNodes[] = $draftId;
@@ -117,7 +126,7 @@ class AgentTreeSearch
 
         // 4. Backtracking & Trajectory Selection
         // If all level 2 nodes were pruned, salvage highest score among pruned nodes
-        $candidatePool = ! empty($level2Nodes) ? $level2Nodes : array_keys(array_filter($nodes, fn ($n) => ($n['depth'] ?? 0) === 2));
+        $candidatePool = !empty($level2Nodes) ? $level2Nodes : array_keys(array_filter($nodes, fn ($n) => ($n['depth'] ?? 0) === 2));
 
         $bestNodeId = $candidatePool[0];
         $highestScore = -1;
@@ -161,25 +170,33 @@ class AgentTreeSearch
         $memoryContext = $this->memory->buildMemoryContext($agent);
 
         $prompt = "Topic: {$topic}\n\n{$memoryContext}\n\n"
-            ."Generate {$limit} divergent architectural angles for an engineer audience:\n"
-            ."1. Contrarian/Debunking angle (disproves common myth)\n"
-            ."2. Hard Benchmark/Production Failure angle (real incident or metric)\n"
-            ."3. Pragmatic Solo-Builder trade-off angle (simplicity over hype)\n"
-            ."Output JSON: {\"angles\": [{\"angle_name\": \"...\", \"hypothesis\": \"...\", \"hook_concept\": \"...\"}]}";
+            . "Generate {$limit} divergent architectural angles for an engineer audience:\n"
+            . "1. Contrarian/Debunking angle (disproves common myth)\n"
+            . "2. Hard Benchmark/Production Failure angle (real incident or metric)\n"
+            . "3. Pragmatic Solo-Builder trade-off angle (simplicity over hype)\n"
+            . 'Output JSON: {"angles": [{"angle_name": "...", "hypothesis": "...", "hook_concept": "..."}]}';
 
         $this->guardrails->recordTokens(mb_strlen($prompt) / 4, 250);
 
         try {
             $data = $this->llm->as('tree-search-angle')->creativity(0.8)->json(
-                Prompts::voice()."\n\nPersona: Principal engineer & architecture critic.",
+                Prompts::voice() . "\n\nPersona: Principal engineer & architecture critic.",
                 $prompt
             );
 
             return array_slice($data['angles'] ?? [], 0, $limit);
         } catch (Throwable $e) {
             return [
-                ['angle_name' => 'Contrarian Benchmark', 'hypothesis' => 'Simpler architectures outperform complex microservices.', 'hook_concept' => 'Why we dismantled our K8s cluster.'],
-                ['angle_name' => 'Incident Autopsy', 'hypothesis' => 'Distributed locks fail during clock skews.', 'hook_concept' => 'The clock drift bug that cost $12k.'],
+                [
+                    'angle_name' => 'Contrarian Benchmark',
+                    'hypothesis' => 'Simpler architectures outperform complex microservices.',
+                    'hook_concept' => 'Why we dismantled our K8s cluster.',
+                ],
+                [
+                    'angle_name' => 'Incident Autopsy',
+                    'hypothesis' => 'Distributed locks fail during clock skews.',
+                    'hook_concept' => 'The clock drift bug that cost $12k.',
+                ],
             ];
         }
     }
@@ -187,33 +204,39 @@ class AgentTreeSearch
     private function expandDrafts(SocialAgent $agent, string $topic, array $angle, string $platform, int $count): array
     {
         $prompt = "Topic: {$topic}\n"
-            ."Angle Name: {$angle['angle_name']}\n"
-            ."Hypothesis: {$angle['hypothesis']}\n"
-            ."Target Platform: {$platform}\n\n"
-            ."Draft {$count} distinct post variations for this angle. Line 1 must be an attention-grabbing hook. "
-            ."Zero em-dashes and zero AI corporate clichés.\n"
-            ."Output JSON: {\"drafts\": [{\"body\": \"...\", \"parts\": []}]}";
+            . "Angle Name: {$angle['angle_name']}\n"
+            . "Hypothesis: {$angle['hypothesis']}\n"
+            . "Target Platform: {$platform}\n\n"
+            . "Draft {$count} distinct post variations for this angle. Line 1 must be an attention-grabbing hook. "
+            . "Zero em-dashes and zero AI corporate clichés.\n"
+            . 'Output JSON: {"drafts": [{"body": "...", "parts": []}]}';
 
         $this->guardrails->recordTokens(mb_strlen($prompt) / 4, 350);
 
         try {
             $data = $this->llm->as('tree-search-expand')->creativity(0.6)->json(
-                Prompts::voice()."\n\n".Prompts::writingRules(),
+                Prompts::voice() . "\n\n" . Prompts::writingRules(),
                 $prompt
             );
 
             return array_slice($data['drafts'] ?? [], 0, $count);
         } catch (Throwable $e) {
             return [
-                ['body' => "Most distributed caching setups fail because engineers cache outputs rather than atomic compute mutexes.\n\nHere is how we fixed it.", 'parts' => []],
+                [
+                    'body' => "Most distributed caching setups fail because engineers cache outputs rather than atomic compute mutexes.\n\nHere is how we fixed it.",
+                    'parts' => [],
+                ],
             ];
         }
     }
 
     private function evaluateDraftNode(array $draft, string $platform): array
     {
-        $body = (string) ($draft['body'] ?? '');
-        $eval = QualityEvaluator::evaluate(['platform' => $platform, 'body' => $body]);
+        $body = (string)($draft['body'] ?? '');
+        $eval = QualityEvaluator::evaluate([
+            'platform' => $platform,
+            'body' => $body,
+        ]);
 
         $findings = AiTellsLinter::lint($body);
         $hardTells = array_filter($findings, fn ($f) => $f['severity'] === AiTellsLinter::HARD);
@@ -226,4 +249,3 @@ class AgentTreeSearch
         ];
     }
 }
-

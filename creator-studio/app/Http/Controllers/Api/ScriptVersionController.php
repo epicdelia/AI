@@ -10,7 +10,9 @@ use App\Services\AiTellsLinter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Version history for a script: list, compare with the current text, save by hand, restore. */
+/**
+ * Version history for a script: list, compare with the current text, save by hand, restore.
+ */
 class ScriptVersionController extends Controller
 {
     public function index(Script $script): JsonResponse
@@ -21,31 +23,44 @@ class ScriptVersionController extends Controller
         ]);
     }
 
-    /** One version, with what changed between it and the current text. */
+    /**
+     * One version, with what changed between it and the current text.
+     */
     public function show(Script $script, ScriptVersion $version): JsonResponse
     {
         return response()->json([
             'version' => $version,
-            'hunks' => ParagraphDiff::hunks($version->body, (string) $script->body),
+            'hunks' => ParagraphDiff::hunks($version->body, (string)$script->body),
         ]);
     }
 
     public function store(Request $request, Script $script): JsonResponse
     {
-        $data = $request->validate(['label' => 'nullable|string|max:120']);
+        $data = $request->validate([
+            'label' => 'nullable|string|max:120',
+        ]);
         $version = ScriptVersion::keep($script, label: ($data['label'] ?? null) ?: 'Saved by hand');
-        if (! $version) {
-            return response()->json(['error' => 'There is nothing written to save yet.'], 422);
+        if (!$version) {
+            return response()->json([
+                'error' => 'There is nothing written to save yet.',
+            ], 422);
         }
 
-        return response()->json(['version' => $version, 'message' => 'Version saved.']);
+        return response()->json([
+            'version' => $version,
+            'message' => 'Version saved.',
+        ]);
     }
 
-    /** Put an old version back. The current text is kept as a version first, so this can be undone too. */
+    /**
+     * Put an old version back. The current text is kept as a version first, so this can be undone too.
+     */
     public function restore(Script $script, ScriptVersion $version): JsonResponse
     {
-        ScriptVersion::keep($script, source: 'restore', label: 'Before restoring the '.$version->created_at->format('M j, H:i').' version');
-        $script->update(['body' => $version->body]);
+        ScriptVersion::keep($script, source: 'restore', label: 'Before restoring the ' . $version->created_at->format('M j, H:i') . ' version');
+        $script->update([
+            'body' => $version->body,
+        ]);
         $findings = AiTellsLinter::lint($version->body);
 
         return response()->json([
@@ -60,6 +75,8 @@ class ScriptVersionController extends Controller
     {
         $version->delete();
 
-        return response()->json(['message' => 'Version deleted.']);
+        return response()->json([
+            'message' => 'Version deleted.',
+        ]);
     }
 }

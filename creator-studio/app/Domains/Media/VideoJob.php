@@ -11,13 +11,16 @@ class VideoJob extends Model
 
     protected $hidden = ['status_url', 'response_url'];
 
-    protected function casts(): array
-    {
-        return ['params' => 'array', 'checked_at' => 'datetime'];
-    }
-
     public function media(): BelongsTo
     {
         return $this->belongsTo(MediaFile::class, 'media_file_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'params' => 'array',
+            'checked_at' => 'datetime',
+        ];
     }
 }

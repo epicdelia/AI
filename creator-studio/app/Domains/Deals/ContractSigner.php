@@ -21,21 +21,21 @@ class ContractSigner
         $request ??= request();
         $user = $request?->user();
 
-        $ip = (string) ($request?->ip() ?: '0.0.0.0');
-        $userAgent = mb_substr((string) ($request?->userAgent() ?: 'Unknown'), 0, 255);
+        $ip = (string)($request?->ip() ?: '0.0.0.0');
+        $userAgent = mb_substr((string)($request?->userAgent() ?: 'Unknown'), 0, 255);
         $email = $user?->email ?: ($deal->contact_email ?: 'client@direct.deal');
         $timestamp = now();
 
         $proposal = $deal->proposal ?? [];
-        $markdown = rescue(fn () => ProposalWriter::markdown($proposal), fn () => ($proposal['title'] ?? '')."\n".($proposal['summary'] ?? ''), false);
+        $markdown = rescue(fn () => ProposalWriter::markdown($proposal), fn () => ($proposal['title'] ?? '') . "\n" . ($proposal['summary'] ?? ''), false);
 
         // Tamper-evident signature fingerprint
         $fingerprintPayload = implode('|', [
             $deal->id,
             $deal->brand_name,
-            (float) ($proposal['investment']['amount'] ?? $deal->rate),
+            (float)($proposal['investment']['amount'] ?? $deal->rate),
             $proposal['investment']['currency'] ?? ($deal->currency ?: 'USD'),
-            hash('sha256', (string) $markdown),
+            hash('sha256', (string)$markdown),
             trim($name),
             strtolower(trim($email)),
             $ip,
@@ -45,7 +45,9 @@ class ContractSigner
 
         $before = array_search($deal->stage, Deal::STAGES, true);
         $stageUpdate = ($before !== false && $before < array_search('contracted', Deal::STAGES, true))
-            ? ['stage' => 'contracted']
+            ? [
+                'stage' => 'contracted',
+            ]
             : [];
 
         $deal->update([
@@ -85,4 +87,3 @@ class ContractSigner
         ]);
     }
 }
-

@@ -67,7 +67,7 @@ class ProposalTiers
 
     public static function forDeal(Deal $deal): array
     {
-        $baseRate = (float) ($deal->rate > 0 ? $deal->rate : 5000.0);
+        $baseRate = (float)($deal->rate > 0 ? $deal->rate : 5000.0);
         $currency = $deal->currency ?: 'USD';
         $selected = $deal->selected_tier ?: 'growth';
 
@@ -96,32 +96,62 @@ class ProposalTiers
 
     public static function selectTier(Deal $deal, string $tierKey, ?User $by = null): array
     {
-        if (! isset(self::TIERS[$tierKey])) {
-            throw ValidationException::withMessages(['tier' => 'Invalid proposal tier selected.']);
+        if (!isset(self::TIERS[$tierKey])) {
+            throw ValidationException::withMessages([
+                'tier' => 'Invalid proposal tier selected.',
+            ]);
         }
 
         $tierConfig = self::TIERS[$tierKey];
         $allTiers = self::forDeal($deal)['tiers'];
         $matching = collect($allTiers)->firstWhere('key', $tierKey);
-        $amount = (float) $matching['amount'];
+        $amount = (float)$matching['amount'];
 
         // Recalculate deliverables for this tier
         $deliverables = [
-            ['platform' => 'youtube', 'format' => 'Sponsored Integration ('.$tierConfig['name'].')', 'status' => 'in_progress'],
+            [
+                'platform' => 'youtube',
+                'format' => 'Sponsored Integration (' . $tierConfig['name'] . ')',
+                'status' => 'in_progress',
+            ],
         ];
 
         if ($tierKey === 'growth') {
-            $deliverables[] = ['platform' => 'youtube', 'format' => '2× Dedicated Vertical Shorts/Reels', 'status' => 'in_progress'];
-            $deliverables[] = ['platform' => 'newsletter', 'format' => 'Developer Newsletter Feature', 'status' => 'in_progress'];
+            $deliverables[] = [
+                'platform' => 'youtube',
+                'format' => '2× Dedicated Vertical Shorts/Reels',
+                'status' => 'in_progress',
+            ];
+            $deliverables[] = [
+                'platform' => 'newsletter',
+                'format' => 'Developer Newsletter Feature',
+                'status' => 'in_progress',
+            ];
         } elseif ($tierKey === 'enterprise') {
-            $deliverables[] = ['platform' => 'youtube', 'format' => 'Full Dedicated Video', 'status' => 'in_progress'];
-            $deliverables[] = ['platform' => 'social', 'format' => 'Transmedia Social Cascade (LinkedIn/X)', 'status' => 'in_progress'];
-            $deliverables[] = ['platform' => 'ads', 'format' => '90-Day Paid Spark Ads Licensing', 'status' => 'in_progress'];
-            $deliverables[] = ['platform' => 'meeting', 'format' => 'VIP GTM Advisory Session', 'status' => 'in_progress'];
+            $deliverables[] = [
+                'platform' => 'youtube',
+                'format' => 'Full Dedicated Video',
+                'status' => 'in_progress',
+            ];
+            $deliverables[] = [
+                'platform' => 'social',
+                'format' => 'Transmedia Social Cascade (LinkedIn/X)',
+                'status' => 'in_progress',
+            ];
+            $deliverables[] = [
+                'platform' => 'ads',
+                'format' => '90-Day Paid Spark Ads Licensing',
+                'status' => 'in_progress',
+            ];
+            $deliverables[] = [
+                'platform' => 'meeting',
+                'format' => 'VIP GTM Advisory Session',
+                'status' => 'in_progress',
+            ];
         }
 
         $proposal = $deal->proposal ?? [];
-        if (! empty($proposal['investment'])) {
+        if (!empty($proposal['investment'])) {
             $proposal['investment']['amount'] = $amount;
         }
         $proposal['tier_name'] = $tierConfig['name'];
@@ -134,9 +164,12 @@ class ProposalTiers
             'last_contacted_at' => now(),
         ]);
 
-        Audit::log('deal_linked', $by, $deal, ['selected_tier' => $tierKey, 'amount' => $amount]);
+        Audit::log('deal_linked', $by, $deal, [
+            'selected_tier' => $tierKey,
+            'amount' => $amount,
+        ]);
         $who = $by?->name ?: ($deal->brand_name);
-        AgentEvent::log('lead', "{$who} selected the {$tierConfig['name']} tier ($".number_format($amount).").");
+        AgentEvent::log('lead', "{$who} selected the {$tierConfig['name']} tier ($" . number_format($amount) . ').');
 
         return [
             'ok' => true,
@@ -145,7 +178,7 @@ class ProposalTiers
             'new_rate' => $amount,
             'currency' => $deal->currency ?: 'USD',
             'deliverables' => $deliverables,
-            'message' => "Updated to {$tierConfig['name']} ($".number_format($amount)." {$deal->currency}).",
+            'message' => "Updated to {$tierConfig['name']} ($" . number_format($amount) . " {$deal->currency}).",
         ];
     }
 }

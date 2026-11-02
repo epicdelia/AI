@@ -50,8 +50,8 @@ class AgentEpisodicMemory
                     'platform' => $p->platform,
                     'hook' => $hook,
                     'body' => mb_substr($text, 0, 600),
-                    'rate' => (float) ($p->engagement['rate'] ?? 0),
-                    'engagements' => (int) ($p->engagement['total'] ?? 0),
+                    'rate' => (float)($p->engagement['rate'] ?? 0),
+                    'engagements' => (int)($p->engagement['total'] ?? 0),
                 ];
             })
             ->values();
@@ -148,7 +148,7 @@ class AgentEpisodicMemory
         if ($antiPatterns->isNotEmpty()) {
             $out .= "#### Known Anti-Patterns & Rejection Traps (NEVER repeat these mistakes):\n";
             foreach ($antiPatterns as $a) {
-                $out .= "- Avoid: {$a['reason']}".($a['text_sample'] ? " (Draft: \"{$a['text_sample']}\")" : '')."\n";
+                $out .= "- Avoid: {$a['reason']}" . ($a['text_sample'] ? " (Draft: \"{$a['text_sample']}\")" : '') . "\n";
             }
             $out .= "\n";
         }

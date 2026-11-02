@@ -18,6 +18,11 @@ class SwarmMission extends Model
         'result',
     ];
 
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -27,10 +32,4 @@ class SwarmMission extends Model
             'current_step' => 'integer',
         ];
     }
-
-    public function agent(): BelongsTo
-    {
-        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
-    }
 }
-

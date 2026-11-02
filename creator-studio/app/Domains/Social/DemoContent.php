@@ -18,7 +18,9 @@ class DemoContent
         return SocialPost::where('source', 'demo')->count();
     }
 
-    /** @return int posts created (0 if the demo is already loaded) */
+    /**
+     * @return int posts created (0 if the demo is already loaded)
+     */
     public static function seed(): int
     {
         if (self::count() > 0) {
@@ -27,7 +29,9 @@ class DemoContent
         $tz = SocialAnalytics::tz();
         $now = CarbonImmutable::now($tz)->setTime(0, 0);
         $at = fn (int $days, string $time) => $now->addDays($days)->setTimeFromTimeString($time)->utc();
-        $m = fn (int $imp, int $likes, int $comments, int $shares = 0, int $saves = 0) => compact('likes', 'comments', 'shares', 'saves') + ['impressions' => $imp];
+        $m = fn (int $imp, int $likes, int $comments, int $shares = 0, int $saves = 0) => compact('likes', 'comments', 'shares', 'saves') + [
+            'impressions' => $imp,
+        ];
 
         $posts = [
             // LinkedIn
@@ -43,9 +47,9 @@ class DemoContent
             ['x', 'post', 'Hot take on AI email', 'Hot take: the best AI email setup is three rules and a weekly check, not a fancy prompt.', [], -6, '13:00', $m(7400, 140, 32, 19, 9)],
             ['x', 'post', 'Question for followers', 'What’s one task you’d never hand to an AI? I’ll go first: anything my landlord sends.', [], 2, '12:30', null, 'scheduled'],
             // TikTok
-            ['tiktok', 'video', 'AI inbox day 1', "POV: AI runs your inbox 📬💀 #ai #techtok #productivity", ['[TEXT: I gave AI my inbox]', 'Day 1 and it already archived my landlord.', 'Day 3: it replied to my mum with a thumbs up.', 'Day 5: it booked a meeting I’d been dodging for a month.', 'Part 2 tomorrow'], -12, '20:00', $m(48000, 5200, 310, 640, 380)],
+            ['tiktok', 'video', 'AI inbox day 1', 'POV: AI runs your inbox 📬💀 #ai #techtok #productivity', ['[TEXT: I gave AI my inbox]', 'Day 1 and it already archived my landlord.', 'Day 3: it replied to my mum with a thumbs up.', 'Day 5: it booked a meeting I’d been dodging for a month.', 'Part 2 tomorrow'], -12, '20:00', $m(48000, 5200, 310, 640, 380)],
             ['tiktok', 'photo', '3 apps I deleted', 'Three apps I deleted and didn’t miss 🗑️ #techtok #digitalminimalism', ['3 apps I deleted and didn’t miss', 'The “all-in-one” planner', 'The second note app', 'The focus app that needed its own reminders'], -2, '19:30', $m(22000, 1900, 140, 210, 260)],
-            ['tiktok', 'video', 'Desk reset in 60 seconds', "60-second desk reset ⏱️ #desksetup #techtok", ['[TEXT: 60-second desk reset]', 'Clear everything off.', 'Put back only three things.', 'Timer on. Phone away.', 'That’s it.'], 4, '20:00', null, 'scheduled'],
+            ['tiktok', 'video', 'Desk reset in 60 seconds', '60-second desk reset ⏱️ #desksetup #techtok', ['[TEXT: 60-second desk reset]', 'Clear everything off.', 'Put back only three things.', 'Timer on. Phone away.', 'That’s it.'], 4, '20:00', null, 'scheduled'],
             // Threads
             ['threads', 'post', 'Honest AI take', 'Honest take: most “AI productivity” advice is just regular productivity advice with a robot emoji. The rules still do the work. Agree?', [], -15, '09:30', $m(5200, 260, 74, 15)],
             ['threads', 'thread', 'What I learned from the inbox week', '', ['A week of letting AI answer my email taught me more about my inbox than about AI.', 'Most of my email didn’t need a reply at all. The AI just made that obvious.', 'The scary part wasn’t the mistakes. It was how quickly it started to sound like me.', 'Would you try it for a week?'], -3, '10:00', $m(6100, 300, 92, 22)],
@@ -63,24 +67,49 @@ class DemoContent
             [$platform, $format, $title, $body, $parts, $days, $time, $metrics] = $p;
             $status = $p[8] ?? 'posted';
             SocialPost::create([
-                'platform' => $platform, 'format' => $format, 'title' => "Demo · {$title}", 'body' => $body, 'parts' => $parts,
-                'status' => $status, 'source' => 'demo', 'metrics' => $metrics, 'notes' => 'Demo post: remove all demo posts from the Calendar or Analytics page.',
+                'platform' => $platform,
+                'format' => $format,
+                'title' => "Demo · {$title}",
+                'body' => $body,
+                'parts' => $parts,
+                'status' => $status,
+                'source' => 'demo',
+                'metrics' => $metrics,
+                'notes' => 'Demo post: remove all demo posts from the Calendar or Analytics page.',
                 'posted_at' => $status === 'posted' ? $at($days, $time) : null,
                 'scheduled_for' => $status === 'scheduled' ? $at($days, $time) : null,
             ]);
         }
 
         // Follower counts, only for networks with none of her own.
-        $start = ['linkedin' => 3200, 'instagram' => 8400, 'x' => 2100, 'tiktok' => 15600, 'threads' => 1200, 'youtube' => 4800];
-        $growth = ['linkedin' => 260, 'instagram' => 540, 'x' => 90, 'tiktok' => 2300, 'threads' => 310, 'youtube' => 410];
+        $start = [
+            'linkedin' => 3200,
+            'instagram' => 8400,
+            'x' => 2100,
+            'tiktok' => 15600,
+            'threads' => 1200,
+            'youtube' => 4800,
+        ];
+        $growth = [
+            'linkedin' => 260,
+            'instagram' => 540,
+            'x' => 90,
+            'tiktok' => 2300,
+            'threads' => 310,
+            'youtube' => 410,
+        ];
         foreach ($start as $platform => $count) {
             if (DB::table('follower_snapshots')->where('platform', $platform)->exists()) {
                 continue;
             }
             foreach ([30, 20, 10, 0] as $i => $daysAgo) {
                 DB::table('follower_snapshots')->insert([
-                    'platform' => $platform, 'count' => $count + (int) round($growth[$platform] * $i / 3),
-                    'recorded_on' => $now->subDays($daysAgo)->toDateString(), 'source' => 'demo', 'created_at' => now(), 'updated_at' => now(),
+                    'platform' => $platform,
+                    'count' => $count + (int)round($growth[$platform] * $i / 3),
+                    'recorded_on' => $now->subDays($daysAgo)->toDateString(),
+                    'source' => 'demo',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
         }

@@ -44,10 +44,10 @@ class DealsController extends Controller
             'deals' => $deals,
             'stages' => Deal::STAGES,
             'stats' => [
-                'total_pipeline' => round((float) $totalPipeline, 2),
-                'confirmed_revenue' => round((float) $confirmed, 2),
-                'received_revenue' => round((float) $received, 2),
-                'pending_invoices' => round((float) $pendingInvoice, 2),
+                'total_pipeline' => round((float)$totalPipeline, 2),
+                'confirmed_revenue' => round((float)$confirmed, 2),
+                'received_revenue' => round((float)$received, 2),
+                'pending_invoices' => round((float)$pendingInvoice, 2),
                 'active_count' => Deal::whereNotIn('stage', Deal::NOT_PIPELINE)->count(),
                 'follow_ups' => \App\Domains\Deals\FollowUps::due()->count(),
                 'by_stage' => $byStage,
@@ -64,7 +64,7 @@ class DealsController extends Controller
             'brand_name' => 'required|string|max:150',
             'contact_name' => 'nullable|string|max:150',
             'contact_email' => 'nullable|email|max:150',
-            'stage' => 'nullable|in:'.implode(',', Deal::STAGES),
+            'stage' => 'nullable|in:' . implode(',', Deal::STAGES),
             'deliverables' => 'nullable|array',
             'rate' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
@@ -83,7 +83,7 @@ class DealsController extends Controller
         $deal = Deal::create($data);
 
         return response()->json([
-            'message' => 'Deal created for '.$deal->brand_name,
+            'message' => 'Deal created for ' . $deal->brand_name,
             'deal' => $deal->load(['script:id,title', 'socialPost:id,platform,format,title']),
         ], 201);
     }
@@ -107,7 +107,7 @@ class DealsController extends Controller
             'brand_name' => 'sometimes|required|string|max:150',
             'contact_name' => 'nullable|string|max:150',
             'contact_email' => 'nullable|email|max:150',
-            'stage' => 'sometimes|in:'.implode(',', Deal::STAGES),
+            'stage' => 'sometimes|in:' . implode(',', Deal::STAGES),
             'deliverables' => 'nullable|array',
             'rate' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
@@ -127,13 +127,13 @@ class DealsController extends Controller
         ]);
 
         if (isset($data['stage'])) {
-            if ($data['stage'] === 'paid' && ! $deal->paid_at) {
+            if ($data['stage'] === 'paid' && !$deal->paid_at) {
                 $data['paid_at'] = now();
                 $data['payment_status'] = 'paid';
-            } elseif ($data['stage'] === 'invoiced' && ! $deal->invoiced_at) {
+            } elseif ($data['stage'] === 'invoiced' && !$deal->invoiced_at) {
                 $data['invoiced_at'] = now();
                 $data['payment_status'] = 'invoiced';
-            } elseif ($data['stage'] === 'scheduled' && ! $deal->published_at) {
+            } elseif ($data['stage'] === 'scheduled' && !$deal->published_at) {
                 $data['published_at'] = now();
             }
         }
@@ -154,7 +154,9 @@ class DealsController extends Controller
         $name = $deal->brand_name;
         $deal->delete();
 
-        return response()->json(['message' => 'Deal with '.$name.' deleted']);
+        return response()->json([
+            'message' => 'Deal with ' . $name . ' deleted',
+        ]);
     }
 
     /**
@@ -214,6 +216,7 @@ PROMPT;
 
         try {
             $res = $llm->as('deal:pitch')->json($system, $user);
+
             return response()->json([
                 'pitch' => $res,
             ]);
@@ -244,7 +247,7 @@ PROMPT;
         $link = $deal->tracking_url ?: 'link in the description and pinned comment';
         $topic = $data['video_topic'];
         $duration = $data['duration_seconds'] ?? 60;
-        $words = (int) round(($duration / 60) * 150);
+        $words = (int)round(($duration / 60) * 150);
 
         $system = <<<PROMPT
 You are a YouTube scriptwriter for Delia (@Tech.Unicorn).
@@ -267,6 +270,7 @@ PROMPT;
 
         try {
             $res = $llm->as('deal:sponsor_script')->json($system, $user);
+
             return response()->json([
                 'segment' => $res,
             ]);
@@ -276,7 +280,7 @@ PROMPT;
                     'transition_in' => "And when you're scaling an architecture like this, the biggest bottleneck isn't the code—it's having the right tooling in place. Which brings us to today's sponsor, {$brand}.",
                     'script_body' => "[VISUAL: Screen recording of {$brand} interface]\nIf you've ever struggled with debugging distributed workflows, {$brand} gives you instant visibility into your entire pipeline. [YOUR STORY: Share 5-second personal workflow tip]. You can get started for free today, and with my code {$code}, you'll get an extended trial at the link below in the description.",
                     'transition_out' => "Now, let's get back into the second design pattern you need to know.",
-                    'checklist' => ["Natural segue from {$topic}", "Clear value proposition", "CTA with {$code}", "Visual demo cues"],
+                    'checklist' => ["Natural segue from {$topic}", 'Clear value proposition', "CTA with {$code}", 'Visual demo cues'],
                 ],
             ]);
         }

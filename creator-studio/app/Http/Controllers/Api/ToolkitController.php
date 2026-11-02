@@ -22,7 +22,10 @@ class ToolkitController extends Controller
             'tools' => ToolRegistry::all(),
             'categories' => ToolRegistry::CATEGORIES,
             'favorites' => $this->favorites(),
-            'defaults' => ['tone' => Setting::get('tone_of_voice', ''), 'language' => Setting::get('language', 'English')],
+            'defaults' => [
+                'tone' => Setting::get('tone_of_voice', ''),
+                'language' => Setting::get('language', 'English'),
+            ],
         ]);
     }
 
@@ -36,10 +39,15 @@ class ToolkitController extends Controller
         try {
             $output = $this->llmFor($llm, $data)->chat(ToolRegistry::system(), ToolRegistry::userPrompt($tool, $data['inputs'] ?? [], $data));
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 502);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 502);
         }
 
-        return response()->json(['output' => $output, 'tool' => $tool['name']]);
+        return response()->json([
+            'output' => $output,
+            'tool' => $tool['name'],
+        ]);
     }
 
     public function runStream(Request $request, Llm $llm, StreamService $sse): JsonResponse|StreamedResponse
@@ -51,18 +59,69 @@ class ToolkitController extends Controller
         $user = ToolRegistry::userPrompt($tool, $data['inputs'] ?? [], $data);
 
         return $sse->respond(function (StreamService $sse) use ($llm, $data, $user, $tool) {
-            $output = $this->llmFor($llm, $data)->stream(ToolRegistry::system(), [['role' => 'user', 'content' => $user]], $sse->chunk(...));
+            $output = $this->llmFor($llm, $data)->stream(ToolRegistry::system(), [[
+                'role' => 'user',
+                'content' => $user,
+            ]], $sse->chunk(...));
 
-            return ['output' => $output, 'tool' => $tool['name']];
+            return [
+                'output' => $output,
+                'tool' => $tool['name'],
+            ];
         });
+    }
+
+    public function storeCustom(Request $request): JsonResponse
+    {
+        $tool = CustomTool::create($this->validated($request));
+
+        return response()->json([
+            'tool' => $tool,
+            'message' => 'Template saved.',
+        ]);
+    }
+
+    public function updateCustom(Request $request, CustomTool $tool): JsonResponse
+    {
+        $tool->update($this->validated($request));
+
+        return response()->json([
+            'tool' => $tool,
+            'message' => 'Template updated.',
+        ]);
+    }
+
+    public function destroyCustom(CustomTool $tool): JsonResponse
+    {
+        $tool->delete();
+
+        return response()->json([
+            'message' => 'Template deleted.',
+        ]);
+    }
+
+    public function toggleFavorite(Request $request): JsonResponse
+    {
+        $key = (string)$request->validate([
+            'key' => 'required|string|max:60',
+        ])['key'];
+        $favs = $this->favorites();
+        $favs = in_array($key, $favs, true) ? array_values(array_diff($favs, [$key])) : [...$favs, $key];
+        Setting::put('favorite_tools', json_encode($favs));
+
+        return response()->json([
+            'favorites' => $favs,
+        ]);
     }
 
     private function llmFor(Llm $llm, array $data): Llm
     {
-        return $llm->as('tool:'.$data['tool'])->creativity(isset($data['creativity']) ? (float) $data['creativity'] : null);
+        return $llm->as('tool:' . $data['tool'])->creativity(isset($data['creativity']) ? (float)$data['creativity'] : null);
     }
 
-    /** @return array{0: ?array, 1: array, 2: ?JsonResponse} */
+    /**
+     * @return array{0: ?array, 1: array, 2: ?JsonResponse}
+     */
     private function prepare(Request $request): array
     {
         $data = $request->validate([
@@ -78,53 +137,26 @@ class ToolkitController extends Controller
         try {
             $tool = ToolRegistry::find($data['tool']);
         } catch (InvalidArgumentException $e) {
-            return [null, $data, response()->json(['error' => $e->getMessage()], 404)];
+            return [null, $data, response()->json([
+                'error' => $e->getMessage(),
+            ], 404)];
         }
 
         $inputs = $data['inputs'] ?? [];
         foreach ($tool['fields'] as $f) {
-            if (! empty($f['required']) && trim((string) ($inputs[$f['name']] ?? '')) === '') {
-                return [$tool, $data, response()->json(['error' => "Fill in “{$f['label']}” first."], 422)];
+            if (!empty($f['required']) && trim((string)($inputs[$f['name']] ?? '')) === '') {
+                return [$tool, $data, response()->json([
+                    'error' => "Fill in “{$f['label']}” first.",
+                ], 422)];
             }
         }
 
         return [$tool, $data, null];
     }
 
-    public function storeCustom(Request $request): JsonResponse
-    {
-        $tool = CustomTool::create($this->validated($request));
-
-        return response()->json(['tool' => $tool, 'message' => 'Template saved.']);
-    }
-
-    public function updateCustom(Request $request, CustomTool $tool): JsonResponse
-    {
-        $tool->update($this->validated($request));
-
-        return response()->json(['tool' => $tool, 'message' => 'Template updated.']);
-    }
-
-    public function destroyCustom(CustomTool $tool): JsonResponse
-    {
-        $tool->delete();
-
-        return response()->json(['message' => 'Template deleted.']);
-    }
-
-    public function toggleFavorite(Request $request): JsonResponse
-    {
-        $key = (string) $request->validate(['key' => 'required|string|max:60'])['key'];
-        $favs = $this->favorites();
-        $favs = in_array($key, $favs, true) ? array_values(array_diff($favs, [$key])) : [...$favs, $key];
-        Setting::put('favorite_tools', json_encode($favs));
-
-        return response()->json(['favorites' => $favs]);
-    }
-
     private function favorites(): array
     {
-        $favs = json_decode((string) Setting::get('favorite_tools', '[]'), true);
+        $favs = json_decode((string)Setting::get('favorite_tools', '[]'), true);
 
         return is_array($favs) ? array_values(array_filter($favs, 'is_string')) : [];
     }
@@ -140,8 +172,10 @@ class ToolkitController extends Controller
         ]);
         $data['fields'] = ToolRegistry::cleanFields($data['fields']);
         $data['icon'] = ($data['icon'] ?? '') ?: 'sparkle';
-        if (! $data['fields']) {
-            abort(response()->json(['error' => 'Add at least one field with a name (letters, numbers, underscores).'], 422));
+        if (!$data['fields']) {
+            abort(response()->json([
+                'error' => 'Add at least one field with a name (letters, numbers, underscores).',
+            ], 422));
         }
 
         return $data;

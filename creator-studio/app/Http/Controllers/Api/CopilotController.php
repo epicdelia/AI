@@ -19,20 +19,62 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
-/** The Copilot panel: threads, projects, the streamed agent turn, proposals, feedback. */
+/**
+ * The Copilot panel: threads, projects, the streamed agent turn, proposals, feedback.
+ */
 class CopilotController extends Controller
 {
     public const COMMANDS = [
-        ['cmd' => '/rewrite', 'hint' => 'Rewrite the selection in my voice', 'prompt' => 'Rewrite the selected text in my voice: punchier, spoken, same meaning. Propose it as an edit.'],
-        ['cmd' => '/shorten', 'hint' => 'Make it about half as long', 'prompt' => 'Make the selected text about half as long without losing anything important. Propose it as an edit.'],
-        ['cmd' => '/explain', 'hint' => 'Explain or critique what I’m looking at', 'prompt' => 'Explain what works and what doesn’t in what I’m looking at, in a few bullets.'],
-        ['cmd' => '/hook', 'hint' => 'Stronger cold open', 'prompt' => 'Write 3 stronger cold opens for this script (first 15 seconds, spoken, with [VISUAL] notes). Propose the best one as an edit to the opening.'],
-        ['cmd' => '/titles', 'hint' => 'Title options', 'prompt' => 'Give me 5 title options for this video (tension, curiosity, outcome). Under 60 characters.'],
-        ['cmd' => '/thumbnail', 'hint' => 'Thumbnail ideas', 'prompt' => 'Give me 3 thumbnail concepts for this video: text (3-5 words), expression, main visual.'],
-        ['cmd' => '/factcheck', 'hint' => 'Find claims to verify', 'prompt' => 'List the factual claims in this script that I should verify before filming, and check the important ones on the web if you can.'],
-        ['cmd' => '/idea', 'hint' => 'Save an idea', 'prompt' => 'Turn this into a video idea (title, premise, angle) and propose saving it.'],
-        ['cmd' => '/plan', 'hint' => 'Plan my week', 'prompt' => 'Look at my studio and tell me the 3 most useful things to do this week to ship my video.'],
-        ['cmd' => '/breakouts', 'hint' => 'What’s working right now', 'prompt' => 'What are the top breakouts in my niche telling me? Give me 3 ideas with my angle.'],
+        [
+            'cmd' => '/rewrite',
+            'hint' => 'Rewrite the selection in my voice',
+            'prompt' => 'Rewrite the selected text in my voice: punchier, spoken, same meaning. Propose it as an edit.',
+        ],
+        [
+            'cmd' => '/shorten',
+            'hint' => 'Make it about half as long',
+            'prompt' => 'Make the selected text about half as long without losing anything important. Propose it as an edit.',
+        ],
+        [
+            'cmd' => '/explain',
+            'hint' => 'Explain or critique what I’m looking at',
+            'prompt' => 'Explain what works and what doesn’t in what I’m looking at, in a few bullets.',
+        ],
+        [
+            'cmd' => '/hook',
+            'hint' => 'Stronger cold open',
+            'prompt' => 'Write 3 stronger cold opens for this script (first 15 seconds, spoken, with [VISUAL] notes). Propose the best one as an edit to the opening.',
+        ],
+        [
+            'cmd' => '/titles',
+            'hint' => 'Title options',
+            'prompt' => 'Give me 5 title options for this video (tension, curiosity, outcome). Under 60 characters.',
+        ],
+        [
+            'cmd' => '/thumbnail',
+            'hint' => 'Thumbnail ideas',
+            'prompt' => 'Give me 3 thumbnail concepts for this video: text (3-5 words), expression, main visual.',
+        ],
+        [
+            'cmd' => '/factcheck',
+            'hint' => 'Find claims to verify',
+            'prompt' => 'List the factual claims in this script that I should verify before filming, and check the important ones on the web if you can.',
+        ],
+        [
+            'cmd' => '/idea',
+            'hint' => 'Save an idea',
+            'prompt' => 'Turn this into a video idea (title, premise, angle) and propose saving it.',
+        ],
+        [
+            'cmd' => '/plan',
+            'hint' => 'Plan my week',
+            'prompt' => 'Look at my studio and tell me the 3 most useful things to do this week to ship my video.',
+        ],
+        [
+            'cmd' => '/breakouts',
+            'hint' => 'What’s working right now',
+            'prompt' => 'What are the top breakouts in my niche telling me? Give me 3 ideas with my angle.',
+        ],
     ];
 
     public function meta(): JsonResponse
@@ -46,12 +88,22 @@ class CopilotController extends Controller
             'label' => $e->label(),
             'current' => $e === $engine,
             'models' => collect(ModelCatalog::all($e))->reject(fn ($m) => $m[3])
-                ->map(fn ($m, $id) => ['value' => "{$e->value}|{$id}", 'id' => $id, 'label' => $m[0], 'description' => $m[4] ?? $m[0], 'reasoning' => $m[1] !== [], 'vision' => $m[2]])
+                ->map(fn ($m, $id) => [
+                    'value' => "{$e->value}|{$id}",
+                    'id' => $id,
+                    'label' => $m[0],
+                    'description' => $m[4] ?? $m[0],
+                    'reasoning' => $m[1] !== [],
+                    'vision' => $m[2],
+                ])
                 ->values(),
         ])->values();
 
         return response()->json([
-            'engine' => ['id' => $engine->value, 'label' => $engine->label()],
+            'engine' => [
+                'id' => $engine->value,
+                'label' => $engine->label(),
+            ],
             'default_model' => "{$engine->value}|{$default}",
             'default_label' => ModelCatalog::find($engine, $default)['label'] ?? $default,
             'groups' => $groups,
@@ -68,14 +120,20 @@ class CopilotController extends Controller
             $q->where('project', $request->query('project'));
         }
 
-        return response()->json(['threads' => $q->take(60)->get()]);
+        return response()->json([
+            'threads' => $q->take(60)->get(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request);
 
-        return response()->json(['thread' => CopilotThread::create($data + ['title' => 'New chat'])]);
+        return response()->json([
+            'thread' => CopilotThread::create($data + [
+                'title' => 'New chat',
+            ]),
+        ]);
     }
 
     public function show(CopilotThread $thread): JsonResponse
@@ -89,19 +147,27 @@ class CopilotController extends Controller
 
     public function update(Request $request, CopilotThread $thread): JsonResponse
     {
-        $thread->update($this->validated($request) + $request->validate(['title' => 'sometimes|required|string|max:200']));
+        $thread->update($this->validated($request) + $request->validate([
+            'title' => 'sometimes|required|string|max:200',
+        ]));
 
-        return response()->json(['thread' => $thread]);
+        return response()->json([
+            'thread' => $thread,
+        ]);
     }
 
     public function destroy(CopilotThread $thread): JsonResponse
     {
         $thread->delete();
 
-        return response()->json(['message' => 'Chat deleted.']);
+        return response()->json([
+            'message' => 'Chat deleted.',
+        ]);
     }
 
-    /** One user turn, streamed: status / tool / action / client / note / data / done events. */
+    /**
+     * One user turn, streamed: status / tool / action / client / note / data / done events.
+     */
     public function send(Request $request, CopilotThread $thread, CopilotAgent $agent, StreamService $sse): StreamedResponse
     {
         $data = $request->validate([
@@ -117,57 +183,99 @@ class CopilotController extends Controller
             'attachments.*.name' => 'required|string|max:200',
             'attachments.*.text' => 'required|string|max:200000',
         ]);
-        $thread->update(array_filter(['mode' => $data['mode'] ?? null], fn ($v) => $v !== null) + ['model' => $data['model'] ?? $thread->model]);
+        $thread->update(array_filter([
+            'mode' => $data['mode'] ?? null,
+        ], fn ($v) => $v !== null) + [
+            'model' => $data['model'] ?? $thread->model,
+        ]);
 
         return $sse->respond(function (StreamService $sse) use ($agent, $thread, $data) {
             $r = $agent->run($thread->fresh(), $data['content'], $data['context'] ?? [], $data['attachments'] ?? [], $sse);
 
-            return ['message' => self::present($r['message']), 'actions' => $r['actions'], 'thread' => $thread->fresh()];
+            return [
+                'message' => self::present($r['message']),
+                'actions' => $r['actions'],
+                'thread' => $thread->fresh(),
+            ];
         }, 600);
     }
 
     public function apply(CopilotAction $action, CopilotTools $tools): JsonResponse
     {
         if ($action->status !== 'pending') {
-            return response()->json(['error' => "This change is already {$action->status}."], 409);
+            return response()->json([
+                'error' => "This change is already {$action->status}.",
+            ], 409);
         }
+
         try {
             $result = $tools->apply($action);
         } catch (Throwable $e) {
-            $action->update(['status' => 'failed', 'result' => ($action->result ?? []) + ['error' => $e->getMessage()]]);
+            $action->update([
+                'status' => 'failed',
+                'result' => ($action->result ?? []) + [
+                    'error' => $e->getMessage(),
+                ],
+            ]);
 
-            return response()->json(['error' => $e->getMessage(), 'action' => $action->fresh()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+                'action' => $action->fresh(),
+            ], 422);
         }
-        $action->update(['status' => 'applied', 'result' => ($action->result ?? []) + $result]);
+        $action->update([
+            'status' => 'applied',
+            'result' => ($action->result ?? []) + $result,
+        ]);
         $this->note($action, "She applied change #{$action->id}: {$action->summary}.");
 
-        return response()->json(['action' => $action->fresh(), 'message' => $result['message'] ?? 'Applied.', 'link' => $result['link'] ?? null, 'script' => $result['script'] ?? null]);
+        return response()->json([
+            'action' => $action->fresh(),
+            'message' => $result['message'] ?? 'Applied.',
+            'link' => $result['link'] ?? null,
+            'script' => $result['script'] ?? null,
+        ]);
     }
 
     public function dismiss(CopilotAction $action): JsonResponse
     {
         if ($action->status === 'pending') {
-            $action->update(['status' => 'dismissed']);
+            $action->update([
+                'status' => 'dismissed',
+            ]);
             $this->note($action, "She dismissed change #{$action->id}: {$action->summary}.");
         }
 
-        return response()->json(['action' => $action->fresh()]);
+        return response()->json([
+            'action' => $action->fresh(),
+        ]);
     }
 
     public function undo(CopilotAction $action, CopilotTools $tools): JsonResponse
     {
         if ($action->status !== 'applied') {
-            return response()->json(['error' => 'Only applied changes can be undone.'], 409);
+            return response()->json([
+                'error' => 'Only applied changes can be undone.',
+            ], 409);
         }
+
         try {
             $message = $tools->undo($action);
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
-        $action->update(['status' => 'undone']);
+        $action->update([
+            'status' => 'undone',
+        ]);
         $this->note($action, "She undid change #{$action->id}: {$action->summary}.");
 
-        return response()->json(['action' => $action->fresh(), 'message' => $message, 'script' => $action->tool === 'edit_script' ? \App\Models\Script::find($action->args['script_id']) : null]);
+        return response()->json([
+            'action' => $action->fresh(),
+            'message' => $message,
+            'script' => $action->tool === 'edit_script' ? \App\Models\Script::find($action->args['script_id']) : null,
+        ]);
     }
 
     public function feedback(Request $request): JsonResponse
@@ -179,18 +287,65 @@ class CopilotController extends Controller
             'text' => 'nullable|string|max:3000',
         ]);
         if (empty($data['rating']) && empty($data['text'])) {
-            return response()->json(['error' => 'Write a few words or pick thumbs up or down.'], 422);
+            return response()->json([
+                'error' => 'Write a few words or pick thumbs up or down.',
+            ], 422);
         }
-        CopilotFeedback::create(['copilot_thread_id' => $data['thread_id'] ?? null, 'copilot_message_id' => $data['message_id'] ?? null,
-            'rating' => $data['rating'] ?? null, 'text' => $data['text'] ?? null]);
+        CopilotFeedback::create([
+            'copilot_thread_id' => $data['thread_id'] ?? null,
+            'copilot_message_id' => $data['message_id'] ?? null,
+            'rating' => $data['rating'] ?? null,
+            'text' => $data['text'] ?? null,
+        ]);
 
-        return response()->json(['message' => 'Thanks for the feedback.']);
+        return response()->json([
+            'message' => 'Thanks for the feedback.',
+        ]);
     }
 
-    /** Record apply/dismiss/undo in the transcript so the agent knows what happened. */
+    /**
+     * What the panel shows for a stored row (hides tool rows and studio notes).
+     */
+    public static function present(CopilotMessage $m): ?array
+    {
+        if ($m->role === 'tool' || !empty($m->meta['system_note'])) {
+            return null;
+        }
+        if ($m->role === 'assistant' && !empty($m->meta['tool_calls'])) {
+            return [
+                'id' => $m->id,
+                'role' => 'steps',
+                'content' => $m->content,
+                'steps' => array_map(fn ($c) => [
+                    'name' => $c['name'],
+                    'label' => CopilotTools::label($c['name'], $c['args']),
+                ], $m->meta['tool_calls']),
+            ];
+        }
+
+        return [
+            'id' => $m->id,
+            'role' => $m->role,
+            'content' => $m->role === 'user' ? ($m->meta['shown'] ?? $m->content) : $m->content,
+            'attachments' => $m->meta['attachments'] ?? [],
+            'context' => $m->meta['context'] ?? null,
+            'created_at' => $m->created_at,
+        ];
+    }
+
+    /**
+     * Record apply/dismiss/undo in the transcript so the agent knows what happened.
+     */
     private function note(CopilotAction $action, string $text): bool
     {
-        CopilotMessage::create(['copilot_thread_id' => $action->copilot_thread_id, 'role' => 'user', 'content' => "[Studio note] {$text}", 'meta' => ['system_note' => true]]);
+        CopilotMessage::create([
+            'copilot_thread_id' => $action->copilot_thread_id,
+            'role' => 'user',
+            'content' => "[Studio note] {$text}",
+            'meta' => [
+                'system_note' => true,
+            ],
+        ]);
 
         return true;
     }
@@ -201,21 +356,8 @@ class CopilotController extends Controller
             'project' => 'sometimes|nullable|string|max:80',
             'mode' => 'sometimes|in:agent,ask',
             'model' => 'sometimes|nullable|string|max:120',
-        ]), fn ($v) => $v !== null) + ($request->has('project') && $request->input('project') === null ? ['project' => null] : []);
-    }
-
-    /** What the panel shows for a stored row (hides tool rows and studio notes). */
-    public static function present(CopilotMessage $m): ?array
-    {
-        if ($m->role === 'tool' || ! empty($m->meta['system_note'])) {
-            return null;
-        }
-        if ($m->role === 'assistant' && ! empty($m->meta['tool_calls'])) {
-            return ['id' => $m->id, 'role' => 'steps', 'content' => $m->content,
-                'steps' => array_map(fn ($c) => ['name' => $c['name'], 'label' => CopilotTools::label($c['name'], $c['args'])], $m->meta['tool_calls'])];
-        }
-
-        return ['id' => $m->id, 'role' => $m->role, 'content' => $m->role === 'user' ? ($m->meta['shown'] ?? $m->content) : $m->content,
-            'attachments' => $m->meta['attachments'] ?? [], 'context' => $m->meta['context'] ?? null, 'created_at' => $m->created_at];
+        ]), fn ($v) => $v !== null) + ($request->has('project') && $request->input('project') === null ? [
+            'project' => null,
+        ] : []);
     }
 }

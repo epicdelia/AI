@@ -49,9 +49,9 @@ class BayesianAbOptimizer
         foreach ($variants as $idx => $v) {
             $formattedVariants[] = [
                 'id' => $idx + 1,
-                'title' => trim((string) ($v['title'] ?? '')),
-                'thumbnail_media_id' => ! empty($v['thumbnail_media_id']) ? (int) $v['thumbnail_media_id'] : null,
-                'thumbnail_url' => ! empty($v['thumbnail_url']) ? $v['thumbnail_url'] : (! empty($v['thumbnail_media_id']) ? "/api/media/{$v['thumbnail_media_id']}/file" : null),
+                'title' => trim((string)($v['title'] ?? '')),
+                'thumbnail_media_id' => !empty($v['thumbnail_media_id']) ? (int)$v['thumbnail_media_id'] : null,
+                'thumbnail_url' => !empty($v['thumbnail_url']) ? $v['thumbnail_url'] : (!empty($v['thumbnail_media_id']) ? "/api/media/{$v['thumbnail_media_id']}/file" : null),
                 'impressions' => 0,
                 'clicks' => 0,
                 'watch_time_sec' => 0,
@@ -72,7 +72,7 @@ class BayesianAbOptimizer
             'started_at' => CarbonImmutable::now(),
         ]);
 
-        AgentEvent::log('created', "Started YouTube A/B/C Test for '{$originalTitle}' with ".count($formattedVariants).' variants.', null, null, 'youtube');
+        AgentEvent::log('created', "Started YouTube A/B/C Test for '{$originalTitle}' with " . count($formattedVariants) . ' variants.', null, null, 'youtube');
 
         return $test;
     }
@@ -87,11 +87,11 @@ class BayesianAbOptimizer
         $variants = $test->variants ?? [];
 
         foreach ($observations as $obs) {
-            $vId = (int) ($obs['variant_id'] ?? -1);
+            $vId = (int)($obs['variant_id'] ?? -1);
             if (isset($variants[$vId])) {
-                $variants[$vId]['impressions'] = max(0, (int) ($obs['impressions'] ?? $variants[$vId]['impressions']));
-                $variants[$vId]['clicks'] = max(0, (int) ($obs['clicks'] ?? $variants[$vId]['clicks']));
-                $variants[$vId]['watch_time_sec'] = max(0, (int) ($obs['watch_time_sec'] ?? $variants[$vId]['watch_time_sec']));
+                $variants[$vId]['impressions'] = max(0, (int)($obs['impressions'] ?? $variants[$vId]['impressions']));
+                $variants[$vId]['clicks'] = max(0, (int)($obs['clicks'] ?? $variants[$vId]['clicks']));
+                $variants[$vId]['watch_time_sec'] = max(0, (int)($obs['watch_time_sec'] ?? $variants[$vId]['watch_time_sec']));
             }
         }
 
@@ -154,13 +154,13 @@ class BayesianAbOptimizer
             ];
         }
 
-        $totalWatchTime = (int) array_sum(array_column($variants, 'watch_time_sec'));
+        $totalWatchTime = (int)array_sum(array_column($variants, 'watch_time_sec'));
         $alphas = [];
         $betas = [];
 
         foreach ($variants as $i => $v) {
-            $clicks = (int) ($v['clicks'] ?? 0);
-            $impr = (int) ($v['impressions'] ?? 0);
+            $clicks = (int)($v['clicks'] ?? 0);
+            $impr = (int)($v['impressions'] ?? 0);
             $alphas[$i] = self::PRIOR_ALPHA + $clicks;
             $betas[$i] = self::PRIOR_BETA + max(0, $impr - $clicks);
         }
@@ -174,7 +174,7 @@ class BayesianAbOptimizer
             for ($i = 0; $i < $k; $i++) {
                 $draws[$i] = $this->sampleBeta($alphas[$i], $betas[$i]);
             }
-            $bestIdx = (int) array_keys($draws, max($draws))[0];
+            $bestIdx = (int)array_keys($draws, max($draws))[0];
             $wins[$bestIdx]++;
         }
 
@@ -183,9 +183,9 @@ class BayesianAbOptimizer
         $winnerIdx = null;
 
         foreach ($variants as $i => $v) {
-            $impr = (int) ($v['impressions'] ?? 0);
-            $clicks = (int) ($v['clicks'] ?? 0);
-            $wt = (int) ($v['watch_time_sec'] ?? 0);
+            $impr = (int)($v['impressions'] ?? 0);
+            $clicks = (int)($v['clicks'] ?? 0);
+            $wt = (int)($v['watch_time_sec'] ?? 0);
 
             $rawCtr = $impr > 0 ? round(($clicks / $impr) * 100, 2) : 0.0;
             $posteriorCtr = round(($alphas[$i] / ($alphas[$i] + $betas[$i])) * 100, 2);
@@ -233,7 +233,7 @@ class BayesianAbOptimizer
     public function conclude(VideoAbTest $test, ?int $winnerIndex = null): VideoAbTest
     {
         $variants = $test->variants ?? [];
-        if ($winnerIndex !== null && ! isset($variants[$winnerIndex])) {
+        if ($winnerIndex !== null && !isset($variants[$winnerIndex])) {
             throw new RuntimeException("Invalid variant index {$winnerIndex}");
         }
 
@@ -280,7 +280,7 @@ class BayesianAbOptimizer
     {
         try {
             $token = YouTubeStudio::token();
-            if (! empty($variant['title'])) {
+            if (!empty($variant['title'])) {
                 YouTubeStudio::setTitle($videoId, $variant['title'], $token);
             }
         } catch (Throwable) {
@@ -339,4 +339,3 @@ class BayesianAbOptimizer
         }
     }
 }
-

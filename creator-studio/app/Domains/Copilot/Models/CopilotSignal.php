@@ -10,6 +10,8 @@ class CopilotSignal extends Model
 
     protected function casts(): array
     {
-        return ['learned' => 'boolean'];
+        return [
+            'learned' => 'boolean',
+        ];
     }
 }

@@ -11,7 +11,9 @@ use App\Services\AiTellsLinter;
  */
 class QualityEvaluator
 {
-    /** Sweet spots for post character length per platform. */
+    /**
+     * Sweet spots for post character length per platform.
+     */
     private const SWEET_SPOTS = [
         'linkedin' => [500, 1600],
         'x' => [80, 270],
@@ -25,7 +27,6 @@ class QualityEvaluator
      * Evaluate a social draft against the quality harness rubric.
      *
      * @param  array{platform?: string, format?: string, body?: string, parts?: array}|string  $draft
-     * @param  string|null  $platformFallback
      * @return array{overall_score: int, rubric: array{hook: int, voice: int, retention: int, cliche_freedom: int, safety: int}, hard_tells_caught: array<int, string>, feedback: array<int, string>}
      */
     public static function evaluate(array|string $draft, ?string $platformFallback = null): array
@@ -38,9 +39,9 @@ class QualityEvaluator
         }
 
         $platform = $draft['platform'] ?? $platformFallback ?? 'linkedin';
-        $body = trim((string) ($draft['body'] ?? ''));
-        $parts = (array) ($draft['parts'] ?? []);
-        $fullText = trim($body."\n\n".implode("\n\n", $parts));
+        $body = trim((string)($draft['body'] ?? ''));
+        $parts = (array)($draft['parts'] ?? []);
+        $fullText = trim($body . "\n\n" . implode("\n\n", $parts));
 
         $feedback = [];
         $hardTells = [];
@@ -64,7 +65,7 @@ class QualityEvaluator
         if (str_contains($firstLine, '?')) {
             $hookScore += 5;
         }
-        $hookScore = (int) max(10, min(100, $hookScore));
+        $hookScore = (int)max(10, min(100, $hookScore));
 
         // 2. Voice & Authenticity Score (0-100)
         $voiceScore = 75;
@@ -84,7 +85,7 @@ class QualityEvaluator
                 $feedback[] = "Contains generic corporate buzzword: \"{$bw}\".";
             }
         }
-        $voiceScore = (int) max(10, min(100, $voiceScore));
+        $voiceScore = (int)max(10, min(100, $voiceScore));
 
         // 3. Retention & Pacing Score (0-100)
         $retentionScore = 75;
@@ -110,7 +111,7 @@ class QualityEvaluator
             $retentionScore -= 10;
             $feedback[] = 'Formatting contains dense multi-line blocks; break paragraphs into 1-2 punchy lines.';
         }
-        $retentionScore = (int) max(10, min(100, $retentionScore));
+        $retentionScore = (int)max(10, min(100, $retentionScore));
 
         // 4. AI Cliche & Tell Freedom (0-100)
         $findings = AiTellsLinter::lint($fullText);
@@ -125,16 +126,16 @@ class QualityEvaluator
                 $warnCount++;
             }
         }
-        $clicheFreedom = (int) max(10, min(100, 100 - ($hardCount * 25) - ($warnCount * 5)));
+        $clicheFreedom = (int)max(10, min(100, 100 - ($hardCount * 25) - ($warnCount * 5)));
 
         // 5. Safety & Disclosure (0-100)
         $safetyScore = 100;
-        if (preg_match('/\b(sponsored|partner|partnered|affiliate)\b/i', $fullText) && ! preg_match('/(#ad|sponsored by|thanks to)/i', $fullText)) {
+        if (preg_match('/\b(sponsored|partner|partnered|affiliate)\b/i', $fullText) && !preg_match('/(#ad|sponsored by|thanks to)/i', $fullText)) {
             $safetyScore -= 30;
             $feedback[] = 'Potential promotional claim lacks clear FTC disclosure (#ad or "sponsored by").';
         }
 
-        $overall = (int) round(
+        $overall = (int)round(
             ($hookScore * 0.25) +
             ($voiceScore * 0.25) +
             ($retentionScore * 0.20) +

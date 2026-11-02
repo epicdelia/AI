@@ -25,7 +25,9 @@ class Idea extends Model
         return $this->hasMany(Script::class);
     }
 
-    /** The idea as a markdown block, the way the script writer reads it. */
+    /**
+     * The idea as a markdown block, the way the script writer reads it.
+     */
     public function asMarkdown(): string
     {
         return collect([
@@ -43,4 +45,3 @@ class Idea extends Model
         ])->filter()->implode("\n");
     }
 }
-

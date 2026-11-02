@@ -55,7 +55,7 @@ class HighRoiFeaturesTest extends TestCase
     public function test_sponsor_revenue_architect_calculates_optimal_placement_and_cpm_yield(): void
     {
         $architect = new SponsorRevenueArchitect();
-        $sampleScript = str_repeat("In this video we are building scalable Kubernetes clusters with Terraform. ", 40);
+        $sampleScript = str_repeat('In this video we are building scalable Kubernetes clusters with Terraform. ', 40);
 
         $result = $architect->architect($sampleScript, [
             'brand' => 'Datadog Cloud',
@@ -74,7 +74,7 @@ class HighRoiFeaturesTest extends TestCase
     public function test_repurposing_arbitrage_engine_synthesizes_multi_platform_assets(): void
     {
         $engine = new RepurposingArbitrageEngine();
-        $sourceText = "Modern cloud architecture requires declarative Infrastructure as Code. Never configure cloud servers by hand.";
+        $sourceText = 'Modern cloud architecture requires declarative Infrastructure as Code. Never configure cloud servers by hand.';
 
         $result = $engine->synthesize($sourceText);
 

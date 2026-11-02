@@ -18,8 +18,11 @@ class EnsureFreshPassword
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! self::fresh($request)) {
-            return response()->json(['error' => 'Please enter your password again to continue.', 'password_confirm_required' => true], 423);
+        if (!self::fresh($request)) {
+            return response()->json([
+                'error' => 'Please enter your password again to continue.',
+                'password_confirm_required' => true,
+            ], 423);
         }
 
         return $next($request);
@@ -27,7 +30,7 @@ class EnsureFreshPassword
 
     public static function fresh(Request $request): bool
     {
-        $at = (int) $request->session()->get('auth.password_confirmed_at', 0);
+        $at = (int)$request->session()->get('auth.password_confirmed_at', 0);
 
         return $at > 0 && time() - $at < self::MINUTES * 60;
     }

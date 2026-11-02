@@ -25,7 +25,9 @@ use Illuminate\Validation\Rule;
  */
 class DealRoomController extends Controller
 {
-    /** Share links (proposal page, media kit) work this many days, then a fresh one is made. */
+    /**
+     * Share links (proposal page, media kit) work this many days, then a fresh one is made.
+     */
     public const LINK_DAYS = 60;
 
     // ------------------------------------------------------------ public (the client)
@@ -33,11 +35,16 @@ class DealRoomController extends Controller
     public function show(string $token): JsonResponse
     {
         $deal = self::byToken($token);
-        $first = ! $deal->room_viewed_at || $deal->room_viewed_at->lt(now()->subHour());
-        $deal->forceFill(['room_views' => $deal->room_views + 1, 'room_viewed_at' => now()])->saveQuietly();
-        if ($first && ! $deal->accepted_at) {
+        $first = !$deal->room_viewed_at || $deal->room_viewed_at->lt(now()->subHour());
+        $deal->forceFill([
+            'room_views' => $deal->room_views + 1,
+            'room_viewed_at' => now(),
+        ])->saveQuietly();
+        if ($first && !$deal->accepted_at) {
             AgentEvent::log('lead', "{$deal->brand_name} opened your proposal.");
-            Engine::fire('deal_opened', Engine::dealContext($deal, ['what' => 'proposal']), "room:{$deal->id}:".now()->format('YmdH'));
+            Engine::fire('deal_opened', Engine::dealContext($deal, [
+                'what' => 'proposal',
+            ]), "room:{$deal->id}:" . now()->format('YmdH'));
         }
         $p = $deal->proposal;
 
@@ -47,22 +54,22 @@ class DealRoomController extends Controller
             'contact' => $deal->contact_name,
             'proposal' => $p,
             'markdown' => $p ? ProposalWriter::markdown($p) : null,
-            'amount' => (float) ($p['investment']['amount'] ?? $deal->rate),
+            'amount' => (float)($p['investment']['amount'] ?? $deal->rate),
             'currency' => $p['investment']['currency'] ?? ($deal->currency ?: 'USD'),
             'accepted_at' => $deal->accepted_at?->toIso8601String(),
             'accepted_by' => $deal->accepted_by,
             'paid' => $deal->payment_status === 'paid',
-            'can_pay' => StripePaymentController::configured() && (float) $deal->rate > 0,
+            'can_pay' => StripePaymentController::configured() && (float)$deal->rate > 0,
             'meeting_at' => $deal->meeting_at?->toIso8601String(),
             'tiers' => ProposalTiers::forDeal($deal)['tiers'],
             'selected_tier' => $deal->selected_tier ?: 'growth',
             'dpa_signed_at' => $deal->dpa_signed_at?->toIso8601String(),
             'dpa_signer_name' => $deal->dpa_signer_name,
             'dpa_signature_hash' => $deal->dpa_signature_hash,
-            'zdr_certified' => (bool) $deal->zdr_certified,
+            'zdr_certified' => (bool)$deal->zdr_certified,
             'zdr_certificate_id' => $deal->zdr_certificate_id,
             // Linked to a client account: the page offers their dashboard (messages, files, invoices).
-            'has_account' => (bool) $deal->user_id,
+            'has_account' => (bool)$deal->user_id,
         ]);
     }
 
@@ -70,25 +77,35 @@ class DealRoomController extends Controller
     {
         $deal = self::byToken($token);
         abort_if($deal->accepted_at, 409, 'This proposal has already been signed.');
-        $data = $request->validate(['tier' => 'required|string|in:essential,growth,enterprise']);
+        $data = $request->validate([
+            'tier' => 'required|string|in:essential,growth,enterprise',
+        ]);
 
         $res = ProposalTiers::selectTier($deal, $data['tier']);
+
         return response()->json($res);
     }
 
-    /** "I accept": their typed name and the time, and the deal moves to Contracted. */
+    /**
+     * "I accept": their typed name and the time, and the deal moves to Contracted.
+     */
     public function accept(Request $request, string $token): JsonResponse
     {
         $deal = self::byToken($token);
-        $data = $request->validate(['name' => 'required|string|min:2|max:120', 'agree' => 'accepted']);
+        $data = $request->validate([
+            'name' => 'required|string|min:2|max:120',
+            'agree' => 'accepted',
+        ]);
 
         return self::acceptDeal($deal, $data['name']);
     }
 
-    /** Shared with the client dashboard: the same Accept, from the deal room or signed in. */
+    /**
+     * Shared with the client dashboard: the same Accept, from the deal room or signed in.
+     */
     public static function acceptDeal(Deal $deal, string $name): JsonResponse
     {
-        if (! $deal->accepted_at) {
+        if (!$deal->accepted_at) {
             return ContractSigner::sign($deal, $name);
         }
 
@@ -100,15 +117,17 @@ class DealRoomController extends Controller
         ]);
     }
 
-    /** Pay the proposal's amount with Stripe Checkout (the webhook marks it paid). */
+    /**
+     * Pay the proposal's amount with Stripe Checkout (the webhook marks it paid).
+     */
     public function pay(Request $request, string $token): JsonResponse
     {
         $deal = self::byToken($token);
-        if (! $deal->room_token) {
+        if (!$deal->room_token) {
             abort(404);
         }
 
-        return self::checkout($deal, '/deal/'.$deal->room_token);
+        return self::checkout($deal, '/deal/' . $deal->room_token);
     }
 
     public function dpa(string $token): JsonResponse
@@ -118,7 +137,7 @@ class DealRoomController extends Controller
         return response()->json([
             'deal_id' => $deal->id,
             'brand' => $deal->brand_name,
-            'signed' => (bool) $deal->dpa_signed_at,
+            'signed' => (bool)$deal->dpa_signed_at,
             'signed_at' => $deal->dpa_signed_at?->toIso8601String(),
             'signer_name' => $deal->dpa_signer_name,
             'signer_email' => $deal->dpa_signer_email,
@@ -141,63 +160,98 @@ class DealRoomController extends Controller
         return response()->json($res);
     }
 
-    /** Shared with the client dashboard: Stripe Checkout for the deal, back to $returnTo. */
+    /**
+     * Shared with the client dashboard: Stripe Checkout for the deal, back to $returnTo.
+     */
     public static function checkout(Deal $deal, string $returnTo): JsonResponse
     {
         if ($deal->payment_status === 'paid') {
-            return response()->json(['message' => 'This is already paid. Thank you!'], 409);
+            return response()->json([
+                'message' => 'This is already paid. Thank you!',
+            ], 409);
         }
-        if (! StripePaymentController::configured() || (float) $deal->rate <= 0) {
-            return response()->json(['message' => 'Online payment isn’t available for this proposal: you’ll receive an invoice by email.'], 409);
+        if (!StripePaymentController::configured() || (float)$deal->rate <= 0) {
+            return response()->json([
+                'message' => 'Online payment isn’t available for this proposal: you’ll receive an invoice by email.',
+            ], 409);
         }
         $p = $deal->proposal ?? [];
         $session = StripePaymentController::startCheckout($deal, [
             'id' => 'deal_room',
             'name' => $p['title'] ?? $deal->brand_name,
             'description' => isset($p['summary']) ? mb_substr($p['summary'], 0, 300) : null,
-            'amount' => (int) round((float) $deal->rate * 100),
+            'amount' => (int)round((float)$deal->rate * 100),
             'currency' => strtolower($deal->currency ?: 'usd'),
             'interval' => ($p['plan'] ?? null) === 'retainer' ? 'month' : null,
         ], $deal->contact_email, $returnTo);
 
         return $session
-            ? response()->json(['checkout_url' => $session['url']])
-            : response()->json(['message' => 'Payment couldn’t start. Please try again in a minute.'], 502);
+            ? response()->json([
+                'checkout_url' => $session['url'],
+            ])
+            : response()->json([
+                'message' => 'Payment couldn’t start. Please try again in a minute.',
+            ], 502);
     }
 
     // ------------------------------------------------------------ hers
 
     public function link(Deal $deal): JsonResponse
     {
-        if (! $deal->room_token || ($deal->room_expires_at && $deal->room_expires_at->isPast())) {
-            $deal->forceFill(['room_token' => Str::random(32), 'room_expires_at' => now()->addDays(self::LINK_DAYS)])->saveQuietly();
-        } elseif (! $deal->room_expires_at) {
-            $deal->forceFill(['room_expires_at' => now()->addDays(self::LINK_DAYS)])->saveQuietly();
+        if (!$deal->room_token || ($deal->room_expires_at && $deal->room_expires_at->isPast())) {
+            $deal->forceFill([
+                'room_token' => Str::random(32),
+                'room_expires_at' => now()->addDays(self::LINK_DAYS),
+            ])->saveQuietly();
+        } elseif (!$deal->room_expires_at) {
+            $deal->forceFill([
+                'room_expires_at' => now()->addDays(self::LINK_DAYS),
+            ])->saveQuietly();
         }
 
-        return response()->json(['url' => url('/deal/'.$deal->room_token), 'expires_at' => $deal->room_expires_at?->toIso8601String(), 'views' => $deal->room_views, 'viewed_at' => $deal->room_viewed_at?->toIso8601String(),
-            'accepted_at' => $deal->accepted_at?->toIso8601String(), 'accepted_by' => $deal->accepted_by, 'has_proposal' => (bool) $deal->proposal]);
+        return response()->json([
+            'url' => url('/deal/' . $deal->room_token),
+            'expires_at' => $deal->room_expires_at?->toIso8601String(),
+            'views' => $deal->room_views,
+            'viewed_at' => $deal->room_viewed_at?->toIso8601String(),
+            'accepted_at' => $deal->accepted_at?->toIso8601String(),
+            'accepted_by' => $deal->accepted_by,
+            'has_proposal' => (bool)$deal->proposal,
+        ]);
     }
 
     public function prep(Deal $deal, CallPrep $prep): JsonResponse
     {
         @set_time_limit(180);
 
-        return response()->json(['prep' => $prep->brief($deal)]);
+        return response()->json([
+            'prep' => $prep->brief($deal),
+        ]);
     }
 
     public function lost(Request $request, Deal $deal): JsonResponse
     {
-        $data = $request->validate(['reason' => ['required', Rule::in(array_keys(Deal::LOST_REASONS))], 'note' => 'nullable|string|max:1000']);
-        $deal->update(['stage' => 'lost', 'lost_reason' => $data['reason']]
-            + (! empty($data['note']) ? ['notes' => trim(($deal->notes ? $deal->notes."\n\n" : '').now()->format('j M').': Lost ('.Deal::LOST_REASONS[$data['reason']]."): {$data['note']}")] : []));
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(array_keys(Deal::LOST_REASONS))],
+            'note' => 'nullable|string|max:1000',
+        ]);
+        $deal->update([
+            'stage' => 'lost',
+            'lost_reason' => $data['reason'],
+        ]
+            + (!empty($data['note']) ? [
+                'notes' => trim(($deal->notes ? $deal->notes . "\n\n" : '') . now()->format('j M') . ': Lost (' . Deal::LOST_REASONS[$data['reason']] . "): {$data['note']}"),
+            ] : []));
 
-        return response()->json(['message' => 'Marked as lost. It counts towards your win rate.', 'deal' => $deal->fresh()]);
+        return response()->json([
+            'message' => 'Marked as lost. It counts towards your win rate.',
+            'deal' => $deal->fresh(),
+        ]);
     }
 
     public function insights(Request $request): JsonResponse
     {
-        $days = (int) $request->integer('days', 365);
+        $days = (int)$request->integer('days', 365);
 
         return response()->json(PipelineInsights::summary(in_array($days, [90, 180, 365, 730], true) ? $days : 365));
     }

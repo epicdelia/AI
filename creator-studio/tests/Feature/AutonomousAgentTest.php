@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Agents\AgentPlanner;
-use App\Domains\Agents\Models\AgentEvent;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Audience\Models\AudienceInsight;
 use App\Domains\Feeds\Models\Feed;
@@ -34,7 +32,11 @@ class AutonomousAgentTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-10-31 09:00', 'UTC'));
 
-        $this->user = $this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([
@@ -56,7 +58,10 @@ class AutonomousAgentTest extends TestCase
 
     public function test_gather_signals_compiles_breakouts_news_scripts_and_asks(): void
     {
-        $channel = Channel::create(['handle' => '@techcreator', 'title' => 'Tech Creator']);
+        $channel = Channel::create([
+            'handle' => '@techcreator',
+            'title' => 'Tech Creator',
+        ]);
         Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'v1',
@@ -69,7 +74,10 @@ class AutonomousAgentTest extends TestCase
             'published_at' => now()->subDays(2),
         ]);
 
-        $feed = Feed::create(['title' => 'Hacker News Top', 'url' => 'https://news.ycombinator.com/rss']);
+        $feed = Feed::create([
+            'title' => 'Hacker News Top',
+            'url' => 'https://news.ycombinator.com/rss',
+        ]);
         FeedItem::create([
             'feed_id' => $feed->id,
             'guid' => 'https://news.ycombinator.com/item?id=999',
@@ -91,7 +99,10 @@ class AutonomousAgentTest extends TestCase
             'url' => 'https://youtube.com/watch?v=v2',
             'summary' => 'Viewers asking what database to recommend for solo developer projects.',
             'items' => [
-                ['kind' => 'question', 'text' => 'What database do you use for your side projects?'],
+                [
+                    'kind' => 'question',
+                    'text' => 'What database do you use for your side projects?',
+                ],
             ],
         ]);
 
@@ -157,7 +168,10 @@ class AutonomousAgentTest extends TestCase
 
     public function test_spike_breakout_creates_trending_reaction_post(): void
     {
-        $channel = Channel::create(['handle' => '@ai_frontier', 'title' => 'AI Frontier']);
+        $channel = Channel::create([
+            'handle' => '@ai_frontier',
+            'title' => 'AI Frontier',
+        ]);
         $outlier = Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'v99',

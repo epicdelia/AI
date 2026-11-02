@@ -14,7 +14,9 @@ use Illuminate\Support\Collection;
  */
 class SocialScheduler
 {
-    /** Starter times until her own data exists: [ISO weekdays], 'HH:MM'. */
+    /**
+     * Starter times until her own data exists: [ISO weekdays], 'HH:MM'.
+     */
     public const STARTERS = [
         'linkedin' => [[2, 3, 4], '08:30'],
         'instagram' => [[1, 2, 3, 4, 5, 6, 7], '19:00'],
@@ -24,12 +26,16 @@ class SocialScheduler
         'youtube' => [[1, 3, 5], '17:00'],
     ];
 
-    /** Middle hour of each best-times block (SocialAnalytics::BLOCKS). */
-    private const BLOCK_TIME = ['07:30', '10:00', '13:00', '16:30', '19:00', '22:00'];
-
     public const GAP_HOURS = 3; // never two posts on the same network this close together
 
-    /** Scheduled posts due now or overdue, and what's coming up in the next 24 hours. */
+    /**
+     * Middle hour of each best-times block (SocialAnalytics::BLOCKS).
+     */
+    private const BLOCK_TIME = ['07:30', '10:00', '13:00', '16:30', '19:00', '22:00'];
+
+    /**
+     * Scheduled posts due now or overdue, and what's coming up in the next 24 hours.
+     */
     public static function due(): array
     {
         $now = now();
@@ -73,12 +79,16 @@ class SocialScheduler
         foreach ($candidates as $rank => [$weekdays, $time, $why]) {
             for ($d = 0; $d < 28; $d++) {
                 $day = $after->startOfDay()->addDays($d);
-                if (! in_array($day->dayOfWeekIso, $weekdays, true)) {
+                if (!in_array($day->dayOfWeekIso, $weekdays, true)) {
                     continue;
                 }
                 $at = $day->setTimeFromTimeString($time);
                 if ($at->gt($after) && $free($at)) {
-                    $options[] = ['rank' => $rank, 'at' => $at, 'why' => $why];
+                    $options[] = [
+                        'rank' => $rank,
+                        'at' => $at,
+                        'why' => $why,
+                    ];
                     break;
                 }
             }
@@ -89,15 +99,38 @@ class SocialScheduler
             usort($options, fn ($a, $b) => $a['at'] <=> $b['at']);
             $pick = $soon[0] ?? $options[0];
 
-            return ['at' => $pick['at']->utc(), 'reason' => $pick['why'], 'source' => $source];
+            return [
+                'at' => $pick['at']->utc(),
+                'reason' => $pick['why'],
+                'source' => $source,
+            ];
         }
         // Fully booked for four weeks: the first time after the last booking.
         $at = ($booked->max() ?? $after)->addHours(self::GAP_HOURS + 1);
 
-        return ['at' => $at->utc(), 'reason' => 'Your calendar is full, so the first free time after it.', 'source' => 'fallback'];
+        return [
+            'at' => $at->utc(),
+            'reason' => 'Your calendar is full, so the first free time after it.',
+            'source' => 'fallback',
+        ];
     }
 
-    /** Ranked [weekdays, time, reason] from her data, or the starter time. */
+    /**
+     * How many posts a week she aims for on each network (Settings → Social).
+     */
+    public static function cadence(): array
+    {
+        $out = [];
+        foreach (array_keys(Platforms::PLATFORMS) as $p) {
+            $out[$p] = (int)Setting::get("cadence_{$p}", '0');
+        }
+
+        return $out;
+    }
+
+    /**
+     * Ranked [weekdays, time, reason] from her data, or the starter time.
+     */
     private static function candidates(string $platform): array
     {
         $bt = SocialAnalytics::bestTimes($platform);
@@ -106,24 +139,13 @@ class SocialScheduler
             $out = [];
             $top = $bt['best'][0]['median'];
             foreach (array_filter($bt['best'], fn ($b) => $b['median'] >= $top * 0.6) as $slot) {
-                $out[] = [[$slot['day'] + 1], self::BLOCK_TIME[$slot['block']], "One of your best slots: {$days[$slot['day']]} ".strtolower($bt['blocks'][$slot['block']])." (median {$slot['median']} {$bt['metric']} over {$slot['posts']} posts)."];
+                $out[] = [[$slot['day'] + 1], self::BLOCK_TIME[$slot['block']], "One of your best slots: {$days[$slot['day']]} " . strtolower($bt['blocks'][$slot['block']]) . " (median {$slot['median']} {$bt['metric']} over {$slot['posts']} posts)."];
             }
 
             return [$out, 'your data'];
         }
         [$weekdays, $time] = self::STARTERS[$platform] ?? [[1, 2, 3, 4, 5], '12:00'];
 
-        return [[[$weekdays, $time, 'A starter time: you don’t have 8 '.(Platforms::PLATFORMS[$platform]['label'] ?? $platform).' posts with numbers yet, so this isn’t from your data.']], 'starter'];
-    }
-
-    /** How many posts a week she aims for on each network (Settings → Social). */
-    public static function cadence(): array
-    {
-        $out = [];
-        foreach (array_keys(Platforms::PLATFORMS) as $p) {
-            $out[$p] = (int) Setting::get("cadence_{$p}", '0');
-        }
-
-        return $out;
+        return [[[$weekdays, $time, 'A starter time: you don’t have 8 ' . (Platforms::PLATFORMS[$platform]['label'] ?? $platform) . ' posts with numbers yet, so this isn’t from your data.']], 'starter'];
     }
 }

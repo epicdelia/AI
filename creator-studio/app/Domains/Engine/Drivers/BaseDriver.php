@@ -8,10 +8,15 @@ use App\Models\Setting;
 use Illuminate\Http\Client\Response;
 use RuntimeException;
 
-/** Shared config lookup: the engine, base URL, model and key(s) all come from Settings. */
+/**
+ * Shared config lookup: the engine, base URL, model and key(s) all come from Settings.
+ */
 abstract class BaseDriver implements EngineDriver
 {
-    public function __construct(protected EngineEnum $engine) {}
+    public function __construct(
+        protected EngineEnum $engine
+    ) {
+    }
 
     public function enum(): EngineEnum
     {
@@ -21,7 +26,7 @@ abstract class BaseDriver implements EngineDriver
     protected function baseUrl(): string
     {
         // A saved base URL only belongs to the engine picked in Settings.
-        $saved = trim((string) Setting::get('llm_base_url', ''));
+        $saved = trim((string)Setting::get('llm_base_url', ''));
         $url = $this->engine === EngineEnum::CUSTOM ? $saved : ($saved !== '' && EngineEnum::fromBaseUrl($saved) === $this->engine ? $saved : $this->engine->baseUrl());
         if ($url === '') {
             throw new RuntimeException('Set a base URL for your custom AI provider in Settings.');
@@ -30,7 +35,9 @@ abstract class BaseDriver implements EngineDriver
         return rtrim($url, '/');
     }
 
-    /** $options['model'] overrides Settings for one call (the Copilot's model picker). */
+    /**
+     * $options['model'] overrides Settings for one call (the Copilot's model picker).
+     */
     protected function model(array $options = []): string
     {
         $model = ($options['model'] ?? null) ?: (Setting::get('llm_model') ?: $this->engine->defaultModel());
@@ -65,8 +72,8 @@ abstract class BaseDriver implements EngineDriver
     {
         $raw = ($options['api_key'] ?? null)
             ?: (Setting::get('llm_api_key') ?: ($this->engine->canUseAssemblyKey() ? Setting::get('assemblyai_api_key') : null));
-        $keys = array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
-        if (! $keys) {
+        $keys = array_values(array_filter(array_map('trim', explode(',', (string)$raw))));
+        if (!$keys) {
             throw new RuntimeException("No {$this->engine->label()} key yet. Add one under Settings.");
         }
         shuffle($keys);
@@ -85,7 +92,7 @@ abstract class BaseDriver implements EngineDriver
         foreach ($keys as $i => $key) {
             $resp = $send($key);
             $retryable = in_array($resp->status(), [401, 403, 429], true) || $resp->serverError();
-            if (! $retryable || $i === count($keys) - 1) {
+            if (!$retryable || $i === count($keys) - 1) {
                 return $resp;
             }
         }
@@ -95,6 +102,6 @@ abstract class BaseDriver implements EngineDriver
 
     protected static function clip(mixed $msg): string
     {
-        return mb_substr(is_string($msg) ? $msg : (string) json_encode($msg), 0, 300);
+        return mb_substr(is_string($msg) ? $msg : (string)json_encode($msg), 0, 300);
     }
 }

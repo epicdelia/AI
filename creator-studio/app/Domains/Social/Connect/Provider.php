@@ -22,7 +22,9 @@ abstract class Provider
 {
     public const KEY = '';
 
-    /** Network label, the name of its id field, where to create the app, and the setup steps. */
+    /**
+     * Network label, the name of its id field, where to create the app, and the setup steps.
+     */
     abstract public function info(): array;
 
     abstract public function authorizeUrl(string $state, string $challenge): string;
@@ -33,17 +35,25 @@ abstract class Provider
 
     public function refresh(SocialAccount $account): array
     {
-        throw new ConnectException(static::label().' sign-ins can’t be renewed automatically. Reconnect to continue.', reconnect: true);
+        throw new ConnectException(static::label() . ' sign-ins can’t be renewed automatically. Reconnect to continue.', reconnect: true);
     }
 
     public function sync(SocialAccount $account, string $token): array
     {
-        return ['followers' => $this->profile($token)['followers'] ?? null, 'posts' => [], 'meta' => []];
+        return [
+            'followers' => $this->profile($token)['followers'] ?? null,
+            'posts' => [],
+            'meta' => [],
+        ];
     }
 
-    public function revoke(SocialAccount $account): void {}
+    public function revoke(SocialAccount $account): void
+    {
+    }
 
-    /** Whether agents can publish text posts here (the rest stay as "due" reminders she posts by hand). */
+    /**
+     * Whether agents can publish text posts here (the rest stay as "due" reminders she posts by hand).
+     */
     public function canPublish(): bool
     {
         return false;
@@ -56,10 +66,12 @@ abstract class Provider
      */
     public function publish(SocialAccount $account, string $token, SocialPost $post): array
     {
-        throw new ConnectException(static::label().' doesn’t allow publishing from here; post it from the app.');
+        throw new ConnectException(static::label() . ' doesn’t allow publishing from here; post it from the app.');
     }
 
-    /** What the inbox can read and answer here: [] or some of 'comment', 'dm'. */
+    /**
+     * What the inbox can read and answer here: [] or some of 'comment', 'dm'.
+     */
     public function engagement(): array
     {
         return [];
@@ -74,25 +86,33 @@ abstract class Provider
         return [];
     }
 
-    /** Answer a comment publicly (kind comment) or a DM (kind dm). Returns the reply's id. */
+    /**
+     * Answer a comment publicly (kind comment) or a DM (kind dm). Returns the reply's id.
+     */
     public function reply(SocialAccount $account, string $token, array $item, string $text): string
     {
-        throw new ConnectException(static::label().' doesn’t allow replying from here.');
+        throw new ConnectException(static::label() . ' doesn’t allow replying from here.');
     }
 
-    /** Send a private DM in answer to a comment (Instagram "private replies"). */
+    /**
+     * Send a private DM in answer to a comment (Instagram "private replies").
+     */
     public function privateReply(SocialAccount $account, string $token, array $item, string $text): string
     {
-        throw new ConnectException(static::label().' doesn’t allow DMs from here.');
+        throw new ConnectException(static::label() . ' doesn’t allow DMs from here.');
     }
 
-    /** Renew the sign-in this many seconds before it lapses. */
+    /**
+     * Renew the sign-in this many seconds before it lapses.
+     */
     public function renewWindow(): int
     {
         return 300;
     }
 
-    /** Whether the network insists on an https:// redirect address. */
+    /**
+     * Whether the network insists on an https:// redirect address.
+     */
     public function needsHttps(): bool
     {
         return false;
@@ -105,12 +125,12 @@ abstract class Provider
 
     public function clientId(): string
     {
-        return (string) Setting::get(static::KEY.'_client_id', '');
+        return (string)Setting::get(static::KEY . '_client_id', '');
     }
 
     public function clientSecret(): string
     {
-        return (string) Setting::get(static::KEY.'_client_secret', '');
+        return (string)Setting::get(static::KEY . '_client_secret', '');
     }
 
     public function configured(): bool
@@ -120,7 +140,7 @@ abstract class Provider
 
     public function redirectUri(): string
     {
-        return rtrim((string) config('app.url'), '/').'/oauth/'.static::KEY.'/callback';
+        return rtrim((string)config('app.url'), '/') . '/oauth/' . static::KEY . '/callback';
     }
 
     protected function http(): PendingRequest
@@ -128,36 +148,42 @@ abstract class Provider
         return Http::timeout(20)->acceptJson();
     }
 
-    /** The JSON body, or a readable error (never including tokens). 400/401 on a token call means "reconnect". */
+    /**
+     * The JSON body, or a readable error (never including tokens). 400/401 on a token call means "reconnect".
+     */
     protected function json(Response $r, string $what, bool $tokenCall = false): array
     {
         if ($r->successful()) {
-            return (array) $r->json();
+            return (array)$r->json();
         }
-        $body = (array) $r->json();
+        $body = (array)$r->json();
         $msg = $body['error_description'] ?? $body['error']['message'] ?? $body['message'] ?? $body['detail'] ?? $body['title']
             ?? (is_string($body['error'] ?? null) ? $body['error'] : null) ?? mb_substr(trim($r->body()), 0, 160);
 
-        throw new ConnectException(static::label()." couldn’t {$what}: ".(is_string($msg) ? $msg : 'HTTP '.$r->status()),
-            reconnect: $tokenCall && in_array($r->status(), [400, 401], true) || $r->status() === 401);
+        throw new ConnectException(
+            static::label() . " couldn’t {$what}: " . (is_string($msg) ? $msg : 'HTTP ' . $r->status()),
+            reconnect: $tokenCall && in_array($r->status(), [400, 401], true) || $r->status() === 401
+        );
     }
 
-    /** Normalise a token response. */
+    /**
+     * Normalise a token response.
+     */
     protected function token(array $t, string $scopeSep = ' '): array
     {
         $scopes = $t['scope'] ?? $t['permissions'] ?? [];
 
         return [
-            'access_token' => (string) ($t['access_token'] ?? ''),
+            'access_token' => (string)($t['access_token'] ?? ''),
             'refresh_token' => $t['refresh_token'] ?? null,
-            'expires_in' => isset($t['expires_in']) ? (int) $t['expires_in'] : null,
-            'refresh_expires_in' => isset($t['refresh_expires_in']) ? (int) $t['refresh_expires_in'] : null,
-            'scopes' => is_array($scopes) ? array_values($scopes) : array_values(array_filter(preg_split('/[\s,]+/', (string) $scopes))),
+            'expires_in' => isset($t['expires_in']) ? (int)$t['expires_in'] : null,
+            'refresh_expires_in' => isset($t['refresh_expires_in']) ? (int)$t['refresh_expires_in'] : null,
+            'scopes' => is_array($scopes) ? array_values($scopes) : array_values(array_filter(preg_split('/[\s,]+/', (string)$scopes))),
         ];
     }
 
     protected static function int(mixed $v): ?int
     {
-        return is_numeric($v) ? (int) $v : null;
+        return is_numeric($v) ? (int)$v : null;
     }
 }

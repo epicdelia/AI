@@ -27,22 +27,24 @@ class BookingSlots
 
     public static function config(): array
     {
-        $saved = json_decode((string) Setting::get(self::SETTING, '{}'), true);
+        $saved = json_decode((string)Setting::get(self::SETTING, '{}'), true);
 
         return array_merge(self::DEFAULTS, is_array($saved) ? array_intersect_key($saved, self::DEFAULTS) : [])
-            + ['timezone' => Setting::get('timezone') ?: 'UTC'];
+            + [
+                'timezone' => Setting::get('timezone') ?: 'UTC',
+            ];
     }
 
     public static function save(array $c): array
     {
         $clean = [
-            'enabled' => (bool) ($c['enabled'] ?? false),
-            'days' => array_values(array_unique(array_filter(array_map('intval', (array) ($c['days'] ?? [])), fn ($d) => $d >= 1 && $d <= 7))),
+            'enabled' => (bool)($c['enabled'] ?? false),
+            'days' => array_values(array_unique(array_filter(array_map('intval', (array)($c['days'] ?? [])), fn ($d) => $d >= 1 && $d <= 7))),
             'start' => self::hhmm($c['start'] ?? null, self::DEFAULTS['start']),
             'end' => self::hhmm($c['end'] ?? null, self::DEFAULTS['end']),
-            'minutes' => in_array((int) ($c['minutes'] ?? 30), [15, 20, 30, 45, 60], true) ? (int) $c['minutes'] : 30,
-            'notice_hours' => max(0, min(168, (int) ($c['notice_hours'] ?? 24))),
-            'horizon_days' => max(1, min(60, (int) ($c['horizon_days'] ?? 14))),
+            'minutes' => in_array((int)($c['minutes'] ?? 30), [15, 20, 30, 45, 60], true) ? (int)$c['minutes'] : 30,
+            'notice_hours' => max(0, min(168, (int)($c['notice_hours'] ?? 24))),
+            'horizon_days' => max(1, min(60, (int)($c['horizon_days'] ?? 14))),
         ];
         if ($clean['end'] <= $clean['start']) {
             $clean['end'] = self::DEFAULTS['end'] > $clean['start'] ? self::DEFAULTS['end'] : '23:30';
@@ -52,12 +54,19 @@ class BookingSlots
         return self::config();
     }
 
-    /** @return array{enabled: bool, timezone: string, minutes: int, days: list<array{date: string, slots: list<string>}>} */
+    /**
+     * @return array{enabled: bool, timezone: string, minutes: int, days: list<array{date: string, slots: list<string>}>}
+     */
     public static function open(?CarbonImmutable $now = null): array
     {
         $c = self::config();
-        $out = ['enabled' => $c['enabled'], 'timezone' => $c['timezone'], 'minutes' => $c['minutes'], 'days' => []];
-        if (! $c['enabled'] || ! $c['days']) {
+        $out = [
+            'enabled' => $c['enabled'],
+            'timezone' => $c['timezone'],
+            'minutes' => $c['minutes'],
+            'days' => [],
+        ];
+        if (!$c['enabled'] || !$c['days']) {
             return $out;
         }
         $now ??= CarbonImmutable::now();
@@ -67,7 +76,7 @@ class BookingSlots
 
         $day = $now->setTimezone($c['timezone'])->startOfDay();
         for ($i = 0; $i <= $c['horizon_days']; $i++, $day = $day->addDay()) {
-            if (! in_array($day->dayOfWeekIso, $c['days'], true)) {
+            if (!in_array($day->dayOfWeekIso, $c['days'], true)) {
                 continue;
             }
             [$sh, $sm] = array_map('intval', explode(':', $c['start']));
@@ -76,12 +85,15 @@ class BookingSlots
             $end = $day->setTime($eh, $em);
             $slots = [];
             for (; $slot->addMinutes($c['minutes']) <= $end; $slot = $slot->addMinutes($c['minutes'])) {
-                if ($slot >= $earliest && ! isset($taken[$slot->getTimestamp()])) {
+                if ($slot >= $earliest && !isset($taken[$slot->getTimestamp()])) {
                     $slots[] = $slot->utc()->toIso8601ZuluString();
                 }
             }
             if ($slots) {
-                $out['days'][] = ['date' => $day->toDateString(), 'slots' => $slots];
+                $out['days'][] = [
+                    'date' => $day->toDateString(),
+                    'slots' => $slots,
+                ];
             }
         }
 

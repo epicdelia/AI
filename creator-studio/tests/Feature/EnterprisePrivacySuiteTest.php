@@ -2,17 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Privacy\DataProcessingAgreement;
-use App\Domains\Privacy\DataRetentionPurger;
 use App\Domains\Privacy\PiiRedactor;
 use App\Domains\Privacy\PrivacyAccessLogger;
-use App\Domains\Privacy\SubProcessorRegistry;
-use App\Domains\Privacy\ZeroDataRetention;
 use App\Models\Deal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -48,7 +43,9 @@ class EnterprisePrivacySuiteTest extends TestCase
         $this->assertStringContainsString('[REDACTED_AWS_ACCESS_KEY:', $res['sanitized']);
 
         // Test API endpoint
-        $response = $this->postJson('/api/privacy/redact', ['text' => $rawText]);
+        $response = $this->postJson('/api/privacy/redact', [
+            'text' => $rawText,
+        ]);
         $response->assertOk()
             ->assertJsonPath('redacted_count', $res['redacted_count']);
     }
@@ -58,7 +55,9 @@ class EnterprisePrivacySuiteTest extends TestCase
         $response = $this->getJson('/api/privacy/subprocessors');
         $response->assertOk()
             ->assertJsonPath('title', 'Authorized Sub-Processors Directory')
-            ->assertJsonStructure(['subprocessors' => [['name', 'purpose', 'entity_location', 'safeguard', 'certifications']]]);
+            ->assertJsonStructure([
+                'subprocessors' => [['name', 'purpose', 'entity_location', 'safeguard', 'certifications']],
+            ]);
 
         $this->assertStringContainsString('Stripe Payments Europe', $response->json('markdown'));
         $this->assertStringContainsString('OpenAI, L.L.C.', $response->json('markdown'));
@@ -71,7 +70,10 @@ class EnterprisePrivacySuiteTest extends TestCase
         ]);
 
         $subResponse->assertOk()
-            ->assertJson(['ok' => true, 'email' => 'privacy-officer@enterprise-partner.com']);
+            ->assertJson([
+                'ok' => true,
+                'email' => 'privacy-officer@enterprise-partner.com',
+            ]);
 
         $this->assertDatabaseHas('sub_processor_subscribers', [
             'email' => 'privacy-officer@enterprise-partner.com',
@@ -167,7 +169,11 @@ class EnterprisePrivacySuiteTest extends TestCase
         $zdrRes = $this->actingAs($client)->getJson("/api/portal/requests/{$deal->id}/zdr-certificate");
         $zdrRes->assertOk()
             ->assertJsonPath('certified', true)
-            ->assertJsonStructure(['certificate_id', 'certified_at', 'guarantees' => ['zero_training', 'ephemeral_memory']]);
+            ->assertJsonStructure([
+                'certificate_id',
+                'certified_at',
+                'guarantees' => ['zero_training', 'ephemeral_memory'],
+            ]);
 
         $certId = $zdrRes->json('certificate_id');
         $this->assertStringStartsWith('ZDR-', $certId);
@@ -251,7 +257,9 @@ class EnterprisePrivacySuiteTest extends TestCase
         ]);
 
         $this->assertTrue(Storage::disk('local')->exists($path));
-        $this->assertDatabaseHas('deal_files', ['id' => $dealFile->id]);
+        $this->assertDatabaseHas('deal_files', [
+            'id' => $dealFile->id,
+        ]);
         $this->assertDatabaseCount('deliverable_annotations', 1);
 
         // Execute purge
@@ -262,14 +270,16 @@ class EnterprisePrivacySuiteTest extends TestCase
 
         // Ephemeral files and annotations are purged
         $this->assertFalse(Storage::disk('local')->exists($path));
-        $this->assertDatabaseMissing('deal_files', ['id' => $dealFile->id]);
+        $this->assertDatabaseMissing('deal_files', [
+            'id' => $dealFile->id,
+        ]);
         $this->assertDatabaseCount('deliverable_annotations', 0);
 
         // Deal and statutory transaction record are preserved
         $deal->refresh();
         $this->assertNotNull($deal->retention_purged_at);
         $this->assertSame('paid', $deal->payment_status);
-        $this->assertSame(4500.0, (float) $deal->rate);
+        $this->assertSame(4500.0, (float)$deal->rate);
     }
 
     public function test_brand_vault_persists_enterprise_privacy_and_retention_settings(): void

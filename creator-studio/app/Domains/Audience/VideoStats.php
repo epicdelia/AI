@@ -21,49 +21,72 @@ class VideoStats
 {
     public const MILESTONES = [1, 3, 7, 28];
 
-    public function __construct(private YouTube $yt) {}
+    public function __construct(
+        private YouTube $yt
+    ) {
+    }
 
-    /** Snapshot her recent long-form videos (about 3 quota units). Returns how many were saved. */
+    /**
+     * Snapshot her recent long-form videos (about 3 quota units). Returns how many were saved.
+     */
     public function snapshot(?CarbonImmutable $now = null): int
     {
         $channel = Setting::get('channel_id');
-        if (! $channel) {
+        if (!$channel) {
             throw new RuntimeException('Add your channel handle or ID in Settings.');
         }
         $now ??= CarbonImmutable::now('UTC');
         $report = $this->yt->channelReport($channel, $now);
         // My channel reads the same report; keep its cache fresh while we're at it.
-        Cache::put(AudienceController::cacheKey($channel), $report + ['fetched_at' => $now->toIso8601String()], now()->addMinutes(AudienceController::CACHE_MINUTES));
+        Cache::put(AudienceController::cacheKey($channel), $report + [
+            'fetched_at' => $now->toIso8601String(),
+        ], now()->addMinutes(AudienceController::CACHE_MINUTES));
 
         $today = $now->setTimezone(Setting::get('timezone', 'Europe/London'))->toDateString();
         foreach ($report['videos'] as $v) {
             DB::table('video_stats')->updateOrInsert(
-                ['video_id' => $v['id'], 'captured_on' => $today],
-                ['title' => mb_substr($v['title'], 0, 250), 'published_at' => CarbonImmutable::parse($v['published_at'])->utc(),
-                    'age_days' => $v['age_days'], 'views' => $v['views'], 'likes' => $v['likes'] ?? 0, 'comments' => $v['comments'] ?? 0,
-                    'updated_at' => $now, 'created_at' => $now],
+                [
+                    'video_id' => $v['id'],
+                    'captured_on' => $today,
+                ],
+                [
+                    'title' => mb_substr($v['title'], 0, 250),
+                    'published_at' => CarbonImmutable::parse($v['published_at'])->utc(),
+                    'age_days' => $v['age_days'],
+                    'views' => $v['views'],
+                    'likes' => $v['likes'] ?? 0,
+                    'comments' => $v['comments'] ?? 0,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
             );
         }
 
         // Subscribers too, so the analytics dashboard has a YouTube follower line without typing.
         if (($subs = $this->yt->subscribers($channel)) !== null) {
-            SocialDashboard::recordFollowers(['youtube' => $subs], 'youtube');
+            SocialDashboard::recordFollowers([
+                'youtube' => $subs,
+            ], 'youtube');
         }
 
         return count($report['videos']);
     }
 
-    /** Views at about day N: the snapshot nearest that age, within a day. Null if none. */
+    /**
+     * Views at about day N: the snapshot nearest that age, within a day. Null if none.
+     */
     public static function viewsAt(string $videoId, int $day): ?int
     {
         $row = DB::table('video_stats')->where('video_id', $videoId)
             ->whereBetween('age_days', [$day - 1, $day + 1])
             ->orderByRaw('ABS(age_days - ?)', [$day])->first();
 
-        return $row ? (int) $row->views : null;
+        return $row ? (int)$row->views : null;
     }
 
-    /** Her usual views at day N: the median across her videos with a snapshot near that age (3 or more). */
+    /**
+     * Her usual views at day N: the median across her videos with a snapshot near that age (3 or more).
+     */
     public static function usualAt(int $day, ?string $except = null): ?float
     {
         $ids = DB::table('video_stats')->whereBetween('age_days', [$day - 1, $day + 1])
@@ -73,11 +96,16 @@ class VideoStats
         return count($views) >= 3 ? YouTube::median($views) : null;
     }
 
-    /** [{age_days, views}] oldest first, for a sparkline. */
+    /**
+     * [{age_days, views}] oldest first, for a sparkline.
+     */
     public static function series(string $videoId): array
     {
         return DB::table('video_stats')->where('video_id', $videoId)->orderBy('age_days')
-            ->get(['age_days', 'views'])->map(fn ($r) => ['age_days' => (float) $r->age_days, 'views' => (int) $r->views])->all();
+            ->get(['age_days', 'views'])->map(fn ($r) => [
+                'age_days' => (float)$r->age_days,
+                'views' => (int)$r->views,
+            ])->all();
     }
 
     /**
@@ -102,13 +130,13 @@ class VideoStats
         $near = function ($list, int $day): ?int {
             $best = null;
             foreach ($list as $r) {
-                $d = abs((float) $r->age_days - $day);
-                if ($d <= 1 && ($best === null || $d < abs((float) $best->age_days - $day))) {
+                $d = abs((float)$r->age_days - $day);
+                if ($d <= 1 && ($best === null || $d < abs((float)$best->age_days - $day))) {
                     $best = $r;
                 }
             }
 
-            return $best ? (int) $best->views : null;
+            return $best ? (int)$best->views : null;
         };
         $at = [];
         foreach ($rows as $id => $list) {
@@ -121,9 +149,16 @@ class VideoStats
 
         $out = [];
         foreach ($ids as $id) {
-            $res = ['at' => [], 'pace' => null, 'series' => ($rows[$id] ?? collect())->map(fn ($r) => ['age_days' => (float) $r->age_days, 'views' => (int) $r->views])->values()->all()];
+            $res = [
+                'at' => [],
+                'pace' => null,
+                'series' => ($rows[$id] ?? collect())->map(fn ($r) => [
+                    'age_days' => (float)$r->age_days,
+                    'views' => (int)$r->views,
+                ])->values()->all(),
+            ];
             foreach (self::MILESTONES as $day) {
-                if (! isset($at[$id][$day])) {
+                if (!isset($at[$id][$day])) {
                     continue;
                 }
                 $others = [];
@@ -133,9 +168,15 @@ class VideoStats
                     }
                 }
                 $usual = count($others) >= 3 ? YouTube::median($others) : null;
-                $res['at'][$day] = ['views' => $at[$id][$day], 'usual' => $usual];
+                $res['at'][$day] = [
+                    'views' => $at[$id][$day],
+                    'usual' => $usual,
+                ];
                 if ($usual) {
-                    $res['pace'] = ['day' => $day, 'ratio' => round($at[$id][$day] / $usual, 2)];
+                    $res['pace'] = [
+                        'day' => $day,
+                        'ratio' => round($at[$id][$day] / $usual, 2),
+                    ];
                 }
             }
             $out[$id] = $res;

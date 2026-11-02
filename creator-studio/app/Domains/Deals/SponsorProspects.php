@@ -22,18 +22,22 @@ class SponsorProspects
         '/today\'?s sponsor(?: is)?:?\s+(?<b>[^\n.!,;:()|]{2,40})/iu',
     ];
 
-    /** Domains that are platforms or link tools, never the sponsor. */
+    /**
+     * Domains that are platforms or link tools, never the sponsor.
+     */
     private const NOT_SPONSORS = [
         'youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'instagram.com', 'linkedin.com', 'tiktok.com', 'facebook.com',
         'github.com', 'patreon.com', 'discord.gg', 'discord.com', 'threads.net', 'bit.ly', 'linktr.ee', 'amzn.to', 'amazon.com',
         'goo.gl', 'buymeacoffee.com', 'ko-fi.com', 'substack.com', 'medium.com', 'twitch.tv', 'spotify.com', 'apple.com', 'google.com',
     ];
 
-    /** @return list<array{brand: string, domain: ?string, snippet: string}> */
+    /**
+     * @return list<array{brand: string, domain: ?string, snippet: string}>
+     */
     public static function detect(?string $description): array
     {
         $found = [];
-        foreach (preg_split('/\R/u', (string) $description) as $line) {
+        foreach (preg_split('/\R/u', (string)$description) as $line) {
             $line = trim($line);
             if ($line === '' || mb_strlen($line) > 400) {
                 continue;
@@ -41,31 +45,48 @@ class SponsorProspects
             $domain = self::sponsorDomain($line);
             foreach (self::PHRASES as $re) {
                 if (preg_match($re, $line, $m) && ($brand = self::cleanBrand($m['b']))) {
-                    $found[self::key($brand)] = ['brand' => $brand, 'domain' => $domain, 'snippet' => mb_substr($line, 0, 300)];
+                    $found[self::key($brand)] = [
+                        'brand' => $brand,
+                        'domain' => $domain,
+                        'snippet' => mb_substr($line, 0, 300),
+                    ];
+
                     continue 2;
                 }
             }
             // "Use code TECH20 at acme.dev for 20% off" / "Try Acme free: https://acme.dev/?ref=chan"
             if ($domain && preg_match('/\bcode\b|\bcoupon\b|%\s?off\b|\bfree trial\b|\bdiscount\b|\bsponsor|\baffiliate\b|[?&](?:ref|utm_source|via)=/iu', $line)) {
                 $brand = self::brandFromDomain($domain);
-                $found[self::key($brand)] ??= ['brand' => $brand, 'domain' => $domain, 'snippet' => mb_substr($line, 0, 300)];
+                $found[self::key($brand)] ??= [
+                    'brand' => $brand,
+                    'domain' => $domain,
+                    'snippet' => mb_substr($line, 0, 300),
+                ];
             }
         }
 
         return array_values($found);
     }
 
-    /** Save what a scan saw: $videos are the scanner's video rows with a description. */
+    /**
+     * Save what a scan saw: $videos are the scanner's video rows with a description.
+     */
     public static function record(array $videos, ?string $channelTitle = null): int
     {
         $rows = [];
         foreach ($videos as $v) {
             foreach (self::detect($v['description'] ?? null) as $s) {
                 $rows[] = [
-                    'brand' => $s['brand'], 'domain' => $s['domain'], 'video_id' => $v['id'], 'video_title' => mb_substr((string) ($v['title'] ?? ''), 0, 255),
-                    'channel_title' => $v['channel'] ?? $channelTitle, 'views' => (int) ($v['views'] ?? 0),
+                    'brand' => $s['brand'],
+                    'domain' => $s['domain'],
+                    'video_id' => $v['id'],
+                    'video_title' => mb_substr((string)($v['title'] ?? ''), 0, 255),
+                    'channel_title' => $v['channel'] ?? $channelTitle,
+                    'views' => (int)($v['views'] ?? 0),
                     'published_at' => isset($v['published_at']) ? CarbonImmutable::parse($v['published_at']) : null,
-                    'snippet' => $s['snippet'], 'created_at' => now(), 'updated_at' => now(),
+                    'snippet' => $s['snippet'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
             }
         }
@@ -73,7 +94,9 @@ class SponsorProspects
         return $rows ? DB::table('sponsor_sightings')->insertOrIgnore($rows) : 0;
     }
 
-    /** Brands ranked by reach in her niche, with whether they're already in her pipeline. */
+    /**
+     * Brands ranked by reach in her niche, with whether they're already in her pipeline.
+     */
     public static function list(int $days = 180, int $limit = 30): array
     {
         $rows = DB::table('sponsor_sightings')->where('created_at', '>=', now()->subDays($days))->orderByDesc('published_at')->get();
@@ -88,10 +111,18 @@ class SponsorProspects
                 'domain' => $g->pluck('domain')->filter()->first(),
                 'mentions' => $g->count(),
                 'channels' => $g->pluck('channel_title')->filter()->unique()->values()->all(),
-                'views' => (int) $g->sum('views'),
+                'views' => (int)$g->sum('views'),
                 'last_seen' => $latest->published_at,
-                'example' => ['video_id' => $latest->video_id, 'title' => $latest->video_title, 'url' => "https://youtu.be/{$latest->video_id}", 'snippet' => $latest->snippet],
-                'deal' => $deal ? ['id' => $deal->id, 'stage' => $deal->stage] : null,
+                'example' => [
+                    'video_id' => $latest->video_id,
+                    'title' => $latest->video_title,
+                    'url' => "https://youtu.be/{$latest->video_id}",
+                    'snippet' => $latest->snippet,
+                ],
+                'deal' => $deal ? [
+                    'id' => $deal->id,
+                    'stage' => $deal->stage,
+                ] : null,
             ];
         })->sortByDesc(fn ($p) => [count($p['channels']), $p['mentions'], $p['views']])->values()->take($limit)->all();
     }
@@ -115,13 +146,13 @@ class SponsorProspects
 
     private static function sponsorDomain(string $line): ?string
     {
-        if (! preg_match_all('~(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:/[^\s]*)?~i', $line, $m)) {
+        if (!preg_match_all('~(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:/[^\s]*)?~i', $line, $m)) {
             return null;
         }
         foreach ($m[1] as $host) {
             $host = strtolower($host);
             $root = implode('.', array_slice(explode('.', $host), -2));
-            if (! in_array($root, self::NOT_SPONSORS, true) && ! in_array($host, self::NOT_SPONSORS, true)) {
+            if (!in_array($root, self::NOT_SPONSORS, true) && !in_array($host, self::NOT_SPONSORS, true)) {
                 return $host;
             }
         }
@@ -131,7 +162,7 @@ class SponsorProspects
 
     private static function brandFromDomain(string $domain): string
     {
-        $labels = array_values(array_filter(explode('.', $domain), fn ($l) => ! in_array($l, ['www', 'go', 'try', 'get', 'join', 'app'], true)));
+        $labels = array_values(array_filter(explode('.', $domain), fn ($l) => !in_array($l, ['www', 'go', 'try', 'get', 'join', 'app'], true)));
 
         return ucfirst($labels[0] ?? $domain);
     }

@@ -32,7 +32,9 @@ class EngineKeys
         };
     }
 
-    /** Engines usable right now (custom servers only when they're the engine in Settings). */
+    /**
+     * Engines usable right now (custom servers only when they're the engine in Settings).
+     */
     public static function available(): array
     {
         $current = app(EngineManager::class)->current();
@@ -40,11 +42,13 @@ class EngineKeys
         return array_values(array_filter(EngineEnum::cases(), fn (EngineEnum $e) => ($e !== EngineEnum::CUSTOM || $e === $current) && self::for($e) !== null));
     }
 
-    /** @return array<string, string> engine value => key, from the "More AI keys" setting */
+    /**
+     * @return array<string, string> engine value => key, from the "More AI keys" setting
+     */
     public static function extra(): array
     {
         $out = [];
-        foreach (preg_split('/[\r\n;]+/', (string) Setting::get('extra_llm_keys', '')) as $line) {
+        foreach (preg_split('/[\r\n;]+/', (string)Setting::get('extra_llm_keys', '')) as $line) {
             if (preg_match('/^\s*([a-z]+)\s*[=:]\s*(\S+)\s*$/i', $line, $m) && EngineEnum::tryFrom(strtolower($m[1]))) {
                 $out[strtolower($m[1])] = $m[2];
             }
@@ -53,11 +57,13 @@ class EngineKeys
         return $out;
     }
 
-    /** "anthropic|claude-sonnet-5-5" → [EngineEnum, model]; a bare model id stays on the Settings engine. */
+    /**
+     * "anthropic|claude-sonnet-5-5" → [EngineEnum, model]; a bare model id stays on the Settings engine.
+     */
     public static function parse(?string $choice): array
     {
         $current = app(EngineManager::class)->current();
-        if (! $choice) {
+        if (!$choice) {
             return [$current, null];
         }
         if (str_contains($choice, '|')) {

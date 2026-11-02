@@ -10,6 +10,9 @@ class Subscriber extends Model
 
     protected function casts(): array
     {
-        return ['attribution' => 'array', 'unsubscribed_at' => 'datetime'];
+        return [
+            'attribution' => 'array',
+            'unsubscribed_at' => 'datetime',
+        ];
     }
 }

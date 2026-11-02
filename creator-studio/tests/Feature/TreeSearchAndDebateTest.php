@@ -27,7 +27,11 @@ class TreeSearchAndDebateTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 16:00', 'UTC'));
 
-        $this->user = $this->admin(['name' => 'Margaret Hamilton', 'email' => 'margaret@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Margaret Hamilton',
+            'email' => 'margaret@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([
@@ -53,8 +57,14 @@ class TreeSearchAndDebateTest extends TestCase
             if (str_contains($system, 'Principal engineer & architecture critic')) {
                 return json_encode([
                     'angles' => [
-                        ['angle_name' => 'Zero-Downtime Migration', 'hypothesis' => 'Dual-write patterns eliminate migration downtime.'],
-                        ['angle_name' => 'Clock Drift Pitfalls', 'hypothesis' => 'Hardware clocks always desynchronize under network partitions.'],
+                        [
+                            'angle_name' => 'Zero-Downtime Migration',
+                            'hypothesis' => 'Dual-write patterns eliminate migration downtime.',
+                        ],
+                        [
+                            'angle_name' => 'Clock Drift Pitfalls',
+                            'hypothesis' => 'Hardware clocks always desynchronize under network partitions.',
+                        ],
                     ],
                 ]);
             }
@@ -101,7 +111,12 @@ class TreeSearchAndDebateTest extends TestCase
             'platform' => 'linkedin',
         ]);
         $res->assertOk();
-        $res->assertJsonStructure(['message', 'post', 'tree' => ['nodes', 'edges', 'winning_path'], 'stats']);
+        $res->assertJsonStructure([
+            'message',
+            'post',
+            'tree' => ['nodes', 'edges', 'winning_path'],
+            'stats',
+        ]);
     }
 
     public function test_adversarial_red_team_debate_produces_armored_post(): void
@@ -109,7 +124,7 @@ class TreeSearchAndDebateTest extends TestCase
         Llm::$fake = function (string $system, string $user) {
             if (str_contains($system, 'Confident practitioner')) {
                 return json_encode([
-                    'body' => "We replaced our 12-node microservices architecture with a single modular monolith and cut p99 response times from 340ms to 8ms.",
+                    'body' => 'We replaced our 12-node microservices architecture with a single modular monolith and cut p99 response times from 340ms to 8ms.',
                     'parts' => [],
                 ]);
             }
@@ -123,7 +138,7 @@ class TreeSearchAndDebateTest extends TestCase
                 ]);
             }
             if (str_contains($system, 'Senior practitioner responding')) {
-                return "Valid point for 100-person teams, but for teams under 20 engineers, network hops cause more friction than code ownership.";
+                return 'Valid point for 100-person teams, but for teams under 20 engineers, network hops cause more friction than code ownership.';
             }
             if (str_contains($system, 'Arbiter of truth')) {
                 return json_encode([
@@ -164,4 +179,3 @@ class TreeSearchAndDebateTest extends TestCase
         $this->assertEquals(94, $res->json('confidence_score'));
     }
 }
-

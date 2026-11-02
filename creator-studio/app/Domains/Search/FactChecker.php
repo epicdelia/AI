@@ -16,9 +16,15 @@ class FactChecker
 {
     public const MAX_CLAIMS = 8;
 
-    public function __construct(private Llm $llm, private WebSearch $search) {}
+    public function __construct(
+        private Llm $llm,
+        private WebSearch $search
+    ) {
+    }
 
-    /** @return array<int, array{claim: string, query: string}> */
+    /**
+     * @return array<int, array{claim: string, query: string}>
+     */
     public function claims(string $script): array
     {
         $data = $this->llm->as('fact_check')->json(<<<'TXT'
@@ -30,9 +36,12 @@ JSON: {"claims": [{"claim": "the statement, close to the script's wording", "que
 TXT, mb_substr($script, 0, 60000));
 
         return collect($data['claims'] ?? [])
-            ->filter(fn ($c) => is_array($c) && ! empty($c['claim']))
+            ->filter(fn ($c) => is_array($c) && !empty($c['claim']))
             ->take(self::MAX_CLAIMS)
-            ->map(fn ($c) => ['claim' => mb_substr((string) $c['claim'], 0, 400), 'query' => mb_substr((string) ($c['query'] ?? $c['claim']), 0, 200)])
+            ->map(fn ($c) => [
+                'claim' => mb_substr((string)$c['claim'], 0, 400),
+                'query' => mb_substr((string)($c['query'] ?? $c['claim']), 0, 200),
+            ])
             ->values()->all();
     }
 
@@ -43,29 +52,44 @@ TXT, mb_substr($script, 0, 60000));
      */
     public function run(string $script, callable $onStatus, callable $onDelta): array
     {
-        $onStatus(['step' => 'extracting']);
+        $onStatus([
+            'step' => 'extracting',
+        ]);
         $claims = $this->claims($script);
-        if (! $claims) {
+        if (!$claims) {
             $report = "## Fact-check\nNo checkable factual claims found. Nothing to verify.";
             $onDelta($report);
 
-            return ['report' => $report, 'claims' => [], 'sources' => 0];
+            return [
+                'report' => $report,
+                'claims' => [],
+                'sources' => 0,
+            ];
         }
 
         $evidence = [];
         $sources = 0;
         foreach ($claims as $i => $c) {
-            $onStatus(['step' => 'searching', 'done' => $i, 'total' => count($claims), 'claim' => $c['claim']]);
+            $onStatus([
+                'step' => 'searching',
+                'done' => $i,
+                'total' => count($claims),
+                'claim' => $c['claim'],
+            ]);
+
             try {
                 $result = $this->search->search($c['query'], 5);
                 $sources += count($result['results']);
-                $evidence[] = 'Claim '.($i + 1).": {$c['claim']}\nSearch: {$c['query']}\nResults:\n".WebSearch::forPrompt($result);
+                $evidence[] = 'Claim ' . ($i + 1) . ": {$c['claim']}\nSearch: {$c['query']}\nResults:\n" . WebSearch::forPrompt($result);
             } catch (RuntimeException $e) {
-                $evidence[] = 'Claim '.($i + 1).": {$c['claim']}\nSearch failed: {$e->getMessage()}";
+                $evidence[] = 'Claim ' . ($i + 1) . ": {$c['claim']}\nSearch failed: {$e->getMessage()}";
             }
         }
 
-        $onStatus(['step' => 'judging', 'total' => count($claims)]);
+        $onStatus([
+            'step' => 'judging',
+            'total' => count($claims),
+        ]);
         $name = Prompts::name();
         $system = <<<TXT
 You fact-check {$name}'s YouTube script using ONLY the web results provided. Be strict and plain.
@@ -84,8 +108,15 @@ End with "## Summary": counts per verdict and one line on what to fix before fil
 No em dashes.
 TXT;
 
-        $report = $this->llm->as('fact_check')->stream($system, [['role' => 'user', 'content' => implode("\n\n---\n\n", $evidence)]], $onDelta);
+        $report = $this->llm->as('fact_check')->stream($system, [[
+            'role' => 'user',
+            'content' => implode("\n\n---\n\n", $evidence),
+        ]], $onDelta);
 
-        return ['report' => $report, 'claims' => $claims, 'sources' => $sources];
+        return [
+            'report' => $report,
+            'claims' => $claims,
+            'sources' => $sources,
+        ];
     }
 }

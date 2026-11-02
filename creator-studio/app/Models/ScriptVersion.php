@@ -23,31 +23,35 @@ class ScriptVersion extends Model
         return $this->belongsTo(Script::class);
     }
 
-    /** Called while a script is updating: keep the body it's about to lose, when it's worth keeping. */
+    /**
+     * Called while a script is updating: keep the body it's about to lose, when it's worth keeping.
+     */
     public static function beforeChange(Script $script): void
     {
-        if (! $script->isDirty('body')) {
+        if (!$script->isDirty('body')) {
             return;
         }
-        $old = (string) $script->getOriginal('body');
+        $old = (string)$script->getOriginal('body');
         if (trim($old) === '') {
             return;
         }
 
         $last = self::where('script_id', $script->id)->latest('id')->first();
-        $large = self::isLarge($old, (string) $script->body);
-        $due = ! $last || $last->created_at->lte(now()->subMinutes(self::EVERY_MINUTES));
-        if (! $large && ! $due) {
+        $large = self::isLarge($old, (string)$script->body);
+        $due = !$last || $last->created_at->lte(now()->subMinutes(self::EVERY_MINUTES));
+        if (!$large && !$due) {
             return;
         }
 
-        self::keep($script, $old, (string) $script->getOriginal('title'), 'auto', $large ? 'Before a large edit' : null);
+        self::keep($script, $old, (string)$script->getOriginal('title'), 'auto', $large ? 'Before a large edit' : null);
     }
 
-    /** Save a copy of the body (skipped when it matches the newest copy). */
+    /**
+     * Save a copy of the body (skipped when it matches the newest copy).
+     */
     public static function keep(Script $script, ?string $body = null, ?string $title = null, string $source = 'manual', ?string $label = null): ?self
     {
-        $body ??= (string) $script->body;
+        $body ??= (string)$script->body;
         $last = self::where('script_id', $script->id)->latest('id')->first();
         if (trim($body) === '') {
             return null;
@@ -55,7 +59,10 @@ class ScriptVersion extends Model
         if ($last && $last->body === $body) {
             // Same text as the newest copy: naming it by hand promotes that copy instead of duplicating it.
             if ($source === 'manual') {
-                $last->update(['source' => 'manual', 'label' => $label !== null ? mb_substr($label, 0, 120) : $last->label]);
+                $last->update([
+                    'source' => 'manual',
+                    'label' => $label !== null ? mb_substr($label, 0, 120) : $last->label,
+                ]);
             }
 
             return $source === 'manual' ? $last : null;
@@ -80,12 +87,14 @@ class ScriptVersion extends Model
         return $version;
     }
 
-    /** A rewrite, a big paste or a big delete: several paragraphs replaced, or the length jumps. */
+    /**
+     * A rewrite, a big paste or a big delete: several paragraphs replaced, or the length jumps.
+     */
     public static function isLarge(string $before, string $after): bool
     {
         $a = ParagraphDiff::split($before);
         $b = array_flip(ParagraphDiff::split($after));
-        $gone = count(array_filter($a, fn ($p) => ! isset($b[$p])));
+        $gone = count(array_filter($a, fn ($p) => !isset($b[$p])));
         if ($gone >= 3 && $gone >= count($a) * 0.3) {
             return true;
         }

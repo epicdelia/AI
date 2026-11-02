@@ -54,7 +54,7 @@ class InstallController extends Controller
         $cacheWritable = is_writable(base_path('bootstrap/cache'));
         $databaseWritable = is_writable(database_path());
 
-        $hasAppKey = ! empty(config('app.key'));
+        $hasAppKey = !empty(config('app.key'));
 
         return response()->json([
             'installed' => $hasUsers,
@@ -114,14 +114,14 @@ class InstallController extends Controller
                 }
 
                 $path = $database;
-                if (! File::isAbsolutePath($path)) {
+                if (!File::isAbsolutePath($path)) {
                     $path = base_path($path);
                 }
                 $dir = dirname($path);
-                if (! File::isDirectory($dir)) {
+                if (!File::isDirectory($dir)) {
                     File::makeDirectory($dir, 0755, true, true);
                 }
-                if (! File::exists($path)) {
+                if (!File::exists($path)) {
                     File::put($path, '');
                 }
                 $pdo = new PDO("sqlite:{$path}", null, null, [
@@ -136,8 +136,8 @@ class InstallController extends Controller
                 ]);
             }
 
-            $host = ! empty($data['host']) ? $data['host'] : '127.0.0.1';
-            $port = ! empty($data['port']) ? (int) $data['port'] : ($driver === 'pgsql' ? 5432 : 3306);
+            $host = !empty($data['host']) ? $data['host'] : '127.0.0.1';
+            $port = !empty($data['port']) ? (int)$data['port'] : ($driver === 'pgsql' ? 5432 : 3306);
             $user = $data['username'] ?? '';
             $pass = $data['password'] ?? '';
 
@@ -163,6 +163,7 @@ class InstallController extends Controller
                             'message' => "Database `{$cleanDb}` was created and connection is ready!",
                         ]);
                     }
+
                     throw $e;
                 }
             } elseif ($driver === 'pgsql') {
@@ -206,22 +207,22 @@ class InstallController extends Controller
 
         $driver = $data['driver'] === 'mariadb' ? 'mysql' : $data['driver'];
         $database = trim($data['database']);
-        $host = ! empty($data['host']) ? $data['host'] : '127.0.0.1';
-        $port = ! empty($data['port']) ? (int) $data['port'] : ($driver === 'pgsql' ? 5432 : 3306);
+        $host = !empty($data['host']) ? $data['host'] : '127.0.0.1';
+        $port = !empty($data['port']) ? (int)$data['port'] : ($driver === 'pgsql' ? 5432 : 3306);
         $user = $data['username'] ?? '';
         $pass = $data['password'] ?? '';
 
         // Test connection first
         if ($driver === 'sqlite') {
             $path = $database;
-            if (! File::isAbsolutePath($path)) {
+            if (!File::isAbsolutePath($path)) {
                 $path = base_path($path);
             }
             $dir = dirname($path);
-            if (! File::isDirectory($dir)) {
+            if (!File::isDirectory($dir)) {
                 File::makeDirectory($dir, 0755, true, true);
             }
-            if (! File::exists($path)) {
+            if (!File::exists($path)) {
                 File::put($path, '');
             }
         }
@@ -230,13 +231,13 @@ class InstallController extends Controller
         $envUpdates = [
             'DB_CONNECTION' => $driver,
             'DB_HOST' => $host,
-            'DB_PORT' => (string) $port,
+            'DB_PORT' => (string)$port,
             'DB_DATABASE' => $database,
             'DB_USERNAME' => $user,
             'DB_PASSWORD' => $pass,
         ];
 
-        if (! empty($data['app_url'])) {
+        if (!empty($data['app_url'])) {
             $envUpdates['APP_URL'] = $data['app_url'];
         }
 
@@ -257,7 +258,9 @@ class InstallController extends Controller
         // Generate app key if missing
         if (empty(config('app.key'))) {
             try {
-                Artisan::call('key:generate', ['--force' => true]);
+                Artisan::call('key:generate', [
+                    '--force' => true,
+                ]);
             } catch (Throwable) {
                 // Non-fatal
             }
@@ -265,12 +268,14 @@ class InstallController extends Controller
 
         // Run migrations
         try {
-            Artisan::call('migrate', ['--force' => true]);
+            Artisan::call('migrate', [
+                '--force' => true,
+            ]);
             $migrationOutput = Artisan::output();
         } catch (Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'error' => 'Database configured, but migration failed: '.$e->getMessage(),
+                'error' => 'Database configured, but migration failed: ' . $e->getMessage(),
             ], 500);
         }
 
@@ -291,7 +296,9 @@ class InstallController extends Controller
         }
 
         try {
-            Artisan::call('migrate', ['--force' => true]);
+            Artisan::call('migrate', [
+                '--force' => true,
+            ]);
             $output = Artisan::output();
 
             return response()->json([
@@ -302,7 +309,7 @@ class InstallController extends Controller
         } catch (Throwable $e) {
             return response()->json([
                 'ok' => false,
-                'error' => 'Migration failed: '.$e->getMessage(),
+                'error' => 'Migration failed: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -322,7 +329,9 @@ class InstallController extends Controller
 
     private function alreadyInstalled(): JsonResponse
     {
-        return response()->json(['error' => 'Application is already installed.'], 403);
+        return response()->json([
+            'error' => 'Application is already installed.',
+        ], 403);
     }
 
     /**
@@ -344,7 +353,7 @@ class InstallController extends Controller
             // Escape / quote value if needed
             $formattedVal = $val;
             if (str_contains($val, ' ') || str_contains($val, '#') || str_contains($val, '$')) {
-                $formattedVal = '"'.str_replace('"', '\"', $val).'"';
+                $formattedVal = '"' . str_replace('"', '\"', $val) . '"';
             }
 
             if (preg_match("/^{$key}=.*/m", $content)) {
@@ -354,7 +363,7 @@ class InstallController extends Controller
             }
         }
 
-        if (is_writable($envPath) || (! File::exists($envPath) && is_writable(base_path()))) {
+        if (is_writable($envPath) || (!File::exists($envPath) && is_writable(base_path()))) {
             File::put($envPath, $content);
         }
     }

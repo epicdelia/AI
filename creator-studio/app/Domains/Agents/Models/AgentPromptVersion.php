@@ -17,6 +17,11 @@ class AgentPromptVersion extends Model
         'is_active',
     ];
 
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -26,10 +31,4 @@ class AgentPromptVersion extends Model
             'is_active' => 'boolean',
         ];
     }
-
-    public function agent(): BelongsTo
-    {
-        return $this->belongsTo(SocialAgent::class, 'social_agent_id');
-    }
 }
-

@@ -227,4 +227,3 @@ class LandingSocialFeedAndPlayerTest extends TestCase
         $this->assertSame($firstCount, $secondCount, 'Building twice must not duplicate seed posts');
     }
 }
-

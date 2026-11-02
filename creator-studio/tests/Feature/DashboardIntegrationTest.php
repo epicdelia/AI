@@ -23,7 +23,11 @@ class DashboardIntegrationTest extends TestCase
     {
         parent::setUp();
         Setting::flush();
-        $this->user = $this->admin(['name' => 'Delia', 'email' => 'delia@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Delia',
+            'email' => 'delia@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
     }
 
@@ -79,7 +83,7 @@ class DashboardIntegrationTest extends TestCase
 
         $this->assertCount(1, $res->json('active_deliverables'));
         $this->assertSame('Supabase', $res->json('active_deliverables.0.brand_name'));
-        $this->assertSame(2500.0, (float) $res->json('active_deliverables.0.rate'));
+        $this->assertSame(2500.0, (float)$res->json('active_deliverables.0.rate'));
         $this->assertStringContainsString('Due in 2 days', $res->json('active_deliverables.0.due_label'));
     }
 

@@ -26,10 +26,10 @@ class PrivacyAccessLogger
     ): void {
         if ($resourceOrDeal instanceof Deal) {
             $deal = $resourceOrDeal;
-            $resource = 'Deal #'.$deal->id.' ('.$deal->brand_name.')';
+            $resource = 'Deal #' . $deal->id . ' (' . $deal->brand_name . ')';
             $purpose = is_string($purposeOrMeta) ? $purposeOrMeta : 'GDPR compliance & legal execution';
         } else {
-            $resource = (string) $resourceOrDeal;
+            $resource = (string)$resourceOrDeal;
             $purpose = is_string($purposeOrMeta) ? $purposeOrMeta : 'Authorized platform operation';
         }
 
@@ -39,7 +39,7 @@ class PrivacyAccessLogger
         DB::table('privacy_access_logs')->insert([
             'user_id' => $deal?->user_id ?: ($actor->isAdmin() ? null : $actor->id),
             'deal_id' => $deal?->id,
-            'actor_name' => $actor->name.' ('.($actor->isAdmin() ? 'Studio Admin' : 'Client Team').')',
+            'actor_name' => $actor->name . ' (' . ($actor->isAdmin() ? 'Studio Admin' : 'Client Team') . ')',
             'action' => $action,
             'resource' => $resource,
             'ip_subnet' => $ipSubnet,
@@ -86,13 +86,15 @@ class PrivacyAccessLogger
         if (str_contains($ip, ':')) {
             // IPv6
             $parts = explode(':', $ip);
-            return implode(':', array_slice($parts, 0, min(3, count($parts)))).'::0';
+
+            return implode(':', array_slice($parts, 0, min(3, count($parts)))) . '::0';
         }
 
         // IPv4
         $parts = explode('.', $ip);
         if (count($parts) === 4) {
             $parts[3] = '0';
+
             return implode('.', $parts);
         }
 

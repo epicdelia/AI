@@ -8,20 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
-/** A file on a request: a client's brief or assets, or her deliverable. Private storage only. */
+/**
+ * A file on a request: a client's brief or assets, or her deliverable. Private storage only.
+ */
 class DealFile extends Model
 {
     protected $fillable = ['deal_id', 'user_id', 'from_admin', 'name', 'path', 'mime', 'size'];
-
-    protected function casts(): array
-    {
-        return ['from_admin' => 'boolean', 'size' => 'integer'];
-    }
-
-    protected static function booted(): void
-    {
-        static::deleted(fn (DealFile $f) => Storage::disk('local')->delete($f->path));
-    }
 
     public function deal(): BelongsTo
     {
@@ -43,5 +35,18 @@ class DealFile extends Model
             'by' => $this->user?->name,
             'at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'from_admin' => 'boolean',
+            'size' => 'integer',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(fn (DealFile $f) => Storage::disk('local')->delete($f->path));
     }
 }

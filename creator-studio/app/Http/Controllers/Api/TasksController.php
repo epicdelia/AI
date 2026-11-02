@@ -9,7 +9,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Start a slow AI job in the background, then ask how it's doing (core.js runTask polls). */
+/**
+ * Start a slow AI job in the background, then ask how it's doing (core.js runTask polls).
+ */
 class TasksController extends Controller
 {
     public function store(Request $request): JsonResponse
@@ -18,7 +20,11 @@ class TasksController extends Controller
             'kind' => ['required', Rule::in(array_keys(RunAiTask::KINDS))],
             'payload' => 'nullable|array',
         ]);
-        $task = AiTask::create(['kind' => $data['kind'], 'payload' => $data['payload'] ?? [], 'status' => 'queued']);
+        $task = AiTask::create([
+            'kind' => $data['kind'],
+            'payload' => $data['payload'] ?? [],
+            'status' => 'queued',
+        ]);
         RunAiTask::dispatch($task->id);
         AiTask::where('created_at', '<', now()->subDays(2))->delete(); // keep the table small
 
@@ -32,7 +38,11 @@ class TasksController extends Controller
 
     private function state(AiTask $t): array
     {
-        return ['id' => $t->id, 'status' => $t->status, 'result' => in_array($t->status, ['done', 'failed'], true) ? $t->result : null,
-            'http_status' => $t->http_status];
+        return [
+            'id' => $t->id,
+            'status' => $t->status,
+            'result' => in_array($t->status, ['done', 'failed'], true) ? $t->result : null,
+            'http_status' => $t->http_status,
+        ];
     }
 }

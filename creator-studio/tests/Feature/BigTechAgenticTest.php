@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Agents\Ensemble\MultiAgentDeliberation;
 use App\Domains\Agents\Guardrails\AgentGuardrails;
-use App\Domains\Agents\Harness\ToolRegistry;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Memory\AgentEpisodicMemory;
 use App\Domains\Agents\Models\AgentEvent;
@@ -35,7 +33,11 @@ class BigTechAgenticTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 12:00', 'UTC'));
 
-        $this->user = $this->admin(['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([
@@ -60,13 +62,21 @@ class BigTechAgenticTest extends TestCase
         $server = app(McpServer::class);
 
         // 1. Initialize
-        $initRes = $server->handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize']);
+        $initRes = $server->handle([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+        ]);
         $this->assertEquals('2.0', $initRes['jsonrpc']);
         $this->assertEquals('2024-11-05', $initRes['result']['protocolVersion']);
         $this->assertEquals('creator-studio-mcp-server', $initRes['result']['serverInfo']['name']);
 
         // 2. Tools List
-        $listRes = $server->handle(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']);
+        $listRes = $server->handle([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'method' => 'tools/list',
+        ]);
         $this->assertGreaterThanOrEqual(6, count($listRes['result']['tools']));
         $this->assertEquals('fetch_breakouts', $listRes['result']['tools'][0]['name']);
         $this->assertArrayHasKey('inputSchema', $listRes['result']['tools'][0]);
@@ -76,7 +86,12 @@ class BigTechAgenticTest extends TestCase
             'jsonrpc' => '2.0',
             'id' => 3,
             'method' => 'tools/call',
-            'params' => ['name' => 'fetch_breakouts', 'arguments' => ['limit' => 2]],
+            'params' => [
+                'name' => 'fetch_breakouts',
+                'arguments' => [
+                    'limit' => 2,
+                ],
+            ],
         ]);
         $this->assertFalse($callRes['result']['isError']);
         $this->assertNotEmpty($callRes['result']['content']);
@@ -86,7 +101,9 @@ class BigTechAgenticTest extends TestCase
             'jsonrpc' => '2.0',
             'id' => 4,
             'method' => 'tools/call',
-            'params' => ['name' => 'non_existent_tool'],
+            'params' => [
+                'name' => 'non_existent_tool',
+            ],
         ]);
         $this->assertTrue($errRes['result']['isError']);
         $this->assertStringContainsString('Unknown tool', $errRes['result']['content'][0]['text']);
@@ -162,19 +179,25 @@ class BigTechAgenticTest extends TestCase
         $guardrails = new AgentGuardrails();
 
         // 1. Loop detection circuit breaker
-        $guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 3]);
-        $guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 3]);
+        $guardrails->recordAndValidateToolCall('fetch_breakouts', [
+            'limit' => 3,
+        ]);
+        $guardrails->recordAndValidateToolCall('fetch_breakouts', [
+            'limit' => 3,
+        ]);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/loop detected/i');
-        $guardrails->recordAndValidateToolCall('fetch_breakouts', ['limit' => 3]);
+        $guardrails->recordAndValidateToolCall('fetch_breakouts', [
+            'limit' => 3,
+        ]);
     }
 
     public function test_guardrails_redact_secrets_and_pii(): void
     {
         $guardrails = new AgentGuardrails();
 
-        $dirtyContent = "Our secret API key is sk-1234567890abcdef1234567890 and contact delia@internal-corp.org for unreleased rates.";
+        $dirtyContent = 'Our secret API key is sk-1234567890abcdef1234567890 and contact delia@internal-corp.org for unreleased rates.';
         $clean = $guardrails->sanitizeContent($dirtyContent);
 
         $this->assertStringNotContainsString('sk-1234567890abcdef1234567890', $clean);
@@ -192,7 +215,10 @@ class BigTechAgenticTest extends TestCase
 
     public function test_multi_agent_deliberation_committee_pipeline(): void
     {
-        $channel = Channel::create(['handle' => '@archtech', 'title' => 'Architecture Tech']);
+        $channel = Channel::create([
+            'handle' => '@archtech',
+            'title' => 'Architecture Tech',
+        ]);
         $outlier = Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'v_delib_1',

@@ -21,7 +21,8 @@ class TitleBanditOptimizer
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Generate 4 algorithmic title variants and matching thumbnail directions.
@@ -52,11 +53,11 @@ class TitleBanditOptimizer
      */
     public function optimize(SocialAgent $agent, array $params): array
     {
-        $topic = trim((string) ($params['topic'] ?? ''));
-        $currentTitle = trim((string) ($params['current_title'] ?? ''));
-        $videoId = ! empty($params['video_id']) ? trim((string) $params['video_id']) : null;
+        $topic = trim((string)($params['topic'] ?? ''));
+        $currentTitle = trim((string)($params['current_title'] ?? ''));
+        $videoId = !empty($params['video_id']) ? trim((string)$params['video_id']) : null;
 
-        if (empty($topic) && ! empty($currentTitle)) {
+        if (empty($topic) && !empty($currentTitle)) {
             $topic = $currentTitle;
         }
 
@@ -147,20 +148,21 @@ Return a valid JSON object matching this schema:
 SYS;
 
         $userPrompt = "Video Topic: {$topic}\n"
-            .($currentTitle ? "Current Working Title: \"{$currentTitle}\"\n" : '');
+            . ($currentTitle ? "Current Working Title: \"{$currentTitle}\"\n" : '');
         // Live title tests on her own videos: the wording her audience actually clicked.
         if ($wins = TitleEvidence::testWinners()) {
-            $userPrompt .= "\nHer finished live title tests (winner first, views per hour):\n".implode("\n", array_map(
-                fn ($w) => "- WON {$w['winner_views_per_hour']}/h: \"{$w['winner']}\" | beat: ".implode('; ', array_map(fn ($b) => "\"{$b['title']}\" {$b['views_per_hour']}/h", $w['beat'])),
-                $wins))."\nLean towards the patterns that won for her.\n";
+            $userPrompt .= "\nHer finished live title tests (winner first, views per hour):\n" . implode("\n", array_map(
+                fn ($w) => "- WON {$w['winner_views_per_hour']}/h: \"{$w['winner']}\" | beat: " . implode('; ', array_map(fn ($b) => "\"{$b['title']}\" {$b['views_per_hour']}/h", $w['beat'])),
+                $wins
+            )) . "\nLean towards the patterns that won for her.\n";
         }
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 700);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 700);
 
         try {
             $data = $this->llm->as('title-bandit-agent')->creativity(0.6)->json($systemPrompt, $userPrompt);
 
-            if (! isset($data['variants'], $data['bandit_winner'])) {
+            if (!isset($data['variants'], $data['bandit_winner'])) {
                 throw new \RuntimeException('Invalid title optimization response.');
             }
 
@@ -184,20 +186,24 @@ SYS;
         $history = TitleEvidence::history();
         foreach ($result['variants'] as &$v) {
             $v['score_source'] = 'ai_estimate';
-            $v['evidence'] = TitleEvidence::score((string) ($v['title'] ?? ''), $history);
+            $v['evidence'] = TitleEvidence::score((string)($v['title'] ?? ''), $history);
         }
         unset($v);
         $result['bandit_winner']['score_source'] = 'ai_estimate';
         $withData = array_values(array_filter($result['variants'], fn ($v) => $v['evidence']['predicted_vs_median'] !== null));
         if ($withData) {
             usort($withData, fn ($a, $b) => $b['evidence']['predicted_vs_median'] <=> $a['evidence']['predicted_vs_median']);
-            $result['data_winner'] = ['title' => $withData[0]['title'], 'predicted_vs_median' => $withData[0]['evidence']['predicted_vs_median'], 'videos' => $withData[0]['evidence']['videos']];
+            $result['data_winner'] = [
+                'title' => $withData[0]['title'],
+                'predicted_vs_median' => $withData[0]['evidence']['predicted_vs_median'],
+                'videos' => $withData[0]['evidence']['videos'],
+            ];
         } else {
             $result['data_winner'] = null;
         }
         $result['evidence_note'] = $history->count() >= TitleEvidence::MIN_VIDEOS
             ? "Compared with {$history->count()} of your videos (views vs your median, most similar titles)."
-            : 'CTR scores are AI estimates. Once '.TitleEvidence::MIN_VIDEOS.'+ of your videos have daily numbers, each title is also compared with your own.';
+            : 'CTR scores are AI estimates. Once ' . TitleEvidence::MIN_VIDEOS . '+ of your videos have daily numbers, each title is also compared with your own.';
         $result['test_winners'] = TitleEvidence::testWinners(3);
 
         return $result;
@@ -210,17 +216,19 @@ SYS;
      */
     public function launchTest(array $params): TitleTest
     {
-        $videoId = trim((string) $params['video_id']);
-        $titles = array_values(array_filter(array_map('trim', (array) $params['titles'])));
-        $hours = max(1, min(24, (int) ($params['hours_per_window'] ?? 4)));
-        $rounds = max(1, min(10, (int) ($params['rounds'] ?? 3)));
+        $videoId = trim((string)$params['video_id']);
+        $titles = array_values(array_filter(array_map('trim', (array)$params['titles'])));
+        $hours = max(1, min(24, (int)($params['hours_per_window'] ?? 4)));
+        $rounds = max(1, min(10, (int)($params['rounds'] ?? 3)));
 
         if (count($titles) < 2) {
             throw new \InvalidArgumentException('At least 2 title variations are required for an A/B test.');
         }
 
         $test = TitleTest::updateOrCreate(
-            ['video_id' => $videoId],
+            [
+                'video_id' => $videoId,
+            ],
             [
                 'original_title' => $titles[0],
                 'titles' => $titles,
@@ -306,4 +314,3 @@ SYS;
         ];
     }
 }
-

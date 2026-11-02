@@ -14,17 +14,14 @@ class Week extends Model
         'published_on', 'views_7d', 'note', 'verdict',
     ];
 
-    protected function casts(): array
-    {
-        return ['start_date' => 'date', 'due_date' => 'date', 'published_on' => 'date'];
-    }
-
     public function script(): BelongsTo
     {
         return $this->belongsTo(Script::class);
     }
 
-    /** The week whose due date is today or later (the one she's working on now). */
+    /**
+     * The week whose due date is today or later (the one she's working on now).
+     */
     public static function current(): ?self
     {
         $today = now(Setting::get('timezone'))->toDateString();
@@ -32,5 +29,13 @@ class Week extends Model
         return self::query()->whereDate('due_date', '>=', $today)->orderBy('due_date')->first()
             ?? self::query()->orderByDesc('due_date')->first();
     }
-}
 
+    protected function casts(): array
+    {
+        return [
+            'start_date' => 'date',
+            'due_date' => 'date',
+            'published_on' => 'date',
+        ];
+    }
+}

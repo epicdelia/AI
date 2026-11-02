@@ -4,17 +4,16 @@ namespace App\Domains\Audience\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/** What viewers asked for in one video's comments (see CommentMiner). */
+/**
+ * What viewers asked for in one video's comments (see CommentMiner).
+ */
 class AudienceInsight extends Model
 {
     protected $fillable = ['video_id', 'video_title', 'url', 'own', 'comment_count', 'summary', 'items', 'used'];
 
-    protected function casts(): array
-    {
-        return ['items' => 'array', 'own' => 'boolean', 'used' => 'boolean'];
-    }
-
-    /** Compact lines for the idea prompt, one per viewer need worth a video. */
+    /**
+     * Compact lines for the idea prompt, one per viewer need worth a video.
+     */
     public function compactLines(): array
     {
         return collect($this->items ?? [])
@@ -29,5 +28,14 @@ class AudienceInsight extends Model
                 'url' => $this->url,
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE))
             ->values()->all();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'items' => 'array',
+            'own' => 'boolean',
+            'used' => 'boolean',
+        ];
     }
 }

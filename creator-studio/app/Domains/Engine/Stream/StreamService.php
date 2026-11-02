@@ -38,7 +38,7 @@ class StreamService
 
         $minLevel = config('octane.enabled') ? 1 : 0;
         while (ob_get_level() > $minLevel) {
-            if (! @ob_end_flush()) {
+            if (!@ob_end_flush()) {
                 break;
             }
         }
@@ -91,12 +91,12 @@ class StreamService
             @set_time_limit($timeLimit);
             ignore_user_abort(false);
             // Some proxies hold back the first bytes until a buffer fills; a comment line opens the pipe.
-            echo ': '.str_repeat(' ', 2048)."\n\n";
+            echo ': ' . str_repeat(' ', 2048) . "\n\n";
             $this->safeFlush();
 
             try {
                 $payload = $work($this);
-                $this->emit('done', json_encode($payload ?? new \stdClass, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                $this->emit('done', json_encode($payload ?? new \stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             } catch (Throwable $e) {
                 report($e);
                 $this->emit('error', json_encode($e->getMessage(), JSON_UNESCAPED_UNICODE));

@@ -27,7 +27,9 @@ class AiTellsLinter
         'sketchy', 'hello world, hello friends', 'the world is your oyster',
     ];
 
-    /** @return array<int, array{0: string, 1: string, 2: string}> [severity, name, regex] */
+    /**
+     * @return array<int, array{0: string, 1: string, 2: string}> [severity, name, regex]
+     */
     public static function rules(): array
     {
         $banned = implode('|', array_map(fn ($p) => preg_quote($p, '/'), self::BANNED));
@@ -35,7 +37,7 @@ class AiTellsLinter
         return [
             [self::HARD, 'em dash', '/—/u'],
             [self::HARD, 'spaced en dash used as em dash', '/\s–\s/u'],
-            [self::HARD, 'banned phrase', '/\b('.$banned.')/iu'],
+            [self::HARD, 'banned phrase', '/\b(' . $banned . ')/iu'],
             [self::HARD, "'leverage' as a verb", '/\bleverag(e|es|ing|ed)\s+(the|your|our|this|these|AI|it)\b/iu'],
             [self::WARN, "'not X, it's Y' reversal", "/\b(isn't|is not|it's not|not) (just |only |about )?[^.,;!?]{1,40}[,;] (it's|it is|but)\b/iu"],
             [self::WARN, 'stock setup phrase', "/\b(here's the (thing|kicker|catch)|let that sink in|the best part\?|spoiler( alert)?:|plot twist:|but here's where it gets)/iu"],
@@ -46,7 +48,9 @@ class AiTellsLinter
         ];
     }
 
-    /** @return array<int, array{severity: string, line: int, rule: string, match: string}> */
+    /**
+     * @return array<int, array{severity: string, line: int, rule: string, match: string}>
+     */
     public static function lint(string $text): array
     {
         $findings = [];
@@ -55,7 +59,12 @@ class AiTellsLinter
             foreach (self::rules() as [$severity, $name, $pattern]) {
                 if (preg_match_all($pattern, $line, $m)) {
                     foreach ($m[0] as $match) {
-                        $findings[] = ['severity' => $severity, 'line' => $i + 1, 'rule' => $name, 'match' => trim($match)];
+                        $findings[] = [
+                            'severity' => $severity,
+                            'line' => $i + 1,
+                            'rule' => $name,
+                            'match' => trim($match),
+                        ];
                     }
                 }
             }
@@ -64,24 +73,39 @@ class AiTellsLinter
         $lower = mb_strtolower($text);
         $sig = array_sum(array_map(fn ($p) => substr_count($lower, $p), self::SIGNATURE));
         if ($sig > 3) {
-            $findings[] = ['severity' => self::WARN, 'line' => 0, 'rule' => 'signature phrases overused', 'match' => "{$sig} found, cap is 3"];
+            $findings[] = [
+                'severity' => self::WARN,
+                'line' => 0,
+                'rule' => 'signature phrases overused',
+                'match' => "{$sig} found, cap is 3",
+            ];
         }
 
         $first = '';
         foreach ($lines as $line) {
-            if (trim($line) !== '' && ! str_starts_with($line, '#')) {
+            if (trim($line) !== '' && !str_starts_with($line, '#')) {
                 $first = trim($line);
                 break;
             }
         }
         if (preg_match('/^So\b/u', $first)) {
-            $findings[] = ['severity' => self::WARN, 'line' => 1, 'rule' => "opens with 'So'", 'match' => mb_substr($first, 0, 40)];
+            $findings[] = [
+                'severity' => self::WARN,
+                'line' => 1,
+                'rule' => "opens with 'So'",
+                'match' => mb_substr($first, 0, 40),
+            ];
         }
 
         $exclaims = substr_count($text, '!');
         $words = max(count(preg_split('/\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY)), 1);
         if ($exclaims / $words > 0.04) {
-            $findings[] = ['severity' => self::WARN, 'line' => 0, 'rule' => 'exclamation density', 'match' => "{$exclaims} in {$words} words"];
+            $findings[] = [
+                'severity' => self::WARN,
+                'line' => 0,
+                'rule' => 'exclamation density',
+                'match' => "{$exclaims} in {$words} words",
+            ];
         }
 
         return $findings;
@@ -98,4 +122,3 @@ class AiTellsLinter
         return false;
     }
 }
-

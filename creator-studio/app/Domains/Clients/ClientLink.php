@@ -13,22 +13,28 @@ use App\Models\User;
  */
 class ClientLink
 {
-    /** On email confirmation: unclaimed deals sent from that email become theirs. */
+    /**
+     * On email confirmation: unclaimed deals sent from that email become theirs.
+     */
     public static function claim(User $user): int
     {
-        if ($user->role() !== Role::Client || ! $user->hasVerifiedEmail()) {
+        if ($user->role() !== Role::Client || !$user->hasVerifiedEmail()) {
             return 0;
         }
 
         return Deal::whereNull('user_id')->whereRaw('lower(contact_email) = ?', [strtolower($user->email)])
             ->where('stage', '!=', 'prospect')
-            ->update(['user_id' => $user->id]);
+            ->update([
+                'user_id' => $user->id,
+            ]);
     }
 
-    /** A new deal (website booking, checkout, her own entry) from a verified client's email. */
+    /**
+     * A new deal (website booking, checkout, her own entry) from a verified client's email.
+     */
     public static function ownerFor(?string $email): ?int
     {
-        if (! $email) {
+        if (!$email) {
             return null;
         }
 

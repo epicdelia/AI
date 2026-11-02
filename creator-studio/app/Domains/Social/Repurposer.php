@@ -14,7 +14,9 @@ use RuntimeException;
  */
 class Repurposer
 {
-    /** How each format is written. Kept short: every line is sent with each request. */
+    /**
+     * How each format is written. Kept short: every line is sent with each request.
+     */
     public const GUIDES = [
         'linkedin.post' => 'LinkedIn text post, 150 to 300 words. Line 1 is the hook and stays under 140 characters (phones cut there). Short paragraphs of 1 or 2 lines. One concrete lesson or story from the source, told in first person. End with a question that invites comments. No hashtag walls (0 to 3). No links in the text.',
         'linkedin.carousel' => 'LinkedIn PDF carousel: body is the post text (under 100 words, hook in line 1). parts are 6 to 10 slides: slide 1 is a bold promise (under 10 words), each middle slide is one idea in under 35 words, the last slide is a takeaway plus "Follow for more".',
@@ -32,7 +34,10 @@ class Repurposer
         'youtube.community' => 'YouTube community post: body is 40 to 120 words, teasing or extending the video, ending with a question or a poll idea.',
     ];
 
-    public function __construct(private Llm $llm) {}
+    public function __construct(
+        private Llm $llm
+    ) {
+    }
 
     /**
      * @param  array<int, array{platform: string, format: string}>  $targets
@@ -40,8 +45,8 @@ class Repurposer
      */
     public function run(string $title, string $source, array $targets, ?int $scriptId = null, string $extra = '', int $minChars = 80): array
     {
-        $targets = array_values(array_filter($targets, fn ($t) => Platforms::valid((string) ($t['platform'] ?? ''), (string) ($t['format'] ?? ''))));
-        if (! $targets) {
+        $targets = array_values(array_filter($targets, fn ($t) => Platforms::valid((string)($t['platform'] ?? ''), (string)($t['format'] ?? ''))));
+        if (!$targets) {
             throw new RuntimeException('Pick at least one platform and format.');
         }
         if (mb_strlen(trim($source)) < $minChars) {
@@ -49,31 +54,31 @@ class Repurposer
         }
 
         $pillars = self::pillars();
-        $wanted = implode("\n", array_map(fn ($t) => "- {$t['platform']}.{$t['format']}: ".self::GUIDES["{$t['platform']}.{$t['format']}"], $targets));
+        $wanted = implode("\n", array_map(fn ($t) => "- {$t['platform']}.{$t['format']}: " . self::GUIDES["{$t['platform']}.{$t['format']}"], $targets));
         $system = "You turn {$this->name()}'s work into native posts for each platform. Each post must work on its own for someone who never saw the original.\n\n"
-            .Prompts::profile()."\n\n".Prompts::voice()."\n\n".Prompts::writingRules()."\n\n"
-            ."Write exactly these, in this order:\n{$wanted}\n\n"
-            .'Output JSON: {"posts": [{"platform": "linkedin", "format": "post", "title": "a short internal label", "body": "text", "parts": ["..."]}]}. '
-            .'Use parts only for formats that have them, otherwise []. Plain text inside strings (no Markdown headings). Never invent numbers, quotes or stories that are not in the source.'
-            .($pillars ? ' Also give each post a "pillar": exactly one of '.json_encode($pillars, JSON_UNESCAPED_UNICODE).', the one it fits best.' : '');
-        $user = "Source: {$title}\n\n".mb_substr(trim($source), 0, 24000).($extra !== '' ? "\n\nHer direction for these posts: {$extra}" : '');
+            . Prompts::profile() . "\n\n" . Prompts::voice() . "\n\n" . Prompts::writingRules() . "\n\n"
+            . "Write exactly these, in this order:\n{$wanted}\n\n"
+            . 'Output JSON: {"posts": [{"platform": "linkedin", "format": "post", "title": "a short internal label", "body": "text", "parts": ["..."]}]}. '
+            . 'Use parts only for formats that have them, otherwise []. Plain text inside strings (no Markdown headings). Never invent numbers, quotes or stories that are not in the source.'
+            . ($pillars ? ' Also give each post a "pillar": exactly one of ' . json_encode($pillars, JSON_UNESCAPED_UNICODE) . ', the one it fits best.' : '');
+        $user = "Source: {$title}\n\n" . mb_substr(trim($source), 0, 24000) . ($extra !== '' ? "\n\nHer direction for these posts: {$extra}" : '');
 
         $data = $this->llm->as('repurpose')->json($system, $user);
 
         $made = [];
         foreach (array_values($data['posts'] ?? []) as $i => $p) {
-            $platform = (string) ($p['platform'] ?? $targets[$i]['platform'] ?? '');
-            $format = (string) ($p['format'] ?? $targets[$i]['format'] ?? '');
-            if (! Platforms::valid($platform, $format)) {
+            $platform = (string)($p['platform'] ?? $targets[$i]['platform'] ?? '');
+            $format = (string)($p['format'] ?? $targets[$i]['format'] ?? '');
+            if (!Platforms::valid($platform, $format)) {
                 continue;
             }
             $hasParts = Platforms::FORMATS[$platform][$format][1] !== null;
-            $parts = $hasParts ? array_values(array_filter(array_map(fn ($x) => is_scalar($x) ? trim((string) $x) : '', (array) ($p['parts'] ?? [])))) : [];
+            $parts = $hasParts ? array_values(array_filter(array_map(fn ($x) => is_scalar($x) ? trim((string)$x) : '', (array)($p['parts'] ?? [])))) : [];
             $made[] = SocialPost::create([
                 'platform' => $platform,
                 'format' => $format,
-                'title' => mb_substr(trim((string) ($p['title'] ?? '')) ?: "{$title} ({$format})", 0, 200),
-                'body' => is_scalar($p['body'] ?? null) ? trim((string) $p['body']) : '',
+                'title' => mb_substr(trim((string)($p['title'] ?? '')) ?: "{$title} ({$format})", 0, 200),
+                'body' => is_scalar($p['body'] ?? null) ? trim((string)$p['body']) : '',
                 'parts' => array_slice($parts, 0, 25),
                 'status' => 'draft',
                 'script_id' => $scriptId,
@@ -81,17 +86,19 @@ class Repurposer
                 'pillar' => in_array($p['pillar'] ?? null, $pillars, true) ? $p['pillar'] : null,
             ]);
         }
-        if (! $made) {
+        if (!$made) {
             throw new RuntimeException('The AI didn’t return any usable posts. Try again.');
         }
 
         return $made;
     }
 
-    /** Her content pillars (Settings → Social), one per line. */
+    /**
+     * Her content pillars (Settings → Social), one per line.
+     */
     public static function pillars(): array
     {
-        return array_values(array_filter(array_map('trim', preg_split('/\R/', (string) \App\Models\Setting::get('content_pillars', '')))));
+        return array_values(array_filter(array_map('trim', preg_split('/\R/', (string)\App\Models\Setting::get('content_pillars', '')))));
     }
 
     private function name(): string

@@ -24,7 +24,7 @@ class ClientComplianceAuditor
         $script = $deal->script_id ? Script::find($deal->script_id) : null;
         $post = $deal->social_post_id ? SocialPost::find($deal->social_post_id) : null;
 
-        $content = ($script?->content ?? '')."\n".($post?->body ?? '');
+        $content = ($script?->content ?? '') . "\n" . ($post?->body ?? '');
         $hasVerbalDisclosure = str_contains(strtolower($content), 'sponsor')
             || str_contains(strtolower($content), 'partnership')
             || str_contains(strtolower($content), strtolower($brand));
@@ -54,17 +54,17 @@ class ClientComplianceAuditor
             'Exclusive viewer promo code and link in description' => true,
         ];
 
-        $allPointsPassed = ! collect($talkingPoints)->contains(false);
+        $allPointsPassed = !collect($talkingPoints)->contains(false);
 
         $complianceScore = 100;
-        if (! $nonCompetePassed) {
+        if (!$nonCompetePassed) {
             $complianceScore -= 15;
         }
-        if (! $ftcPassed) {
+        if (!$ftcPassed) {
             $complianceScore -= 25;
         }
 
-        $certificateId = 'CERT-'.strtoupper(substr(hash('sha256', "{$deal->id}|{$deal->brand_name}|compliance|2026"), 0, 12));
+        $certificateId = 'CERT-' . strtoupper(substr(hash('sha256', "{$deal->id}|{$deal->brand_name}|compliance|2026"), 0, 12));
 
         return [
             'deal_id' => $deal->id,
@@ -94,19 +94,19 @@ class ClientComplianceAuditor
                     'title' => 'Exclusivity & Non-Compete Window',
                     'details' => $nonCompetePassed
                         ? '100% verified category exclusivity: Zero conflicting software products within 14-day window.'
-                        : 'Potential adjacent category overlap detected: '.implode(', ', $conflicts),
+                        : 'Potential adjacent category overlap detected: ' . implode(', ', $conflicts),
                     'passed' => $nonCompetePassed,
                 ],
                 'deliverable_coverage' => [
                     'status' => '100%_FULFILLED',
                     'title' => 'Contractual Scope & Placement',
-                    'details' => count($deliverables).' of '.count($deliverables).' contracted placements delivered and verified.',
+                    'details' => count($deliverables) . ' of ' . count($deliverables) . ' contracted placements delivered and verified.',
                     'passed' => true,
                 ],
                 'tracking_attribution' => [
                     'status' => 'VERIFIED_ACTIVE',
                     'title' => 'Attribution Link & Promo Code',
-                    'details' => ($coupon ? "Promo code '{$coupon}'" : 'Custom partner link').' active and tracked in live bio & video description.',
+                    'details' => ($coupon ? "Promo code '{$coupon}'" : 'Custom partner link') . ' active and tracked in live bio & video description.',
                     'passed' => true,
                 ],
                 'eu_ai_act_transparency' => [
@@ -133,7 +133,7 @@ class ClientComplianceAuditor
         $creator = Prompts::name();
         $brand = $deal->brand_name;
         $date = now()->format('F j, Y');
-        $rate = number_format((float) $deal->rate, 2);
+        $rate = number_format((float)$deal->rate, 2);
         $currency = $deal->currency ?: 'USD';
 
         $md = "# Executive Campaign Wrap & Compliance Report\n\n";
@@ -160,8 +160,8 @@ class ClientComplianceAuditor
         $md .= "\n### 3. Financial & Accounts Payable Certification\n\n";
         $md .= "This document certifies that all contracted deliverables have been fully inspected, verified for FTC/regulatory compliance, and approved for invoice sign-off.\n\n";
         $md .= "**Contracted Fee:** {$currency} {$rate}  \n";
-        $md .= "**Payment Terms:** ".($deal->payment_terms ?: 'Due upon completion')."  \n";
-        $md .= "**Status:** ".($deal->payment_status === 'paid' ? 'Paid in Full' : 'Approved for Net-30 Sign-Off')."  \n\n";
+        $md .= '**Payment Terms:** ' . ($deal->payment_terms ?: 'Due upon completion') . "  \n";
+        $md .= '**Status:** ' . ($deal->payment_status === 'paid' ? 'Paid in Full' : 'Approved for Net-30 Sign-Off') . "  \n\n";
         $md .= "— Verified by {$creator} Creator Studio Autonomous Deal Guardian\n";
 
         return $md;

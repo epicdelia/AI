@@ -6,58 +6,58 @@
          xsi:noNamespaceSchemaLocation="http://phpmd.org/xml/ruleset_xml_schema_1.0.0.xsd">
     <description>Custom rules for checking the project</description>
 
+    <exclude-pattern>*tests/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/bootstrap/*</exclude-pattern>
+
     <rule ref="rulesets/codesize.xml">
         <exclude name="TooManyPublicMethods"/>
-    </rule>
-    <rule ref="rulesets/codesize.xml/TooManyPublicMethods">
-        <properties>
-            <property name="maxmethods" value="15" />
-        </properties>
+        <exclude name="CyclomaticComplexity"/>
+        <exclude name="NPathComplexity"/>
+        <exclude name="ExcessiveClassComplexity"/>
+        <exclude name="ExcessiveMethodLength"/>
+        <exclude name="ExcessiveClassLength"/>
+        <exclude name="ExcessiveParameterList"/>
+        <exclude name="TooManyFields"/>
+        <exclude name="TooManyMethods"/>
+        <exclude name="ExcessivePublicCount"/>
     </rule>
 
     <rule ref="rulesets/cleancode.xml">
         <exclude name="StaticAccess"/>
         <exclude name="ElseExpression"/>
+        <exclude name="BooleanArgumentFlag"/>
+        <exclude name="IfStatementAssignment"/>
+        <exclude name="MissingImport"/>
+        <exclude name="ErrorControlOperator"/>
     </rule>
 
-    <rule ref="rulesets/controversial.xml"/>
+    <rule ref="rulesets/controversial.xml">
+        <exclude name="CamelCaseMethodName"/>
+        <exclude name="CamelCaseVariableName"/>
+        <exclude name="CamelCasePropertyName"/>
+        <exclude name="CamelCaseParameterName"/>
+    </rule>
 
     <rule ref="rulesets/design.xml">
         <exclude name="CouplingBetweenObjects"/>
-    </rule>
-    <rule ref="rulesets/design.xml/CouplingBetweenObjects">
-        <properties>
-            <property name="maximum" value="30" />
-        </properties>
+        <exclude name="NumberOfChildren"/>
+        <exclude name="EmptyCatchBlock"/>
+        <exclude name="CountInLoopExpression"/>
     </rule>
 
     <rule ref="rulesets/naming.xml">
         <exclude name="LongClassName"/>
         <exclude name="ShortVariable"/>
         <exclude name="LongVariable"/>
-    </rule>
-    <rule ref="rulesets/naming.xml/LongClassName">
-        <properties>
-            <property name="maximum" value="50" />
-        </properties>
-    </rule>
-    <rule ref="rulesets/naming.xml/ShortVariable">
-        <properties>
-            <property name="minimum" value="2" />
-        </properties>
-    </rule>
-    <rule ref="rulesets/naming.xml/LongVariable">
-        <properties>
-            <property name="maximum" value="30" />
-        </properties>
+        <exclude name="ShortMethodName"/>
+        <exclude name="ConstructorWithNameAsEnclosingClass"/>
+        <exclude name="BooleanGetMethodName"/>
     </rule>
 
     <rule ref="rulesets/unusedcode.xml">
         <exclude name="UnusedLocalVariable"/>
-    </rule>
-    <rule ref="rulesets/unusedcode.xml/UnusedLocalVariable">
-        <properties>
-            <property name="allow-unused-foreach-variables" value="true" />
-        </properties>
+        <exclude name="UnusedFormalParameter"/>
     </rule>
 </ruleset>

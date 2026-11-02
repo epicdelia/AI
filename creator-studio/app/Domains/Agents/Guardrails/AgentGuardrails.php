@@ -32,11 +32,12 @@ class AgentGuardrails
         $this->stepCount++;
 
         if ($this->stepCount > self::MAX_STEPS) {
-            $this->violations[] = "Circuit breaker triggered: Step count exceeded maximum limit (".self::MAX_STEPS.").";
-            throw new RuntimeException("Agent execution halted: Step budget (".self::MAX_STEPS.") exhausted to prevent infinite loop.");
+            $this->violations[] = 'Circuit breaker triggered: Step count exceeded maximum limit (' . self::MAX_STEPS . ').';
+
+            throw new RuntimeException('Agent execution halted: Step budget (' . self::MAX_STEPS . ') exhausted to prevent infinite loop.');
         }
 
-        $signature = $tool.':'.md5(json_encode($args));
+        $signature = $tool . ':' . md5(json_encode($args));
         $this->toolHistory[] = $signature;
 
         // Check last N calls for infinite loop trap
@@ -45,6 +46,7 @@ class AgentGuardrails
             $allIdentical = count(array_unique($recent)) === 1;
             if ($allIdentical) {
                 $this->violations[] = "Circuit breaker triggered: Infinite loop detected on tool '{$tool}'.";
+
                 throw new RuntimeException("Agent loop detected: Tool '{$tool}' called repeatedly with identical parameters.");
             }
         }
@@ -69,7 +71,7 @@ class AgentGuardrails
                 foreach ($matches[0] as $match) {
                     $this->redactions[] = "Redacted {$type}";
                     $this->violations[] = "Detected sensitive data pattern: {$type}";
-                    $sanitized = str_replace($match, '[REDACTED_'.strtoupper(str_replace(' ', '_', $type)).']', $sanitized);
+                    $sanitized = str_replace($match, '[REDACTED_' . strtoupper(str_replace(' ', '_', $type)) . ']', $sanitized);
                 }
             }
         }
@@ -88,6 +90,7 @@ class AgentGuardrails
         $cost = $this->estimateCostUsd();
         if ($cost > self::MAX_BUDGET_USD_PER_RUN) {
             $this->violations[] = "Budget circuit breaker: estimated cost (\${$cost}) exceeded cap (\${self::MAX_BUDGET_USD_PER_RUN}).";
+
             throw new RuntimeException("Agent budget exceeded: Run halted at \${$cost} to protect API budget.");
         }
     }
@@ -129,4 +132,3 @@ class AgentGuardrails
         ];
     }
 }
-

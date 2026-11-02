@@ -20,7 +20,8 @@ class ScriptRetentionAuditor
     public function __construct(
         private Llm $llm,
         private AgentGuardrails $guardrails
-    ) {}
+    ) {
+    }
 
     /**
      * Audit script retention pacing and inject psychological retention resets.
@@ -51,13 +52,13 @@ class ScriptRetentionAuditor
     public function audit(SocialAgent $agent, array $params): array
     {
         $script = null;
-        if (! empty($params['script_id'])) {
+        if (!empty($params['script_id'])) {
             $script = Script::find($params['script_id']);
         }
 
-        $title = $script?->title ?? trim((string) ($params['title'] ?? 'Building Scalable Event-Driven Microservices'));
-        $body = $script?->body ?: (is_array($script?->outline) ? json_encode($script->outline) : (string) ($params['body'] ?? ''));
-        $duration = max(3, min(60, (int) ($params['target_duration_minutes'] ?? 10)));
+        $title = $script?->title ?? trim((string)($params['title'] ?? 'Building Scalable Event-Driven Microservices'));
+        $body = $script?->body ?: (is_array($script?->outline) ? json_encode($script->outline) : (string)($params['body'] ?? ''));
+        $duration = max(3, min(60, (int)($params['target_duration_minutes'] ?? 10)));
 
         if (empty($body)) {
             $body = "Hook: Most teams overcomplicate their databases.\nSection 1: Microservices fail when you add locks.\nSection 2: Append-only logs are faster.\nSection 3: Benchmark comparison.\nConclusion: Keep your domain clean.";
@@ -147,12 +148,12 @@ SYS;
 
         $userPrompt = "Title: {$title}\nTarget Duration: {$duration} minutes\n\nScript Text / Outline:\n\"{$body}\"";
 
-        $this->guardrails->recordTokens((int) (mb_strlen($systemPrompt . $userPrompt) / 4), 850);
+        $this->guardrails->recordTokens((int)(mb_strlen($systemPrompt . $userPrompt) / 4), 850);
 
         try {
             $data = $this->llm->as('retention-auditor')->creativity(0.4)->json($systemPrompt, $userPrompt);
 
-            if (! isset($data['retention_score'], $data['pacing_timeline'])) {
+            if (!isset($data['retention_score'], $data['pacing_timeline'])) {
                 throw new \RuntimeException('Incomplete retention audit structure.');
             }
 
@@ -222,12 +223,11 @@ SYS;
                 ],
             ],
             'optimized_script_excerpt' => "[0:00 - VISUAL: Fast zoom on Delia's screen]\n"
-                ."Most teams overcomplicate their backend architecture by copying what Netflix does.\n\n"
-                ."[0:12 - TEXT: 50,000 REQ/S ON A SINGLE NODE]\n"
-                ."In the next 8 minutes, I'm going to show you why append-only logs outperform distributed locks every single time—with live benchmarks.\n\n"
-                ."[0:45 - VISUAL: Architecture diagram pop-up]\n"
-                ."Here is the problem: when service A calls service B synchronously over HTTP, latency isn't additive—it's multiplicative.",
+                . "Most teams overcomplicate their backend architecture by copying what Netflix does.\n\n"
+                . "[0:12 - TEXT: 50,000 REQ/S ON A SINGLE NODE]\n"
+                . "In the next 8 minutes, I'm going to show you why append-only logs outperform distributed locks every single time—with live benchmarks.\n\n"
+                . "[0:45 - VISUAL: Architecture diagram pop-up]\n"
+                . "Here is the problem: when service A calls service B synchronously over HTTP, latency isn't additive—it's multiplicative.",
         ];
     }
 }
-

@@ -26,15 +26,20 @@ class BioLinksController extends Controller
         $series = [];
         for ($d = 29; $d >= 0; $d--) {
             $day = now()->subDays($d)->toDateString();
-            $series[] = ['day' => $day, 'clicks' => (int) ($daily[$day] ?? 0)];
+            $series[] = [
+                'day' => $day,
+                'clicks' => (int)($daily[$day] ?? 0),
+            ];
         }
 
         return response()->json([
-            'links' => $links->map(fn ($l) => (array) $l + ['clicks_30d' => (int) DB::table('bio_clicks')->where('bio_link_id', $l->id)->where('day', '>=', $since)->sum('count')]),
+            'links' => $links->map(fn ($l) => (array)$l + [
+                'clicks_30d' => (int)DB::table('bio_clicks')->where('bio_link_id', $l->id)->where('day', '>=', $since)->sum('count'),
+            ]),
             'title' => Setting::get('bio_title') ?: (Setting::get('nickname') ?: Setting::get('creator_name', '')),
             'text' => Setting::get('bio_text', ''),
-            'url' => rtrim((string) config('app.url'), '/').'/links',
-            'public' => ! preg_match('~//(localhost|127\.0\.0\.1)(:|/|$)~', (string) config('app.url')),
+            'url' => rtrim((string)config('app.url'), '/') . '/links',
+            'public' => !preg_match('~//(localhost|127\.0\.0\.1)(:|/|$)~', (string)config('app.url')),
             'series' => $series,
         ]);
     }
@@ -55,12 +60,22 @@ class BioLinksController extends Controller
         Setting::put('bio_text', $data['text'] ?? null);
         $keep = [];
         foreach ($data['links'] as $i => $l) {
-            $row = ['title' => $l['title'], 'url' => $l['url'], 'icon' => $l['icon'] ?? null, 'position' => $i, 'active' => (bool) ($l['active'] ?? true), 'updated_at' => now()];
-            if (! empty($l['id']) && DB::table('bio_links')->where('id', $l['id'])->exists()) {
+            $row = [
+                'title' => $l['title'],
+                'url' => $l['url'],
+                'icon' => $l['icon'] ?? null,
+                'position' => $i,
+                'active' => (bool)($l['active'] ?? true),
+                'updated_at' => now(),
+            ];
+            if (!empty($l['id']) && DB::table('bio_links')->where('id', $l['id'])->exists()) {
                 DB::table('bio_links')->where('id', $l['id'])->update($row);
-                $keep[] = (int) $l['id'];
+                $keep[] = (int)$l['id'];
             } else {
-                $keep[] = DB::table('bio_links')->insertGetId($row + ['created_at' => now(), 'clicks' => 0]);
+                $keep[] = DB::table('bio_links')->insertGetId($row + [
+                    'created_at' => now(),
+                    'clicks' => 0,
+                ]);
             }
         }
         DB::table('bio_links')->whereNotIn('id', $keep ?: [0])->delete();
@@ -74,16 +89,16 @@ class BioLinksController extends Controller
     {
         $links = DB::table('bio_links')->where('active', true)->orderBy('position')->get();
         $title = e(Setting::get('bio_title') ?: (Setting::get('nickname') ?: Setting::get('creator_name', 'Delia Lazarescu')));
-        $text = e((string) Setting::get('bio_text', 'Ex-Google Engineer · Creator · Digital Nomad across 69+ countries'));
-        $c1 = preg_match('/^#[0-9a-f]{6}$/i', (string) Setting::get('brand_color')) ? Setting::get('brand_color') : '#f06a9b';
-        $c2 = preg_match('/^#[0-9a-f]{6}$/i', (string) Setting::get('brand_color_2')) ? Setting::get('brand_color_2') : '#a68cf2';
-        $items = $links->map(fn ($l) => '<a class="l" href="/links/go/'.$l->id.'" rel="noopener"><span>'.e($l->title).'</span><span class="arr">↗</span></a>')->implode('');
+        $text = e((string)Setting::get('bio_text', 'Ex-Google Engineer · Creator · Digital Nomad across 69+ countries'));
+        $c1 = preg_match('/^#[0-9a-f]{6}$/i', (string)Setting::get('brand_color')) ? Setting::get('brand_color') : '#f06a9b';
+        $c2 = preg_match('/^#[0-9a-f]{6}$/i', (string)Setting::get('brand_color_2')) ? Setting::get('brand_color_2') : '#a68cf2';
+        $items = $links->map(fn ($l) => '<a class="l" href="/links/go/' . $l->id . '" rel="noopener"><span>' . e($l->title) . '</span><span class="arr">↗</span></a>')->implode('');
         if (empty($items)) {
             $items = '<a class="l" href="/" rel="noopener"><span>Explore Portfolio & Services</span><span class="arr">↗</span></a>'
-                .'<a class="l" href="https://instagram.com/tech.unicorn" target="_blank" rel="noopener"><span>Instagram (@tech.unicorn)</span><span class="arr">↗</span></a>'
-                .'<a class="l" href="https://youtube.com/@Tech.Unicorn" target="_blank" rel="noopener"><span>YouTube Channel</span><span class="arr">↗</span></a>'
-                .'<a class="l" href="https://linkedin.com/in/delialazarescu" target="_blank" rel="noopener"><span>LinkedIn Profile</span><span class="arr">↗</span></a>'
-                .'<a class="l" href="/mediakit" rel="noopener"><span>Press & Media Kit</span><span class="arr">↗</span></a>';
+                . '<a class="l" href="https://instagram.com/tech.unicorn" target="_blank" rel="noopener"><span>Instagram (@tech.unicorn)</span><span class="arr">↗</span></a>'
+                . '<a class="l" href="https://youtube.com/@Tech.Unicorn" target="_blank" rel="noopener"><span>YouTube Channel</span><span class="arr">↗</span></a>'
+                . '<a class="l" href="https://linkedin.com/in/delialazarescu" target="_blank" rel="noopener"><span>LinkedIn Profile</span><span class="arr">↗</span></a>'
+                . '<a class="l" href="/mediakit" rel="noopener"><span>Press & Media Kit</span><span class="arr">↗</span></a>';
         }
         $initial = '🦄';
         $html = <<<HTML
@@ -185,21 +200,32 @@ class BioLinksController extends Controller
 </html>
 HTML;
 
-        return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8', 'X-Frame-Options' => 'DENY']);
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=utf-8',
+            'X-Frame-Options' => 'DENY',
+        ]);
     }
 
-    /** Count the click, then go. Only to links she saved (no open redirect). */
+    /**
+     * Count the click, then go. Only to links she saved (no open redirect).
+     */
     public function go(int $link): RedirectResponse
     {
         $row = DB::table('bio_links')->where('id', $link)->where('active', true)->first();
         abort_unless($row, 404);
         DB::table('bio_links')->where('id', $link)->increment('clicks');
-        DB::table('bio_clicks')->upsert([['bio_link_id' => $link, 'day' => now()->toDateString(), 'count' => 1]], ['bio_link_id', 'day'], ['count' => DB::raw('count + 1')]);
+        DB::table('bio_clicks')->upsert([[
+            'bio_link_id' => $link,
+            'day' => now()->toDateString(),
+            'count' => 1,
+        ]], ['bio_link_id', 'day'], [
+            'count' => DB::raw('count + 1'),
+        ]);
 
         // A link to her own site says it came from the bio, so a lead from it is credited there.
         $url = $row->url;
-        $host = fn (?string $u) => preg_replace('/^www\./', '', strtolower((string) parse_url((string) $u, PHP_URL_HOST)));
-        if ($host($url) !== '' && $host($url) === $host(PipelineController::siteUrl()) && ! preg_match('/[?&](ref|utm_source)=/', $url)) {
+        $host = fn (?string $u) => preg_replace('/^www\./', '', strtolower((string)parse_url((string)$u, PHP_URL_HOST)));
+        if ($host($url) !== '' && $host($url) === $host(PipelineController::siteUrl()) && !preg_match('/[?&](ref|utm_source)=/', $url)) {
             $url = Attribution::trackedUrl($url, 'bio');
         }
 

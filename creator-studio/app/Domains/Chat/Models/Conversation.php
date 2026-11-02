@@ -9,13 +9,15 @@ class Conversation extends Model
 {
     protected $fillable = ['title', 'pinned'];
 
-    protected function casts(): array
-    {
-        return ['pinned' => 'boolean'];
-    }
-
     public function messages(): HasMany
     {
         return $this->hasMany(ChatMessage::class)->orderBy('id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'pinned' => 'boolean',
+        ];
     }
 }

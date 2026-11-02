@@ -12,30 +12,52 @@ use App\Models\Setting;
  */
 class ClientJourney
 {
-    /** Phase => the deal stages it covers (Deal::STAGES). Paid deals count as shipped. */
+    /**
+     * Phase => the deal stages it covers (Deal::STAGES). Paid deals count as shipped.
+     */
     public const PHASES = [
-        'diagnostic' => ['label' => 'Diagnostic', 'stages' => ['inquiry']],
-        'blueprint' => ['label' => 'Blueprint', 'stages' => ['pitching', 'negotiating']],
-        'execution' => ['label' => 'Execution', 'stages' => ['contracted', 'production', 'in_review']],
-        'deployment' => ['label' => 'Deployment', 'stages' => ['scheduled', 'invoiced']],
+        'diagnostic' => [
+            'label' => 'Diagnostic',
+            'stages' => ['inquiry'],
+        ],
+        'blueprint' => [
+            'label' => 'Blueprint',
+            'stages' => ['pitching', 'negotiating'],
+        ],
+        'execution' => [
+            'label' => 'Execution',
+            'stages' => ['contracted', 'production', 'in_review'],
+        ],
+        'deployment' => [
+            'label' => 'Deployment',
+            'stages' => ['scheduled', 'invoiced'],
+        ],
     ];
 
     public const DEFAULT_CAPACITY = 2;
 
-    /** Builds she takes on at once; 0 hides availability from the landing page. */
+    /**
+     * Builds she takes on at once; 0 hides availability from the landing page.
+     */
     public static function capacity(): int
     {
-        return max(0, min(10, (int) Setting::get('build_capacity', (string) self::DEFAULT_CAPACITY)));
+        return max(0, min(10, (int)Setting::get('build_capacity', (string)self::DEFAULT_CAPACITY)));
     }
 
-    /** For her dashboard: deals per phase and capacity. */
+    /**
+     * For her dashboard: deals per phase and capacity.
+     */
     public static function summary(): array
     {
         $byStage = Deal::query()->selectRaw('stage, count(*) as n')->groupBy('stage')->pluck('n', 'stage');
         $phases = [];
         foreach (self::PHASES as $key => $p) {
-            $phases[] = ['key' => $key, 'label' => $p['label'], 'stages' => $p['stages'],
-                'count' => (int) collect($p['stages'])->sum(fn ($s) => $byStage[$s] ?? 0)];
+            $phases[] = [
+                'key' => $key,
+                'label' => $p['label'],
+                'stages' => $p['stages'],
+                'count' => (int)collect($p['stages'])->sum(fn ($s) => $byStage[$s] ?? 0),
+            ];
         }
 
         return [
@@ -44,7 +66,9 @@ class ClientJourney
         ] + self::availability();
     }
 
-    /** For the public page: is a build slot open? */
+    /**
+     * For the public page: is a build slot open?
+     */
     public static function availability(): array
     {
         $capacity = self::capacity();

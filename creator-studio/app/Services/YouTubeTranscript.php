@@ -12,7 +12,9 @@ use RuntimeException;
  */
 class YouTubeTranscript
 {
-    /** @var callable|null test hook: fn(string $videoId): array{text: string, segments: array} */
+    /**
+     * @var callable|null test hook: fn(string): array{text: string, segments: array}
+     */
     public static $fake = null;
 
     public static function videoId(string $input): ?string
@@ -28,15 +30,21 @@ class YouTubeTranscript
         return null;
     }
 
-    /** @return array{video_id: string, title: ?string, language: ?string, text: string, segments: array<int, array{start: float, text: string}>} */
+    /**
+     * @return array{video_id: string, title: ?string, language: ?string, text: string, segments: array<int, array{start: float, text: string}>}
+     */
     public function fetch(string $url, string $lang = 'en'): array
     {
         $id = self::videoId($url);
-        if (! $id) {
+        if (!$id) {
             throw new RuntimeException("That doesn't look like a YouTube video link.");
         }
         if (self::$fake) {
-            return ['video_id' => $id, 'title' => null, 'language' => $lang] + (self::$fake)($id);
+            return [
+                'video_id' => $id,
+                'title' => null,
+                'language' => $lang,
+            ] + (self::$fake)($id);
         }
 
         $page = Http::timeout(20)->withHeaders([
@@ -51,24 +59,24 @@ class YouTubeTranscript
         $html = $page->body();
         $title = preg_match('/<meta name="title" content="([^"]*)"/', $html, $tm) ? html_entity_decode($tm[1], ENT_QUOTES) : null;
 
-        if (! preg_match('/"captionTracks":(\[.*?\])/', $html, $m)) {
+        if (!preg_match('/"captionTracks":(\[.*?\])/', $html, $m)) {
             throw new RuntimeException('No captions found for this video (or YouTube hid them from this server). Paste the transcript instead.');
         }
         $tracks = json_decode($m[1], true) ?: [];
         $track = collect($tracks)->first(fn ($t) => ($t['languageCode'] ?? '') === $lang && ($t['kind'] ?? '') !== 'asr')
             ?? collect($tracks)->firstWhere('languageCode', $lang)
             ?? ($tracks[0] ?? null);
-        if (! $track || empty($track['baseUrl'])) {
+        if (!$track || empty($track['baseUrl'])) {
             throw new RuntimeException('No usable caption track. Paste the transcript instead.');
         }
 
-        $caps = Http::timeout(20)->get(html_entity_decode($track['baseUrl'], ENT_QUOTES).'&fmt=json3');
+        $caps = Http::timeout(20)->get(html_entity_decode($track['baseUrl'], ENT_QUOTES) . '&fmt=json3');
         $segments = $caps->successful() ? self::parseJson3($caps->json() ?? []) : [];
-        if (! $segments) {
+        if (!$segments) {
             $xml = Http::timeout(20)->get(html_entity_decode($track['baseUrl'], ENT_QUOTES))->body();
             $segments = self::parseXml($xml);
         }
-        if (! $segments) {
+        if (!$segments) {
             throw new RuntimeException('YouTube returned empty captions (it may be blocking this server). Paste the transcript instead.');
         }
 
@@ -90,7 +98,10 @@ class YouTubeTranscript
             }
             $text = trim(preg_replace('/\s+/', ' ', implode('', array_column($ev['segs'], 'utf8'))));
             if ($text !== '') {
-                $out[] = ['start' => round(($ev['tStartMs'] ?? 0) / 1000, 1), 'text' => $text];
+                $out[] = [
+                    'start' => round(($ev['tStartMs'] ?? 0) / 1000, 1),
+                    'text' => $text,
+                ];
             }
         }
 
@@ -105,16 +116,21 @@ class YouTubeTranscript
         }
         $out = [];
         foreach ($doc->text as $node) {
-            $text = trim(preg_replace('/\s+/', ' ', html_entity_decode((string) $node, ENT_QUOTES)));
+            $text = trim(preg_replace('/\s+/', ' ', html_entity_decode((string)$node, ENT_QUOTES)));
             if ($text !== '') {
-                $out[] = ['start' => round((float) $node['start'], 1), 'text' => $text];
+                $out[] = [
+                    'start' => round((float)$node['start'], 1),
+                    'text' => $text,
+                ];
             }
         }
 
         return $out;
     }
 
-    /** "[1:23] text" lines, for prompts that need timing (chapters). */
+    /**
+     * "[1:23] text" lines, for prompts that need timing (chapters).
+     */
     public static function timestamped(array $segments): string
     {
         $lines = [];
@@ -126,9 +142,9 @@ class YouTubeTranscript
                     $lines[] = $buffer;
                 }
                 $lastMark = $s['start'];
-                $buffer = '['.gmdate($s['start'] >= 3600 ? 'G:i:s' : 'i:s', (int) $s['start']).'] ';
+                $buffer = '[' . gmdate($s['start'] >= 3600 ? 'G:i:s' : 'i:s', (int)$s['start']) . '] ';
             }
-            $buffer .= $s['text'].' ';
+            $buffer .= $s['text'] . ' ';
         }
         if ($buffer !== '') {
             $lines[] = $buffer;

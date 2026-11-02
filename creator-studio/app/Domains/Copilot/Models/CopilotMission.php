@@ -10,6 +10,9 @@ class CopilotMission extends Model
 
     protected function casts(): array
     {
-        return ['steps' => 'array', 'data' => 'array'];
+        return [
+            'steps' => 'array',
+            'data' => 'array',
+        ];
     }
 }

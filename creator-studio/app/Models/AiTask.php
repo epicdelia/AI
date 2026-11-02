@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
-/** A background AI job the dashboard waits for (RunAiTask). */
+/**
+ * A background AI job the dashboard waits for (RunAiTask).
+ */
 class AiTask extends Model
 {
     use HasUuids;
@@ -14,6 +16,9 @@ class AiTask extends Model
 
     protected function casts(): array
     {
-        return ['payload' => 'array', 'result' => 'array'];
+        return [
+            'payload' => 'array',
+            'result' => 'array',
+        ];
     }
 }

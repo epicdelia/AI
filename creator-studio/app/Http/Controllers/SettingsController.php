@@ -31,7 +31,9 @@ class SettingsController extends Controller
     {
         return view('settings', [
             's' => fn (string $k) => Setting::get($k, ''),
-            'secrets' => collect(Setting::SECRET)->mapWithKeys(fn ($k) => [$k => Setting::has($k)]),
+            'secrets' => collect(Setting::SECRET)->mapWithKeys(fn ($k) => [
+                $k => Setting::has($k),
+            ]),
         ]);
     }
 
@@ -52,7 +54,7 @@ class SettingsController extends Controller
         foreach (Setting::SECRET as $key) {
             if ($request->boolean("clear_{$key}")) {
                 Setting::put($key, null);
-            } elseif (! empty($data[$key])) {
+            } elseif (!empty($data[$key])) {
                 Setting::put($key, $data[$key]);
             }
         }
@@ -60,18 +62,21 @@ class SettingsController extends Controller
         return back()->with('status', 'Settings saved.');
     }
 
-    /** Plain-English check that each key actually works. */
+    /**
+     * Plain-English check that each key actually works.
+     */
     public function test(YouTube $yt, Llm $llm)
     {
         $results = [];
+
         try {
-            if (! Setting::has('youtube_api_key')) {
+            if (!Setting::has('youtube_api_key')) {
                 throw new \RuntimeException('No key saved.');
             }
             $channel = Setting::get('channel_id');
             if ($channel) {
                 [, $title] = $yt->channelUploads($channel);
-                $results['YouTube'] = [(bool) $title, $title ? "Works. Found your channel: {$title}" : "The key works, but channel \"{$channel}\" wasn't found."];
+                $results['YouTube'] = [(bool)$title, $title ? "Works. Found your channel: {$title}" : "The key works, but channel \"{$channel}\" wasn't found."];
             } else {
                 $yt->channelUploads('YouTube');
                 $results['YouTube'] = [true, 'Works. (Add your channel ID or handle so the scoreboard can find your uploads.)'];
@@ -79,12 +84,14 @@ class SettingsController extends Controller
         } catch (Throwable $e) {
             $results['YouTube'] = [false, $e->getMessage()];
         }
+
         try {
             $reply = $llm->chat('Reply with the single word OK.', 'Say OK.', 60);
-            $results['AI'] = [true, 'Works with '.Setting::get('llm_model').". It said: \"".mb_substr($reply, 0, 40).'"'];
+            $results['AI'] = [true, 'Works with ' . Setting::get('llm_model') . '. It said: "' . mb_substr($reply, 0, 40) . '"'];
         } catch (Throwable $e) {
             $results['AI'] = [false, $e->getMessage()];
         }
+
         try {
             app(\App\Services\Dictation::class)->token();
             $results['Dictation (AssemblyAI)'] = [true, 'Works. Live transcription is ready.'];
@@ -95,4 +102,3 @@ class SettingsController extends Controller
         return back()->with('checks', $results);
     }
 }
-

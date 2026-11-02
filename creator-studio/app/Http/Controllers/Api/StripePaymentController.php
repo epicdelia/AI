@@ -115,7 +115,11 @@ class StripePaymentController extends Controller
             'currency' => 'USD',
             'payment_status' => 'pending',
             'deliverables' => [
-                ['platform' => 'stripe', 'format' => $pkg['name'], 'package' => $pkg['id']],
+                [
+                    'platform' => 'stripe',
+                    'format' => $pkg['name'],
+                    'package' => $pkg['id'],
+                ],
             ],
             'key_talking_points' => $pkg['description'],
             'notes' => 'Checkout started on the website for ' . $pkg['name'] . '. Notes: ' . (($data['notes'] ?? null) ?: 'None'),
@@ -156,8 +160,10 @@ class StripePaymentController extends Controller
     public function webhook(Request $request): JsonResponse
     {
         $secret = Setting::get('stripe_webhook_secret') ?: env('STRIPE_WEBHOOK_SECRET');
-        if (! $secret || ! self::validSignature($request->getContent(), (string) $request->header('Stripe-Signature'), $secret)) {
-            return response()->json(['error' => 'Invalid signature'], 400);
+        if (!$secret || !self::validSignature($request->getContent(), (string)$request->header('Stripe-Signature'), $secret)) {
+            return response()->json([
+                'error' => 'Invalid signature',
+            ], 400);
         }
 
         $payload = json_decode($request->getContent(), true) ?: [];
@@ -169,23 +175,130 @@ class StripePaymentController extends Controller
             default => null,
         };
 
-        return response()->json(['received' => true]);
+        return response()->json([
+            'received' => true,
+        ]);
     }
 
-    /** The first payment: the deal is paid, and a retainer remembers its subscription for renewals. */
+    /**
+     * A Stripe Checkout Session for a deal: {url, id}, or null when Stripe isn't set up or says no.
+     * $pkg is {name, description, amount (cents), currency, interval}. The webhook marks it paid.
+     */
+    public static function startCheckout(Deal $deal, array $pkg, ?string $email = null, ?string $returnTo = null): ?array
+    {
+        $secret = self::secret();
+        if ($secret === null) {
+            return null;
+        }
+
+        try {
+            $resp = Http::withToken($secret)
+                ->asForm()
+                ->post('https://api.stripe.com/v1/checkout/sessions', array_filter([
+                    'payment_method_types' => ['card'],
+                    'line_items' => [[
+                        'price_data' => [
+                            'currency' => $pkg['currency'] ?? 'usd',
+                            'product_data' => array_filter([
+                                'name' => 'Tech Unicorn: ' . $pkg['name'],
+                                'description' => $pkg['description'] ?? null,
+                            ]),
+                            'unit_amount' => (int)$pkg['amount'],
+                        ] + (!empty($pkg['interval']) ? [
+                            'recurring' => [
+                                'interval' => $pkg['interval'],
+                            ],
+                        ] : []),
+                        'quantity' => 1,
+                    ]],
+                    // The retainer bills monthly until cancelled; everything else is one payment.
+                    'mode' => !empty($pkg['interval']) ? 'subscription' : 'payment',
+                    'customer_email' => $email,
+                    'success_url' => url(($returnTo ?? '/') . '?payment=success&deal=' . $deal->id),
+                    'cancel_url' => url(($returnTo ?? '/') . '?payment=cancelled&deal=' . $deal->id),
+                    'metadata' => [
+                        'deal_id' => $deal->id,
+                        'package_id' => $pkg['id'] ?? 'proposal',
+                    ],
+                    'subscription_data' => !empty($pkg['interval']) ? [
+                        'metadata' => [
+                            'deal_id' => $deal->id,
+                        ],
+                    ] : null,
+                ]));
+
+            if ($resp->successful() && $resp->json('url')) {
+                return [
+                    'url' => $resp->json('url'),
+                    'id' => $resp->json('id'),
+                ];
+            }
+            Log::warning('Stripe checkout session failed', [
+                'status' => $resp->status(),
+                'error' => $resp->json('error.message'),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Stripe checkout session failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    public static function configured(): bool
+    {
+        return self::secret() !== null;
+    }
+
+    /**
+     * Stripe-Signature is "t=<unix>,v1=<hex HMAC-SHA256 of "<t>.<payload>">"; reject anything older than 5 minutes.
+     */
+    public static function validSignature(string $payload, string $header, string $secret, int $tolerance = 300): bool
+    {
+        $parts = [];
+        foreach (explode(',', $header) as $pair) {
+            [$k, $v] = array_pad(explode('=', trim($pair), 2), 2, '');
+            $parts[$k][] = $v;
+        }
+        $t = (int)($parts['t'][0] ?? 0);
+        if (!$t || abs(time() - $t) > $tolerance) {
+            return false;
+        }
+        $expected = hash_hmac('sha256', $t . '.' . $payload, $secret);
+        foreach ($parts['v1'] ?? [] as $sig) {
+            if (hash_equals($expected, $sig)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The first payment: the deal is paid, and a retainer remembers its subscription for renewals.
+     */
     private static function checkoutCompleted(array $session): void
     {
         $deal = Deal::find($session['metadata']['deal_id'] ?? null);
-        if (! $deal || ($session['payment_status'] ?? 'paid') !== 'paid') {
+        if (!$deal || ($session['payment_status'] ?? 'paid') !== 'paid') {
             return;
         }
-        if (! empty($session['subscription']) && ! $deal->stripe_subscription_id) {
-            $deal->update(['stripe_subscription_id' => (string) $session['subscription'], 'subscription_status' => 'active']);
+        if (!empty($session['subscription']) && !$deal->stripe_subscription_id) {
+            $deal->update([
+                'stripe_subscription_id' => (string)$session['subscription'],
+                'subscription_status' => 'active',
+            ]);
         }
-        if (! empty($session['id']) && isset($session['amount_total'])) {
-            Payment::firstOrCreate(['stripe_id' => (string) $session['id']], [
-                'deal_id' => $deal->id, 'amount' => $session['amount_total'] / 100, 'currency' => strtoupper((string) ($session['currency'] ?? 'usd')),
-                'kind' => 'checkout', 'paid_at' => now(),
+        if (!empty($session['id']) && isset($session['amount_total'])) {
+            Payment::firstOrCreate([
+                'stripe_id' => (string)$session['id'],
+            ], [
+                'deal_id' => $deal->id,
+                'amount' => $session['amount_total'] / 100,
+                'currency' => strtoupper((string)($session['currency'] ?? 'usd')),
+                'kind' => 'checkout',
+                'paid_at' => now(),
             ]);
         }
         if ($deal->payment_status !== 'paid') {
@@ -194,7 +307,7 @@ class StripePaymentController extends Controller
                 'payment_status' => 'paid',
                 'paid_at' => now(),
             ]);
-            AgentEvent::log('payment', "Paid via Stripe: {$deal->brand_name}, $" . number_format((float) $deal->rate) . '.');
+            AgentEvent::log('payment', "Paid via Stripe: {$deal->brand_name}, $" . number_format((float)$deal->rate) . '.');
         }
     }
 
@@ -210,107 +323,43 @@ class StripePaymentController extends Controller
         $sub = $invoice['subscription'] ?? ($invoice['parent']['subscription_details']['subscription'] ?? null);
         $dealId = $invoice['subscription_details']['metadata']['deal_id'] ?? ($invoice['parent']['subscription_details']['metadata']['deal_id'] ?? null);
         $deal = ($sub ? Deal::where('stripe_subscription_id', $sub)->first() : null) ?? ($dealId ? Deal::find($dealId) : null);
-        if (! $deal) {
+        if (!$deal) {
             return;
         }
-        $payment = Payment::firstOrCreate(['stripe_id' => (string) $invoice['id']], [
-            'deal_id' => $deal->id, 'amount' => ((int) ($invoice['amount_paid'] ?? 0)) / 100, 'currency' => strtoupper((string) ($invoice['currency'] ?? 'usd')),
-            'kind' => 'renewal', 'paid_at' => isset($invoice['status_transitions']['paid_at']) ? \Carbon\CarbonImmutable::createFromTimestamp((int) $invoice['status_transitions']['paid_at']) : now(),
+        $payment = Payment::firstOrCreate([
+            'stripe_id' => (string)$invoice['id'],
+        ], [
+            'deal_id' => $deal->id,
+            'amount' => ((int)($invoice['amount_paid'] ?? 0)) / 100,
+            'currency' => strtoupper((string)($invoice['currency'] ?? 'usd')),
+            'kind' => 'renewal',
+            'paid_at' => isset($invoice['status_transitions']['paid_at']) ? \Carbon\CarbonImmutable::createFromTimestamp((int)$invoice['status_transitions']['paid_at']) : now(),
         ]);
         if ($payment->wasRecentlyCreated) {
-            $deal->update(['subscription_status' => 'active']);
+            $deal->update([
+                'subscription_status' => 'active',
+            ]);
             AgentEvent::log('payment', "Retainer renewed: {$deal->brand_name}, $" . number_format($payment->amount) . '.');
-            \App\Domains\Workflows\Engine::fire('payment', \App\Domains\Workflows\Engine::dealContext($deal, ['amount' => $payment->amount, 'renewal' => true]), "pay:{$payment->id}");
+            \App\Domains\Workflows\Engine::fire('payment', \App\Domains\Workflows\Engine::dealContext($deal, [
+                'amount' => $payment->amount,
+                'renewal' => true,
+            ]), "pay:{$payment->id}");
         }
     }
 
     private static function subscriptionEnded(array $sub): void
     {
-        $deal = ! empty($sub['id']) ? Deal::where('stripe_subscription_id', $sub['id'])->first() : null;
+        $deal = !empty($sub['id']) ? Deal::where('stripe_subscription_id', $sub['id'])->first() : null;
         if ($deal && $deal->subscription_status !== 'cancelled') {
-            $deal->update(['subscription_status' => 'cancelled']);
+            $deal->update([
+                'subscription_status' => 'cancelled',
+            ]);
             AgentEvent::log('payment', "Retainer cancelled: {$deal->brand_name}.");
         }
-    }
-
-    /**
-     * A Stripe Checkout Session for a deal: {url, id}, or null when Stripe isn't set up or says no.
-     * $pkg is {name, description, amount (cents), currency, interval}. The webhook marks it paid.
-     */
-    public static function startCheckout(Deal $deal, array $pkg, ?string $email = null, ?string $returnTo = null): ?array
-    {
-        $secret = self::secret();
-        if ($secret === null) {
-            return null;
-        }
-        try {
-            $resp = Http::withToken($secret)
-                ->asForm()
-                ->post('https://api.stripe.com/v1/checkout/sessions', array_filter([
-                    'payment_method_types' => ['card'],
-                    'line_items' => [[
-                        'price_data' => [
-                            'currency' => $pkg['currency'] ?? 'usd',
-                            'product_data' => array_filter([
-                                'name' => 'Tech Unicorn: ' . $pkg['name'],
-                                'description' => $pkg['description'] ?? null,
-                            ]),
-                            'unit_amount' => (int) $pkg['amount'],
-                        ] + (! empty($pkg['interval']) ? ['recurring' => ['interval' => $pkg['interval']]] : []),
-                        'quantity' => 1,
-                    ]],
-                    // The retainer bills monthly until cancelled; everything else is one payment.
-                    'mode' => ! empty($pkg['interval']) ? 'subscription' : 'payment',
-                    'customer_email' => $email,
-                    'success_url' => url(($returnTo ?? '/') . '?payment=success&deal=' . $deal->id),
-                    'cancel_url' => url(($returnTo ?? '/') . '?payment=cancelled&deal=' . $deal->id),
-                    'metadata' => [
-                        'deal_id' => $deal->id,
-                        'package_id' => $pkg['id'] ?? 'proposal',
-                    ],
-                    'subscription_data' => ! empty($pkg['interval']) ? ['metadata' => ['deal_id' => $deal->id]] : null,
-                ]));
-
-            if ($resp->successful() && $resp->json('url')) {
-                return ['url' => $resp->json('url'), 'id' => $resp->json('id')];
-            }
-            Log::warning('Stripe checkout session failed', ['status' => $resp->status(), 'error' => $resp->json('error.message')]);
-        } catch (\Throwable $e) {
-            Log::warning('Stripe checkout session failed', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
-
-    public static function configured(): bool
-    {
-        return self::secret() !== null;
     }
 
     private static function secret(): ?string
     {
         return Setting::get('stripe_secret_key') ?: (env('STRIPE_SECRET_KEY') ?: null);
-    }
-
-    /** Stripe-Signature is "t=<unix>,v1=<hex HMAC-SHA256 of "<t>.<payload>">"; reject anything older than 5 minutes. */
-    public static function validSignature(string $payload, string $header, string $secret, int $tolerance = 300): bool
-    {
-        $parts = [];
-        foreach (explode(',', $header) as $pair) {
-            [$k, $v] = array_pad(explode('=', trim($pair), 2), 2, '');
-            $parts[$k][] = $v;
-        }
-        $t = (int) ($parts['t'][0] ?? 0);
-        if (! $t || abs(time() - $t) > $tolerance) {
-            return false;
-        }
-        $expected = hash_hmac('sha256', $t . '.' . $payload, $secret);
-        foreach ($parts['v1'] ?? [] as $sig) {
-            if (hash_equals($expected, $sig)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

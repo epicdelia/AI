@@ -40,9 +40,9 @@ class AdSuitabilityShield
      */
     public function audit(array $params): array
     {
-        $title = (string) ($params['title'] ?? '');
-        $description = (string) ($params['description'] ?? '');
-        $body = (string) ($params['body'] ?? '');
+        $title = (string)($params['title'] ?? '');
+        $description = (string)($params['description'] ?? '');
+        $body = (string)($params['body'] ?? '');
         $dealId = $params['deal_id'] ?? null;
 
         $text = strtolower("{$title} {$description} {$body}");
@@ -79,7 +79,7 @@ class AdSuitabilityShield
                     'guideline' => 'Inappropriate Language in Content',
                     'severity' => 'medium',
                     'quote' => $profanity,
-                    'advice' => "Mild/strong vulgarity detected. Ensure it does not occur in the first 30 seconds of video playback.",
+                    'advice' => 'Mild/strong vulgarity detected. Ensure it does not occur in the first 30 seconds of video playback.',
                 ];
                 $score -= 15;
             }
@@ -135,4 +135,3 @@ class AdSuitabilityShield
         ];
     }
 }
-

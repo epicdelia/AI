@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Domains\Agents\Models\AgentPromptVersion;
 use App\Domains\Agents\Models\SocialAgent;
-use App\Domains\Agents\Models\SwarmMission;
 use App\Domains\Agents\Optimization\PromptOptimizer;
 use App\Domains\Agents\Swarm\AgentSwarm;
 use App\Models\Channel;
@@ -31,7 +30,11 @@ class SwarmAndOptimizerTest extends TestCase
         Setting::put('llm_api_key', 'test-key');
         $this->travelTo(CarbonImmutable::parse('2026-11-01 14:00', 'UTC'));
 
-        $this->user = $this->admin(['name' => 'Grace Hopper', 'email' => 'grace@example.com', 'password' => 'secret123']);
+        $this->user = $this->admin([
+            'name' => 'Grace Hopper',
+            'email' => 'grace@example.com',
+            'password' => 'secret123',
+        ]);
         $this->actingAs($this->user);
 
         $this->agent = SocialAgent::create([
@@ -53,7 +56,10 @@ class SwarmAndOptimizerTest extends TestCase
 
     public function test_swarm_plans_and_executes_mission_with_a2a_handoffs(): void
     {
-        $channel = Channel::create(['handle' => '@distributedtech', 'title' => 'Distributed Tech']);
+        $channel = Channel::create([
+            'handle' => '@distributedtech',
+            'title' => 'Distributed Tech',
+        ]);
         Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'v_swarm_1',
@@ -73,10 +79,30 @@ class SwarmAndOptimizerTest extends TestCase
                 return json_encode([
                     'title' => 'SQLite vs Redis Campaign',
                     'steps' => [
-                        ['id' => 'step_1', 'agent' => 'signal_scout', 'task' => 'Scan competitor breakouts on SQLite.', 'handoff_to' => 'angle_strategist'],
-                        ['id' => 'step_2', 'agent' => 'angle_strategist', 'task' => 'Find contrarian engineering angle.', 'handoff_to' => 'platform_copywriter'],
-                        ['id' => 'step_3', 'agent' => 'platform_copywriter', 'task' => 'Draft native LinkedIn and X posts.', 'handoff_to' => 'grounding_auditor'],
-                        ['id' => 'step_4', 'agent' => 'grounding_auditor', 'task' => 'Verify claims and lint AI tells.', 'handoff_to' => null],
+                        [
+                            'id' => 'step_1',
+                            'agent' => 'signal_scout',
+                            'task' => 'Scan competitor breakouts on SQLite.',
+                            'handoff_to' => 'angle_strategist',
+                        ],
+                        [
+                            'id' => 'step_2',
+                            'agent' => 'angle_strategist',
+                            'task' => 'Find contrarian engineering angle.',
+                            'handoff_to' => 'platform_copywriter',
+                        ],
+                        [
+                            'id' => 'step_3',
+                            'agent' => 'platform_copywriter',
+                            'task' => 'Draft native LinkedIn and X posts.',
+                            'handoff_to' => 'grounding_auditor',
+                        ],
+                        [
+                            'id' => 'step_4',
+                            'agent' => 'grounding_auditor',
+                            'task' => 'Verify claims and lint AI tells.',
+                            'handoff_to' => null,
+                        ],
                     ],
                 ]);
             }
@@ -134,11 +160,25 @@ class SwarmAndOptimizerTest extends TestCase
             return json_encode([
                 'title' => 'API Swarm Campaign',
                 'steps' => [
-                    ['id' => 'step_1', 'agent' => 'signal_scout', 'task' => 'Inspect signals', 'handoff_to' => 'platform_copywriter'],
-                    ['id' => 'step_2', 'agent' => 'platform_copywriter', 'task' => 'Write post', 'handoff_to' => null],
+                    [
+                        'id' => 'step_1',
+                        'agent' => 'signal_scout',
+                        'task' => 'Inspect signals',
+                        'handoff_to' => 'platform_copywriter',
+                    ],
+                    [
+                        'id' => 'step_2',
+                        'agent' => 'platform_copywriter',
+                        'task' => 'Write post',
+                        'handoff_to' => null,
+                    ],
                 ],
                 'posts' => [
-                    ['platform' => 'linkedin', 'body' => 'High performance post.', 'parts' => []],
+                    [
+                        'platform' => 'linkedin',
+                        'body' => 'High performance post.',
+                        'parts' => [],
+                    ],
                 ],
             ]);
         };
@@ -149,7 +189,10 @@ class SwarmAndOptimizerTest extends TestCase
             'platforms' => ['linkedin'],
         ]);
         $planRes->assertOk();
-        $planRes->assertJsonStructure(['message', 'mission' => ['id', 'title', 'steps', 'status']]);
+        $planRes->assertJsonStructure([
+            'message',
+            'mission' => ['id', 'title', 'steps', 'status'],
+        ]);
         $missionId = $planRes->json('mission.id');
 
         // Step
@@ -174,11 +217,11 @@ class SwarmAndOptimizerTest extends TestCase
             if (str_contains($system, 'prompt-optimizer')) {
                 return json_encode([
                     'changes_summary' => 'Added explicit opening metric anchor heuristic and banned generic adjectives.',
-                    'optimized_prompt' => "Systems programming practitioner. Rule 1: Always open with a concrete number in sentence 1. Never use corporate filler words.",
+                    'optimized_prompt' => 'Systems programming practitioner. Rule 1: Always open with a concrete number in sentence 1. Never use corporate filler words.',
                 ]);
             }
 
-            return "100k requests per second benchmark on 64-core bare metal server. Zero network hops with local SQLite.";
+            return '100k requests per second benchmark on 64-core bare metal server. Zero network hops with local SQLite.';
         };
 
         $optimizer = app(PromptOptimizer::class);
@@ -194,7 +237,10 @@ class SwarmAndOptimizerTest extends TestCase
         // API Endpoint tests
         $apiOptRes = $this->postJson("/api/agents/{$this->agent->id}/prompt/optimize");
         $apiOptRes->assertOk();
-        $apiOptRes->assertJsonStructure(['message', 'result' => ['baseline_score', 'optimized_score', 'version']]);
+        $apiOptRes->assertJsonStructure([
+            'message',
+            'result' => ['baseline_score', 'optimized_score', 'version'],
+        ]);
 
         $versRes = $this->getJson("/api/agents/{$this->agent->id}/prompt/versions");
         $versRes->assertOk();

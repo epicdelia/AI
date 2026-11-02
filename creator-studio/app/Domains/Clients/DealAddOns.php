@@ -48,13 +48,17 @@ class DealAddOns
 
     public static function catalog(): array
     {
-        return array_values(array_map(fn ($k, $v) => ['key' => $k] + $v, array_keys(self::CATALOG), self::CATALOG));
+        return array_values(array_map(fn ($k, $v) => [
+            'key' => $k,
+        ] + $v, array_keys(self::CATALOG), self::CATALOG));
     }
 
     public static function apply(Deal $deal, string $key, User $by): array
     {
-        if (! isset(self::CATALOG[$key])) {
-            throw ValidationException::withMessages(['add_on' => 'Invalid add-on package selected.']);
+        if (!isset(self::CATALOG[$key])) {
+            throw ValidationException::withMessages([
+                'add_on' => 'Invalid add-on package selected.',
+            ]);
         }
 
         $item = self::CATALOG[$key];
@@ -62,7 +66,9 @@ class DealAddOns
 
         // Check if already applied
         if (collect($currentAddOns)->contains('key', $key)) {
-            throw ValidationException::withMessages(['add_on' => 'This add-on is already included on this project.']);
+            throw ValidationException::withMessages([
+                'add_on' => 'This add-on is already included on this project.',
+            ]);
         }
 
         $applied = [
@@ -74,7 +80,7 @@ class DealAddOns
         ];
 
         $currentAddOns[] = $applied;
-        $newRate = (float) $deal->rate + (float) $item['price'];
+        $newRate = (float)$deal->rate + (float)$item['price'];
 
         // Also append deliverable if applicable
         $deliverables = $deal->deliverables ?? [];
@@ -92,15 +98,17 @@ class DealAddOns
             'last_contacted_at' => now(),
         ]);
 
-        Audit::log('deal_linked', $by, $deal, ['add_on' => $key, 'price' => $item['price']]);
-        AgentEvent::log('lead', "{$by->name} added {$item['name']} (+".number_format($item['price'])." {$deal->currency}) to {$deal->brand_name}.");
+        Audit::log('deal_linked', $by, $deal, [
+            'add_on' => $key,
+            'price' => $item['price'],
+        ]);
+        AgentEvent::log('lead', "{$by->name} added {$item['name']} (+" . number_format($item['price']) . " {$deal->currency}) to {$deal->brand_name}.");
 
         return [
             'deal_id' => $deal->id,
             'add_on' => $applied,
             'new_rate' => $newRate,
-            'message' => "Added {$item['name']} to project deliverables. New total: ".number_format($newRate)." {$deal->currency}.",
+            'message' => "Added {$item['name']} to project deliverables. New total: " . number_format($newRate) . " {$deal->currency}.",
         ];
     }
 }
-

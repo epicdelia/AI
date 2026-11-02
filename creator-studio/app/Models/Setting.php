@@ -7,12 +7,9 @@ use Illuminate\Support\Facades\Crypt;
 
 class Setting extends Model
 {
-    protected $primaryKey = 'key';
-    public $incrementing = false;
-    protected $keyType = 'string';
-    protected $fillable = ['key', 'value'];
-
-    /** Settings whose values are stored encrypted. */
+    /**
+     * Settings whose values are stored encrypted.
+     */
     public const SECRET = ['youtube_api_key', 'llm_api_key', 'assemblyai_api_key', 'serper_api_key', 'perplexity_api_key', 'embedding_api_key',
         'elevenlabs_api_key', 'fal_api_key', 'vizard_api_key', 'extra_llm_keys',
         // app secrets for Connections (OAuth)
@@ -82,6 +79,10 @@ class Setting extends Model
         'start_page' => '/',              // which page the studio opens on
         'nav_mode' => 'top',              // top: mega menus across the top, sidebar as a drawer | sidebar: sidebar kept open
     ];
+    public $incrementing = false;
+    protected $primaryKey = 'key';
+    protected $keyType = 'string';
+    protected $fillable = ['key', 'value'];
 
     private static ?array $cache = null;
 
@@ -109,13 +110,17 @@ class Setting extends Model
         if ($value !== null && $value !== '' && in_array($key, self::SECRET, true)) {
             $value = Crypt::encryptString($value);
         }
-        self::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+        self::query()->updateOrCreate([
+            'key' => $key,
+        ], [
+            'value' => $value,
+        ]);
         self::$cache = null;
     }
 
     public static function has(string $key): bool
     {
-        return (string) self::get($key, '') !== '';
+        return (string)self::get($key, '') !== '';
     }
 
     public static function flush(): void
@@ -123,4 +128,3 @@ class Setting extends Model
         self::$cache = null;
     }
 }
-

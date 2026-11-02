@@ -14,7 +14,7 @@ class EnforceHttps
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (config('app.force_https') && ! $request->secure() && ! $request->is('up')) {
+        if (config('app.force_https') && !$request->secure() && !$request->is('up')) {
             return redirect()->secure($request->getRequestUri(), 301);
         }
 

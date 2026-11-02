@@ -7,15 +7,14 @@ use App\Models\Setting;
 use App\Services\Llm;
 
 /**
- * SponsorRevenueArchitect
- *
  * High ROI Feature: Optimizes sponsor placement within video scripts to maximize
  * viewer retention, seamlessness of the ad segue, FTC compliance, and calculated CPM yield.
  */
 class SponsorRevenueArchitect
 {
-    public function __construct(protected ?Llm $llm = null)
-    {
+    public function __construct(
+        protected ?Llm $llm = null
+    ) {
         $this->llm = $this->llm ?? new Llm();
     }
 
@@ -30,15 +29,15 @@ class SponsorRevenueArchitect
     {
         $wordCount = str_word_count(strip_tags($scriptText));
         // Standard YouTube speaking pace ~ 140 words per minute
-        $totalEstimatedSeconds = max(60, (int) round(($wordCount / 140) * 60));
+        $totalEstimatedSeconds = max(60, (int)round(($wordCount / 140) * 60));
 
         $brand = $sponsorContext['brand'] ?? 'Premium Dev Tool';
         $talkingPoints = $sponsorContext['talking_points'] ?? 'Developer efficiency, automated pipelines, low latency';
-        $baseCpm = (float) ($sponsorContext['base_cpm'] ?? 45.0);
-        $projectedViews = (int) ($sponsorContext['projected_views'] ?? 15000);
+        $baseCpm = (float)($sponsorContext['base_cpm'] ?? 45.0);
+        $projectedViews = (int)($sponsorContext['projected_views'] ?? 15000);
 
         // Optimal YouTube mid-roll retention window is between 35% and 55% of video duration
-        $optimalSeconds = (int) round($totalEstimatedSeconds * 0.42);
+        $optimalSeconds = (int)round($totalEstimatedSeconds * 0.42);
         $optimalMinutes = floor($optimalSeconds / 60);
         $remainingSeconds = $optimalSeconds % 60;
         $timestampString = sprintf('%02d:%02d', $optimalMinutes, $remainingSeconds);
@@ -88,7 +87,7 @@ EOT;
             $aiResult = [
                 'segue_transition' => "Speaking of scaling pipelines without tearing your hair out, that brings us right into today's partner, {$brand}.",
                 'pitch_core' => "I've been testing {$brand} across our staging clusters, and it cuts deployment cycle time by more than half while catching config drift automatically.",
-                'call_to_action' => "Check the link down in the description and use code DELIA for 20% off your team workspace.",
+                'call_to_action' => 'Check the link down in the description and use code DELIA for 20% off your team workspace.',
                 'ftc_disclosure' => "Huge thanks to {$brand} for powering this video and supporting developer education on this channel.",
                 'retention_preservation_tips' => [
                     'Show live dashboard screen recordings rather than static slides during the integration.',
@@ -121,4 +120,3 @@ EOT;
         ];
     }
 }
-

@@ -4,7 +4,9 @@ namespace App\Domains\Social\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/** One connected account per network. Tokens are encrypted at rest and hidden from JSON. */
+/**
+ * One connected account per network. Tokens are encrypted at rest and hidden from JSON.
+ */
 class SocialAccount extends Model
 {
     protected $fillable = [
@@ -13,6 +15,11 @@ class SocialAccount extends Model
     ];
 
     protected $hidden = ['access_token', 'refresh_token'];
+
+    public function expiresSoon(int $seconds = 300): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->lte(now()->addSeconds($seconds));
+    }
 
     protected function casts(): array
     {
@@ -25,10 +32,5 @@ class SocialAccount extends Model
             'scopes' => 'array',
             'meta' => 'array',
         ];
-    }
-
-    public function expiresSoon(int $seconds = 300): bool
-    {
-        return $this->expires_at !== null && $this->expires_at->lte(now()->addSeconds($seconds));
     }
 }

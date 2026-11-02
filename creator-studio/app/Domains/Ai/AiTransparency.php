@@ -107,7 +107,7 @@ class AiTransparency
             $footnote = "\n\n---\n\n> 🤖 **EU AI Act Transparency Disclosure (Article 50):** This content was generated with assistive AI technology and is {$statusText}.";
         }
 
-        return $metaComment.trim($content).$footnote;
+        return $metaComment . trim($content) . $footnote;
     }
 
     /**
@@ -138,4 +138,3 @@ class AiTransparency
             || str_contains($lower, 'ai-assisted');
     }
 }
-

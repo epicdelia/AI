@@ -24,19 +24,39 @@ class Deal extends Model
         'lost',
     ];
 
-    /** Not open money: a brand she might pitch, money already in, or a deal that didn't happen. */
+    /**
+     * Not open money: a brand she might pitch, money already in, or a deal that didn't happen.
+     */
     public const NOT_PIPELINE = ['prospect', 'paid', 'lost'];
 
-    /** Why a deal was lost, for the win-rate insights. */
+    /**
+     * Why a deal was lost, for the win-rate insights.
+     */
     public const LOST_REASONS = [
-        'price' => 'Price / budget', 'timing' => 'Timing', 'no_reply' => 'Went quiet', 'competitor' => 'Chose someone else',
-        'not_fit' => 'Not a fit', 'scope' => 'Scope changed', 'other' => 'Other',
+        'price' => 'Price / budget',
+        'timing' => 'Timing',
+        'no_reply' => 'Went quiet',
+        'competitor' => 'Chose someone else',
+        'not_fit' => 'Not a fit',
+        'scope' => 'Scope changed',
+        'other' => 'Other',
     ];
 
-    /** How likely a deal at each stage is to be paid, for the weighted pipeline (rule of thumb). */
+    /**
+     * How likely a deal at each stage is to be paid, for the weighted pipeline (rule of thumb).
+     */
     public const WIN_ODDS = [
-        'prospect' => 0.0, 'lost' => 0.0, 'inquiry' => 0.1, 'pitching' => 0.25, 'negotiating' => 0.5, 'contracted' => 0.9,
-        'production' => 0.9, 'in_review' => 0.95, 'scheduled' => 0.95, 'invoiced' => 0.98, 'paid' => 1.0,
+        'prospect' => 0.0,
+        'lost' => 0.0,
+        'inquiry' => 0.1,
+        'pitching' => 0.25,
+        'negotiating' => 0.5,
+        'contracted' => 0.9,
+        'production' => 0.9,
+        'in_review' => 0.95,
+        'scheduled' => 0.95,
+        'invoiced' => 0.98,
+        'paid' => 1.0,
     ];
 
     protected $fillable = [
@@ -108,12 +128,56 @@ class Deal extends Model
 
     protected $hidden = ['kit_token', 'room_token'];
 
-    /** Website leads carry a rule-of-thumb fit score (LeadScore) wherever deals are listed. */
+    /**
+     * Website leads carry a rule-of-thumb fit score (LeadScore) wherever deals are listed.
+     */
     protected $appends = ['lead_score'];
 
     public function getLeadScoreAttribute(): ?array
     {
         return \App\Domains\Deals\LeadScore::for($this);
+    }
+
+    /**
+     * The last time anything happened on this deal: created, moved, or she got in touch.
+     */
+    public function lastTouchAt(): Carbon
+    {
+        return collect([$this->created_at, $this->stage_changed_at, $this->last_contacted_at])
+            ->filter()->sortByDesc(fn ($d) => $d->getTimestamp())->first() ?? now();
+    }
+
+    /**
+     * The client account this deal belongs to (null: not linked to a client).
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function files(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DealFile::class);
+    }
+
+    public function annotations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DeliverableAnnotation::class);
+    }
+
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domains\Clients\Models\DealMessage::class);
+    }
+
+    public function script(): BelongsTo
+    {
+        return $this->belongsTo(Script::class);
+    }
+
+    public function socialPost(): BelongsTo
+    {
+        return $this->belongsTo(SocialPost::class);
     }
 
     protected function casts(): array
@@ -156,14 +220,14 @@ class Deal extends Model
     {
         // Follow-ups count quiet days from the last stage move, so remember when that was.
         static::saving(function (Deal $deal) {
-            if ($deal->isDirty('stage') && ! $deal->isDirty('stage_changed_at')) {
+            if ($deal->isDirty('stage') && !$deal->isDirty('stage_changed_at')) {
                 $deal->stage_changed_at = now();
             }
         });
 
         // A deal from a verified client's email (website booking, checkout, added by her) is theirs.
         static::creating(function (Deal $deal) {
-            if (! $deal->user_id && $deal->stage !== 'prospect') {
+            if (!$deal->user_id && $deal->stage !== 'prospect') {
                 $deal->user_id = rescue(fn () => \App\Domains\Clients\ClientLink::ownerFor($deal->contact_email), null, false);
             }
         });
@@ -187,43 +251,5 @@ class Deal extends Model
                 rescue(fn () => \App\Domains\Clients\PartnerReferrals::attributePayment($deal), null, true);
             }
         });
-    }
-
-    /** The last time anything happened on this deal: created, moved, or she got in touch. */
-    public function lastTouchAt(): Carbon
-    {
-        return collect([$this->created_at, $this->stage_changed_at, $this->last_contacted_at])
-            ->filter()->sortByDesc(fn ($d) => $d->getTimestamp())->first() ?? now();
-    }
-
-    /** The client account this deal belongs to (null: not linked to a client). */
-    public function client(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function files(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(\App\Domains\Clients\Models\DealFile::class);
-    }
-
-    public function annotations(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(\App\Domains\Clients\Models\DeliverableAnnotation::class);
-    }
-
-    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(\App\Domains\Clients\Models\DealMessage::class);
-    }
-
-    public function script(): BelongsTo
-    {
-        return $this->belongsTo(Script::class);
-    }
-
-    public function socialPost(): BelongsTo
-    {
-        return $this->belongsTo(SocialPost::class);
     }
 }

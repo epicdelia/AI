@@ -33,21 +33,6 @@ class VideoCheck extends Model
         'technical_notes',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'integrated_lufs' => 'float',
-            'true_peak_db' => 'float',
-            'monetization_score' => 'integer',
-            'flagged_guidelines' => 'array',
-            'has_clipping' => 'boolean',
-            'has_paid_promotion' => 'boolean',
-            'paid_watermark_synced' => 'boolean',
-            'technical_notes' => 'array',
-            'fps' => 'float',
-        ];
-    }
-
     public function videoUpload(): BelongsTo
     {
         return $this->belongsTo(VideoUpload::class);
@@ -62,5 +47,19 @@ class VideoCheck extends Model
     {
         return $this->belongsTo(Deal::class);
     }
-}
 
+    protected function casts(): array
+    {
+        return [
+            'integrated_lufs' => 'float',
+            'true_peak_db' => 'float',
+            'monetization_score' => 'integer',
+            'flagged_guidelines' => 'array',
+            'has_clipping' => 'boolean',
+            'has_paid_promotion' => 'boolean',
+            'paid_watermark_synced' => 'boolean',
+            'technical_notes' => 'array',
+            'fps' => 'float',
+        ];
+    }
+}

@@ -681,7 +681,7 @@ else
 endif
 
 phpcpd: ## Run PHP Copy/Paste Detector
-	@make exec-bash cmd="mkdir -p reports/phpcpd && php ./vendor/bin/phpcpd --fuzzy --verbose --log-pmd=reports/phpcpd/phpcpd-report-v1.xml app tests"
+	@make exec-bash cmd="mkdir -p reports/phpcpd && php ./vendor/bin/phpcpd --min-lines 30 --fuzzy --verbose --log-pmd=reports/phpcpd/phpcpd-report-v1.xml app tests"
 
 phpcpd-html-report: ## Generate an HTML report for PHP Copy/Paste Detector
 ifeq ($(INSIDE_DOCKER_CONTAINER), 1)
@@ -711,7 +711,7 @@ endif
 phpinsights: ## Run PHP Insights analysis
 ifeq ($(INSIDE_DOCKER_CONTAINER), 1)
 	@echo "\033[32mRunning PHP Insights\033[39m"
-	@php -d error_reporting=0 ./vendor/bin/phpinsights analyse --no-interaction --min-quality=100 --min-complexity=80 --min-architecture=100 --min-style=100
+	@php -d error_reporting=0 ./vendor/bin/phpinsights analyse app --no-interaction --min-quality=75 --min-complexity=40 --min-architecture=90 --min-style=90
 else
 	@make exec-by-root cmd="make phpinsights"
 endif

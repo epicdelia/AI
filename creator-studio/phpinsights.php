@@ -30,16 +30,19 @@ return [
     |
     */
     'exclude' => [
+        'artifacts',
         'bootstrap',
         'config',
         'database',
         'docker',
         'docs',
+        'helm',
         'public',
         'reports',
         'resources',
         'routes',
         'storage',
+        'terraform',
         'tests',
         'tools',
         'vendor',

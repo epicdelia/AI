@@ -10,7 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
-/** Upload a recording, get its transcript (optionally saved straight onto a script). */
+/**
+ * Upload a recording, get its transcript (optionally saved straight onto a script).
+ */
 class TranscriptionController extends Controller
 {
     public function info(): JsonResponse
@@ -25,13 +27,15 @@ class TranscriptionController extends Controller
 
     public function store(Request $request, Transcription $transcription): JsonResponse
     {
-        if (! $request->hasFile('file') && $request->server('CONTENT_LENGTH') > 0) {
+        if (!$request->hasFile('file') && $request->server('CONTENT_LENGTH') > 0) {
             // PHP drops bodies over post_max_size without an error, so explain it.
-            return response()->json(['error' => 'That file is bigger than the server accepts ('.Transcription::uploadLimitMb().' MB). Raise upload_max_filesize and post_max_size in php.ini, or upload the audio track only.'], 413);
+            return response()->json([
+                'error' => 'That file is bigger than the server accepts (' . Transcription::uploadLimitMb() . ' MB). Raise upload_max_filesize and post_max_size in php.ini, or upload the audio track only.',
+            ], 413);
         }
 
         $data = $request->validate([
-            'file' => 'required|file|max:'.(Transcription::uploadLimitMb() * 1024),
+            'file' => 'required|file|max:' . (Transcription::uploadLimitMb() * 1024),
             'script_id' => 'nullable|exists:scripts,id',
             'timestamps' => 'nullable|boolean',
         ]);
@@ -39,7 +43,9 @@ class TranscriptionController extends Controller
         try {
             $result = $transcription->transcribe($request->file('file'));
         } catch (Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
         }
 
         $transcript = $request->boolean('timestamps') && $result['segments']
@@ -47,9 +53,11 @@ class TranscriptionController extends Controller
             : $result['text'];
 
         $script = null;
-        if (! empty($data['script_id'])) {
+        if (!empty($data['script_id'])) {
             $script = Script::find($data['script_id']);
-            $script->update(['transcript' => $transcript]);
+            $script->update([
+                'transcript' => $transcript,
+            ]);
         }
 
         return response()->json([
@@ -58,7 +66,7 @@ class TranscriptionController extends Controller
             'engine' => $result['engine'],
             'seconds' => round($result['duration_ms'] / 1000, 1),
             'script' => $script,
-            'message' => 'Transcribed with '.($result['engine'] === 'openai' ? 'OpenAI Whisper' : 'AssemblyAI').'.',
+            'message' => 'Transcribed with ' . ($result['engine'] === 'openai' ? 'OpenAI Whisper' : 'AssemblyAI') . '.',
         ]);
     }
 }

@@ -22,28 +22,8 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'role' => Role::class,
-            'disabled_at' => 'datetime',
-            'last_login_at' => 'datetime',
-            'two_factor_secret' => 'encrypted',
-            'two_factor_recovery_codes' => 'encrypted:array',
-            'two_factor_confirmed_at' => 'datetime',
-            'notify_email' => 'boolean',
-            'referral_credits' => 'integer',
-        ];
-    }
+    use HasFactory;
+    use Notifiable;
 
     public function deals(): HasMany
     {
@@ -55,13 +35,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(\App\Domains\Clients\Models\ClientBrandVault::class, 'user_id');
     }
 
-    /** The client whose requests this account shares (themselves, or the teammate who invited them). */
+    /**
+     * The client whose requests this account shares (themselves, or the teammate who invited them).
+     */
     public function teamOwnerId(): int
     {
-        return (int) ($this->team_owner_id ?: $this->id);
+        return (int)($this->team_owner_id ?: $this->id);
     }
 
-    /** Everyone sharing these requests: the team owner and their teammates. */
+    /**
+     * Everyone sharing these requests: the team owner and their teammates.
+     */
     public function teamIds(): array
     {
         $owner = $this->teamOwnerId();
@@ -94,13 +78,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->disabled_at !== null;
     }
 
-    /** Admins are hers from the first install, so only a client's email needs proving. */
+    /**
+     * Admins are hers from the first install, so only a client's email needs proving.
+     */
     public function needsEmailVerification(): bool
     {
-        return $this->role()->requiresVerifiedEmail() && ! $this->hasVerifiedEmail();
+        return $this->role()->requiresVerifiedEmail() && !$this->hasVerifiedEmail();
     }
 
-    /** What the dashboard needs to know about who is signed in. */
+    /**
+     * What the dashboard needs to know about who is signed in.
+     */
     public function toSession(): array
     {
         return [
@@ -110,13 +98,34 @@ class User extends Authenticatable implements MustVerifyEmail
             'company' => $this->company,
             'role' => $this->role()->value,
             'abilities' => $this->role()->abilities(),
-            'email_verified' => ! $this->needsEmailVerification(),
-            'notify_email' => (bool) ($this->notify_email ?? true),
-            'team_owner' => $this->role() === Role::Client && ! $this->team_owner_id,
+            'email_verified' => !$this->needsEmailVerification(),
+            'notify_email' => (bool)($this->notify_email ?? true),
+            'team_owner' => $this->role() === Role::Client && !$this->team_owner_id,
             'two_factor' => [
-                'enabled' => (bool) $this->hasTwoFactor(),
+                'enabled' => (bool)$this->hasTwoFactor(),
                 'required' => $this->role()->requiresTwoFactor(),
             ],
+        ];
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'role' => Role::class,
+            'disabled_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'notify_email' => 'boolean',
+            'referral_credits' => 'integer',
         ];
     }
 }

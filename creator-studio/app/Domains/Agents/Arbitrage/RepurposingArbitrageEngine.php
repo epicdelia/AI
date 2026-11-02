@@ -6,8 +6,6 @@ use App\Models\Setting;
 use App\Services\Llm;
 
 /**
- * RepurposingArbitrageEngine
- *
  * High ROI Feature: Multi-Platform Reach Arbitrage.
  * Analyzes core ideas or video scripts to synthesize high-converting native copy
  * tailored specifically for LinkedIn, X (Twitter), TikTok/Shorts, and Instagram,
@@ -15,8 +13,9 @@ use App\Services\Llm;
  */
 class RepurposingArbitrageEngine
 {
-    public function __construct(protected ?Llm $llm = null)
-    {
+    public function __construct(
+        protected ?Llm $llm = null
+    ) {
         $this->llm = $this->llm ?? new Llm();
     }
 
@@ -97,19 +96,39 @@ EOT;
                 'x_thread' => [
                     "Most developers overcomplicate modern architecture.\n\nHere is the exact playbook we used to cut deployment times and eliminate config drift in 2026: 🧵👇",
                     "1/ Don't reinvent the wheel with custom bash scripts when Terraform and Helm provide battle-tested declarative modules.",
-                    "2/ Automated verification before merge is 10x cheaper than incident response at 2 AM. Build self-testing pipelines.",
+                    '2/ Automated verification before merge is 10x cheaper than incident response at 2 AM. Build self-testing pipelines.',
                 ],
                 'tiktok_script' => [
                     'hook_beat' => "[Screen recording] Stop writing cloud infrastructure like it's 2018. Here's what modern teams do:",
-                    'body_beat' => "We switched our entire stack to modular Helm and Terraform blueprints with automated dry-run linting on every commit.",
-                    'closing_beat' => "Save this video for your next sprint planning, and follow for more dev engineering secrets.",
+                    'body_beat' => 'We switched our entire stack to modular Helm and Terraform blueprints with automated dry-run linting on every commit.',
+                    'closing_beat' => 'Save this video for your next sprint planning, and follow for more dev engineering secrets.',
                 ],
                 'instagram_carousel' => [
-                    ['slide' => 1, 'headline' => 'Modern Architecture Blueprint', 'body' => 'High-velocity developer workflows explained simply.'],
-                    ['slide' => 2, 'headline' => 'Rule #1: Declarative Modules', 'body' => 'Avoid snowflake infrastructure.'],
-                    ['slide' => 3, 'headline' => 'Rule #2: Fast Feedback Loops', 'body' => 'Test locally with zero cloud costs.'],
-                    ['slide' => 4, 'headline' => 'Rule #3: Automated Verification', 'body' => 'Lint and dry-run before deployment.'],
-                    ['slide' => 5, 'headline' => 'Level Up Your Stack', 'body' => 'Save this post and share with your team.'],
+                    [
+                        'slide' => 1,
+                        'headline' => 'Modern Architecture Blueprint',
+                        'body' => 'High-velocity developer workflows explained simply.',
+                    ],
+                    [
+                        'slide' => 2,
+                        'headline' => 'Rule #1: Declarative Modules',
+                        'body' => 'Avoid snowflake infrastructure.',
+                    ],
+                    [
+                        'slide' => 3,
+                        'headline' => 'Rule #2: Fast Feedback Loops',
+                        'body' => 'Test locally with zero cloud costs.',
+                    ],
+                    [
+                        'slide' => 4,
+                        'headline' => 'Rule #3: Automated Verification',
+                        'body' => 'Lint and dry-run before deployment.',
+                    ],
+                    [
+                        'slide' => 5,
+                        'headline' => 'Level Up Your Stack',
+                        'body' => 'Save this post and share with your team.',
+                    ],
                 ],
                 'arbitrage_analysis' => [
                     'highest_yield_platform' => 'linkedin',
@@ -127,4 +146,3 @@ EOT;
         ];
     }
 }
-

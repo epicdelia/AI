@@ -18,30 +18,80 @@ use App\Services\AiTellsLinter;
 class Platforms
 {
     public const PLATFORMS = [
-        'linkedin' => ['label' => 'LinkedIn', 'limit' => 3000, 'fold' => 140],
-        'instagram' => ['label' => 'Instagram', 'limit' => 2200, 'fold' => 125],
-        'x' => ['label' => 'X', 'limit' => 280, 'fold' => null],
-        'youtube' => ['label' => 'YouTube', 'limit' => 5000, 'fold' => null],
-        'tiktok' => ['label' => 'TikTok', 'limit' => 4000, 'fold' => 70],
-        'threads' => ['label' => 'Threads', 'limit' => 500, 'fold' => null],
+        'linkedin' => [
+            'label' => 'LinkedIn',
+            'limit' => 3000,
+            'fold' => 140,
+        ],
+        'instagram' => [
+            'label' => 'Instagram',
+            'limit' => 2200,
+            'fold' => 125,
+        ],
+        'x' => [
+            'label' => 'X',
+            'limit' => 280,
+            'fold' => null,
+        ],
+        'youtube' => [
+            'label' => 'YouTube',
+            'limit' => 5000,
+            'fold' => null,
+        ],
+        'tiktok' => [
+            'label' => 'TikTok',
+            'limit' => 4000,
+            'fold' => 70,
+        ],
+        'threads' => [
+            'label' => 'Threads',
+            'limit' => 500,
+            'fold' => null,
+        ],
     ];
 
-    /** format => [label, label for the parts list or null] */
+    /**
+     * format => [label, label for the parts list or null]
+     */
     public const FORMATS = [
-        'linkedin' => ['post' => ['Text post', null], 'carousel' => ['Carousel (PDF document)', 'Slides']],
-        'instagram' => ['carousel' => ['Carousel', 'Slides'], 'reel' => ['Reel', 'Beats'], 'post' => ['Single image', null], 'story' => ['Story', 'Frames']],
-        'x' => ['post' => ['Post', null], 'thread' => ['Thread', 'Posts']],
-        'youtube' => ['short' => ['Short', 'Beats'], 'community' => ['Community post', null]],
-        'tiktok' => ['video' => ['Video', 'Beats'], 'photo' => ['Photo carousel', 'Slides']],
-        'threads' => ['post' => ['Post', null], 'thread' => ['Thread', 'Posts']],
+        'linkedin' => [
+            'post' => ['Text post', null],
+            'carousel' => ['Carousel (PDF document)', 'Slides'],
+        ],
+        'instagram' => [
+            'carousel' => ['Carousel', 'Slides'],
+            'reel' => ['Reel', 'Beats'],
+            'post' => ['Single image', null],
+            'story' => ['Story', 'Frames'],
+        ],
+        'x' => [
+            'post' => ['Post', null],
+            'thread' => ['Thread', 'Posts'],
+        ],
+        'youtube' => [
+            'short' => ['Short', 'Beats'],
+            'community' => ['Community post', null],
+        ],
+        'tiktok' => [
+            'video' => ['Video', 'Beats'],
+            'photo' => ['Photo carousel', 'Slides'],
+        ],
+        'threads' => [
+            'post' => ['Post', null],
+            'thread' => ['Thread', 'Posts'],
+        ],
     ];
 
     public const STATUSES = ['idea', 'draft', 'scheduled', 'posted'];
 
     public const MAX_SLIDES = 20;
 
-    /** TikTok photo carousels take up to 35 images. */
-    public const MAX_SLIDES_BY_PLATFORM = ['tiktok' => 35];
+    /**
+     * TikTok photo carousels take up to 35 images.
+     */
+    public const MAX_SLIDES_BY_PLATFORM = [
+        'tiktok' => 35,
+    ];
 
     public static function valid(string $platform, string $format): bool
     {
@@ -54,9 +104,12 @@ class Platforms
         foreach (self::PLATFORMS as $key => $p) {
             $out[$key] = $p + [
                 'limit' => self::limit($key),
-                'formats' => array_map(fn ($f) => ['label' => $f[0], 'parts' => $f[1]], self::FORMATS[$key]),
+                'formats' => array_map(fn ($f) => [
+                    'label' => $f[0],
+                    'parts' => $f[1],
+                ], self::FORMATS[$key]),
                 'handle' => Setting::get("{$key}_handle", ''),
-                'target' => (int) Setting::get("cadence_{$key}", '0'),
+                'target' => (int)Setting::get("cadence_{$key}", '0'),
             ];
         }
 
@@ -68,7 +121,9 @@ class Platforms
         return $platform === 'x' && Setting::get('x_premium') === '1' ? 25000 : self::PLATFORMS[$platform]['limit'];
     }
 
-    /** Characters as X counts them: every link is 23. */
+    /**
+     * Characters as X counts them: every link is 23.
+     */
     public static function xLength(string $text): int
     {
         return mb_strlen(preg_replace('~https?://\S+~u', str_repeat('x', 23), $text));
@@ -85,11 +140,23 @@ class Platforms
      */
     public static function check(string $platform, string $format, ?string $body, ?array $parts = []): array
     {
-        $body = (string) $body;
+        $body = (string)$body;
         $parts = array_values(array_map('strval', $parts ?? []));
         $out = [];
-        $hard = function ($m, $part = null) use (&$out) { $out[] = ['severity' => 'HARD', 'part' => $part, 'message' => $m]; };
-        $warn = function ($m, $part = null) use (&$out) { $out[] = ['severity' => 'WARN', 'part' => $part, 'message' => $m]; };
+        $hard = function ($m, $part = null) use (&$out) {
+            $out[] = [
+                'severity' => 'HARD',
+                'part' => $part,
+                'message' => $m,
+            ];
+        };
+        $warn = function ($m, $part = null) use (&$out) {
+            $out[] = [
+                'severity' => 'WARN',
+                'part' => $part,
+                'message' => $m,
+            ];
+        };
         $limit = self::limit($platform);
         $firstLine = trim(strtok(ltrim($body), "\n") ?: '');
 
@@ -102,19 +169,18 @@ class Platforms
                     foreach ($parts as $i => $p) {
                         $n = self::xLength($p);
                         if ($n > $limit) {
-                            $hard("Post ".($i + 1)." is {$n} characters; the limit is {$limit}.", $i);
+                            $hard('Post ' . ($i + 1) . " is {$n} characters; the limit is {$limit}.", $i);
                         } elseif (trim($p) === '') {
-                            $warn('Post '.($i + 1).' is empty.', $i);
+                            $warn('Post ' . ($i + 1) . ' is empty.', $i);
                         }
                     }
                 } elseif (($n = self::xLength($body)) > $limit) {
                     $hard("{$n} characters; the limit is {$limit}. Turn it into a thread, or switch on X Premium in Settings if you have it.");
                 }
                 break;
-
             case 'linkedin':
                 if (mb_strlen($body) > $limit) {
-                    $hard(mb_strlen($body)." characters; LinkedIn allows {$limit}.");
+                    $hard(mb_strlen($body) . " characters; LinkedIn allows {$limit}.");
                 }
                 if (mb_strlen($firstLine) > 140) {
                     $warn('The first line runs past about 140 characters, so on phones the hook is cut by “see more”. Make line one short.');
@@ -123,10 +189,9 @@ class Platforms
                     $warn('There’s a link in the post. Creators commonly report less reach for posts with links; many put it in the first comment instead.');
                 }
                 break;
-
             case 'instagram':
                 if (mb_strlen($body) > $limit) {
-                    $hard(mb_strlen($body)." characters; Instagram captions allow {$limit}.");
+                    $hard(mb_strlen($body) . " characters; Instagram captions allow {$limit}.");
                 }
                 $tags = self::hashtags($body);
                 if ($tags > 30) {
@@ -138,7 +203,6 @@ class Platforms
                     $warn('The first line runs past about 125 characters, where the feed cuts to “more”. Lead with the hook.');
                 }
                 break;
-
             case 'threads':
                 $posts = $format === 'thread' ? $parts : [$body];
                 if ($format === 'thread' && count($parts) < 2) {
@@ -146,17 +210,16 @@ class Platforms
                 }
                 foreach ($posts as $i => $p) {
                     if (($n = mb_strlen($p)) > $limit) {
-                        $hard(($format === 'thread' ? 'Post '.($i + 1).' is ' : '')."{$n} characters; Threads allows {$limit} per post.", $format === 'thread' ? $i : null);
+                        $hard(($format === 'thread' ? 'Post ' . ($i + 1) . ' is ' : '') . "{$n} characters; Threads allows {$limit} per post.", $format === 'thread' ? $i : null);
                     }
                 }
-                if (self::hashtags($body.' '.implode(' ', $parts)) > 1) {
+                if (self::hashtags($body . ' ' . implode(' ', $parts)) > 1) {
                     $warn('Threads uses one topic tag per post; extra hashtags don’t become tags.');
                 }
                 break;
-
             case 'tiktok':
                 if (mb_strlen($body) > $limit) {
-                    $hard(mb_strlen($body)." characters; TikTok captions allow {$limit}.");
+                    $hard(mb_strlen($body) . " characters; TikTok captions allow {$limit}.");
                 }
                 if (mb_strlen($firstLine) > 70) {
                     $warn('Only about the first line of a TikTok caption shows over the video. Put the hook in the first ~70 characters.');
@@ -168,20 +231,20 @@ class Platforms
         if ($label === 'Slides') {
             $max = self::MAX_SLIDES_BY_PLATFORM[$platform] ?? self::MAX_SLIDES;
             if (count($parts) > $max) {
-                $hard(count($parts)." slides; {$platform} carousels allow {$max}.");
+                $hard(count($parts) . " slides; {$platform} carousels allow {$max}.");
             } elseif (count($parts) < 2) {
                 $warn('A carousel needs at least 2 slides.');
             }
             foreach ($parts as $i => $p) {
                 if (str_word_count($p) > 45) {
-                    $warn('Slide '.($i + 1).' has '.str_word_count($p).' words. Slides read best under about 40.', $i);
+                    $warn('Slide ' . ($i + 1) . ' has ' . str_word_count($p) . ' words. Slides read best under about 40.', $i);
                 }
             }
         }
         if ($label === 'Beats') {
             $words = array_sum(array_map('str_word_count', $parts));
             if ($words > 450) {
-                $warn("The beats add up to {$words} words, about ".round($words / 150, 1).' minutes spoken. Shorts and Reels top out at 3 minutes; most good ones are under 60 seconds.');
+                $warn("The beats add up to {$words} words, about " . round($words / 150, 1) . ' minutes spoken. Shorts and Reels top out at 3 minutes; most good ones are under 60 seconds.');
             }
         }
 
@@ -189,7 +252,11 @@ class Platforms
         foreach (array_merge([$body], $parts) as $i => $text) {
             foreach (AiTellsLinter::lint($text) as $f) {
                 $part = $i === 0 ? null : $i - 1;
-                $out[] = ['severity' => $f['severity'], 'part' => $part, 'message' => "{$f['rule']}: “{$f['match']}”".($part !== null ? ' ('.strtolower($label ?? 'part').' '.($part + 1).')' : '')];
+                $out[] = [
+                    'severity' => $f['severity'],
+                    'part' => $part,
+                    'message' => "{$f['rule']}: “{$f['match']}”" . ($part !== null ? ' (' . strtolower($label ?? 'part') . ' ' . ($part + 1) . ')' : ''),
+                ];
             }
         }
 

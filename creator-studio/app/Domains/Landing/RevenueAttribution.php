@@ -23,15 +23,18 @@ class RevenueAttribution
         $renewals = Payment::where('kind', 'renewal')->whereIn('deal_id', $deals->pluck('id'))->selectRaw('deal_id, sum(amount) as total')->groupBy('deal_id')->pluck('total', 'deal_id');
         $money = fn (Collection $c) => [
             'leads' => $c->count(),
-            'pipeline' => round((float) $c->whereNotIn('stage', Deal::NOT_PIPELINE)->sum('rate'), 2),
-            'paid' => round((float) $c->where('payment_status', 'paid')->sum('rate') + (float) $c->sum(fn ($d) => $renewals[$d->id] ?? 0), 2),
+            'pipeline' => round((float)$c->whereNotIn('stage', Deal::NOT_PIPELINE)->sum('rate'), 2),
+            'paid' => round((float)$c->where('payment_status', 'paid')->sum('rate') + (float)$c->sum(fn ($d) => $renewals[$d->id] ?? 0), 2),
             'won' => $c->where('payment_status', 'paid')->count(),
         ];
 
-        $channels = $deals->groupBy('source')->map(fn ($c, $src) => ['source' => $src, 'label' => Attribution::label($src)] + $money($c))
+        $channels = $deals->groupBy('source')->map(fn ($c, $src) => [
+            'source' => $src,
+            'label' => Attribution::label($src),
+        ] + $money($c))
             ->sortByDesc(fn ($r) => [$r['paid'], $r['pipeline'], $r['leads']])->values();
 
-        $items = $deals->filter(fn ($d) => ! empty($d->attribution['item']))->groupBy(fn ($d) => $d->attribution['item'])
+        $items = $deals->filter(fn ($d) => !empty($d->attribution['item']))->groupBy(fn ($d) => $d->attribution['item'])
             ->map(fn ($c, $key) => self::describe($key) + $money($c))
             ->sortByDesc(fn ($r) => [$r['paid'], $r['pipeline'], $r['leads']])->values();
 
@@ -44,7 +47,9 @@ class RevenueAttribution
         ];
     }
 
-    /** A content key as something she recognises: the video title or the post's first line. */
+    /**
+     * A content key as something she recognises: the video title or the post's first line.
+     */
     public static function describe(string $key): array
     {
         [$type, $id] = array_pad(explode(':', $key, 2), 2, '');
@@ -53,11 +58,24 @@ class RevenueAttribution
                 ?? Script::where('youtube_url', 'like', "%{$id}%")->value('title')
                 ?? Outlier::where('video_id', $id)->value('title');
 
-            return ['key' => $key, 'type' => 'video', 'platform' => 'youtube', 'title' => $title ?: "YouTube video {$id}", 'url' => "https://youtu.be/{$id}", 'link' => null];
+            return [
+                'key' => $key,
+                'type' => 'video',
+                'platform' => 'youtube',
+                'title' => $title ?: "YouTube video {$id}",
+                'url' => "https://youtu.be/{$id}",
+                'link' => null,
+            ];
         }
-        $post = SocialPost::find((int) $id);
+        $post = SocialPost::find((int)$id);
 
-        return ['key' => $key, 'type' => 'post', 'platform' => $post?->platform, 'title' => $post ? mb_substr($post->title ?: str_replace("\n", ' ', (string) $post->body), 0, 90) : "Post #{$id}",
-            'url' => $post?->url, 'link' => $post ? "/posts/{$post->id}" : null];
+        return [
+            'key' => $key,
+            'type' => 'post',
+            'platform' => $post?->platform,
+            'title' => $post ? mb_substr($post->title ?: str_replace("\n", ' ', (string)$post->body), 0, 90) : "Post #{$id}",
+            'url' => $post?->url,
+            'link' => $post ? "/posts/{$post->id}" : null,
+        ];
     }
 }

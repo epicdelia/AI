@@ -36,7 +36,10 @@ class BenchmarkHarness
         ],
     ];
 
-    public function __construct(private Llm $llm) {}
+    public function __construct(
+        private Llm $llm
+    ) {
+    }
 
     /**
      * Run all benchmark scenarios for the given agent and persist reports.
@@ -54,7 +57,7 @@ class BenchmarkHarness
             $scores[] = $report->overall_score;
         }
 
-        $average = count($scores) ? (int) round(array_sum($scores) / count($scores)) : 0;
+        $average = count($scores) ? (int)round(array_sum($scores) / count($scores)) : 0;
 
         return [
             'overall_average' => $average,
@@ -70,11 +73,11 @@ class BenchmarkHarness
         $scenario = self::SCENARIOS[$scenarioKey] ?? self::SCENARIOS['breaking_trend'];
         $platform = $agent->platforms[0] ?? 'linkedin';
 
-        $system = "You are \"{$agent->name}\", the social media agent for ".Prompts::name().".\n"
-            .Prompts::profile()."\n\n".Prompts::voice()."\n\n".Prompts::writingRules()."\n\n"
-            ."Brand:\n".mb_substr($agent->brand, 0, 1000)."\n\n"
-            .'Audience: '.($agent->audience ?: 'Engineers and builders')."\n\n"
-            .'Format rule: '.($platform === 'x' ? 'Under 270 characters, punchy take.' : 'LinkedIn post, 150-250 words, line 1 is hook under 140 chars.');
+        $system = "You are \"{$agent->name}\", the social media agent for " . Prompts::name() . ".\n"
+            . Prompts::profile() . "\n\n" . Prompts::voice() . "\n\n" . Prompts::writingRules() . "\n\n"
+            . "Brand:\n" . mb_substr($agent->brand, 0, 1000) . "\n\n"
+            . 'Audience: ' . ($agent->audience ?: 'Engineers and builders') . "\n\n"
+            . 'Format rule: ' . ($platform === 'x' ? 'Under 270 characters, punchy take.' : 'LinkedIn post, 150-250 words, line 1 is hook under 140 chars.');
 
         $output = $this->llm->as('agent-eval')->creativity(0.7)->chat($system, $scenario['prompt']);
 
@@ -93,4 +96,3 @@ class BenchmarkHarness
         ]);
     }
 }
-

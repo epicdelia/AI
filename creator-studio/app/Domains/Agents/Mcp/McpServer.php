@@ -16,7 +16,10 @@ class McpServer
 {
     public const PROTOCOL_VERSION = '2024-11-05';
 
-    public function __construct(private ToolRegistry $tools) {}
+    public function __construct(
+        private ToolRegistry $tools
+    ) {
+    }
 
     /**
      * Handle incoming JSON-RPC 2.0 MCP request.
@@ -28,14 +31,16 @@ class McpServer
     {
         $id = $request['id'] ?? null;
         $method = $request['method'] ?? '';
-        $params = (array) ($request['params'] ?? []);
+        $params = (array)($request['params'] ?? []);
 
         try {
             $result = match ($method) {
                 'initialize' => $this->handleInitialize($params),
                 'tools/list' => $this->handleToolsList($params),
                 'tools/call' => $this->handleToolsCall($params),
-                'ping' => ['status' => 'pong'],
+                'ping' => [
+                    'status' => 'pong',
+                ],
                 default => throw new InvalidArgumentException("Method not found: {$method}", -32601),
             };
 
@@ -66,7 +71,9 @@ class McpServer
         return [
             'protocolVersion' => self::PROTOCOL_VERSION,
             'capabilities' => [
-                'tools' => ['listChanged' => false],
+                'tools' => [
+                    'listChanged' => false,
+                ],
                 'logging' => [],
             ],
             'serverInfo' => [
@@ -89,13 +96,15 @@ class McpServer
             ];
         }
 
-        return ['tools' => $tools];
+        return [
+            'tools' => $tools,
+        ];
     }
 
     private function handleToolsCall(array $params): array
     {
-        $name = (string) ($params['name'] ?? '');
-        $arguments = (array) ($params['arguments'] ?? []);
+        $name = (string)($params['name'] ?? '');
+        $arguments = (array)($params['arguments'] ?? []);
 
         if (empty($name)) {
             throw new InvalidArgumentException('Tool name is required.', -32602);
@@ -138,4 +147,3 @@ class McpServer
         return 'Check parameter types and required properties against tools/list JSON schema.';
     }
 }
-

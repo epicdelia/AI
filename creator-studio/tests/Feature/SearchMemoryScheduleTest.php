@@ -6,13 +6,11 @@ use App\Domains\Memory\Embeddings;
 use App\Domains\Memory\Memory;
 use App\Domains\Memory\MemoryChunk;
 use App\Domains\Search\WebSearch;
-use App\Domains\Toolkit\Models\Document;
 use App\Models\Channel;
 use App\Models\Idea;
 use App\Models\Note;
 use App\Models\Script;
 use App\Models\Setting;
-use App\Models\User;
 use App\Models\Week;
 use App\Services\Llm;
 use App\Services\YouTube;
@@ -21,7 +19,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-/** Web search + fact-check, Memory, and the scheduled studio jobs. */
+/**
+ * Web search + fact-check, Memory, and the scheduled studio jobs.
+ */
 class SearchMemoryScheduleTest extends TestCase
 {
     use RefreshDatabase;
@@ -31,7 +31,11 @@ class SearchMemoryScheduleTest extends TestCase
         parent::setUp();
         Setting::flush();
         Llm::$fake = fn () => 'ok';
-        $this->actingAs($this->admin(['name' => 'Delia', 'email' => 'd@example.com', 'password' => 'secret123']));
+        $this->actingAs($this->admin([
+            'name' => 'Delia',
+            'email' => 'd@example.com',
+            'password' => 'secret123',
+        ]));
     }
 
     protected function tearDown(): void
@@ -42,27 +46,24 @@ class SearchMemoryScheduleTest extends TestCase
         parent::tearDown();
     }
 
-    private function events(string $body): array
-    {
-        $out = [];
-        foreach (preg_split("/\n\n/", trim($body)) as $block) {
-            if (preg_match('/^event: (\w+)\ndata: (.*)$/s', trim($block), $m)) {
-                $out[] = [$m[1], $m[2]];
-            }
-        }
-
-        return $out;
-    }
-
     // ---- Web search ------------------------------------------------------------------
 
     public function test_serper_search_is_normalised_and_key_stays_server_side(): void
     {
         Setting::put('serper_api_key', 'serp-secret');
-        Http::fake(['google.serper.dev/*' => Http::response([
-            'answerBox' => ['answer' => '4.25%'],
-            'organic' => [['title' => 'BoE rate', 'link' => 'https://bank.example/rate', 'snippet' => 'Cut to 4.25%', 'date' => 'Oct 30, 2026']],
-        ])]);
+        Http::fake([
+            'google.serper.dev/*' => Http::response([
+                'answerBox' => [
+                    'answer' => '4.25%',
+                ],
+                'organic' => [[
+                    'title' => 'BoE rate',
+                    'link' => 'https://bank.example/rate',
+                    'snippet' => 'Cut to 4.25%',
+                    'date' => 'Oct 30, 2026',
+                ]],
+            ]),
+        ]);
 
         $r = app(WebSearch::class)->search('bank of england rate');
         $this->assertSame('serper', $r['provider']);
@@ -76,7 +77,16 @@ class SearchMemoryScheduleTest extends TestCase
     {
         Setting::put('search_provider', 'perplexity');
         Setting::put('perplexity_api_key', 'pplx');
-        Http::fake(['api.perplexity.ai/*' => Http::response(['choices' => [['message' => ['content' => 'It was cut.']]], 'citations' => ['https://news.example/a']])]);
+        Http::fake([
+            'api.perplexity.ai/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => 'It was cut.',
+                    ],
+                ]],
+                'citations' => ['https://news.example/a'],
+            ]),
+        ]);
 
         $r = app(WebSearch::class)->search('rate cut');
         $this->assertSame('perplexity', $r['provider']);
@@ -95,16 +105,31 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_fact_check_streams_progress_and_saves_report(): void
     {
-        $script = Script::create(['title' => 'Rates', 'body' => "## Claims list\n- The BoE cut rates to 4.25% in October 2026."]);
+        $script = Script::create([
+            'title' => 'Rates',
+            'body' => "## Claims list\n- The BoE cut rates to 4.25% in October 2026.",
+        ]);
         $this->postJson("/api/stream/scripts/{$script->id}/fact-check")->assertStatus(422); // no search configured
 
-        WebSearch::$fake = fn ($q) => ['results' => [['title' => 'BoE', 'link' => 'https://bank.example/rate', 'snippet' => '4.25%', 'date' => null]]];
+        WebSearch::$fake = fn ($q) => [
+            'results' => [[
+                'title' => 'BoE',
+                'link' => 'https://bank.example/rate',
+                'snippet' => '4.25%',
+                'date' => null,
+            ]],
+        ];
         $calls = 0;
         Llm::$fake = function ($system, $user) use (&$calls) {
             $calls++;
 
             return $calls === 1
-                ? json_encode(['claims' => [['claim' => 'The BoE cut rates to 4.25%', 'query' => 'BoE rate October 2026']]])
+                ? json_encode([
+                    'claims' => [[
+                        'claim' => 'The BoE cut rates to 4.25%',
+                        'query' => 'BoE rate October 2026',
+                    ]],
+                ])
                 : "### 1. The BoE cut rates to 4.25%\n**Verdict:** VERIFIED\n**Sources:** [BoE](https://bank.example/rate)";
         };
 
@@ -119,16 +144,32 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_chat_web_toggle_injects_results(): void
     {
-        WebSearch::$fake = fn ($q) => ['results' => [['title' => 'Trend', 'link' => 'https://t.example', 'snippet' => 'Hot now', 'date' => null]]];
+        WebSearch::$fake = fn ($q) => [
+            'results' => [[
+                'title' => 'Trend',
+                'link' => 'https://t.example',
+                'snippet' => 'Hot now',
+                'date' => null,
+            ]],
+        ];
         $seen = null;
-        Llm::$fake = function ($system) use (&$seen) { $seen = $system; return 'Answer'; };
+        Llm::$fake = function ($system) use (&$seen) {
+            $seen = $system;
+
+            return 'Answer';
+        };
         $cid = $this->postJson('/api/chats')->json('conversation.id');
 
-        $events = $this->events($this->postJson("/api/stream/chats/{$cid}/messages", ['content' => 'what is trending', 'web' => true])->streamedContent());
+        $events = $this->events($this->postJson("/api/stream/chats/{$cid}/messages", [
+            'content' => 'what is trending',
+            'web' => true,
+        ])->streamedContent());
         $this->assertContains(['status', '{"step":"searching"}'], $events);
         $this->assertStringContainsString('https://t.example', $seen);
 
-        $this->postJson("/api/stream/chats/{$cid}/messages", ['content' => 'no web please'])->streamedContent();
+        $this->postJson("/api/stream/chats/{$cid}/messages", [
+            'content' => 'no web please',
+        ])->streamedContent();
         $this->assertStringNotContainsString('Live web search results', $seen);
     }
 
@@ -148,14 +189,25 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_saving_indexes_automatically_and_keyword_search_finds_it(): void
     {
-        $this->postJson('/api/documents', ['title' => 'Sourdough for beginners', 'content' => 'My sourdough starter died twice before it worked. Feed it daily.'])->assertOk();
-        $script = Script::create(['title' => 'Budget apps', 'body' => 'I tested five budgeting apps for a month.']);
-        $script->update(['transcript' => 'Honestly the budgeting apps all nagged me.']);
-        Note::create(['polished' => "**Camera idea**\nTry the window light for talking heads.", 'style' => 'notes']);
+        $this->postJson('/api/documents', [
+            'title' => 'Sourdough for beginners',
+            'content' => 'My sourdough starter died twice before it worked. Feed it daily.',
+        ])->assertOk();
+        $script = Script::create([
+            'title' => 'Budget apps',
+            'body' => 'I tested five budgeting apps for a month.',
+        ]);
+        $script->update([
+            'transcript' => 'Honestly the budgeting apps all nagged me.',
+        ]);
+        Note::create([
+            'polished' => "**Camera idea**\nTry the window light for talking heads.",
+            'style' => 'notes',
+        ]);
 
         $this->assertGreaterThan(0, MemoryChunk::where('source_type', 'transcript')->count(), 'after-response job ran');
 
-        $res = $this->getJson('/api/memory/search?q='.urlencode('sourdough starter'))->assertOk()->json('results');
+        $res = $this->getJson('/api/memory/search?q=' . urlencode('sourdough starter'))->assertOk()->json('results');
         $this->assertSame('document', $res[0]['source_type']);
         $this->assertFalse($res[0]['semantic']);
         $this->assertStringContainsString('sourdough', strtolower($res[0]['excerpt']));
@@ -204,7 +256,17 @@ class SearchMemoryScheduleTest extends TestCase
         Setting::put('embedding_api_key', 'sk-oa');
         $this->assertSame('text-embedding-3-small', Embeddings::config()['model']);
 
-        Http::fake(['api.openai.com/v1/embeddings' => Http::response(['data' => [['index' => 1, 'embedding' => [0, 1]], ['index' => 0, 'embedding' => [1, 0]]]])]);
+        Http::fake([
+            'api.openai.com/v1/embeddings' => Http::response([
+                'data' => [[
+                    'index' => 1,
+                    'embedding' => [0, 1],
+                ], [
+                    'index' => 0,
+                    'embedding' => [1, 0],
+                ]],
+            ]),
+        ]);
         $v = app(Embeddings::class)->embed(['a', 'b']);
         $this->assertSame([[1, 0], [0, 1]], $v, 'reordered by index');
         Http::assertSent(fn ($r) => $r['input'] === ['a', 'b'] && $r->hasHeader('Authorization', 'Bearer sk-oa'));
@@ -212,8 +274,13 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_memory_status_and_reindex(): void
     {
-        Idea::create(['title' => 'Thrift flip challenge', 'premise' => 'Turn £20 of thrift finds into outfits']);
-        $this->postJson('/api/memory/reindex', ['fresh' => true])->assertOk()
+        Idea::create([
+            'title' => 'Thrift flip challenge',
+            'premise' => 'Turn £20 of thrift finds into outfits',
+        ]);
+        $this->postJson('/api/memory/reindex', [
+            'fresh' => true,
+        ])->assertOk()
             ->assertJsonPath('semantic', false)->assertJsonPath('sources.idea', 1);
     }
 
@@ -233,8 +300,12 @@ class SearchMemoryScheduleTest extends TestCase
         $this->artisan('studio:scan')->assertFailed(); // no channels yet
         $this->assertStringContainsString('Please add active competitor channels first.', Setting::get('last_error_scan'));
 
-        Channel::create(['handle' => 'someone']);
-        $this->app->instance(YouTube::class, tap(new YouTube, fn ($yt) => $yt->getter = fn () => ['items' => []]));
+        Channel::create([
+            'handle' => 'someone',
+        ]);
+        $this->app->instance(YouTube::class, tap(new YouTube(), fn ($yt) => $yt->getter = fn () => [
+            'items' => [],
+        ]));
         $this->artisan('studio:scan')->assertSuccessful()->expectsOutputToContain('Found 0 new breakout');
         $this->assertNotNull(Setting::get('last_run_scan'));
         $this->assertNull(Setting::get('last_error_scan'));
@@ -250,7 +321,23 @@ class SearchMemoryScheduleTest extends TestCase
 
     public function test_checkin_button_still_works_after_refactor(): void
     {
-        Week::create(['number' => 1, 'start_date' => '2026-10-19', 'due_date' => '2026-10-25']);
+        Week::create([
+            'number' => 1,
+            'start_date' => '2026-10-19',
+            'due_date' => '2026-10-25',
+        ]);
         $this->postJson('/api/goals/checkin')->assertStatus(400)->assertJsonPath('error', 'Add your channel handle or ID in Settings.');
+    }
+
+    private function events(string $body): array
+    {
+        $out = [];
+        foreach (preg_split("/\n\n/", trim($body)) as $block) {
+            if (preg_match('/^event: (\w+)\ndata: (.*)$/s', trim($block), $m)) {
+                $out[] = [$m[1], $m[2]];
+            }
+        }
+
+        return $out;
     }
 }

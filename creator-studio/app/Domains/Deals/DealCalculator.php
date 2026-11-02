@@ -3,7 +3,6 @@
 namespace App\Domains\Deals;
 
 use App\Domains\Landing\Audience;
-use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 
 class DealCalculator
@@ -15,7 +14,7 @@ class DealCalculator
      */
     public static function calculateRates(): array
     {
-        $ytAvg = (int) DB::table('video_stats')->where('age_days', '>=', 7)->avg('views');
+        $ytAvg = (int)DB::table('video_stats')->where('age_days', '>=', 7)->avg('views');
         $viewsBenchmark = max(5000, $ytAvg ?: 12500);
 
         $ytSubs = Audience::count('youtube');
@@ -25,12 +24,12 @@ class DealCalculator
         $xFollowers = Audience::count('x');
 
         // Pricing formula calibrated for Tech / Dev / AI niche (high B2B / SaaS purchasing power)
-        $ytIntegration = (int) round(($viewsBenchmark / 1000) * 45, -1); // $45 CPM
-        $ytDedicated = (int) round(($viewsBenchmark / 1000) * 95, -1);   // $95 CPM
-        $liPost = (int) round(max(800, ($liFollowers / 1000) * 35), -1); // Tech LinkedIn high value
-        $igReel = (int) round(max(450, ($igFollowers / 1000) * 25), -1);
-        $ttVideo = (int) round(max(400, ($ttFollowers / 1000) * 20), -1);
-        $xThread = (int) round(max(350, ($xFollowers / 1000) * 25), -1);
+        $ytIntegration = (int)round(($viewsBenchmark / 1000) * 45, -1); // $45 CPM
+        $ytDedicated = (int)round(($viewsBenchmark / 1000) * 95, -1);   // $95 CPM
+        $liPost = (int)round(max(800, ($liFollowers / 1000) * 35), -1); // Tech LinkedIn high value
+        $igReel = (int)round(max(450, ($igFollowers / 1000) * 25), -1);
+        $ttVideo = (int)round(max(400, ($ttFollowers / 1000) * 20), -1);
+        $xThread = (int)round(max(350, ($xFollowers / 1000) * 25), -1);
 
         $bundleItems = [
             'yt_integration' => $ytIntegration,
@@ -38,8 +37,8 @@ class DealCalculator
             'x_thread' => $xThread,
             'tt_video' => $ttVideo,
         ];
-        $bundleTotal = (int) array_sum($bundleItems);
-        $bundleDiscounted = (int) round($bundleTotal * 0.85, -1); // 15% discount for 4-platform package
+        $bundleTotal = (int)array_sum($bundleItems);
+        $bundleDiscounted = (int)round($bundleTotal * 0.85, -1); // 15% discount for 4-platform package
 
         return [
             'metrics' => [
@@ -108,16 +107,16 @@ class DealCalculator
                 ],
                 'b2b_dev_spotlight' => [
                     'name' => 'B2B Developer Spotlight (LinkedIn + X)',
-                    'price' => (int) round(($liPost + $xThread) * 0.9, -1),
+                    'price' => (int)round(($liPost + $xThread) * 0.9, -1),
                     'regular_price' => $liPost + $xThread,
-                    'savings' => ($liPost + $xThread) - (int) round(($liPost + $xThread) * 0.9, -1),
+                    'savings' => ($liPost + $xThread) - (int)round(($liPost + $xThread) * 0.9, -1),
                     'includes' => ['LinkedIn Post', 'X Thread'],
                 ],
                 'viral_shortform_combo' => [
                     'name' => 'Short-form Viral Combo (TikTok + Reel + YouTube Short)',
-                    'price' => (int) round(($ttVideo + $igReel + 450) * 0.85, -1),
+                    'price' => (int)round(($ttVideo + $igReel + 450) * 0.85, -1),
                     'regular_price' => $ttVideo + $igReel + 450,
-                    'savings' => ($ttVideo + $igReel + 450) - (int) round(($ttVideo + $igReel + 450) * 0.85, -1),
+                    'savings' => ($ttVideo + $igReel + 450) - (int)round(($ttVideo + $igReel + 450) * 0.85, -1),
                     'includes' => ['TikTok Video', 'Instagram Reel', 'YouTube Short'],
                 ],
             ],

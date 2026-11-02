@@ -9,17 +9,14 @@ class Channel extends Model
 {
     protected $fillable = ['handle', 'title', 'active', 'last_scanned_at', 'last_error'];
 
-    protected function casts(): array
-    {
-        return ['active' => 'boolean', 'last_scanned_at' => 'datetime'];
-    }
-
     public function outliers(): HasMany
     {
         return $this->hasMany(Outlier::class);
     }
 
-    /** Accepts "@handle", "handle", a UC... ID or a youtube.com URL and returns the bare handle or ID. */
+    /**
+     * Accepts "@handle", "handle", a UC... ID or a youtube.com URL and returns the bare handle or ID.
+     */
     public static function normalize(string $input): string
     {
         $input = trim($input);
@@ -29,5 +26,12 @@ class Channel extends Model
 
         return ltrim($input, '@');
     }
-}
 
+    protected function casts(): array
+    {
+        return [
+            'active' => 'boolean',
+            'last_scanned_at' => 'datetime',
+        ];
+    }
+}

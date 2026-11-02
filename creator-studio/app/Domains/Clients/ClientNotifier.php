@@ -26,29 +26,29 @@ class ClientNotifier
 
     public static function updated(Deal $deal): void
     {
-        if (! $deal->user_id || $deal->stage === 'prospect') {
+        if (!$deal->user_id || $deal->stage === 'prospect') {
             return;
         }
         // Linked just now (by her, or on email confirmation): start their timeline, no emails.
         if ($deal->wasChanged('user_id')) {
-            if (! DealEvent::where('deal_id', $deal->id)->exists()) {
+            if (!DealEvent::where('deal_id', $deal->id)->exists()) {
                 self::event($deal, 'requested', 'Request received');
             }
 
             return;
         }
         $title = ClientDeal::summary($deal)['title'];
-        $before = (new Deal)->setRawAttributes($deal->getRawOriginal());
+        $before = (new Deal())->setRawAttributes($deal->getRawOriginal());
         $was = ClientDeal::status($before);
         $now = ClientDeal::status($deal);
 
-        if ($deal->proposal && ! $before->proposal_at && $deal->proposal_at) {
+        if ($deal->proposal && !$before->proposal_at && $deal->proposal_at) {
             self::event($deal, 'proposal', 'Proposal sent');
             self::email($deal, "Your proposal is ready: {$title}", "Your proposal for \"{$title}\" is ready to read. You can accept it (and pay, if it applies) in your dashboard.");
         } elseif ($was['key'] !== $now['key']) {
             self::event($deal, $now['key'], $now['label']);
             $line = match ($now['key']) {
-                'invoiced' => "Your invoice for \"{$title}\" is ready.".(ClientDeal::canPay($deal) ? ' You can pay it online in your dashboard.' : ''),
+                'invoiced' => "Your invoice for \"{$title}\" is ready." . (ClientDeal::canPay($deal) ? ' You can pay it online in your dashboard.' : ''),
                 'in_review' => "\"{$title}\" is ready for your review. Approve it or ask for changes in your dashboard.",
                 'paid' => "Payment received for \"{$title}\". Thank you!",
                 'closed' => "\"{$title}\" has been closed.",
@@ -69,36 +69,49 @@ class ClientNotifier
 
     public static function event(Deal $deal, string $kind, string $label): void
     {
-        DealEvent::create(['deal_id' => $deal->id, 'kind' => $kind, 'label' => mb_substr($label, 0, 250)]);
+        DealEvent::create([
+            'deal_id' => $deal->id,
+            'kind' => $kind,
+            'label' => mb_substr($label, 0, 250),
+        ]);
     }
 
-    /** Email the client (and teammates) about a request, unless they turned emails off. */
+    /**
+     * Email the client (and teammates) about a request, unless they turned emails off.
+     */
     public static function email(Deal $deal, string $subject, string $line): void
     {
         rescue(fn () => ClientWebhookDispatcher::dispatch($deal, 'update', $subject, $line), null, false);
 
         foreach (self::recipients($deal) as $user) {
-            AuthController::mail($user->email, $subject,
-                "Hi {$user->name},\n\n{$line}\n\n".url('/requests/'.$deal->id)."\n\n— ".Prompts::name()."\n\n(Turn these emails off in Account & security.)");
+            AuthController::mail(
+                $user->email,
+                $subject,
+                "Hi {$user->name},\n\n{$line}\n\n" . url('/requests/' . $deal->id) . "\n\n— " . Prompts::name() . "\n\n(Turn these emails off in Account & security.)"
+            );
         }
     }
 
-    /** Deliverables that just got a link or the status "delivered". */
+    /**
+     * Deliverables that just got a link or the status "delivered".
+     */
     private static function newDeliveries(array $old, array $new): array
     {
-        $done = fn ($d) => is_array($d) && (! empty($d['url']) || strtolower((string) ($d['status'] ?? '')) === 'delivered');
-        $key = fn ($d) => strtolower((string) ($d['format'] ?? $d['service'] ?? ''));
+        $done = fn ($d) => is_array($d) && (!empty($d['url']) || strtolower((string)($d['status'] ?? '')) === 'delivered');
+        $key = fn ($d) => strtolower((string)($d['format'] ?? $d['service'] ?? ''));
         $before = collect($old)->filter($done)->map($key)->all();
 
-        return collect($new)->filter(fn ($d) => $done($d) && ($d['platform'] ?? null) !== 'meeting' && ! in_array($key($d), $before, true))
-            ->map(fn ($d) => (string) ($d['format'] ?? $d['service'] ?? 'Deliverable'))->values()->all();
+        return collect($new)->filter(fn ($d) => $done($d) && ($d['platform'] ?? null) !== 'meeting' && !in_array($key($d), $before, true))
+            ->map(fn ($d) => (string)($d['format'] ?? $d['service'] ?? 'Deliverable'))->values()->all();
     }
 
-    /** The client and their teammates who want emails. */
+    /**
+     * The client and their teammates who want emails.
+     */
     private static function recipients(Deal $deal): array
     {
         $owner = User::find($deal->user_id);
-        if (! $owner) {
+        if (!$owner) {
             return [];
         }
 

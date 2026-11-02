@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Domains\Agents\Engagement\LeadTriageAgent;
-use App\Domains\Agents\Harness\ToolRegistry;
 use App\Domains\Agents\Mcp\McpServer;
 use App\Domains\Agents\Models\SocialAgent;
 use App\Domains\Agents\Outliers\CompetitorReverseEngineer;
@@ -61,7 +60,10 @@ class AdvancedAgenticFeaturesTest extends TestCase
 
     public function test_competitor_reverse_engineer_deconstructs_outlier_into_blue_ocean_angles(): void
     {
-        $channel = Channel::create(['title' => 'ByteByteGo', 'handle' => '@bytebytego']);
+        $channel = Channel::create([
+            'title' => 'ByteByteGo',
+            'handle' => '@bytebytego',
+        ]);
         $outlier = Outlier::create([
             'channel_id' => $channel->id,
             'video_id' => 'outlier_bbg_1',
@@ -127,7 +129,9 @@ class AdvancedAgenticFeaturesTest extends TestCase
         };
 
         $engineer = app(CompetitorReverseEngineer::class);
-        $result = $engineer->deconstruct($this->agent, ['outlier_id' => $outlier->id]);
+        $result = $engineer->deconstruct($this->agent, [
+            'outlier_id' => $outlier->id,
+        ]);
 
         $this->assertArrayHasKey('blue_ocean_angles', $result);
         $this->assertCount(3, $result['blue_ocean_angles']);
@@ -364,24 +368,67 @@ class AdvancedAgenticFeaturesTest extends TestCase
         Llm::$fake = function (string $system) {
             if (str_contains($system, 'Head of YouTube Packaging')) {
                 return json_encode([
-                    'variants' => [['title' => 'Bandit Title Test', 'archetype' => 'Provocative', 'char_count' => 18, 'predicted_ctr_score' => 95, 'browse_affinity' => 'High', 'search_affinity' => 'High', 'thumbnail' => ['focal_subject' => 'Thumb', 'text_overlay' => 'WOW', 'color_palette' => 'Dark']]],
-                    'bandit_winner' => ['title' => 'Bandit Title Test', 'score' => 95, 'strategic_rationale' => 'High CTR'],
+                    'variants' => [[
+                        'title' => 'Bandit Title Test',
+                        'archetype' => 'Provocative',
+                        'char_count' => 18,
+                        'predicted_ctr_score' => 95,
+                        'browse_affinity' => 'High',
+                        'search_affinity' => 'High',
+                        'thumbnail' => [
+                            'focal_subject' => 'Thumb',
+                            'text_overlay' => 'WOW',
+                            'color_palette' => 'Dark',
+                        ],
+                    ]],
+                    'bandit_winner' => [
+                        'title' => 'Bandit Title Test',
+                        'score' => 95,
+                        'strategic_rationale' => 'High CTR',
+                    ],
                 ]);
             }
             if (str_contains($system, 'Outlier Reverse-Engineer')) {
                 return json_encode([
-                    'outlier_summary' => ['title' => 'Outlier', 'competitor' => 'Comp', 'outlier_multiplier' => '4x', 'core_topic' => 'Topic'],
-                    'psychological_triggers' => ['primary_trigger' => 'Curiosity', 'tension_mechanism' => 'Tension', 'audience_friction' => 'Friction'],
+                    'outlier_summary' => [
+                        'title' => 'Outlier',
+                        'competitor' => 'Comp',
+                        'outlier_multiplier' => '4x',
+                        'core_topic' => 'Topic',
+                    ],
+                    'psychological_triggers' => [
+                        'primary_trigger' => 'Curiosity',
+                        'tension_mechanism' => 'Tension',
+                        'audience_friction' => 'Friction',
+                    ],
                     'audience_demand_gap' => 'Gap',
-                    'blue_ocean_angles' => [['angle_name' => 'Angle', 'hook_line' => 'Hook', 'thesis' => 'Thesis', 'why_it_stands_out' => 'Standout', 'predicted_multiplier' => '3x', 'suggested_format' => 'YT']],
-                    'actionable_concept' => ['title' => 'Concept', 'elevator_pitch' => 'Pitch', 'key_talking_points' => ['Pt 1']],
+                    'blue_ocean_angles' => [[
+                        'angle_name' => 'Angle',
+                        'hook_line' => 'Hook',
+                        'thesis' => 'Thesis',
+                        'why_it_stands_out' => 'Standout',
+                        'predicted_multiplier' => '3x',
+                        'suggested_format' => 'YT',
+                    ]],
+                    'actionable_concept' => [
+                        'title' => 'Concept',
+                        'elevator_pitch' => 'Pitch',
+                        'key_talking_points' => ['Pt 1'],
+                    ],
                 ]);
             }
-            return json_encode(['result' => 'ok']);
+
+            return json_encode([
+                'result' => 'ok',
+            ]);
         };
 
         $server = app(McpServer::class);
-        $listRes = $server->handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list']);
+        $listRes = $server->handle([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/list',
+        ]);
         $toolNames = collect($listRes['result']['tools'])->pluck('name')->all();
 
         $this->assertContains('reverse_engineer_outlier', $toolNames);
@@ -397,11 +444,12 @@ class AdvancedAgenticFeaturesTest extends TestCase
             'method' => 'tools/call',
             'params' => [
                 'name' => 'optimize_bandit_titles',
-                'arguments' => ['topic' => 'Building Event Streams'],
+                'arguments' => [
+                    'topic' => 'Building Event Streams',
+                ],
             ],
         ]);
         $this->assertFalse($callRes['result']['isError']);
         $this->assertStringContainsString('Bandit Title Test', $callRes['result']['content'][0]['text']);
     }
 }
-

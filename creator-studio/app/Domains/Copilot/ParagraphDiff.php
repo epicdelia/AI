@@ -9,7 +9,9 @@ namespace App\Domains\Copilot;
  */
 class ParagraphDiff
 {
-    /** @return array<int, string> */
+    /**
+     * @return array<int, string>
+     */
     public static function split(string $text): array
     {
         $parts = preg_split('/\R\s*\R/u', trim(str_replace("\r\n", "\n", $text))) ?: [];
@@ -54,12 +56,19 @@ class ParagraphDiff
                 if ($last !== null && $hunks[$last]['type'] === 'same') {
                     $hunks[$last]['before'][] = $a[$i];
                 } else {
-                    $hunks[] = ['type' => 'same', 'before' => [$a[$i]]];
+                    $hunks[] = [
+                        'type' => 'same',
+                        'before' => [$a[$i]],
+                    ];
                 }
                 $i++;
                 $j++;
             } else {
-                $change ??= ['type' => 'change', 'before' => [], 'after' => []];
+                $change ??= [
+                    'type' => 'change',
+                    'before' => [],
+                    'after' => [],
+                ];
                 if ($j < $m && ($i >= $n || $l[$i][$j + 1] >= $l[$i + 1][$j])) {
                     $change['after'][] = $b[$j++];
                 } else {
@@ -72,16 +81,24 @@ class ParagraphDiff
         return $hunks;
     }
 
-    /** Only the changed hunks, for the panel's per-passage review. */
+    /**
+     * Only the changed hunks, for the panel's per-passage review.
+     */
     public static function changes(string $before, string $after): array
     {
         return array_values(array_map(
-            fn ($h) => ['index' => $h['index'], 'before' => implode("\n\n", $h['before']), 'after' => implode("\n\n", $h['after'])],
+            fn ($h) => [
+                'index' => $h['index'],
+                'before' => implode("\n\n", $h['before']),
+                'after' => implode("\n\n", $h['after']),
+            ],
             array_filter(self::hunks($before, $after), fn ($h) => $h['type'] === 'change'),
         ));
     }
 
-    /** Rebuild the text keeping the original paragraphs except for the accepted change hunks. */
+    /**
+     * Rebuild the text keeping the original paragraphs except for the accepted change hunks.
+     */
     public static function merge(string $before, string $after, array $accepted): string
     {
         $accepted = array_map('intval', $accepted);

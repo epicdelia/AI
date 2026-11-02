@@ -16,23 +16,6 @@ class Script extends Model
         'is_ai_assisted', 'ai_model_name', 'human_reviewed_at', 'editorial_notes',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'published_on' => 'date',
-            'fact_checked_at' => 'datetime',
-            'outline' => 'array',
-            'is_ai_assisted' => 'boolean',
-            'human_reviewed_at' => 'datetime',
-        ];
-    }
-
-    protected static function booted(): void
-    {
-        // Every path that rewrites the body (autosave, AI, Copilot, restore) keeps the old text first.
-        static::updating(fn (self $script) => ScriptVersion::beforeChange($script));
-    }
-
     public function idea(): BelongsTo
     {
         return $this->belongsTo(Idea::class);
@@ -50,13 +33,31 @@ class Script extends Model
 
     public function wordCount(): int
     {
-        return str_word_count(strip_tags((string) $this->body));
+        return str_word_count(strip_tags((string)$this->body));
     }
 
-    /** About 150 spoken words per minute. */
+    /**
+     * About 150 spoken words per minute.
+     */
     public function minutes(): float
     {
         return round($this->wordCount() / 150, 1);
     }
-}
 
+    protected function casts(): array
+    {
+        return [
+            'published_on' => 'date',
+            'fact_checked_at' => 'datetime',
+            'outline' => 'array',
+            'is_ai_assisted' => 'boolean',
+            'human_reviewed_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        // Every path that rewrites the body (autosave, AI, Copilot, restore) keeps the old text first.
+        static::updating(fn (self $script) => ScriptVersion::beforeChange($script));
+    }
+}

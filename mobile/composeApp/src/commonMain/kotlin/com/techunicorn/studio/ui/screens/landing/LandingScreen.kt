@@ -51,15 +51,6 @@ fun LandingScreen(
     var bookingConfirmed by remember { mutableStateOf(false) }
     var activeVideoModal by remember { mutableStateOf<HeroMosaicVideo?>(null) }
 
-    // Estimator state
-    var selectedProjectType by remember { mutableStateOf(0) } // 0: MVP ($12,500), 1: AI Agent Pipeline ($8,500), 2: Backend Architecture ($9,500), 3: Advisory ($3,500)
-    var addStripeBilling by remember { mutableStateOf(true) } // +$1,200
-    var addMobileCompanion by remember { mutableStateOf(false) } // +$4,500
-    var addVectorRag by remember { mutableStateOf(true) } // +$2,000
-
-    // Pricing deposit split toggle
-    var isDepositView by remember { mutableStateOf(false) }
-
     // FAQ filter
     var selectedFaqCategory by remember { mutableStateOf("all") }
 
@@ -184,7 +175,7 @@ fun LandingScreen(
                 },
                 onOpenSocial = { /* Social deep-link */ },
                 onNavigateSection = { section ->
-                    if (section == "pricing") isDepositView = false
+                    // Navigate to section
                 }
             )
         }
@@ -202,7 +193,7 @@ fun LandingScreen(
                     // Open LinkedIn / Story
                 },
                 onFactClick = { factKey ->
-                    if (factKey == "countries") isDepositView = false
+                    // Fact click
                 }
             )
         }
@@ -214,6 +205,87 @@ fun LandingScreen(
             LandingServicesSection(
                 services = services,
                 onBookService = { serviceName ->
+                    selectedServiceForBooking = serviceName
+                    showBookingDialog = true
+                }
+            )
+        }
+
+        // ==========================================
+        // 5. CONTENT & SOCIAL CHANNELS (<section class="landing-section landing-yt-section" id="youtube">)
+        // ==========================================
+        item {
+            LandingSocialChannelsSection(
+                onPlayContent = { item ->
+                    activeVideoModal = HeroMosaicVideo(
+                        id = item.id,
+                        title = item.title,
+                        views = item.views,
+                        duration = item.durationOrMetric
+                    )
+                },
+                onVisitChannel = { /* Visit external platform channel */ }
+            )
+        }
+
+        // ==========================================
+        // 6. HOW IT WORKS / PROCESS (<section class="process" id="process">)
+        // ==========================================
+        item {
+            LandingProcessSection(
+                onBookIntroCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
+                }
+            )
+        }
+
+        // ==========================================
+        // 7. COMMITMENTS & GUARANTEES (<section class="landing-section tinted" id="guarantees">)
+        // ==========================================
+        item {
+            LandingGuaranteesSection(
+                onBookIntroCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
+                }
+            )
+        }
+
+        // ==========================================
+        // 8. ENGINEERING ECOSYSTEM (<section class="landing-section" id="stack">)
+        // ==========================================
+        item {
+            LandingStackSection(
+                onReviewStack = {
+                    selectedServiceForBooking = "Technical Consulting"
+                    showBookingDialog = true
+                }
+            )
+        }
+
+        // ==========================================
+        // 9. WHY DELIA LAZARESCU (<section class="landing-section" id="why-delia">)
+        // ==========================================
+        item {
+            LandingCompareSection(
+                onBookIntroCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
+                }
+            )
+        }
+
+        // ==========================================
+        // 10. PACKAGES & PRICING (<section class="pricing" id="pricing">)
+        // ==========================================
+        item {
+            LandingPricingSection(
+                onSelectPlan = { planId, planName, priceStr ->
+                    selectedServiceForBooking = "$planName ($priceStr)"
+                    showBookingDialog = true
+                },
+                onBookIntroCall = { serviceName ->
                     selectedServiceForBooking = serviceName
                     showBookingDialog = true
                 }
@@ -324,278 +396,21 @@ fun LandingScreen(
             }
         }
 
-        // ==========================================
-        // 7. INTERACTIVE PROJECT ESTIMATOR
-        // ==========================================
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    Text("04: INSTANT ESTIMATOR", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Interactive Project Scope Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Configure your build scope and see estimated investment and delivery timeline instantly.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    Spacer(Modifier.height(16.dp))
-                    Text("STEP 1: SELECT CORE ENGAGEMENT", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    val projectTypes = listOf(
-                        "Sprint MVP ($12,500 · 3 wks)",
-                        "AI Agent Pipeline ($8,500 · 2 wks)",
-                        "Backend Architecture ($9,500 · 2 wks)",
-                        "AI Advisory ($3,500 / mo)"
-                    )
-                    val basePrices = listOf(12500, 8500, 9500, 3500)
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        projectTypes.forEachIndexed { index, title ->
-                            val isSelected = selectedProjectType == index
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { selectedProjectType = index },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelected) StudioCoral.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
-                                ),
-                                border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(StudioCoral, StudioCoral))) else null
-                            ) {
-                                Row(
-                                    Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(selected = isSelected, onClick = { selectedProjectType = index })
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(title, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                    Text("STEP 2: OPTIONAL ADD-ONS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Stripe Webhook Billing (+$1,200)", fontSize = 12.sp)
-                        Switch(checked = addStripeBilling, onCheckedChange = { addStripeBilling = it })
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Mobile App Companion (+$4,500)", fontSize = 12.sp)
-                        Switch(checked = addMobileCompanion, onCheckedChange = { addMobileCompanion = it })
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Vector DB RAG Search (+$2,000)", fontSize = 12.sp)
-                        Switch(checked = addVectorRag, onCheckedChange = { addVectorRag = it })
-                    }
-
-                    // Calculation
-                    val totalEstimate = basePrices[selectedProjectType] +
-                            (if (addStripeBilling) 1200 else 0) +
-                            (if (addMobileCompanion) 4500 else 0) +
-                            (if (addVectorRag) 2000 else 0)
-
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("ESTIMATED INVESTMENT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$$totalEstimate", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = StudioCoral)
-                        }
-                        Button(
-                            onClick = {
-                                selectedServiceForBooking = "${projectTypes[selectedProjectType]} (Total: $$totalEstimate)"
-                                showBookingDialog = true
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = StudioCoral),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Request Review", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
 
         // ==========================================
-        // 8. PACKAGES & TRANSPARENT PRICING
+        // 11. SPEAKING & STAGE (<section class="speaking" id="speaking">) + FINAL CTA
         // ==========================================
         item {
-            Column {
-                Text("05: TRANSPARENT PRICING", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                Spacer(Modifier.height(4.dp))
-                Text("Simple Packages, Zero Upsells", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text("Transparent pricing models with fixed deliverables and 100% IP ownership.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                Spacer(Modifier.height(12.dp))
-                // Deposit Toggle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("Full Investment", fontSize = 12.sp, fontWeight = if (!isDepositView) FontWeight.Bold else FontWeight.Normal)
-                    Switch(checked = isDepositView, onCheckedChange = { isDepositView = it })
-                    Text("50% Split Deposit", fontSize = 12.sp, fontWeight = if (isDepositView) FontWeight.Bold else FontWeight.Normal, color = StudioEmerald)
+            LandingSpeakingSection(
+                onBookSpeaking = { topic ->
+                    selectedServiceForBooking = "Speaking & Workshops: $topic"
+                    showBookingDialog = true
+                },
+                onBookCall = {
+                    selectedServiceForBooking = "Sprint MVP Build"
+                    showBookingDialog = true
                 }
-            }
-        }
-
-        items(pricingPackages) { pkg ->
-            val displayPrice = if (isDepositView && pkg.key == "mvp") pkg.price / 2 else pkg.price
-            val priceSuffix = if (isDepositView && pkg.key == "mvp") "deposit upfront (50%)" else pkg.per
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = if (pkg.popular) CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(StudioCoral, StudioViolet))) else null
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    if (pkg.popular) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(StudioCoral)
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Text("MOST POPULAR", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                        }
-                        Spacer(Modifier.height(6.dp))
-                    }
-
-                    Text(pkg.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(4.dp))
-                    Text(pkg.desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    Spacer(Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("$${displayPrice.toInt()}", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = StudioCoral)
-                        Spacer(Modifier.width(6.dp))
-                        Text("/ $priceSuffix", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
-                    }
-
-                    Text(pkg.clarify, fontSize = 11.sp, color = StudioEmerald, fontWeight = FontWeight.SemiBold)
-
-                    Spacer(Modifier.height(14.dp))
-                    Text("INCLUDED IN THIS ENGAGEMENT:", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    for (benefit in pkg.benefits) {
-                        Row(Modifier.padding(vertical = 3.dp)) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = StudioEmerald, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(benefit, fontSize = 12.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Button(
-                        onClick = {
-                            selectedServiceForBooking = pkg.name
-                            showBookingDialog = true
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (pkg.popular) StudioCoral else MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            "Select ${pkg.name}",
-                            color = if (pkg.popular) Color.White else MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // 9. ON STAGE & KEYNOTES
-        // ==========================================
-        item {
-            Column {
-                Text("06: ON STAGE", color = StudioViolet, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                Spacer(Modifier.height(4.dp))
-                Text("Keynotes & Tech Summits", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        items(talks) { talk ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(talk.event, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = StudioCoral)
-                        Text(talk.reach, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = StudioEmerald)
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(talk.title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text(talk.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-
-        // ==========================================
-        // 10. GUARANTEES & POLICIES
-        // ==========================================
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("07: IRONCLAD GUARANTEES", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Complete Peace of Mind", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-
-                    Spacer(Modifier.height(12.dp))
-                    val guarantees = listOf(
-                        "100% IP & Code Ownership" to "Every line of code and commit belongs entirely to your entity. No proprietary frameworks, no licensing royalties.",
-                        "30-Day Post-Launch Bug Warranty" to "Any defect or regression discovered within 30 days of launch is patched immediately at zero cost.",
-                        "Direct Access to Delia" to "No account managers, junior proxies, or offshore handoffs. You collaborate directly with an ex-Google senior engineer.",
-                        "Weekly Loom Demos & Daily Commits" to "Zero black box surprises. You receive recorded Friday Loom walkthroughs and active GitHub progress."
-                    )
-
-                    guarantees.forEach { (title, desc) ->
-                        Row(Modifier.padding(vertical = 4.dp)) {
-                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = StudioEmerald, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text(desc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
+            )
         }
 
         // ==========================================

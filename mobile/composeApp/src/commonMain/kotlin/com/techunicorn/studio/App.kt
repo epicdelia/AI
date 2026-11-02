@@ -15,11 +15,17 @@ import com.techunicorn.studio.domain.models.*
 import com.techunicorn.studio.ui.components.CopilotDrawerContent
 import com.techunicorn.studio.ui.navigation.StudioDestination
 import com.techunicorn.studio.ui.screens.agents.AgentsScreen
+import com.techunicorn.studio.ui.screens.client.ClientPortalScreen
 import com.techunicorn.studio.ui.screens.dashboard.DashboardScreen
+import com.techunicorn.studio.ui.screens.deals.DealRoomScreen
 import com.techunicorn.studio.ui.screens.deals.DealsScreen
 import com.techunicorn.studio.ui.screens.flow.FlowScreen
+import com.techunicorn.studio.ui.screens.landing.LandingScreen
+import com.techunicorn.studio.ui.screens.love.LoveScreen
 import com.techunicorn.studio.ui.screens.scripts.YouTubeHubScreen
+import com.techunicorn.studio.ui.screens.snippets.SnippetsScreen
 import com.techunicorn.studio.ui.screens.social.SocialScreen
+import com.techunicorn.studio.ui.screens.toolkit.ToolkitScreen
 import com.techunicorn.studio.ui.theme.StudioCoral
 import com.techunicorn.studio.ui.theme.StudioTheme
 import com.techunicorn.studio.ui.theme.StudioViolet
@@ -31,8 +37,10 @@ fun App() {
     val api = remember { StudioApiClient() }
     val scope = rememberCoroutineScope()
 
+    var userRole by remember { mutableStateOf(UserRole.STUDIO) }
     var currentDestination by remember { mutableStateOf(StudioDestination.Dashboard) }
     var isCopilotOpen by remember { mutableStateOf(false) }
+    var isDealRoomActive by remember { mutableStateOf(false) }
 
     // Live App State loaded from API / Mock cache
     var stats by remember { mutableStateOf(StudioDashboardStats()) }
@@ -41,6 +49,14 @@ fun App() {
     var scripts by remember { mutableStateOf<List<Script>>(emptyList()) }
     var posts by remember { mutableStateOf<List<SocialPost>>(emptyList()) }
     var deals by remember { mutableStateOf<List<Deal>>(emptyList()) }
+    var landingServices by remember { mutableStateOf<List<LandingService>>(emptyList()) }
+    var talks by remember { mutableStateOf<List<Talk>>(emptyList()) }
+    var clientRequests by remember { mutableStateOf<List<ClientRequest>>(emptyList()) }
+    var brandVault by remember { mutableStateOf(BrandVault()) }
+    var dealRoomData by remember { mutableStateOf<DealRoomData?>(null) }
+    var loveLetters by remember { mutableStateOf<List<LoveLetter>>(emptyList()) }
+    var memoryJar by remember { mutableStateOf<List<MemoryJarPrompt>>(emptyList()) }
+    var toolkitTemplates by remember { mutableStateOf<List<ToolkitTemplate>>(emptyList()) }
 
     var copilotMessages by remember {
         mutableStateOf(
@@ -48,7 +64,7 @@ fun App() {
                 CopilotMessage(
                     id = "1",
                     sender = "assistant",
-                    text = "Welcome to Creator Studio. I'm monitoring your retention stats, YouTube breakouts, and brand deals. How can I assist your workflow today?",
+                    text = "Welcome to Creator Studio. I'm monitoring your retention stats, YouTube breakouts, client deliverables, and brand deals. How can I assist you today?",
                     timestamp = "Now"
                 )
             )
@@ -63,16 +79,59 @@ fun App() {
         scripts = api.getScripts()
         posts = api.getSocialPosts()
         deals = api.getDeals()
+        landingServices = api.getLandingServices()
+        talks = api.getTalks()
+        clientRequests = api.getClientRequests()
+        brandVault = api.getBrandVault()
+        dealRoomData = api.getDealRoom()
+        loveLetters = api.getLoveLetters()
+        memoryJar = api.getMemoryJarPrompts()
+        toolkitTemplates = api.getToolkitTemplates()
     }
 
     StudioTheme {
+        // If Deal Room is full-screen, render directly
+        if (isDealRoomActive && dealRoomData != null) {
+            DealRoomScreen(
+                initialData = dealRoomData!!,
+                onBack = { isDealRoomActive = false }
+            )
+            return@StudioTheme
+        }
+
+        // Available destinations based on active role
+        val availableDestinations = when (userRole) {
+            UserRole.PUBLIC -> listOf(
+                StudioDestination.Landing,
+                StudioDestination.ClientPortal,
+                StudioDestination.Dashboard
+            )
+            UserRole.CLIENT -> listOf(
+                StudioDestination.ClientPortal,
+                StudioDestination.Deals,
+                StudioDestination.Landing
+            )
+            UserRole.STUDIO -> listOf(
+                StudioDestination.Dashboard,
+                StudioDestination.Flow,
+                StudioDestination.YouTube,
+                StudioDestination.Social,
+                StudioDestination.Snippets,
+                StudioDestination.Deals,
+                StudioDestination.ClientPortal,
+                StudioDestination.Toolkit,
+                StudioDestination.Love,
+                StudioDestination.Agents
+            )
+        }
+
         Scaffold(
             bottomBar = {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
                 ) {
-                    StudioDestination.entries.forEach { destination ->
+                    availableDestinations.take(5).forEach { destination ->
                         val isSelected = currentDestination == destination
                         NavigationBarItem(
                             selected = isSelected,
@@ -94,7 +153,7 @@ fun App() {
                 }
             },
             floatingActionButton = {
-                if (!isCopilotOpen) {
+                if (!isCopilotOpen && userRole == UserRole.STUDIO) {
                     FloatingActionButton(
                         onClick = { isCopilotOpen = true },
                         containerColor = StudioViolet,
@@ -112,6 +171,17 @@ fun App() {
             ) {
                 // Active Screen
                 when (currentDestination) {
+                    StudioDestination.Landing -> LandingScreen(
+                        services = landingServices,
+                        talks = talks,
+                        onSwitchRole = { role ->
+                            userRole = role
+                            currentDestination = if (role == UserRole.STUDIO) StudioDestination.Dashboard else StudioDestination.ClientPortal
+                        },
+                        onBookService = {
+                            currentDestination = StudioDestination.ClientPortal
+                        }
+                    )
                     StudioDestination.Dashboard -> DashboardScreen(
                         stats = stats,
                         onNavigateToFlow = { currentDestination = StudioDestination.Flow },
@@ -140,7 +210,19 @@ fun App() {
                         onOpenCopilot = { isCopilotOpen = true }
                     )
                     StudioDestination.Social -> SocialScreen(posts = posts)
+                    StudioDestination.Snippets -> SnippetsScreen()
                     StudioDestination.Deals -> DealsScreen(deals = deals)
+                    StudioDestination.ClientPortal -> ClientPortalScreen(
+                        requests = clientRequests,
+                        brandVault = brandVault,
+                        onSwitchRole = { role ->
+                            userRole = role
+                            currentDestination = if (role == UserRole.STUDIO) StudioDestination.Dashboard else StudioDestination.Landing
+                        },
+                        onOpenDealRoom = { isDealRoomActive = true }
+                    )
+                    StudioDestination.Toolkit -> ToolkitScreen(templates = toolkitTemplates)
+                    StudioDestination.Love -> LoveScreen(letters = loveLetters, memoryJar = memoryJar)
                     StudioDestination.Agents -> AgentsScreen()
                 }
 
@@ -184,7 +266,6 @@ fun App() {
                                 }
                             },
                             onApplyAction = { action ->
-                                // Apply update to scripts
                                 if (scripts.isNotEmpty()) {
                                     val s = scripts.first()
                                     scripts = listOf(s.copy(hook = "I tested 48h of continuous AI vibecoding. Here is where the code broke.")) + scripts.drop(1)
@@ -199,4 +280,3 @@ fun App() {
         }
     }
 }
-

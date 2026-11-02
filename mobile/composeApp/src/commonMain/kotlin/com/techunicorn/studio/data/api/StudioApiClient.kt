@@ -7,7 +7,6 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
@@ -40,7 +39,6 @@ class StudioApiClient(
         return try {
             client.get("$baseUrl/dashboard").body()
         } catch (e: Exception) {
-            // High fidelity fallback when local backend is offline
             StudioDashboardStats()
         }
     }
@@ -235,7 +233,6 @@ Where AI struggled: edge cases in state reconciliation and rate limits.
 
     // Copilot Assistant & SSE Streaming
     suspend fun sendCopilotMessage(threadId: String, userPrompt: String): Flow<String> = flow {
-        // Simulates streaming tokens with markdown and action cards
         val tokens = listOf(
             "I've analyzed ", "your latest YouTube script ", "**Building a Production App in 48h**.\n\n",
             "Here are **2 retention optimizations**:\n",
@@ -263,5 +260,266 @@ $rawText
 - Link to Studio Deal Room deliverable.
         """.trimIndent()
     }
-}
 
+    // Public Landing Page Services
+    suspend fun getLandingServices(): List<LandingService> {
+        return listOf(
+            LandingService(
+                category = "MVP Engineering",
+                badge = "2 to 4 wks",
+                iconName = "zap",
+                title = "Vibecoded Apps",
+                desc = "AI-powered MVPs designed, built, and shipped in 2 to 4 weeks. From napkin sketch to live cloud deployment.",
+                deliverables = listOf(
+                    "Interactive prototype & design review in 5 days",
+                    "Full production codebase transferred to your GitHub",
+                    "Integrated Stripe billing, auth & automated backups"
+                ),
+                tags = listOf("React / Vite", "Python", "Stripe", "Docker"),
+                ctaService = "mvp_build"
+            ),
+            LandingService(
+                category = "Production AI",
+                badge = "Practical LLMs",
+                iconName = "sparkle",
+                title = "AI Integration",
+                desc = "Practical AI features for your existing product: shipped, not slide-decked. Autonomous agents that earn their keep.",
+                deliverables = listOf(
+                    "Custom LLM subagent pipelines & tool-routing",
+                    "Deterministic evaluation benchmarks & safety guardrails",
+                    "Streaming responses with low latency"
+                ),
+                tags = listOf("Claude Code", "Gemini API", "Agents", "Vector DB"),
+                ctaService = "consulting"
+            ),
+            LandingService(
+                category = "Ex-Google Advisory",
+                badge = "Weekly Syncs",
+                iconName = "code",
+                title = "Technical Consulting",
+                desc = "An ex-Google engineer in your corner for architecture reviews, build-vs-buy decisions, and scaling strategy.",
+                deliverables = listOf(
+                    "Unbiased infrastructure assessments",
+                    "Scalability and cloud security audits before launch",
+                    "Async code reviews and emergency escalation"
+                ),
+                tags = listOf("Architecture", "Cloud Security", "Scalability"),
+                ctaService = "consulting"
+            ),
+            LandingService(
+                category = "Audience & Growth",
+                badge = "472K+ Audience",
+                iconName = "play",
+                title = "Content Creation",
+                desc = "Short-form video, long-form YouTube deep-dives, and LinkedIn content that makes complex tech feel obvious.",
+                deliverables = listOf(
+                    "Full video scripting, hands-on demos & editing",
+                    "Multi-platform syndication (YouTube, IG, LinkedIn)",
+                    "Native integrations that build developer goodwill"
+                ),
+                tags = listOf("YouTube 4K", "Shorts", "LinkedIn Pulse"),
+                ctaService = "brand_deal"
+            ),
+            LandingService(
+                category = "Keynotes & Stages",
+                badge = "Global Stages",
+                iconName = "mic",
+                title = "Speaking & Workshops",
+                desc = "Keynotes and hands-on workshops on AI agents, building in public, and the future of remote engineering.",
+                deliverables = listOf(
+                    "In-person and virtual keynote talks tailored to your conference",
+                    "Live coding demos showing autonomous agents in real time",
+                    "Interactive Q&A and VIP speaker session engagement"
+                ),
+                tags = listOf("Nomad Cruise", "Tech Summits", "Live Coding"),
+                ctaService = "speaking"
+            ),
+            LandingService(
+                category = "Creator Partnerships",
+                badge = "Verified Fit",
+                iconName = "briefcase",
+                title = "Brand Partnerships",
+                desc = "Authentic integrations with an engaged audience of 472K+ developers, founders, and tech professionals.",
+                deliverables = listOf(
+                    "Dedicated feature video or 60-second integration",
+                    "Custom tracking links, social promotion & reporting",
+                    "Strict policy: I only endorse tools I genuinely use"
+                ),
+                tags = listOf("Dev Tools", "SaaS", "High Retention"),
+                ctaService = "brand_deal"
+            )
+        )
+    }
+
+    // Talks / On Stage
+    suspend fun getTalks(): List<Talk> {
+        return listOf(
+            Talk(
+                id = 1,
+                title = "Vibecoding Production Apps with AI Agents",
+                event = "Nomad Cruise Keynote",
+                year = "2026",
+                reach = "1,800+ Attendees",
+                description = "How autonomous coding agents changed software architecture and allowed 1-person teams to ship at scale."
+            ),
+            Talk(
+                id = 2,
+                title = "Ex-Google to 470K Audience: The Creator Engineer Playbook",
+                event = "Tech Global Summit",
+                year = "2025",
+                reach = "3,200+ Attendees",
+                description = "Bridging deep technical engineering with storytelling to build high-trust developer communities."
+            )
+        )
+    }
+
+    // Client Portal Requests
+    suspend fun getClientRequests(): List<ClientRequest> {
+        return listOf(
+            ClientRequest(
+                id = 201,
+                title = "AI Code Review Copilot MVP",
+                company = "ScaleWorks Inc.",
+                status = "review",
+                unreadCount = 2,
+                revisionsCount = 1,
+                amount = 12500.0,
+                paymentStatus = "paid",
+                deliverables = listOf("Core LLM pipeline", "GitHub webhook listener", "Stripe billing integration"),
+                annotations = listOf(
+                    DeliverableAnnotation(1, "02:15", "Sarah (CTO)", "Can we add support for GitLab PRs as well as GitHub?", false),
+                    DeliverableAnnotation(2, "04:30", "Delia", "Added GitLab OAuth in the latest build commit.", true)
+                )
+            ),
+            ClientRequest(
+                id = 202,
+                title = "Monthly AI Architecture Advisory",
+                company = "CloudFlow AI",
+                status = "in_progress",
+                unreadCount = 0,
+                revisionsCount = 0,
+                amount = 4500.0,
+                paymentStatus = "paid",
+                meetingAt = "Thursday at 16:00 CET",
+                deliverables = listOf("Weekly architecture sync", "Emergency Slack access", "PR review audit")
+            )
+        )
+    }
+
+    // Deal Room
+    suspend fun getDealRoom(token: String = "supabase-q4"): DealRoomData {
+        return DealRoomData(
+            token = token,
+            brandName = "Supabase",
+            amount = 12000.0,
+            selectedTier = "growth",
+            tiers = listOf(
+                DealTier(
+                    key = "essential",
+                    name = "Essential Integration",
+                    amount = 8500.0,
+                    summary = "Single 60-second video integration with permanent link placement.",
+                    features = listOf("60s Dedicated Segment", "Top comment link", "Performance report after 30 days")
+                ),
+                DealTier(
+                    key = "growth",
+                    name = "Growth Cascade",
+                    amount = 12000.0,
+                    summary = "60-second video + multi-platform syndication across X, LinkedIn, and newsletter.",
+                    features = listOf("60s Dedicated Segment", "Dedicated X thread (47K views est.)", "LinkedIn Carousel post", "Newsletter banner"),
+                    badge = "MOST POPULAR"
+                ),
+                DealTier(
+                    key = "enterprise",
+                    name = "Full Ecosystem Takeover",
+                    amount = 18500.0,
+                    summary = "Full dedicated 10-minute deep dive video + complete social campaign.",
+                    features = listOf("10-minute Dedicated Video", "Full GitHub open-source sample", "Keynote mention", "30-day exclusive category sponsorship")
+                )
+            ),
+            acceptedAt = null,
+            paidAt = null,
+            isDpaSigned = false
+        )
+    }
+
+    // Brand Vault
+    suspend fun getBrandVault(): BrandVault {
+        return BrandVault(
+            brandName = "Tech Unicorn",
+            primaryHex = "#FF5757",
+            secondaryHex = "#8B5CF6",
+            logoUrl = "https://thetechunicorn.com/logo.svg",
+            guidelinesUrl = "https://thetechunicorn.com/brand-kit",
+            viesVatNumber = "DE382910482",
+            isViesVerified = true
+        )
+    }
+
+    // Love Suite
+    suspend fun getLoveLetters(): List<LoveLetter> {
+        return listOf(
+            LoveLetter(
+                id = 1,
+                title = "To My Favorite Person in the World",
+                date = "Oct 28, 2026",
+                excerpt = "Just a little reminder of how proud I am of everything you build...",
+                body = "Just a reminder: you've built an entire company, audience, and system from scratch. Take a breath and enjoy how far you've come. I love you endlessly.",
+                isOpened = true
+            ),
+            LoveLetter(
+                id = 2,
+                title = "Open on a Stressful Launch Day 💌",
+                date = "Nov 02, 2026",
+                excerpt = "For when code breaks or deadlines feel too heavy...",
+                body = "Remember: No bug is worth losing sleep over. You're brilliant, you're capable, and I'm right here beside you through every launch.",
+                isOpened = false
+            )
+        )
+    }
+
+    // Memory Jar
+    suspend fun getMemoryJarPrompts(): List<MemoryJarPrompt> {
+        return listOf(
+            MemoryJarPrompt(
+                id = 1,
+                question = "What was our best moment from the Nomad Cruise?",
+                answer = "Watching the sunset over the Atlantic after delivering the vibecoding keynote.",
+                dateAnswered = "Sep 15, 2026"
+            ),
+            MemoryJarPrompt(
+                id = 2,
+                question = "What is a small thing that made you smile today?",
+                answer = null,
+                dateAnswered = null
+            )
+        )
+    }
+
+    // Creative Toolkit
+    suspend fun getToolkitTemplates(): List<ToolkitTemplate> {
+        return listOf(
+            ToolkitTemplate(
+                id = 1,
+                title = "Viral Technical Hook Generator",
+                category = "YouTube",
+                description = "Craft 5 tension-building opening hooks based on controversial tech trade-offs.",
+                promptTemplate = "Generate 5 high-retention video hooks for the following topic: {topic}. Avoid corporate jargon."
+            ),
+            ToolkitTemplate(
+                id = 2,
+                title = "X Thread Cascader",
+                category = "Social",
+                description = "Turn any script or technical note into an 8-tweet narrative thread.",
+                promptTemplate = "Repurpose this script into an 8-tweet thread with punchy single-line takeaways: {script}"
+            ),
+            ToolkitTemplate(
+                id = 3,
+                title = "Sponsor Value Proposal Pitch",
+                category = "Deals",
+                description = "Synthesize audience demographic fit and conversion metrics for inbound brands.",
+                promptTemplate = "Write a tailored sponsor pitch for {brand} matching our 472K software engineer audience."
+            )
+        )
+    }
+}

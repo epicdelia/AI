@@ -1,146 +1,193 @@
-# YouTube content pipeline
+# Tech Unicorn · Creator Studio & Autonomous Content Pipeline ✨
 
-```
- trending + breakout signals          you pick           AI pipeline                    humans
-┌──────────────────────────┐   ┌───────────────┐   ┌─────────────────────────┐   ┌──────────────────┐
-│ YouTube API outliers     │   │ 5 ideas/day   │   │ script → linter →       │   │ you film         │
-│ Sandcastles short-form   │──▶│ reply "2, 5"  │──▶│ 4 parallel reviewers →  │──▶│ editor (brief,   │
-│ your own outlier reels   │   │               │   │ merge → you read aloud  │   │ 2 rounds max)    │
-└──────────────────────────┘   └───────────────┘   └───────────┬─────────────┘   └──────────────────┘
-                                                               └──▶ Substack post (from real transcript)
-```
+[![Creator Studio CI/CD](https://github.com/Nexly-Corp/AI/actions/workflows/creator-studio.yml/badge.svg)](https://github.com/Nexly-Corp/AI/actions)
+[![Mobile CI/CD](https://github.com/Nexly-Corp/AI/actions/workflows/mobile.yml/badge.svg)](https://github.com/Nexly-Corp/AI/actions)
+[![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin_Multiplatform-Android_%7C_Desktop-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/docs/multiplatform.html)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-v1.7.0-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Laravel 13](https://img.shields.io/badge/Laravel-13.x-FF2D20.svg?logo=laravel&logoColor=white)](https://laravel.com/)
 
-| Stage | File | Automated? |
-|---|---|---|
-| 1. Find breakouts | `ideas/find_outliers.py`, `config/channels.json` | Yes (YouTube Data API, ~3 quota units/channel) |
-| 1. 5 ideas, every other day | `prompts/01_daily_ideas.md`, `ROUTINE.md` | Yes (scheduled Routine, delivered to Notion "YouTube Idea Briefs") |
-| 2. Script | `prompts/02_script.md` | Yes, on your go-ahead |
-| 3. Review | `review/ai_tells.py` + `prompts/03_review_panel.md` | Yes. The final read-aloud is you |
-| 4. Substack | `prompts/04_substack.md` | Yes, after filming |
-| 5. Editing | `editing/workflow.md`, `editing/edit_brief_template.md` | Process, not automation |
-| 6. Hiring | `hiring/hiring_plan.md` | Process |
-
-Example output: `ideas/2026-09-26.md`, built from real Sandcastles data. A full run through the pipeline is in `videos/2026-09-27_what-ai-replaced-at-google/`: the script (v2), the independent review that shaped it, and the filled-in edit brief.
-
-## Mentor and accountability
-
-`MENTOR.md` holds the contract: **1 long-form video a week for 12 weeks (Sep 28 to Dec 20)**, a baseline, and blunt scoring rules. The Notion "YouTube Scoreboard" has one row per week, and every Sunday a check-in routine scores the week using `ideas/channel_stats.py` (zero tokens) plus two Notion page reads.
-
-## Token budget
-
-Rough figures, **low confidence** until measured on real runs:
-
-| Step | How often | Where it's kept down |
-|---|---|---|
-| Finding breakouts | every other day | Python script, zero tokens. The model reads 10 compact lines. |
-| Idea brief | every other day | 2 Sandcastles calls, a mid-tier model, a 4-day window instead of reading history, writes to Notion but never reads it |
-| Script + review | only on greenlit ideas | linter first, one combined review call, 1,000-word voice excerpts |
-| Full 4-agent panel | sponsored / high-effort only | about 3 to 4 times the default review cost |
-| Video | never | the AI reads transcripts only, never frames |
-
-**Measured so far (Sep 27 demo run):** the combined review, run as a separate Sonnet agent, used **about 80k tokens**. That's about 3x the guess above, and most of it is fixed agent start-up overhead, not the script itself. It's still one call per greenlit video, not per day. The full 4-agent panel would multiply that overhead by 4, which is another reason to keep it for sponsored videos only.
-
-The brief is the only cost that repeats on a schedule, so its frequency is the biggest lever. Running it every other day halves it compared with daily.
-
-## Setup still needed
-
-1. ~~YouTube Data API key~~ done (environment variable `YOUTUBE_API_KEY`).
-2. **Competitors**: Theo and Alberta Tech are verified. Madeline Zhang's two channel IDs haven't been API-checked yet. Add 10 to 20 more channels.
-3. **Voice corpus**: transcripts in `voice/transcripts/`, then about 1,000 words in `voice/excerpts.md`. See `voice/README.md`.
-4. **Routines** ("YouTube idea brief" and "YouTube mentor check-in"): attach this repo plus the Sandcastles and Notion connectors in the claude.ai Routines UI.
-
-## Run
-
-```
-python -m unittest discover -s tests
-YOUTUBE_API_KEY=... python ideas/find_outliers.py --out ideas/outliers.jsonl
-python review/ai_tells.py path/to/draft.md
-```
-
-Stdlib only, no dependencies.
-
-## Videos don't go in this repo
-
-Git can't hold multi-GB footage. Raw footage and edits live in Google Drive (folder layout in `editing/workflow.md`). This repo holds only text: ideas, scripts, briefs.
+> [!NOTE]
+> **Built with ❤️ especially for Delia ([@Tech.Unicorn](https://youtube.com/@TechUnicorn))**
+> A personal YouTube studio, autonomous social growth engine, and client empire: find breakout video signals in your tech niche, turn raw thoughts into viral scripts, package uploads, and crush your weekly shipping streak — backed by an in-house AI developer on call 24/7.
 
 ---
 
-# Flow: speak messy, get polished
+## 🏗️ System Architecture
 
-Push-to-talk dictation: your mic streams to AssemblyAI Universal-Streaming (live
-raw transcript on the left). When you stop, the transcript goes through
-AssemblyAI's LLM Gateway, and clean Markdown appears on the right and is copied
-to your clipboard.
+```mermaid
+flowchart LR
+    subgraph Signals["1. Ingestion & Signals"]
+        A1["YouTube API Outliers (find_outliers.py)"]
+        A2["Competitor Breakout Feeds (≥3x Median)"]
+        A3["Flow Voice Dictation (AssemblyAI)"]
+    end
 
-## Run it
+    subgraph Studio["2. Creator Studio Core"]
+        B1["Idea Bank & Kanban (/ideas)"]
+        B2["Script Editor & AI Tells Linter (/scripts)"]
+        B3["Fullscreen Teleprompter (/prompter)"]
+        B4["Autonomous Agent Swarms (/agents)"]
+    end
+
+    subgraph Production["3. Multiplatform Distribution"]
+        C1["YouTube 4K Production & AB Title Tests"]
+        C2["Omnichannel Repurposer (LinkedIn, X, TikTok, IG)"]
+        C3["Code Card Studio (/snippets)"]
+    end
+
+    subgraph Business["4. Revenue & Deals CRM"]
+        D1["Client Portal & Retainers (/portal)"]
+        D2["Interactive Deal Room & Stripe Invoicing (/deal)"]
+        D3["Press Kit & Demographics (/mediakit)"]
+    end
+
+    Signals --> Studio
+    Studio --> Production
+    Production --> Business
+```
+
+---
+
+## 🚀 Quick Start for Delia (Run Everything Locally 💕)
+
+You can run both the **Web Creator Studio** and the **Native Mobile Companion App** on your computer with simple commands:
+
+### 1. Web Creator Studio (`localhost:8000`)
+
+> [!TIP]
+> Ensure you have PHP 8.3+ and Composer installed. The SQLite database is created automatically.
 
 ```bash
+cd creator-studio
+composer install
+cp .env.example .env        # First time only
+php artisan key:generate    # First time only
+touch database/database.sqlite
+php artisan migrate
+php artisan serve
+```
+
+👉 Open **http://localhost:8000** in Chrome. On your first visit, sign in as Studio Owner to activate full admin capabilities.
+
+---
+
+### 2. Native Mobile Companion App (`mobile/`)
+
+Run the mobile app natively on your laptop with zero emulator overhead via Compose Desktop:
+
+```bash
+cd mobile
+
+# On Windows PowerShell:
+.\gradlew.bat run
+
+# On macOS / Linux:
+./gradlew run
+```
+
+> [!IMPORTANT]
+> The app opens in an interactive mobile window sized to a flagship smartphone (420 × 880 dp) with complete end-to-end parity:
+> - **Tri-State Theme Engine**: Toggle Light / Dark / System with the Sun/Moon switch or `Ctrl+Shift+L`.
+> - **Omnibar (`Ctrl+K`)**: Instant search across scripts, ideas, deals, and action commands (`> new script`, `> new post`, `> toggle dark`).
+> - **Agentic Copilot (`Ctrl+I`)**: Persistent assistant drawer with streaming AI suggestions and action approvals.
+> - **For You Suite**: Direct access to sealed love letters, romantic countdowns, and memory jar prompts.
+
+---
+
+### 3. Flow Push-to-Talk Voice Dictation (`localhost:8000`)
+
+Ramble messy thoughts and instantly receive clean, structured Markdown on your clipboard:
+
+```bash
+# Setup Python virtual environment
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # then paste your key into .env
+cp .env.example .env        # Add your ASSEMBLYAI_API_KEY
 uvicorn app:app --port 8000
 ```
 
-Open http://localhost:8000 in Chrome, allow the mic, then **hold Space** (or
-click **Start Speaking**), talk, and let go.
+Hold **Space** (or click **Start Speaking**), talk freely, and release to receive polished text.
 
-## Put it online (free, on Render)
+---
 
-`render.yaml` deploys Flow to Render's free tier, so you get an `https://` URL
-(browsers only allow the mic on https or localhost).
+## 📱 Mobile & Web Feature Parity Matrix
 
-1. Go to https://dashboard.render.com/blueprints → **New Blueprint Instance** → pick this repo.
-2. When asked, paste your `ASSEMBLYAI_API_KEY`.
-3. Wait for the build (~2 min) and open the `https://flow-dictation-….onrender.com` URL.
+| Feature Module | Web Studio (`public/js/`) | Mobile App (`composeApp`) | Capabilities |
+| :--- | :---: | :---: | :--- |
+| **Omnibar Search (`Ctrl+K`)** | `palette.js` | `OmnibarDialog.kt` | Search scripts, ideas, deals; run prefix commands (`> new script`, `> add deal`) |
+| **Theme Engine** | `theme.js` | `Theme.kt` | Authentic palette (`#17131a` midnight plum dark, `#fdfaf8` light), `Ctrl+Shift+L` |
+| **Notifications** | `notifications.js` | `NotificationsSheet.kt` | Real-time alerts for booking inquiries, agent sign-offs, and scheduled posts |
+| **Copilot Drawer** | `copilot.js` | `CopilotDrawer.kt` | Agentic AI assistant with streaming advice and interactive action cards |
+| **Breakouts Radar** | `breakouts.js` | `YouTubeHubScreen.kt` | Flags videos beating channel medians by ≥3x multiplier |
+| **Ideas Kanban** | `ideas.js` | `YouTubeHubScreen.kt` | Inbox, greenlit, in-progress backlog with 1-tap script promotion |
+| **Script Teleprompter** | `prompter.js` | `YouTubeHubScreen.kt` | Auto-scrolling teleprompter with mirror mode and variable 0.5x–5.0x speed |
+| **Content Calendar** | `calendar.js` | `CalendarScreen.kt` | Multi-network schedule for YouTube, LinkedIn, X, TikTok, IG, Threads |
+| **Audience Analytics** | `analytics.js` | `AnalyticsScreen.kt` | 472K+ combined reach, platform velocity, best-time posting heatmaps |
+| **Unified Inbox** | `inbox.js` | `InboxScreen.kt` | Aggregated comments & DMs with 1-tap AI suggested responses |
+| **Code Card Studio** | `snippets.js` | `SnippetsScreen.kt` | Ray.so-style terminal graphics with Unicorn Neon, Cyberpunk, and Sunset themes |
+| **Deals CRM & Deal Room** | `deals.js`, `deal-room.js` | `DealRoomScreen.kt` | Pipeline tracker, deliverable tiers, cryptographic e-signature, Stripe payment |
+| **Producer AI Chat** | `chat.js` | `ProducerChatScreen.kt` | Conversational thinking partner for packaging, hooks, and strategy |
+| **Settings & Security** | `settings.js`, `account.js` | `SettingsScreen.kt`, `AccountScreen.kt` | API keys, connected accounts, 2FA TOTP QR setup, navigation customization |
+| **For You (Love Suite)** | `love.js` | `LoveScreen.kt` | Sealed & opened love letters, memory jar prompt logs, milestone countdowns |
 
-Anyone with the URL can use it on your AssemblyAI credit, so keep the link private. The free
-tier sleeps after 15 idle minutes, so the first load after a break takes about a minute.
-Open it once before you record.
+---
 
-## Dictate into any website (Chrome extension)
+## 📋 YouTube Content Pipeline & Mentor Accountability
 
-`extension/` is a Chrome extension that works like Wispr Flow inside the browser: click into any
-text box (Gmail, Slack, LinkedIn, ChatGPT, Docs…), **hold Option/Alt+Space**, speak, let go, and the
-polished text is typed where your cursor is. `Alt+Shift+D` toggles instead of hold.
+### The Mentor Contract (`MENTOR.md`)
 
-1. Chrome → `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → pick the `extension/` folder.
-2. In the Flow options page that opens: **Allow microphone**, set your Flow server URL
-   (default `https://flow-dictation.onrender.com`), pick a style, **Save**, then **Check setup**.
-
-It uses your Flow server for the token and the AI polish, so your AssemblyAI key stays on the server.
-If no text box is focused (or the site blocks typing), the text is copied so you can paste it. It can't
-type into native apps outside Chrome, or into Chrome's own pages (`chrome://`, the Web Store).
-
-Test: `pip install websockets playwright && python scripts/extension_check.py`
-
-## Choosing the LLM
-
-`LLM_MODEL` in `.env` picks the model (default `gpt-5-mini`). To see the models
-your account can use (for example, whether a Qwen model is offered):
-
-```bash
-curl -s https://llm-gateway.assemblyai.com/v1/models -H "authorization: $ASSEMBLYAI_API_KEY"
+```
+ 1 long-form video / week for 12 weeks
+ Baseline: median views of past 5 long-form videos
+ Evaluation: Blunt Sunday check-in verdict based on real retention & velocity
 ```
 
-For the demo, pick the fastest model on that list. The **AI polish** badge shows
-the real round-trip time, so you can compare models live.
+- **Scoreboard**: Tracked weekly in Notion and reflected in Creator Studio's Today Dashboard.
+- **Weekly Check-in**: Runs every Sunday using `ideas/channel_stats.py` (zero tokens) to verify uploads against baseline pace.
 
-## How it works
+<details>
+<summary><b>🔍 View Automated Review Pipeline Steps</b></summary>
 
-| Piece | Where |
-|---|---|
-| Mic → 16 kHz 16-bit PCM, 50 ms chunks | AudioWorklet in `static/index.html` |
-| Short-lived streaming token (API key stays on the server) | `GET /api/token` in `app.py` |
-| Live partial/final transcript | Browser ↔ `wss://streaming.assemblyai.com/v3/ws` |
-| Close the turn the moment you release Space | `ForceEndpoint` message, then `Terminate` |
-| Cleanup + Markdown formatting | `POST /api/polish` → LLM Gateway `/v1/chat/completions` |
+| Step | Script / Resource | Automation Level | Description |
+| :--- | :--- | :---: | :--- |
+| **1. Find Outliers** | `ideas/find_outliers.py` | Automated | Scrapes competitor channel IDs for statistical breakout outliers |
+| **2. Generate Briefs** | `prompts/01_daily_ideas.md` | Automated | 5 targeted ideas delivered to Notion on schedule |
+| **3. Draft Script** | `prompts/02_script.md` | Assisted | Generates structured sections: Hook, Core, Climax, CTA |
+| **4. AI Tell Linter** | `review/ai_tells.py` | Automated | Scans drafts for cadence clichés, pacing drop-offs, and filler words |
+| **5. 4-Agent Review** | `prompts/03_review_panel.md` | Automated | Retention, Devil's Advocate, Technical Rigor, and Viral Hook agents |
+| **6. Substack & Repurpose** | `prompts/04_substack.md` | Assisted | Distills filmed video transcript into newsletter & social carousels |
 
-The badges show measured times, not targets: **Final transcript** (release →
-final text), **AI polish** (LLM round trip) and **Stop → polished** (the whole wait).
+</details>
 
-## Tests
+---
+
+## 🌐 Chrome Extension (Dictate Everywhere)
+
+`extension/` lets you use Wispr Flow push-to-talk inside **any** web text area (Docs, Gmail, LinkedIn, ChatGPT):
+
+1. Navigate to `chrome://extensions` in Google Chrome.
+2. Enable **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `c:\AI-master\extension\` directory.
+4. Set your Flow server URL, click into any input field, and hold **Option / Alt + Space** to speak.
+
+---
+
+## 🧪 Verification & Automated Testing
+
+Run the comprehensive unit and integration test suites:
 
 ```bash
-pip install pytest ruff && ./scripts/check.sh          # backend, mocked HTTP
-pip install playwright && python scripts/e2e_check.py  # real browser, fake mic + fake AssemblyAI socket
+# Mobile Multiplatform & Compose Desktop verification
+cd mobile
+./gradlew compileKotlinDesktop
+./gradlew test
+./gradlew assembleDebug
+
+# Python Pipeline & AI Tells Linter tests
+cd ..
+python -m unittest discover -s tests
+python review/ai_tells.py tests/
 ```
+
+> [!TIP]
+> All GitHub Actions workflows (`.github/workflows/creator-studio.yml` and `mobile.yml`) run automated linting, multiplatform compilation, Android APK assembly, and release packaging on every commit.

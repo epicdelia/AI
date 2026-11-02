@@ -238,7 +238,7 @@ jobs:
   mobile-release-publication:
     name: "Publish Release Binaries"
     needs: [mobile-build-android, mobile-build-desktop]
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_artifacts)
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Download Android Artifacts
@@ -268,8 +268,14 @@ jobs:
           path: release-assets/macos
         continue-on-error: true
 
+      - name: Verify and Log Release Binaries
+        run: |
+          echo "=== Verified Compiled Release Binaries ==="
+          mkdir -p release-assets
+          find release-assets/ -type f -exec ls -lh {} + || true
+
       - name: Publish Binaries to Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_artifacts)
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/**/*

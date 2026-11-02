@@ -235,9 +235,11 @@ php artisan schedule:work
 Each job also runs by hand (`php artisan studio:scan`, `studio:feeds`, `studio:checkin`,
 `studio:memory`, `studio:prune`, `studio:backup`, `studio:stats`) or from Settings → Automation → Run.
 
-## Run it
+## Run it locally (Quick Start for Delia 💕)
 
-Requires PHP 8.3+ with `pdo_sqlite`, `mbstring`, `openssl`, `curl` (and `zip` for Word uploads), and Composer.
+Everything is set up so you can run your studio and mobile app locally with ease:
+
+### 1. Web Creator Studio (`http://localhost:8000`)
 
 ```sh
 cd creator-studio
@@ -249,11 +251,39 @@ php artisan migrate
 php artisan serve
 ```
 
-Open http://localhost:8000 and create your account (the first visit sets up the one and only user).
-Then go to **Settings** and add an AI key; YouTube and AssemblyAI keys unlock breakouts/check-ins and
-live dictation.
+1. Open **http://localhost:8000** in your browser.
+2. Sign in or set up your studio profile.
+3. Head to **Settings** to review your API keys and customize your studio appearance.
 
-Use `http://localhost` (or HTTPS): browsers only allow the microphone on secure origins.
+---
+
+### 2. Native Mobile Companion App (`mobile/`)
+
+You can launch the native mobile app directly on your laptop/PC as an interactive live desktop window without needing an Android emulator or phone connected!
+
+```sh
+cd mobile
+./gradlew run
+# Or on Windows PowerShell / Command Prompt:
+.\gradlew.bat run
+```
+
+- **Live Mobile Preview Window**: Launches in flagship smartphone dimensions (420 × 880 dp) with live interaction.
+- **Header & Omnibar (`Ctrl+K`)**: Instant search and action commands (`> new script`, `> new post`, `> toggle dark`, `> dictate`).
+- **Light / Dark Mode Switch**: Use the Sun/Moon segmented switch in the profile menu or press `Ctrl+Shift+L` to switch between authentic dark plum (`#17131a`) and warm light (`#fdfaf8`).
+- **For You Suite**: Direct access to your sealed love letters, memory jar prompts, and milestones.
+
+---
+
+### 3. Build Android App (`.apk`)
+
+To install onto your Android phone:
+```sh
+cd mobile
+./gradlew assembleDebug
+# Install to connected device via adb:
+adb install composeApp/build/outputs/apk/debug/composeApp-debug.apk
+```
 
 ## AI providers
 

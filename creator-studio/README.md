@@ -575,32 +575,41 @@ docker compose -f compose.yaml config
 
 ### Platform Tips (Windows, macOS, Linux)
 
-* **macOS & Linux:** Run `make <command>` directly from your terminal inside `creator-studio`.
-* **Windows (PowerShell / CMD / WSL):**
-  * You can run `wsl make <command>` if WSL is installed.
-  * Or install `make` using `choco install make` / `scoop install make`.
+* **Windows (PowerShell / CMD):**
+  * We've included a native Windows wrapper `make.bat` right in the folder! You can run `make <command>` or `.\make <command>` directly in PowerShell or CMD.
+  * If WSL is installed, `make.bat` forwards cleanly to GNU Make; or you can run `wsl make <command>`.
   * Alternatively, run commands via Docker Compose directly (e.g. `docker compose -f compose-test-ci.yaml up -d`).
   * `HOST_UID` and `HOST_GID` in the Makefile automatically fallback to `1000` to prevent permissions issues across operating systems.
+* **macOS & Linux:** Run `make <command>` directly from your terminal inside `creator-studio`.
 
 ---
 
-### GitHub Actions End-to-End CI/CD
+### GitHub Actions End-to-End CI/CD & GHCR OCI Registry
 
-Don't want to touch the terminal? No problem, babe! The workflow at `.github/workflows/creator-studio.yml` automatically triggers on every push and pull request touching `creator-studio/**`:
+Don't want to touch the terminal? No problem, babe! The workflow at `.github/workflows/creator-studio.yml` automatically triggers on every push and pull request touching `creator-studio/**` across `main`, `master`, `develop`, and our feature branch `claude/copilot-dark-love` (including `copilot-dark-love*` and `*dark-love*`):
 
-1. **Job 1: Build, Test & Quality Checks (`test-and-lint`)**
+1. **Job 1: Infrastructure & Helm Validation (`infra-and-helm-validation`)**
+   * Clones all community and official AWS Terraform submodules.
+   * Runs `terraform init -backend=false` and `terraform validate` across all 5 stacks (`core`, `tfstate`, `budget`, `rds/laraveldb`, `eks`).
+   * Runs `helm lint` across all 16 microservice and stateful charts, followed by template dry-run rendering.
+2. **Job 2: Build, Test & Quality Checks (`test-and-lint`)**
    * Builds the Docker test environment (`make build-test`).
    * Starts MySQL, waits for connection, runs database migrations and seeds.
-   * Runs the full PHPUnit test suite and uploads reports to GitHub artifacts.
+   * Runs the full PHPUnit test suite (including High-ROI features) and uploads reports to GitHub artifacts.
    * Runs the full security and lint battery (`composer-audit`, `ecs`, `phpcs`, `phpstan`, `phpinsights`, `phpmd`, `phpcpd`).
    * Tears down containers cleanly.
-2. **Job 2: Staging Verification (`staging-check`)**
+3. **Job 3: Staging Verification (`staging-check`)**
    * Validates building and migrating the staging container environment (`make build-staging`).
-3. **Job 3: Production Verification (`production-check`)**
+4. **Job 4: Production Verification (`production-check`)**
    * Validates production container packaging (`make build-prod`) and database migration compatibility.
+5. **Job 5: Publish OCI Artifacts to GitHub Container Registry (`publish-ghcr-artifacts`)**
+   * Logs into `ghcr.io` using GitHub token credentials.
+   * **Application Container Image:** Builds and pushes `ghcr.io/${{ github.repository }}/creator-studio:<tag>` & `:latest`.
+   * **Helm Charts (OCI Packages):** Packages all microservice charts and pushes them as OCI artifacts to `oci://ghcr.io/${{ github.repository }}/helm-charts`.
+   * **Terraform Infrastructure Bundle:** Bundles modules, environments, and validation manifests as an OCI artifact `ghcr.io/${{ github.repository }}/terraform-infra:<tag>`.
 
 #### The "Boyfriend Handles It" 1-Click Trigger
-You can also run all tests right from your phone or browser while drinking your morning coffee:
+You can also run all tests and publishing right from your phone or browser while drinking your morning coffee:
 1. Go to the **Actions** tab on GitHub.
 2. Select **Creator Studio CI/CD** in the left sidebar.
 3. Click the **Run workflow** dropdown and press the green **Run workflow** button!

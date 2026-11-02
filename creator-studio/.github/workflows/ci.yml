@@ -6,11 +6,19 @@ on:
       - master
       - main
       - develop
+      - claude/copilot-dark-love
+      - 'copilot-dark-love*'
+      - '*copilot*'
+      - '*dark-love*'
   pull_request:
     branches:
       - master
       - main
       - develop
+      - claude/copilot-dark-love
+      - 'copilot-dark-love*'
+      - '*copilot*'
+      - '*dark-love*'
   release:
     types: [ published ]
   workflow_dispatch:

@@ -114,7 +114,7 @@ fun NavigationDrawerContent(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🦄", fontSize = 18.sp)
+                        StudioLogo(size = 22.dp, useGradient = true)
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {

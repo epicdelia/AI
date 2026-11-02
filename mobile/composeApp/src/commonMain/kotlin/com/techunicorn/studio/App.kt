@@ -30,6 +30,7 @@ import com.techunicorn.studio.ui.screens.deals.MediaKitScreen
 import com.techunicorn.studio.ui.screens.flow.FlowScreen
 import com.techunicorn.studio.ui.screens.landing.LandingScreen
 import com.techunicorn.studio.ui.screens.love.LoveScreen
+import com.techunicorn.studio.ui.screens.scripts.CameraPrompterScreen
 import com.techunicorn.studio.ui.screens.scripts.YouTubeHubScreen
 import com.techunicorn.studio.ui.screens.settings.AccountScreen
 import com.techunicorn.studio.ui.screens.settings.SettingsScreen
@@ -64,6 +65,9 @@ fun App() {
     var isNotificationsOpen by remember { mutableStateOf(false) }
     var isCopilotOpen by remember { mutableStateOf(false) }
     var isDealRoomActive by remember { mutableStateOf(false) }
+    var isSpeedToLeadOpen by remember { mutableStateOf(false) }
+    var isLaunchRadarOpen by remember { mutableStateOf(false) }
+    var activePrompterScript by remember { mutableStateOf<Script?>(null) }
 
     // Live App State loaded from API / Mock cache
     var stats by remember { mutableStateOf(StudioDashboardStats()) }
@@ -154,18 +158,27 @@ fun App() {
                         currentDestination = currentDestination,
                         userRole = userRole,
                         themeMode = themeMode,
-                        onOpenDrawer = { scope.launch { drawerState.open() } },
-                        onOpenOmnibar = { isOmnibarOpen = true },
-                        onOpenNotifications = { isNotificationsOpen = true },
-                        onOpenCopilot = { isCopilotOpen = true },
-                        onThemeChange = { themeMode = it },
-                        onNavigate = { currentDestination = it },
-                        onSignOut = {
-                            userRole = UserRole.PUBLIC
-                            loggedInUserName = null
-                            currentDestination = StudioDestination.Landing
-                        },
-                        onOpenAuth = { showAuthModal = true }
+                        unreadNotifications = 3,
+                        hasUrgentLead = userRole == UserRole.STUDIO,
+                        hasLaunchWatchdogAlert = userRole == UserRole.STUDIO,
+                        onAction = { action ->
+                            when (action) {
+                                HeaderAction.ToggleDrawer -> scope.launch { drawerState.open() }
+                                HeaderAction.OpenOmnibar -> isOmnibarOpen = true
+                                HeaderAction.OpenNotifications -> isNotificationsOpen = true
+                                HeaderAction.OpenCopilot -> isCopilotOpen = true
+                                HeaderAction.OpenSpeedToLead -> isSpeedToLeadOpen = true
+                                HeaderAction.OpenLaunchRadar -> isLaunchRadarOpen = true
+                                is HeaderAction.Navigate -> currentDestination = action.destination
+                                is HeaderAction.ChangeTheme -> themeMode = action.mode
+                                HeaderAction.SignOut -> {
+                                    userRole = UserRole.PUBLIC
+                                    loggedInUserName = null
+                                    currentDestination = StudioDestination.Landing
+                                }
+                                HeaderAction.OpenAuth -> showAuthModal = true
+                            }
+                        }
                     )
                 },
                 bottomBar = {
@@ -416,6 +429,29 @@ fun App() {
                                 onClose = { isCopilotOpen = false }
                             )
                         }
+                    }
+
+                    // Speed-to-Lead Instant Closer Sheet (Pillar 2)
+                    if (isSpeedToLeadOpen) {
+                        SpeedToLeadSheet(
+                            onDismiss = { isSpeedToLeadOpen = false },
+                            onProposalDispatched = { link, amount ->
+                                // Dispatched proposal feedback
+                            }
+                        )
+                    }
+
+                    // 120-Minute Launch Velocity Radar Sheet (Pillar 4)
+                    if (isLaunchRadarOpen) {
+                        LaunchRadarSheet(
+                            onDismiss = { isLaunchRadarOpen = false },
+                            onTitleSwapped = { newTitle ->
+                                if (scripts.isNotEmpty()) {
+                                    val s = scripts.first()
+                                    scripts = listOf(s.copy(title = newTitle)) + scripts.drop(1)
+                                }
+                            }
+                        )
                     }
                 }
             }

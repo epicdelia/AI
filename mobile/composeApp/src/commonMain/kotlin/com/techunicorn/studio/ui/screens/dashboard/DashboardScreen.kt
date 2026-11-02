@@ -143,30 +143,37 @@ fun DashboardScreen(
 
         // Quick Action Hub
         item {
-            Text("Quick Actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("High-ROI Command Actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                QuickActionButton(
+                    icon = Icons.Default.Videocam,
+                    label = "Film 4K",
+                    color = StudioCoral,
+                    onClick = onNavigateToScripts,
+                    modifier = Modifier.weight(1f)
+                )
                 QuickActionButton(
                     icon = Icons.Default.Mic,
                     label = "Dictate",
-                    color = StudioCoral,
+                    color = StudioViolet,
                     onClick = onNavigateToFlow,
                     modifier = Modifier.weight(1f)
                 )
                 QuickActionButton(
                     icon = Icons.Default.Description,
                     label = "Scripts",
-                    color = StudioViolet,
+                    color = StudioOcean,
                     onClick = onNavigateToScripts,
                     modifier = Modifier.weight(1f)
                 )
                 QuickActionButton(
-                    icon = Icons.Default.Work,
+                    icon = Icons.Default.AttachMoney,
                     label = "Deals",
-                    color = StudioAmber,
+                    color = StudioEmerald,
                     onClick = onNavigateToDeals,
                     modifier = Modifier.weight(1f)
                 )

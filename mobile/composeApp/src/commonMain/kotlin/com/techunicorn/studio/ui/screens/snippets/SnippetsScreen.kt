@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.techunicorn.studio.ui.components.StudioLogo
 import com.techunicorn.studio.ui.theme.*
 
 enum class SnippetTheme(val label: String, val gradient: Brush, val windowBg: Color, val textColor: Color) {
@@ -137,7 +138,11 @@ println("Verdict: ${'$'}{verdict.score}/100")"""
 
                         Text(windowTitle, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
 
-                        Text(watermarkText, color = StudioCoral, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            StudioLogo(size = 13.dp, tint = StudioCoral)
+                            Spacer(Modifier.width(4.dp))
+                            Text(watermarkText, color = StudioCoral, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     Spacer(Modifier.height(14.dp))

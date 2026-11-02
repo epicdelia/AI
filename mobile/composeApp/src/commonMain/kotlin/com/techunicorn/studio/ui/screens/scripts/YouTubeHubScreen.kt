@@ -38,11 +38,14 @@ fun YouTubeHubScreen(
     var selectedTab by remember { mutableStateOf(0) } // 0: Breakouts, 1: Ideas, 2: Scripts
     var activeTeleprompterScript by remember { mutableStateOf<Script?>(null) }
 
-    // If Teleprompter is active, render fullscreen
+    // If Teleprompter is active, render Camera Prompter
     if (activeTeleprompterScript != null) {
-        TeleprompterFullscreen(
+        CameraPrompterScreen(
             script = activeTeleprompterScript!!,
-            onClose = { activeTeleprompterScript = null }
+            onClose = { activeTeleprompterScript = null },
+            onTakeFinished = {
+                activeTeleprompterScript = null
+            }
         )
         return
     }
@@ -253,9 +256,9 @@ fun ScriptsTab(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = StudioCoral)
                     ) {
-                        Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Open Teleprompter Mode")
+                        Text("Launch In-Camera Teleprompter (4K)", fontWeight = FontWeight.Bold)
                     }
                 }
             }

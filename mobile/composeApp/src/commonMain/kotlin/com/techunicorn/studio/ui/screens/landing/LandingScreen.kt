@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.*
+import com.techunicorn.studio.ui.components.StudioLogo
 import com.techunicorn.studio.ui.theme.*
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -100,7 +101,7 @@ fun LandingScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("🦄", fontSize = 20.sp)
+                                StudioLogo(size = 24.dp, tint = Color.White)
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
@@ -975,7 +976,7 @@ fun LandingScreen(
                                 .background(StudioCoral),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("🦄", fontSize = 16.sp)
+                            StudioLogo(size = 18.dp, tint = Color.White)
                         }
                         Spacer(Modifier.width(10.dp))
                         Column {

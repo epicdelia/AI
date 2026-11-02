@@ -133,7 +133,8 @@ fun SocialScreen(
                         Spacer(Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "${post.characterCount} chars",
@@ -148,6 +149,32 @@ fun SocialScreen(
                                     color = StudioEmerald
                                 )
                             }
+                        }
+
+                        // 1-Tap Mobile Dispatch Action
+                        Spacer(Modifier.height(10.dp))
+                        var isCopied by remember { mutableStateOf(false) }
+                        Button(
+                            onClick = { isCopied = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isCopied) StudioEmerald else platformColor
+                            ),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                if (isCopied) Icons.Default.Check else Icons.Default.Send,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (isCopied) "Copied! Opening ${post.platform.uppercase()}..."
+                                else "1-Tap Copy & Open ${post.platform.uppercase()}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }

@@ -54,7 +54,7 @@ fun AuthModal(
                             .background(StudioCoral),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🦄", fontSize = 16.sp)
+                        StudioLogo(size = 18.dp, tint = Color.White)
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(if (is2FaRequired) "Two-Factor Authentication" else "Account Sign In", fontWeight = FontWeight.Bold, fontSize = 18.sp)

@@ -10,9 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -152,8 +152,17 @@ fun InboxScreen() {
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 Column {
-                                    Text(msg.author, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("${msg.handle} · ${msg.platform}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        msg.author,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        "${msg.handle} · ${msg.platform}",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
 
@@ -181,7 +190,12 @@ fun InboxScreen() {
                                     modifier = Modifier.padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         "Replied: \"${msg.repliedText}\"",
@@ -200,7 +214,12 @@ fun InboxScreen() {
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(14.dp))
+                                        Icon(
+                                            Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
                                         Spacer(Modifier.width(6.dp))
                                         Text(
                                             "AI Suggested Reply",
@@ -220,13 +239,18 @@ fun InboxScreen() {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Button(
                                             onClick = {
-                                                messages = messages.map { if (it.id == msg.id) it.copy(repliedText = msg.suggestedReply) else it }
+                                                messages =
+                                                    messages.map { if (it.id == msg.id) it.copy(repliedText = msg.suggestedReply) else it }
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                             modifier = Modifier.height(30.dp)
                                         ) {
-                                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Send,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp)
+                                            )
                                             Spacer(Modifier.width(4.dp))
                                             Text("Send Reply", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }

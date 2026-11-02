@@ -196,14 +196,14 @@ fun DashboardScreen(
                         stage = "Script Review",
                         color = StudioViolet
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     StatusRow(
                         title = "Supabase Sponsorship Q4",
                         subtitle = "\$12,000 · Proposal accepted, waiting for contract",
                         stage = "Contract",
                         color = StudioEmerald
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     StatusRow(
                         title = "Agent Swarm Mission #14",
                         subtitle = "Auditing retention across 12 competitor videos",

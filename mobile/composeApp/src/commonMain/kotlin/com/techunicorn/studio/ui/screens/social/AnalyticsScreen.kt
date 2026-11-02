@@ -89,7 +89,7 @@ fun AnalyticsScreen() {
                         }
 
                         Spacer(Modifier.height(14.dp))
-                        Divider(color = MaterialTheme.colorScheme.outline)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.height(14.dp))
 
                         // Grid Breakdown

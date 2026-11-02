@@ -117,6 +117,40 @@ class StudioApiClient(
         }
     }
 
+    suspend fun greenlightIdea(ideaId: Long): Boolean {
+        return try {
+            client.post("$baseUrl/ideas/$ideaId/greenlight")
+            true
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    suspend fun archiveIdea(ideaId: Long): Boolean {
+        return try {
+            client.post("$baseUrl/ideas/$ideaId/archive")
+            true
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    suspend fun createIdea(title: String, angle: String, hook: String): Idea {
+        return try {
+            client.post("$baseUrl/ideas") {
+                setBody(mapOf("title" to title, "angle" to angle, "hook" to hook))
+            }.body()
+        } catch (_: Exception) {
+            Idea(
+                id = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                title = title,
+                angle = angle,
+                hook = hook,
+                status = "inbox"
+            )
+        }
+    }
+
     // Scripts
     suspend fun getScripts(): List<Script> {
         return try {

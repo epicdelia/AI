@@ -61,6 +61,55 @@ It runs natively as an Android App (`.apk`) and launches directly on your workst
 
 ---
 
+## Advanced Kotlin & Android Studio Architectural Stack
+
+The mobile application is engineered to Google's official Android & Kotlin Multiplatform architecture standards:
+
+### 1. Clean Architecture & Reactive MVVM / MVI (`ui/viewmodels/`)
+- **`BaseViewModel`**: Coroutine-backed state holder with `viewModelScope`, immutable `uiState: StateFlow<S>`, and one-off channel events `uiEvents: SharedFlow<E>`.
+- **Dedicated Feature ViewModels**:
+  - `DashboardViewModel`: Real-time studio stats, weekly mentor streak tracker, and pull-to-refresh cache revalidation.
+  - `YouTubeHubViewModel`: High-performance Outlier radar with Kotlin `.debounce(250)` search query filtering and multiplier thresholds.
+  - `CameraPrompterViewModel`: Physics-based smooth auto-scrolling, Words-Per-Minute calculator, and teleprompter glass mirror toggling.
+  - `FlowVoiceViewModel`: Live decibel spectrum sampler, streaming voice transcription, and AI polish cascades.
+  - `DealRoomViewModel`: Multi-tier contract rates, cryptographic Bezier e-signature vector capture, and Stripe payment confirmation.
+
+### 2. Dependency Injection with Koin (`di/AppModule.kt`)
+- Singletons for API clients, local caches, network monitors, haptic engines, and audio samplers.
+- Factory declarations for ViewModels, allowing clean dependency inversion and modular testability.
+
+### 3. Offline-First Repository & Result Monad (`data/repository/` & `domain/result/`)
+- **`StudioRepository`**: Kotlin Flow cache-first strategy emitting instant local memory/serialized data followed by background network sync.
+- **`StudioResult<T>`**: Sealed algebraic monad (`Success(data, isFromCache)`, `Error(StudioError)`, `Loading`) with functional chaining (`map`, `onSuccess`, `onError`).
+
+### 4. Hardware & Native Platform Abstractions (`platform/`)
+- **Tactile Haptic Feedback Engine (`platform/haptics/`)**:
+  - Android native `Vibrator` & `VibrationEffect` (light ticks, medium clicks, heavy impacts, success pulses, error alerts) with desktop fallback.
+- **Reactive Network Monitor (`platform/connectivity/`)**:
+  - Android `ConnectivityManager.NetworkCallback` + Desktop socket reachability.
+  - Material 3 `OfflineBanner` that smoothly slides in when offline.
+- **High-Fidelity Audio Sampling Engine (`platform/audio/`)**:
+  - Real-time 16-band audio spectrum sampling for the glowing `AudioWaveformVisualizer`.
+- **Interactive E-Signature Canvas (`ui/components/SignatureCanvas.kt`)**:
+  - Android-grade touch and stylus capture with quadratic Bezier spline curve smoothing.
+
+### 5. Type-Safe Kotlin DSL (`domain/dsl/ScriptDsl.kt`)
+- Domain-Specific Language for authoring video scripts and teleprompter chapters programmatically:
+  ```kotlin
+  val script = creatorScript {
+      title = "Building a Production App in 48h with AI"
+      hook = "Everyone says AI can build a startup in a weekend..."
+      chapter("Architecture", "01:15") {
+          point("Clean Domain Separation")
+          point("Native Kotlin Compose Multiplatform")
+          warning("Add B-roll graphics to prevent drop-off at 02:45")
+      }
+      cta = "Grab the Creator Studio Starter Kit below."
+  }
+  ```
+
+---
+
 ## How to Run & View Locally
 
 ### 1. View Locally on your PC (Compose Desktop Live Window)

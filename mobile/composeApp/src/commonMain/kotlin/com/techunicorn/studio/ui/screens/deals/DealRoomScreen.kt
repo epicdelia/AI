@@ -3,11 +3,13 @@ package com.techunicorn.studio.ui.screens.deals
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,19 +22,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.DealRoomData
 import com.techunicorn.studio.domain.models.DealTier
+import com.techunicorn.studio.platform.haptics.rememberPlatformHapticEngine
+import com.techunicorn.studio.ui.components.SignatureCanvas
 import com.techunicorn.studio.ui.theme.*
+import com.techunicorn.studio.ui.viewmodels.StrokePath
 
 @Composable
 fun DealRoomScreen(
     initialData: DealRoomData,
     onBack: () -> Unit
 ) {
+    val haptics = rememberPlatformHapticEngine()
     var dealData by remember { mutableStateOf(initialData) }
     var selectedTierKey by remember { mutableStateOf(initialData.selectedTier) }
     var legalSignName by remember { mutableStateOf("") }
     var hasAgreedToDpa by remember { mutableStateOf(false) }
     var isAccepted by remember { mutableStateOf(dealData.acceptedAt != null) }
     var isPaid by remember { mutableStateOf(dealData.paidAt != null) }
+    var signatureStrokes by remember { mutableStateOf<List<StrokePath>>(emptyList()) }
 
     LazyColumn(
         modifier = Modifier
@@ -49,7 +56,7 @@ fun DealRoomScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 Text("Deal Room", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Box(
@@ -102,6 +109,7 @@ fun DealRoomScreen(
             Card(
                 onClick = {
                     if (!isAccepted) {
+                        haptics.click()
                         selectedTierKey = tier.key
                     }
                 },
@@ -172,6 +180,17 @@ fun DealRoomScreen(
                         enabled = !isAccepted
                     )
 
+                    if (!isAccepted) {
+                        SignatureCanvas(
+                            strokes = signatureStrokes,
+                            onStrokeAdded = { signatureStrokes = signatureStrokes + it },
+                            onClear = {
+                                signatureStrokes = emptyList()
+                                haptics.lightTick()
+                            }
+                        )
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = hasAgreedToDpa,
@@ -182,8 +201,11 @@ fun DealRoomScreen(
                     }
 
                     Button(
-                        onClick = { isAccepted = true },
-                        enabled = !isAccepted && legalSignName.isNotBlank() && hasAgreedToDpa,
+                        onClick = {
+                            haptics.heavy()
+                            isAccepted = true
+                        },
+                        enabled = !isAccepted && legalSignName.isNotBlank() && hasAgreedToDpa && signatureStrokes.isNotEmpty(),
                         colors = ButtonDefaults.buttonColors(containerColor = StudioCoral),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -195,7 +217,10 @@ fun DealRoomScreen(
                     if (isAccepted && !isPaid) {
                         Spacer(Modifier.height(8.dp))
                         Button(
-                            onClick = { isPaid = true },
+                            onClick = {
+                                haptics.success()
+                                isPaid = true
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = StudioEmerald),
                             modifier = Modifier.fillMaxWidth()
                         ) {

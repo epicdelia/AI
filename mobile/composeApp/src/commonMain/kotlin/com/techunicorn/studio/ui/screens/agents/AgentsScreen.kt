@@ -125,7 +125,7 @@ fun AgentsScreen() {
 
                         Spacer(Modifier.height(10.dp))
                         LinearProgressIndicator(
-                            progress = mission.stepsCompleted.toFloat() / mission.totalSteps.toFloat(),
+                            progress = { mission.stepsCompleted.toFloat() / mission.totalSteps.toFloat() },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                             color = StudioViolet
                         )

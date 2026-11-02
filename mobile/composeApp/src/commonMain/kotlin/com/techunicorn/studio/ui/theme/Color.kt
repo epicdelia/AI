@@ -74,3 +74,11 @@ val StudioTextSecondaryLight = StudioMutedLight
 
 val MultiplierGreen = StudioGoodDark
 val MultiplierBadgeBg = StudioGoodSoftDark
+
+object StudioColors {
+    val NeonPurple = Color(0xFFA855F7)
+    val UnicornBlue = Color(0xFF6366F1)
+    val BorderSubtle = StudioLineDark
+    val Coral = StudioCoral
+    val Emerald = StudioEmerald
+}

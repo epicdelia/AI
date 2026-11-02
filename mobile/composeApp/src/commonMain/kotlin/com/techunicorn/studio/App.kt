@@ -18,7 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.data.api.StudioApiClient
 import com.techunicorn.studio.domain.models.*
+import com.techunicorn.studio.di.initKoin
+import com.techunicorn.studio.domain.dsl.creatorScript
+import com.techunicorn.studio.platform.connectivity.rememberPlatformNetworkMonitor
+import com.techunicorn.studio.platform.haptics.rememberPlatformHapticEngine
 import com.techunicorn.studio.ui.components.*
+import com.techunicorn.studio.ui.components.OfflineBanner
 import com.techunicorn.studio.ui.navigation.StudioDestination
 import com.techunicorn.studio.ui.screens.agents.AgentsScreen
 import com.techunicorn.studio.ui.screens.chat.ProducerChatScreen
@@ -47,6 +52,14 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
+    LaunchedEffect(Unit) {
+        initKoin()
+    }
+
+    val networkMonitor = rememberPlatformNetworkMonitor()
+    val networkState by networkMonitor.state.collectAsState()
+    val haptics = rememberPlatformHapticEngine()
+
     val api = remember { StudioApiClient() }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -244,13 +257,15 @@ fun App() {
                 },
                 floatingActionButton = {}
             ) { paddingValues ->
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
                 ) {
-                    // Active Destination Screen
-                    when (currentDestination) {
+                    OfflineBanner(isOffline = !networkState.isOnline)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Active Destination Screen
+                        when (currentDestination) {
                         StudioDestination.Landing -> LandingScreen(
                             services = landingServices,
                             talks = talks,
@@ -455,4 +470,5 @@ fun App() {
             }
         }
     }
+}
 }

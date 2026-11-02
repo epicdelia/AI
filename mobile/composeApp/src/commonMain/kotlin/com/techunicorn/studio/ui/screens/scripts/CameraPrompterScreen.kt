@@ -110,9 +110,9 @@ fun CameraPrompterScreen(
             // Camera Grid Overlay
             Column(modifier = Modifier.fillMaxSize()) {
                 Spacer(Modifier.weight(1f))
-                Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
                 Spacer(Modifier.weight(1f))
-                Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
                 Spacer(Modifier.weight(1f))
             }
 

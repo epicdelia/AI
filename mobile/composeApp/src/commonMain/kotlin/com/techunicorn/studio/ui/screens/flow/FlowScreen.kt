@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.techunicorn.studio.platform.audio.AudioSample
+import com.techunicorn.studio.platform.haptics.rememberPlatformHapticEngine
+import com.techunicorn.studio.ui.components.AudioWaveformVisualizer
 import com.techunicorn.studio.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -44,6 +47,7 @@ import kotlinx.coroutines.launch
 fun FlowScreen(
     onSaveToIdeas: (String) -> Unit
 ) {
+    val haptics = rememberPlatformHapticEngine()
     var isRecording by remember { mutableStateOf(false) }
     var isPolishing by remember { mutableStateOf(false) }
     var rawTranscript by remember { mutableStateOf("") }
@@ -274,29 +278,15 @@ fun FlowScreen(
 
         // Dynamic Waveform Meter Bars (Visible during recording)
         if (isRecording) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-                    .padding(horizontal = 32.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val bars = listOf(bar1, bar2, bar3, bar4, bar5, bar2, bar1, bar4, bar3, bar5)
-                bars.forEach { factor ->
-                    Box(
-                        modifier = Modifier
-                            .width(4.dp)
-                            .height((factor * 32).dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(StudioCoral, StudioViolet)
-                                )
-                            )
-                    )
-                }
-            }
+            AudioWaveformVisualizer(
+                sample = AudioSample(
+                    amplitude = (bar3 + bar5) / 2f,
+                    frequencyBands = listOf(bar1, bar2, bar3, bar4, bar5, bar4, bar3, bar2, bar1, bar2, bar3, bar5)
+                ),
+                waveformHistory = emptyList(),
+                isRecording = true,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
             Spacer(Modifier.height(8.dp))
         }
 
@@ -315,15 +305,18 @@ fun FlowScreen(
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
+                            haptics.heavy()
                             isRecording = true
                             rawTranscript =
                                 "I just realized why so many developer tools struggle with retention: they build frameworks instead of end-to-end solutions. In our next video let's show how to build an autonomous agent swarm using native Kotlin Multiplatform with zero third-party agent wrapper overhead..."
                             tryAwaitRelease()
+                            haptics.click()
                             isRecording = false
                             isPolishing = true
                             coroutineScope.launch {
                                 delay(1200)
                                 isPolishing = false
+                                haptics.success()
                                 polishedMarkdown = """
 # Why DevTools Fail at Retention (And How Native Kotlin Agents Fix It)
 

@@ -140,6 +140,39 @@ data class LandingService(
 )
 
 @Serializable
+data class ShippedBuild(
+    val id: String,
+    val title: String,
+    val tagline: String,
+    val turnaround: String,
+    val location: String,
+    val desc: String,
+    val metrics: List<Pair<String, String>>,
+    val stack: List<String>
+)
+
+@Serializable
+data class PricingPackage(
+    val key: String,
+    val name: String,
+    val price: Double,
+    val per: String,
+    val desc: String,
+    val clarify: String,
+    val popular: Boolean = false,
+    val benefits: List<String>
+)
+
+@Serializable
+data class FaqItem(
+    val id: String,
+    val category: String,
+    val question: String,
+    val answer: String,
+    val tags: List<String>
+)
+
+@Serializable
 data class Talk(
     val id: Long,
     val title: String,
@@ -163,7 +196,7 @@ data class ClientRequest(
     val id: Long,
     val title: String,
     val company: String,
-    val status: String, // in_progress, review, paid, completed
+    val status: String,
     val unreadCount: Int = 0,
     val revisionsCount: Int = 0,
     val amount: Double = 0.0,

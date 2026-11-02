@@ -538,4 +538,134 @@ $rawText
             )
         )
     }
+
+    // Shipped Products & Case Studies
+    suspend fun getShippedBuilds(): List<ShippedBuild> {
+        return listOf(
+            ShippedBuild(
+                id = "build-agents",
+                title = "Autonomous Multi-Agent AI Pipeline",
+                tagline = "Production subagent tool-routing & semantic vector search",
+                turnaround = "Shipped in 18 Days",
+                location = "Lisbon & Tokyo",
+                desc = "An enterprise research tool integrating Gemini Pro and Claude 3.5 Sonnet for multi-step reasoning, external API retrieval, and deterministic evaluation benchmarks.",
+                metrics = listOf("Uptime" to "99.98%", "RAG Latency" to "<75ms", "Tool Success" to "99.4%"),
+                stack = listOf("Gemini 2.0", "Claude 3.5", "pgvector", "Docker", "GCP")
+            ),
+            ShippedBuild(
+                id = "build-fintech",
+                title = "High-Concurrency Multi-Tenant API",
+                tagline = "Zero-downtime transactional gateway with audit logging",
+                turnaround = "Shipped in 21 Days",
+                location = "Bali & Singapore",
+                desc = "Scalable subscription billing engine with Stripe webhook synchronization, strict schema validation, and automated zero-downtime deployments on Google Cloud Run.",
+                metrics = listOf("Daily Events" to "250K+", "P99 Latency" to "42ms", "Deployment" to "Zero Downtime"),
+                stack = listOf("Laravel 11", "PHP 8.3", "PostgreSQL", "Redis", "Cloud Run")
+            ),
+            ShippedBuild(
+                id = "build-studio",
+                title = "Real-Time Creator Studio Suite",
+                tagline = "Zero-build-step reactive dashboard with local analytics",
+                turnaround = "Shipped in 14 Days",
+                location = "Bangkok & London",
+                desc = "A lightning-fast creator platform featuring privacy-first analytics, social feed synchronization, audio prompter, and dynamic dark/light design token engine.",
+                metrics = listOf("Build Time" to "0ms", "Lighthouse" to "100/100", "State Sync" to "Real-Time"),
+                stack = listOf("Vanilla JS", "SSE Streams", "WebSockets", "CSS Tokens")
+            )
+        )
+    }
+
+    // Packages & Transparent Pricing
+    suspend fun getPricingPackages(): List<PricingPackage> {
+        return listOf(
+            PricingPackage(
+                key = "mvp",
+                name = "Sprint MVP Build",
+                price = 12500.0,
+                per = "flat / fixed",
+                desc = "From napkin sketch to live cloud deployment in 2 to 4 weeks. Ideal for founders needing a production-ready product fast.",
+                clarify = "Includes 30-day bug warranty & code handover",
+                popular = true,
+                benefits = listOf(
+                    "Interactive prototype within 5 days",
+                    "Full production codebase transferred to your GitHub",
+                    "Integrated Stripe payments, auth, and automated DB backups",
+                    "Friday recorded Loom demos with Delia",
+                    "30-day post-launch bug warranty included"
+                )
+            ),
+            PricingPackage(
+                key = "retainer",
+                name = "Monthly AI Advisory",
+                price = 3500.0,
+                per = "per month",
+                desc = "An ex-Google systems engineer on call. Architecture reviews, AI build-vs-buy guidance, and async PR evaluations.",
+                clarify = "Pause or cancel anytime · No lock-in",
+                popular = false,
+                benefits = listOf(
+                    "Two 60-min 1-on-1 strategic architecture calls per month",
+                    "Unlimited async code & PR reviews via Slack or GitHub",
+                    "Guaranteed 24h turnaround on business days",
+                    "AI subagent tool-routing and safety audits",
+                    "No long-term commitment · Stripe monthly billing"
+                )
+            ),
+            PricingPackage(
+                key = "brand",
+                name = "Dedicated Video Sponsor",
+                price = 6500.0,
+                per = "per integration",
+                desc = "Authentic video feature reaching 472K+ developers, founders, and technical professionals across YouTube, X, and LinkedIn.",
+                clarify = "High retention · Strict tool endorsement policy",
+                popular = false,
+                benefits = listOf(
+                    "60s dedicated integration or custom deep-dive segment",
+                    "Syndication across YouTube 4K, LinkedIn, and Instagram",
+                    "Custom tracking links and 30-day campaign ROI report",
+                    "Permanent video placement with top pinned comment"
+                )
+            )
+        )
+    }
+
+    // FAQ Items
+    suspend fun getFaqItems(): List<FaqItem> {
+        return listOf(
+            FaqItem(
+                id = "faq-vibecoded",
+                category = "mvp",
+                question = "What does 'Vibecoded' mean and how can an MVP ship in 2 to 4 weeks?",
+                answer = "Vibecoding combines deep systems engineering foundations (from years writing production code at Google) with autonomous AI tools and rapid iteration loops. Instead of a 10-person agency spending a month in committee meetings, I work directly with you against concrete acceptance criteria. You get private GitHub commits from Day 1 and working software deployed to staging in days.",
+                tags = listOf("2–4 Week Turnaround", "Friday Loom Demos", "Ex-Google Standards")
+            ),
+            FaqItem(
+                id = "faq-ownership",
+                category = "mvp",
+                question = "Do I own 100% of the code, intellectual property, and infrastructure?",
+                answer = "Yes, 100% without exception. Code is pushed to your private GitHub organization from Day 1. All cloud infrastructure (GCP, AWS, Supabase, Vercel) and third-party APIs are created in your own company accounts. There are zero licensing traps and zero proprietary lock-in.",
+                tags = listOf("100% IP Ownership", "Zero Lock-In", "Full Handover")
+            ),
+            FaqItem(
+                id = "faq-warranty",
+                category = "mvp",
+                question = "What happens after the MVP is launched? Is there a warranty?",
+                answer = "Every MVP engagement includes a comprehensive 30-day post-launch bug warranty at zero additional cost. If anything in the agreed specification breaks, I patch it immediately. You also receive complete ops runbooks and developer documentation.",
+                tags = listOf("30-Day Warranty", "Ops Runbook", "Full Handover")
+            ),
+            FaqItem(
+                id = "faq-retainer",
+                category = "advisory",
+                question = "How does the $3,500/month Advisory Retainer work?",
+                answer = "It places an ex-Google engineer on your team without executive hire overhead. Includes two 60-min architecture calls per month, unlimited async PR reviews via private Slack or GitHub (24h turnaround), and AI evaluations. Billed monthly via Stripe, pause or cancel anytime.",
+                tags = listOf("Ex-Google on Call", "24h Turnaround", "Cancel Anytime")
+            ),
+            FaqItem(
+                id = "faq-timezones",
+                category = "logistics",
+                question = "You travel across 60+ countries. How do time zones work?",
+                answer = "Async-first discipline is my superpower. Having worked across global teams at Google and traveled across 69 countries as a digital nomad, collaboration runs seamlessly via private Slack, daily commit logs, and weekly Loom demos. Real-time calls convert automatically to your local timezone.",
+                tags = listOf("69 Countries Nomad", "Async-First Flow", "Local Timezones")
+            )
+        )
+    }
 }

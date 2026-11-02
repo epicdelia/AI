@@ -192,6 +192,7 @@ fun App() {
                                     else currentDestination = StudioDestination.Breakouts
                                 }
                                 HeaderAction.OpenDictate -> currentDestination = StudioDestination.Flow
+                                is HeaderAction.SearchQueryChanged -> { /* query handled inline */ }
                                 is HeaderAction.Navigate -> currentDestination = action.destination
                                 is HeaderAction.ChangeTheme -> themeMode = action.mode
                                 HeaderAction.SignOut -> {
@@ -200,6 +201,15 @@ fun App() {
                                     currentDestination = StudioDestination.Landing
                                 }
                                 HeaderAction.OpenAuth -> showAuthModal = true
+                                HeaderAction.ToggleTelemetry -> { /* toggled in header UI */ }
+                                HeaderAction.ToggleQuickActions -> { /* toggled in header UI */ }
+                                is HeaderAction.SelectSearchScope -> { /* scope handled in header UI */ }
+                                is HeaderAction.SwitchWorkspace -> { /* workspace switch */ }
+                                HeaderAction.TriggerSyncFlush -> {
+                                    scope.launch {
+                                        stats = api.getDashboardStats()
+                                    }
+                                }
                             }
                         }
                     )

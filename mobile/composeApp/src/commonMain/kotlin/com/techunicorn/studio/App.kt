@@ -126,6 +126,16 @@ fun App() {
         themeMode = themeMode,
         onThemeChange = { themeMode = it }
     ) {
+        // If In-Camera Teleprompter is active full-screen
+        if (activePrompterScript != null) {
+            CameraPrompterScreen(
+                script = activePrompterScript!!,
+                onClose = { activePrompterScript = null },
+                onTakeFinished = { activePrompterScript = null }
+            )
+            return@StudioTheme
+        }
+
         // If Deal Room is active full-screen
         if (isDealRoomActive && dealRoomData != null) {
             DealRoomScreen(
@@ -169,6 +179,11 @@ fun App() {
                                 HeaderAction.OpenCopilot -> isCopilotOpen = true
                                 HeaderAction.OpenSpeedToLead -> isSpeedToLeadOpen = true
                                 HeaderAction.OpenLaunchRadar -> isLaunchRadarOpen = true
+                                HeaderAction.LaunchPrompter -> {
+                                    if (scripts.isNotEmpty()) activePrompterScript = scripts.first()
+                                    else currentDestination = StudioDestination.Breakouts
+                                }
+                                HeaderAction.OpenDictate -> currentDestination = StudioDestination.Flow
                                 is HeaderAction.Navigate -> currentDestination = action.destination
                                 is HeaderAction.ChangeTheme -> themeMode = action.mode
                                 HeaderAction.SignOut -> {
@@ -182,69 +197,34 @@ fun App() {
                     )
                 },
                 bottomBar = {
-                    val bottomDestinations = when (userRole) {
-                        UserRole.PUBLIC -> listOf(
-                            StudioDestination.Landing,
-                            StudioDestination.Snippets,
-                            StudioDestination.ClientPortal
-                        )
-                        UserRole.CLIENT -> listOf(
-                            StudioDestination.ClientPortal,
-                            StudioDestination.Deals,
-                            StudioDestination.Snippets,
-                            StudioDestination.Landing
-                        )
-                        UserRole.STUDIO -> listOf(
-                            StudioDestination.Dashboard,
-                            StudioDestination.YouTube,
-                            StudioDestination.Calendar,
-                            StudioDestination.Inbox,
-                            StudioDestination.Deals
-                        )
-                    }
-
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 6.dp
-                    ) {
-                        bottomDestinations.forEach { destination ->
-                            val isSelected = currentDestination == destination || (destination == StudioDestination.YouTube && currentDestination in listOf(StudioDestination.Breakouts, StudioDestination.Ideas, StudioDestination.Scripts, StudioDestination.Goals))
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = {
-                                    if (destination == StudioDestination.ClientPortal && userRole == UserRole.PUBLIC) {
-                                        showAuthModal = true
+                    StudioFooter(
+                        currentDestination = currentDestination,
+                        userRole = userRole,
+                        unreadInboxCount = 3,
+                        activeDealsCount = deals.size.coerceAtLeast(3),
+                        onNavigate = { destination ->
+                            if (destination == StudioDestination.ClientPortal && userRole == UserRole.PUBLIC) {
+                                showAuthModal = true
+                            } else {
+                                currentDestination = destination
+                            }
+                        },
+                        onCenterAction = {
+                            when (userRole) {
+                                UserRole.STUDIO -> {
+                                    if (scripts.isNotEmpty()) {
+                                        activePrompterScript = scripts.first()
                                     } else {
-                                        currentDestination = destination
+                                        currentDestination = StudioDestination.Breakouts
                                     }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) destination.selectedIcon else destination.unselectedIcon,
-                                        contentDescription = destination.title
-                                    )
-                                },
-                                label = { Text(destination.title, fontSize = 10.sp) },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            )
+                                }
+                                UserRole.CLIENT -> currentDestination = StudioDestination.Chat
+                                UserRole.PUBLIC -> showAuthModal = true
+                            }
                         }
-                    }
+                    )
                 },
-                floatingActionButton = {
-                    if (!isCopilotOpen && userRole == UserRole.STUDIO) {
-                        FloatingActionButton(
-                            onClick = { isCopilotOpen = true },
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = Color.White
-                        ) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "Copilot")
-                        }
-                    }
-                }
+                floatingActionButton = {}
             ) { paddingValues ->
                 Box(
                     modifier = Modifier

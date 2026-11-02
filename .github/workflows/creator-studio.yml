@@ -30,6 +30,35 @@ on:
   release:
     types: [ published ]
   workflow_dispatch:
+    inputs:
+      run_infra:
+        description: "Run Terraform & Helm verification"
+        type: boolean
+        default: true
+      run_tests:
+        description: "Run unit & feature test suite"
+        type: boolean
+        default: true
+      run_quality:
+        description: "Run code quality & static analysis"
+        type: boolean
+        default: true
+      run_staging:
+        description: "Run staging environment build & migration"
+        type: boolean
+        default: true
+      run_prod:
+        description: "Run production environment verification"
+        type: boolean
+        default: true
+      publish_artifacts:
+        description: "Publish images and OCI artifacts to GHCR"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -39,6 +68,7 @@ permissions:
 jobs:
   infra-and-helm-validation:
     name: "Terraform & Helm Verification"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_infra
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,6 +76,25 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Setup Terraform Plugin Cache Directory
+        run: mkdir -p ~/.terraform.d/plugin-cache
+
+      - name: Cache Terraform Providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: tf-cache-${{ runner.os }}-${{ hashFiles('creator-studio/**/*.tf') }}
+          restore-keys: |
+            tf-cache-${{ runner.os }}-
+
+      - name: Cache Helm Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/helm
+          key: helm-cache-${{ runner.os }}-${{ hashFiles('creator-studio/**/Chart.lock') }}
+          restore-keys: |
+            helm-cache-${{ runner.os }}-
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -65,6 +114,8 @@ jobs:
           ./get-officials.sh
 
       - name: Validate Terraform Stacks
+        env:
+          TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
         run: |
           for dir in terraform/environment/providers/aws/infra/core \
                      terraform/environment/providers/aws/infra/tfstate \
@@ -144,8 +195,9 @@ jobs:
           path: creator-studio/artifacts/
           retention-days: 14
 
-  test-and-lint:
-    name: "Build, Test & Quality Checks"
+  unit-and-feature-tests:
+    name: "Unit & Feature Test Suite"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -178,9 +230,6 @@ jobs:
       - name: Display PHP, Composer & Laravel Versions
         run: make info
 
-      - name: Run High ROI Feature Tests
-        run: make test-high-roi
-
       - name: Run PHPUnit Test Suite with Coverage
         run: make phpunit
 
@@ -191,6 +240,30 @@ jobs:
           name: creator-studio-test-reports
           path: creator-studio/reports/
           retention-days: 7
+
+      - name: Tear Down Test Environment
+        if: always()
+        run: make down-test
+
+  code-quality-and-lint:
+    name: "Code Quality & Static Analysis"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Reports Directory
+        run: mkdir -p reports/coverage reports/phpcpd reports/phpmetrics
+
+      - name: Build Test Docker Images
+        run: make build-test
+
+      - name: Start Test Environment Containers
+        run: make start-test
 
       - name: Composer Security Vulnerability Audit
         run: make composer-audit
@@ -219,7 +292,12 @@ jobs:
 
   staging-check:
     name: "Staging Environment Build & Migration"
-    needs: test-and-lint
+    needs: [unit-and-feature-tests, code-quality-and-lint]
+    if: |
+      always() &&
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_staging)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -256,6 +334,11 @@ jobs:
   production-check:
     name: "Production Environment Build Verification"
     needs: staging-check
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.staging-check.result == 'success' &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_prod)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -288,8 +371,12 @@ jobs:
 
   publish-ghcr-artifacts:
     name: "Publish to GitHub Container Registry (GHCR)"
-    needs: [infra-and-helm-validation, test-and-lint, production-check]
-    if: github.event_name == 'push' || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: [infra-and-helm-validation, unit-and-feature-tests, code-quality-and-lint, production-check]
+    if: |
+      always() &&
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      (github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_artifacts))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -335,6 +422,8 @@ jobs:
           context: creator-studio
           file: creator-studio/Dockerfile
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             BUILD_ARGUMENT_ENV=prod
           tags: |
@@ -356,7 +445,6 @@ jobs:
 
       - name: Package & Push Terraform Artifacts to GHCR (OCI)
         run: |
-          # Build a lightweight OCI artifact layer containing verified Terraform bundles
           cat << 'EOF' > Dockerfile.terraform-artifact
           FROM scratch
           LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"

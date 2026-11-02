@@ -219,7 +219,7 @@ helm-push-lab:
 # ================================= #
 #   INFRASTRUCTURE VALIDATION SUITE #
 # ================================= #
-.PHONY: tf-init-all tf-validate-all helm-lint-all helm-template-all test-high-roi verify-all
+.PHONY: tf-init-all tf-validate-all helm-lint-all helm-template-all verify-all
 
 tf-init-all: ## Initialize all Terraform stacks with submodules
 	@echo "=== Initializing Terraform Stacks ==="
@@ -259,10 +259,7 @@ helm-template-all: ## Dry-run render templates across all microservice charts
 	done
 	@echo "All Helm template renderings succeeded!"
 
-test-high-roi: ## Run High ROI Features Feature Tests
-	@make exec cmd="php artisan test tests/Feature/HighRoiFeaturesTest.php"
-
-verify-all: sub-all tf-init-all tf-validate-all helm-lint-all helm-template-all test-high-roi ## Run full end-to-end verification suite
+verify-all: sub-all tf-init-all tf-validate-all helm-lint-all helm-template-all phpunit ## Run full end-to-end verification suite
 	@echo "=============================================================="
 	@echo " ✨ CREATOR STUDIO VERIFICATION COMPLETE: ALL SYSTEMS GO! ✨ "
 	@echo "=============================================================="

@@ -560,10 +560,9 @@ docker compose -f compose.yaml config
 
 ### 🧪 5. Testing & Verification Shortcuts
 
-* **Run High ROI Feature Tests:**
+* **Run Full Test Suite:**
   ```bash
-  make test-high-roi
-  # Or: php artisan test tests/Feature/HighRoiFeaturesTest.php
+  make phpunit
   ```
 * **One-Click Master Verification:**
   ```bash

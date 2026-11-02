@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.*
 import com.techunicorn.studio.ui.components.*
 import com.techunicorn.studio.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -58,7 +59,11 @@ fun LandingScreen(
     var newsletterEmail by remember { mutableStateOf("") }
     var newsletterSubscribed by remember { mutableStateOf(false) }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -553,89 +558,23 @@ fun LandingScreen(
         }
 
         // ==========================================
-        // 13. COMPREHENSIVE FOOTER
+        // 13. COMPREHENSIVE NATIVE FOOTER (<footer class="footer">)
         // ==========================================
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(StudioCoral),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            StudioLogo(size = 18.dp, tint = Color.White)
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text("Tech Unicorn Studio", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("Delia Lazarescu · Ex-Google Engineer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+            LandingFooterSection(
+                onNavigateSection = { sectionId ->
+                    // Anchor navigation
+                },
+                onOpenSocial = { url ->
+                    // External social url
+                },
+                onSwitchRole = onSwitchRole,
+                onScrollToTop = {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(0)
                     }
-
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Building & shipping production software with autonomous AI systems for founders worldwide.",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(12.dp))
-
-                    Text("PORTAL ACCESS & MODES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { onSwitchRole(UserRole.CLIENT) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Client Portal", fontSize = 11.sp)
-                        }
-                        Button(
-                            onClick = { onSwitchRole(UserRole.STUDIO) },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = StudioCoral),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Studio Admin", fontSize = 11.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(12.dp))
-
-                    Text("EU LEGAL & COMPLIANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Tech Unicorn Studio S.L. · CIF/VAT: ESX9999999Z\nCarrer de Colón 14, 46004 València, Spain", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Privacy Policy", fontSize = 10.sp, color = StudioCoral)
-                        Text("Terms of Service", fontSize = 10.sp, color = StudioCoral)
-                        Text("GDPR DPA", fontSize = 10.sp, color = StudioCoral)
-                        Text("Impressum", fontSize = 10.sp, color = StudioCoral)
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        "© 2026 Tech Unicorn Studio S.L. · Built with Compose Multiplatform & Kotlin",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
-            }
+            )
         }
 
         item { Spacer(Modifier.height(24.dp)) }

@@ -658,7 +658,7 @@ report-code-coverage: ## Update code coverage report on Coveralls.io (requires C
 	@make exec-bash cmd="export COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN} && php ./vendor/bin/php-coveralls -v --coverage_clover reports/clover.xml --json_path reports/coverals.json"
 
 phpcs: ## Run PHP CodeSniffer checks
-	@make exec-bash cmd="./vendor/bin/phpcs --version && ./vendor/bin/phpcs --standard=PSR12 --colors -p app tests"
+	@make exec-bash cmd="./vendor/bin/phpcs --version && ./vendor/bin/phpcs --colors -p"
 
 ecs: ## Run Easy Coding Standard (ECS) checks
 	@make exec-bash cmd="./vendor/bin/ecs --version && ./vendor/bin/ecs --clear-cache check app tests"

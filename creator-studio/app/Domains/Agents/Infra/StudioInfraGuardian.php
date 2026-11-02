@@ -57,8 +57,8 @@ class StudioInfraGuardian
 
         // 3. Terraform Stacks & Modules Check
         $baseDir = base_path();
-        $tfModulesCommunity = is_dir($baseDir . '/terraform/modules/providers/aws/community');
-        $tfModulesOfficials = is_dir($baseDir . '/terraform/modules/providers/aws/officials');
+        $tfModulesCommunity = is_dir($baseDir . '/terraform/modules/providers/aws/community') || is_file($baseDir . '/module_community.lst');
+        $tfModulesOfficials = is_dir($baseDir . '/terraform/modules/providers/aws/officials') || is_file($baseDir . '/module_officials.lst');
 
         $tfStacks = [
             'core' => is_file($baseDir . '/terraform/environment/providers/aws/infra/core/main.tf'),
@@ -67,6 +67,7 @@ class StudioInfraGuardian
             'rds' => is_file($baseDir . '/terraform/environment/providers/aws/infra/resources/rds/laraveldb/main.tf'),
             'eks' => is_file($baseDir . '/terraform/environment/providers/aws/infra/resources/eks/main.tf'),
         ];
+        $allStacksPresent = !in_array(false, $tfStacks, true);
 
         // 4. Helm Templates Check
         $helmTemplates = ['api', 'backend', 'configmap', 'frontend', 'secretref', 'stateful', 'svcrole'];
@@ -102,7 +103,7 @@ class StudioInfraGuardian
                     'community_submodules_downloaded' => $tfModulesCommunity,
                     'official_submodules_downloaded' => $tfModulesOfficials,
                     'stacks' => $tfStacks,
-                    'validation_ready' => $tfModulesCommunity && $tfModulesOfficials,
+                    'validation_ready' => $allStacksPresent && $tfModulesCommunity && $tfModulesOfficials,
                 ],
                 'helm' => [
                     'templates_available' => $helmStatus,

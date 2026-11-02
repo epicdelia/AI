@@ -46,6 +46,12 @@ class HighRoiFeaturesTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        $this->travelBack();
+        parent::tearDown();
+    }
+
     public function test_sponsor_revenue_architect_calculates_optimal_placement_and_cpm_yield(): void
     {
         $architect = new SponsorRevenueArchitect();

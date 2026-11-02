@@ -311,7 +311,15 @@ class AuthController extends Controller
     public static function mail(string $to, string $subject, string $body): bool
     {
         try {
-            Mail::raw($body, fn ($m) => $m->to($to)->subject($subject));
+            $fromAddress = config('mail.from.address');
+            if (empty($fromAddress) || $fromAddress === 'null') {
+                $fromAddress = 'hello@example.com';
+            }
+            $fromName = config('mail.from.name') ?: 'Creator Studio';
+
+            Mail::raw($body, function ($m) use ($to, $subject, $fromAddress, $fromName) {
+                $m->from($fromAddress, $fromName)->to($to)->subject($subject);
+            });
 
             return true;
         } catch (Throwable $e) {

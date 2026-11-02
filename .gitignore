@@ -1,3 +1,4 @@
+.vscode/
 ideas/outliers.jsonl
 __pycache__/
 .pytest_cache/
@@ -5,3 +6,11 @@ __pycache__/
 .env
 .venv/
 e2e-screenshot.png
+.gradle/
+build/
+mobile/.gradle/
+mobile/**/build/
+mobile/.idea/
+mobile/*.iml
+mobile/local.properties
+

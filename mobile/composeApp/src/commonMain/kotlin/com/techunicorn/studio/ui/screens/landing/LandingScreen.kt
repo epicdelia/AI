@@ -208,87 +208,16 @@ fun LandingScreen(
         }
 
         // ==========================================
-        // 4. 6 CORE SERVICES
+        // 4. SERVICES SECTION (<section class="landing-section tinted" id="services">)
         // ==========================================
         item {
-            Column {
-                Text("02: SERVICES", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
-                Spacer(Modifier.height(4.dp))
-                Text("Six Ways We Can Work Together", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text("Fixed pricing, transparent deliverables, and zero corporate fluff.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-
-        items(services) { service ->
-            var isExpanded by remember { mutableStateOf(false) }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(service.category.uppercase(), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = StudioViolet)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(service.badge, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-                    Text(service.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text(service.desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    Spacer(Modifier.height(14.dp))
-                    Text("KEY DELIVERABLES:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    val shownDeliverables = if (isExpanded) service.deliverables else service.deliverables.take(2)
-                    for (deliv in shownDeliverables) {
-                        Row(Modifier.padding(vertical = 3.dp)) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StudioEmerald, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(deliv, fontSize = 12.sp)
-                        }
-                    }
-
-                    if (service.deliverables.size > 2) {
-                        TextButton(
-                            onClick = { isExpanded = !isExpanded },
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(
-                                if (isExpanded) "Show Less" else "Show All Deliverables (+${service.deliverables.size - 2})",
-                                fontSize = 12.sp,
-                                color = StudioCoral,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-                    Button(
-                        onClick = {
-                            selectedServiceForBooking = service.title
-                            showBookingDialog = true
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Book ${service.title}", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+            LandingServicesSection(
+                services = services,
+                onBookService = { serviceName ->
+                    selectedServiceForBooking = serviceName
+                    showBookingDialog = true
                 }
-            }
+            )
         }
 
         // ==========================================

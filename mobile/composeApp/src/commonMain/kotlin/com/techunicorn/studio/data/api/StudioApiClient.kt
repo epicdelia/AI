@@ -308,7 +308,7 @@ $rawText
             ),
             LandingService(
                 category = "Audience & Growth",
-                badge = "472K+ Audience",
+                badge = "519K+ Audience",
                 iconName = "play",
                 title = "Content Creation",
                 desc = "Short-form video, long-form YouTube deep-dives, and LinkedIn content that makes complex tech feel obvious.",
@@ -339,7 +339,7 @@ $rawText
                 badge = "Verified Fit",
                 iconName = "briefcase",
                 title = "Brand Partnerships",
-                desc = "Authentic integrations with an engaged audience of 472K+ developers, founders, and tech professionals.",
+                desc = "Authentic integrations with an engaged audience of 519K+ developers, founders, and tech professionals.",
                 deliverables = listOf(
                     "Dedicated feature video or 60-second integration",
                     "Custom tracking links, social promotion & reporting",

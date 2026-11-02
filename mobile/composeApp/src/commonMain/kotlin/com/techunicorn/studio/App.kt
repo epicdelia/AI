@@ -152,11 +152,19 @@ fun App() {
                 NavigationDrawerContent(
                     currentDestination = currentDestination,
                     userRole = userRole,
+                    themeMode = themeMode,
                     onSelectDestination = { dest ->
                         currentDestination = dest
                         scope.launch { drawerState.close() }
                     },
                     onCloseDrawer = {
+                        scope.launch { drawerState.close() }
+                    },
+                    onThemeChange = { themeMode = it },
+                    onSignOut = {
+                        userRole = UserRole.PUBLIC
+                        loggedInUserName = null
+                        currentDestination = StudioDestination.Landing
                         scope.launch { drawerState.close() }
                     }
                 )

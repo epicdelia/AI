@@ -260,7 +260,7 @@ helm-template-all: ## Dry-run render templates across all microservice charts
 	@echo "All Helm template renderings succeeded!"
 
 test-high-roi: ## Run High ROI Features Feature Tests
-	@php artisan test tests/Feature/HighRoiFeaturesTest.php
+	@make exec cmd="php artisan test tests/Feature/HighRoiFeaturesTest.php"
 
 verify-all: sub-all tf-init-all tf-validate-all helm-lint-all helm-template-all test-high-roi ## Run full end-to-end verification suite
 	@echo "=============================================================="

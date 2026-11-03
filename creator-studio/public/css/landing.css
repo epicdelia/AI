@@ -4760,16 +4760,300 @@ a.landing-stat-box:focus-visible .landing-stat-go {
    a feature card (build slots, live prices, quick facts), quick actions and a footer strip. The
    drawer shares the rows. Theme tokens only. */
 
-.landing-page .mega.landing-mega {
-  height: auto;
-  min-height: 0;
-  max-width: 980px;
-  margin-inline: auto;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32), 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent);
+/* ---- Full-Width Polished Mega Menus (Covering the Boxed Layout on Desktop) ---- */
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+@media (min-width: 961px) {
+  .landing-nav .landing-container {
+    position: static;
+  }
+
+  .landing-nav .mega-wrap {
+    display: block !important;
+    position: static;
+  }
+
+  .landing-page .landing-nav .mega.landing-mega {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    min-height: 0;
+    height: auto;
+    border-radius: 0 0 20px 20px;
+    background: color-mix(in srgb, var(--panel) 97%, transparent);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-left: none;
+    border-right: none;
+    box-shadow: 0 32px 72px -12px rgba(0, 0, 0, 0.45), 0 12px 24px -8px rgba(0, 0, 0, 0.25);
+    z-index: 99;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+
+  :root[data-theme="light"] .landing-page .landing-nav .mega.landing-mega {
+    background: rgba(253, 250, 248, 0.98);
+    box-shadow: 0 32px 72px -12px rgba(43, 34, 48, 0.16), 0 12px 24px -8px rgba(43, 34, 48, 0.08);
+  }
+
+  .landing-page .landing-nav .mega.landing-mega.open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Internal Grid Layout aligned with the 1180px Desktop Content Grid */
+  .landing-page .mega.landing-mega .ln-panel {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding: 24px 28px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 32px;
+    align-items: start;
+    box-sizing: border-box;
+  }
+
+  .landing-page .mega.landing-mega .ln-main {
+    padding: 0;
+    min-width: 0;
+  }
+
+  .landing-page .mega.landing-mega .ln-lede {
+    margin: 0 0 16px;
+    padding: 0 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .landing-page .mega.landing-mega .ln-cols {
+    display: grid;
+    gap: 8px 24px;
+  }
+
+  .landing-page .mega.landing-mega .ln-cols.cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-page .mega.landing-mega .ln-title {
+    margin: 0 0 8px;
+    padding: 0 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .landing-page .mega.landing-mega .ln-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    opacity: 0.6;
+  }
+
+  .landing-page .mega.landing-mega .ln-list {
+    display: grid;
+    gap: 3px;
+  }
+
+  .landing-page .mega.landing-mega .ln-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    color: var(--ink);
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .landing-page .mega.landing-mega .ln-row:hover,
+  .landing-page .mega.landing-mega .ln-row:focus-visible {
+    background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 25%, var(--line));
+    transform: translateX(3px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    outline: none;
+  }
+
+  .landing-page .mega.landing-mega .ln-ico {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, color 0.2s, box-shadow 0.2s;
+  }
+
+  .landing-page .mega.landing-mega .ln-row:hover .ln-ico {
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    color: #fff;
+    border-color: transparent;
+    transform: scale(1.08) rotate(-2deg);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  .landing-page .mega.landing-mega .ln-text {
+    display: grid;
+    min-width: 0;
+  }
+
+  .landing-page .mega.landing-mega .ln-text strong {
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  .landing-page .mega.landing-mega .ln-text span {
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--muted);
+    white-space: normal;
+  }
+
+  .landing-page .mega.landing-mega .ln-badge {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    border: 1px solid var(--line);
+    transition: all 0.16s ease;
+  }
+
+  .landing-page .mega.landing-mega .ln-row:hover .ln-badge {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  /* Right Side Feature Card & Actions */
+  .landing-page .mega.landing-mega .ln-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--panel-2) 50%, transparent);
+  }
+
+  .landing-page .mega.landing-mega .ln-feature {
+    display: grid;
+    gap: 6px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+    background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--panel) 90%, transparent));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  }
+
+  .landing-page .mega.landing-mega .ln-feature strong {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .landing-page .mega.landing-mega .ln-feature p {
+    margin: 4px 0 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .landing-page .mega.landing-mega .ln-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .landing-page .mega.landing-mega .ln-action {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    transition: all 0.16s ease;
+  }
+
+  .landing-page .mega.landing-mega .ln-action:hover {
+    background: var(--panel-2);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .landing-page .mega.landing-mega .ln-action.is-primary {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  .landing-page .mega.landing-mega .ln-action.is-primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  /* Bottom Trust Strip */
+  .landing-page .mega.landing-mega .ln-foot {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding: 14px 4px 4px;
+    border-top: 1px solid var(--line);
+    font-size: 0.74rem;
+    font-weight: 550;
+    color: var(--muted);
+  }
+
+  .landing-page .mega.landing-mega .ln-foot span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .landing-page .mega.landing-mega .ln-foot .icon {
+    color: var(--good);
+  }
 }
 
 .landing-page .mega-tab {

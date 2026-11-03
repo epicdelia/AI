@@ -89,10 +89,10 @@ Deploying Creator Studio on a production VPS (Ubuntu/Debian) is automated with t
    https://studio.yourdomain.com/install
    ```
 3. **The 4-Step Guided Setup:**
-   - **Step 1: VPS Pre-flight Checks** (validates PHP 8.2+, PDO MySQL/SQLite, write permissions, extensions).
+   - **Step 1: VPS Pre-flight Checks** (validates PHP 8.2+, PDO MySQL/SQLite, write permissions, extensions via `rachidlaasri/laravel-installer` requirements engine).
    - **Step 2: Database Configuration** (MySQL/MariaDB, SQLite, PostgreSQL with live "Test Connection" button).
    - **Step 3: Delia's Admin Account Creation** (master administrator name, email, password, timezone, currency).
-   - **Step 4: AI Keys & Automated Launch** (Gemini/OpenAI API keys, writes `.env`, runs `migrate --force`, and signs in immediately).
+   - **Step 4: AI Keys & Automated Launch** (Gemini/OpenAI API keys, writes `.env`, sets **Google Gemini (Gemini 4 Argon)** as the default AI engine for Copilot and Studio, runs `migrate --force`, and signs in immediately).
 
 ---
 
@@ -171,6 +171,21 @@ Hold **Space** (or click **Start Speaking**), talk freely, and release to receiv
 | **Producer AI Chat** | `chat.js` | `ProducerChatScreen.kt` | Conversational thinking partner for packaging, hooks, and strategy |
 | **Settings & Security** | `settings.js`, `account.js` | `SettingsScreen.kt`, `AccountScreen.kt` | API keys, connected accounts, 2FA TOTP QR setup, navigation customization |
 | **For You (Love Suite)** | `love.js` | `LoveScreen.kt` | Sealed & opened love letters, memory jar prompt logs, milestone countdowns |
+
+---
+
+## 🤖 Next-Gen Multi-Provider AI Engine (Gemini 4 Argon Default)
+
+Creator Studio integrates an enterprise-grade multi-provider AI engine spanning 120+ frontier models with dynamic token accounting, failover key rotation, and adaptive reasoning effort. **Google Gemini** (specifically **Gemini 4 Argon**) serves as the **default out-of-the-box AI engine** across the Creator Dashboard, the Copilot briefing system, and the automated VPS installer.
+
+| Provider | Frontier Models | Capabilities |
+| :--- | :--- | :--- |
+| **Google Gemini** <br>*(Default Engine)* | • **Gemini 4 Argon** (`gemini-4-argon`) *(Studio Default)*<br>• **Gemini 3.8 Flash** (`gemini-3-8-flash`)<br>• **Gemini 3.7 Flash** (`gemini-3-7-flash`)<br>• **Lyria 3.5** (`lyria-3-5`) | Low-latency autonomous Copilot reasoning, rapid script ideation, 1M+ context window video ingestion, and native generative audio/music composition. |
+| **Anthropic Claude** | • **Claude Opus 5.5** (`claude-opus-5-5`)<br>• **Claude Sonnet 5.5** (`claude-sonnet-5-5`)<br>• **Claude Fable 5.1** (`claude-fable-5-1`)<br>• **Claude 3.7 Sonnet** | Deep narrative architecture, multi-perspective script retention audit panels, storytelling hook crafting, and autonomous multi-turn tool calling. |
+| **OpenAI** | • **GPT 6 Astra** (`gpt-6-astra`)<br>• **GPT 6 Sol** (`gpt-6-sol`)<br>• **GPT 6 Luna** (`gpt-6-luna`)<br>• **GPT 5.6 Cyber** (`gpt-5-6-cyber`)<br>• **GPT Image 2** (`gpt-image-2`)<br>• **GPT Image 2.5 Flare & Sunburst** | Multimodal reasoning, ultra-fast script editing, code & technical verification, and photorealistic 16:9 thumbnail mockups with volumetric lighting. |
+| **DeepSeek** | • **DeepSeek V4 Pro** (`deepseek-v4-pro`)<br>• **DeepSeek V4 Flash Vision Exp** (`deepseek-v4-flash-vision-exp`)<br>• **DeepSeek V4 Flash** (`deepseek-v4-flash`)<br>• **DeepSeek R1 / V3** | Transparent chain-of-thought mathematical reasoning, sponsorship ROI contract verification, multimodal thumbnail critique, and real-time script linting. |
+| **xAI Grok** | • **Grok 4.6** (`grok-4-6`)<br>• **Grok 4 / 4.1 Reasoning**<br>• **Grok 3 / 3 Fast / 3 Mini** | Unconstrained creative brainstorming, high-engagement viral social hooks, and real-time cultural trend analysis. |
+| **ElevenLabs** | • **ElevenLabs V4** (`elevenlabs-v4`)<br>• **ElevenLabs V4 Turbo** (`elevenlabs-v4-turbo`)<br>• **Voice Isolator & Multilingual v2** | Emotionally nuanced script read-aloud pacing simulation, sub-100ms real-time rehearsal speech synthesis, and studio audio cleanup. |
 
 ---
 

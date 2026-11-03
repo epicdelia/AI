@@ -492,17 +492,17 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
     public function defaultModel(): string
     {
         return match ($this) {
-            self::OPEN_AI => 'gpt-5-mini',
+            self::OPEN_AI => 'gpt-6-astra',
             self::ANTHROPIC => 'claude-sonnet-5-5',
-            self::GEMINI => 'gemini-2.5-flash',
+            self::GEMINI => 'gemini-4-argon',
             self::OPEN_ROUTER, self::OPENROUTER => 'anthropic/claude-sonnet-5-5',
-            self::DEEP_SEEK, self::DEEPSEEK => 'deepseek-chat',
-            self::X_AI, self::XAI => 'grok-4',
+            self::DEEP_SEEK, self::DEEPSEEK => 'deepseek-v4-pro',
+            self::X_AI, self::XAI => 'grok-4-6',
             self::PERPLEXITY => 'sonar',
             self::TOGETHER => 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-            self::ASSEMBLYAI => 'gpt-5-mini',
+            self::ASSEMBLYAI => 'gpt-6-astra',
             self::FAL_AI => 'flux-pro',
-            self::ELEVENLABS => 'elevenlabs',
+            self::ELEVENLABS => 'eleven_v4_turbo',
             default => '',
         };
     }
@@ -543,7 +543,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             return self::ASSEMBLYAI;
         }
 
-        return $url === '' ? self::OPEN_AI : self::CUSTOM;
+        return $url === '' ? self::GEMINI : self::CUSTOM;
     }
 
     public static function catalog(): array

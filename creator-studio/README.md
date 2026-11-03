@@ -228,16 +228,32 @@ The application's data layer spans the creator content lifecycle, AI generation 
 
 ### 3. Supported AI Models & Multi-Provider Engine (`app/Domains/Engine/` & `EntityEnum`)
 
-The studio incorporates a 112+ model multi-provider AI engine (`app/Domains/Engine` and `App\Domains\Entity\Enums\EntityEnum`) with dynamic fallback key pools, automatic token tracking, and reasoning parameter adaptation:
+The studio incorporates an advanced multi-provider AI engine (`app/Domains/Engine` and `App\Domains\Entity\Enums\EntityEnum`) with dynamic fallback key pools, automatic token tracking, and reasoning parameter adaptation. **Google Gemini** (specifically **Gemini 4 Argon**) is pre-configured as the **default studio AI engine** across the Creator Dashboard, the Copilot briefing assistant, and the VPS automated installer.
 
-#### 1. Anthropic Claude
+#### 1. Google Gemini (Default Studio Engine)
+- **Gemini 4 Argon** (`gemini-4-argon`): **Default studio AI engine** powering the Copilot persistent assistant, dashboard briefs, and production workflows with ultra-low latency and deep contextual memory.
+- **Gemini 3.8 Flash** (`gemini-3-8-flash`): Next-gen multimodal streaming model optimized for high-speed script transformations, chat responses, and real-time generation.
+- **Gemini 3.7 Flash** (`gemini-3-7-flash`): Hybrid reasoning and high-throughput speed model with adaptive thinking capabilities.
+- **Lyria 3.5** (`lyria-3-5`): Next-generation generative audio and music engine for studio soundtracks, intros, and background audio beds.
+- **Gemini 2.0 Flash & Gemini 2.0 Flash Thinking**: Sub-second multimodal analysis, live web research, and deep reasoning passes.
+- **Gemini 1.5 Pro & Gemini 1.5 Flash (incl. 8B)**: Massive 1M+ token context window for analyzing hours of video transcripts and entire content libraries.
+- **Imagen 3**: High-fidelity visual asset generation.
+
+#### 2. Anthropic Claude
+- **Claude Opus 5.5** (`claude-opus-5-5`): Extreme reasoning, comprehensive narrative architecture, and deep long-form script synthesis.
+- **Claude Sonnet 5.5** (`claude-sonnet-5-5`): State-of-the-art balance of rapid execution, nuanced prose, and autonomous tool calling.
+- **Claude Fable 5.1** (`claude-fable-5-1`): Specialized storytelling, hook engineering, and retention-focused creative writing.
 - **Claude 3.7 Sonnet** (`claude-3-7-sonnet-20250219`): Advanced reasoning, deep scripting, and autonomous tool calling.
 - **Claude 3.5 Sonnet (v1 & v2)** (`claude-3-5-sonnet-20241022` / `20240620`): High-speed writing, script analysis, and multimodal vision.
 - **Claude 3.5 Haiku** (`claude-3-5-haiku-20241022`): Lightning-fast classification, linter passes, and formatting.
 - **Claude 3 Opus, Sonnet & Haiku**: Full legacy Claude 3 suite via Anthropic API and AWS Bedrock.
-- **Forward-Compatible Drivers**: Pre-wired architecture for upcoming Claude models (Sonnet 4/5, Opus 4.6/4.7/4.8, Fable 5).
 
-#### 2. OpenAI
+#### 3. OpenAI
+- **GPT 6 Astra** (`gpt-6-astra`): Flagship frontier multimodal intelligence with real-time video and audio comprehension.
+- **GPT 6 Sol** (`gpt-6-sol`): High-throughput frontier model tuned for massive context reasoning and creative execution.
+- **GPT 6 Luna** (`gpt-6-luna`): Lightweight frontier reasoning model offering near-instant ideation and fast tool loops.
+- **GPT 5.6 Cyber** (`gpt-5-6-cyber`): Code, architecture, technical verification, and complex logical synthesis.
+- **GPT-IMAGE-2 Series** (`gpt-image-2`, `gpt-image-2-5-flare`, `gpt-image-2-5-sunburst`): Next-gen photorealistic visual generators for 16:9 YouTube thumbnail mockups with volumetric lighting and dynamic stylization.
 - **GPT-4o & GPT-4o mini**: Flagship multimodal models powering chat, live vision inspection, and transmedia repurposing.
 - **Reasoning Models (o1, o1-mini, o1-preview, o3-mini)**: Deep thinking models adapted automatically with `max_completion_tokens` and `reasoning_effort` (without forbidden temperature settings).
 - **GPT-4 Turbo & GPT-3.5 Turbo**: High-throughput legacy text generation.
@@ -245,31 +261,35 @@ The studio incorporates a 112+ model multi-provider AI engine (`app/Domains/Engi
 - **Whisper & Text-Embedding-3 (Small/Large)**: High-accuracy audio transcription and semantic vector indexing.
 - **Assistants API v2**: Stateful threads, runs, vector store attachments, and code interpreter tool use.
 
-#### 3. Google Gemini
-- **Gemini 2.0 Flash & Gemini 2.0 Flash Thinking**: Sub-second multimodal analysis, live web research, and reasoning.
-- **Gemini 1.5 Pro & Gemini 1.5 Flash (incl. 8B)**: Massive 1M+ token context window for analyzing hours of video transcripts and entire content libraries.
-- **Imagen 3**: High-fidelity visual asset generation.
-
-#### 4. xAI Grok
-- **Grok 2 & Grok 2 Vision**: Multimodal visual review and unconstrained brainstorming.
-- **Grok 3, Grok 3 Fast, Grok 3 Mini & Grok 3 Mini Fast**: Ultra-fast ideation and real-time social content generation.
-- **Grok 4 & Grok 4.1 (Reasoning & Non-Reasoning)**: Advanced reasoning and complex content strategy orchestration.
-
-#### 5. DeepSeek
-- **DeepSeek R1**: Advanced chain-of-thought mathematical and algorithmic reasoning for sponsorship deal financial models.
+#### 4. DeepSeek
+- **DeepSeek V4 Pro** (`deepseek-v4-pro`): Flagship reasoning engine with transparent chain-of-thought verification for sponsorship ROI models and retention audits.
+- **DeepSeek V4 Flash Vision Exp** (`deepseek-v4-flash-vision-exp`): High-speed multimodal vision model for thumbnail critique and visual layout audits.
+- **DeepSeek V4 Flash** (`deepseek-v4-flash`): Ultra-low-latency text generation for real-time script linting and idea brainstorming.
+- **DeepSeek R1**: Advanced chain-of-thought mathematical and algorithmic reasoning.
 - **DeepSeek V3**: Efficient large-scale language model for high-throughput batch generation.
 
-#### 6. OpenRouter, Together AI, Azure & Novita (Open-Weights Ecosystem)
+#### 5. xAI Grok
+- **Grok 4.6** (`grok-4-6`): High-performance unconstrained creative ideation, social hook synthesis, and real-time cultural trend analysis.
+- **Grok 4 & Grok 4.1 (Reasoning & Non-Reasoning)**: Advanced reasoning and complex content strategy orchestration.
+- **Grok 3, Grok 3 Fast, Grok 3 Mini & Grok 3 Mini Fast**: Ultra-fast ideation and real-time social content generation.
+- **Grok 2 & Grok 2 Vision**: Multimodal visual review and unconstrained brainstorming.
+
+#### 6. ElevenLabs Voice & Speech
+- **ElevenLabs V4** (`elevenlabs-v4`): Next-generation emotional nuance, human prosody, and script read-aloud pacing simulation.
+- **ElevenLabs V4 Turbo** (`elevenlabs-v4-turbo`): Sub-100ms ultra-low-latency voice synthesis for real-time teleprompter rehearsal.
+- **Multilingual v2 & Turbo v2.5**: Proven international voice cloning and localized narration.
+- **Voice Isolator & Audio Cleanup**: Studio-grade background noise and room reverb removal.
+
+#### 7. OpenRouter, Together AI, Azure & Novita (Open-Weights Ecosystem)
 - **Meta Llama 3.3 70B & Llama 3.1 (8B, 70B, 405B)**: State-of-the-art open weights for cost-effective local or cloud generation.
 - **Llama 3.2 Vision (11B, 90B)**: Lightweight visual reasoning and slide OCR.
 - **Mistral AI**: Mistral Large 2, Codestral, Mixtral 8x22B, Mistral Nemo, and Ministral 8B.
 - **Qwen 2.5 (72B, Coder)**: Technical code snippet formatting and script verification.
 - **Nvidia Nemotron 70B**: Specialized synthetic data and script dialogue refinement.
 
-#### 7. Media & Generation Engines
+#### 8. Media & Video Generation Engines
 - **Fal.ai Video**: Kling 3 / Kling 2.6 Pro / Kling 2.5 Turbo, Veo 3 / Veo 3.1 / FastVeo3, Seedance 2, Grok Imagine Video.
 - **Stability AI**: Stable Diffusion 3.5 Large, SD3.5 Medium, SD3.5 Turbo, SDXL 1.0, and Core/Ultra.
-- **Audio & Music**: ElevenLabs Multilingual v2 / Turbo v2.5 / Voice Isolator / Sound Effects / AI Music, Speechify.
 - **Video Repurposing & Avatars**: Vizard, Klap, Creatify, Topview, Synthesia, HeyGen, Pebblely, ClipDrop, Freepik.
 - **Live Search & Fact-Checking**: Perplexity Sonar (Small, Medium, Large Online) and Serper Google Search.
 

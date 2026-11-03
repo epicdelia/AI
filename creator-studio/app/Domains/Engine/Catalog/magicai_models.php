@@ -6,6 +6,9 @@
 
 return [
     'anthropic' => [
+        'claude-opus-5-5' => ['Claude Opus 5.5', false, false],
+        'claude-sonnet-5-5' => ['Claude Sonnet 5.5', false, false],
+        'claude-fable-5-1' => ['Claude Fable 5.1', false, false],
         'claude-fable-5' => ['Claude Fable 5', false, false],
         'claude-sonnet-5' => ['Claude Sonnet 5', false, false],
         'claude-sonnet-4-5-20250929' => ['Claude Sonnet 4.5', false, false],
@@ -28,10 +31,17 @@ return [
         'claude-2.0' => ['Claude 2', false, false],
     ],
     'deepseek' => [
+        'deepseek-v4-pro' => ['DeepSeek V4 Pro', true, false],
+        'deepseek-v4-flash-vision-exp' => ['DeepSeek V4 Flash Vision Exp', false, false],
+        'deepseek-v4-flash' => ['DeepSeek V4 Flash', false, false],
         'deepseek-chat' => ['Deepseek Chat', false, false],
         'deepseek-reasoner' => ['Deepseek DeepSeek-R1', false, false],
     ],
     'gemini' => [
+        'gemini-4-argon' => ['Gemini 4 Argon (Primary Default Engine)', false, false],
+        'gemini-3.8-flash' => ['Gemini 3.8 Flash', false, false],
+        'gemini-3.7-flash' => ['Gemini 3.7 Flash', false, false],
+        'lyria-3.5' => ['Lyria 3.5 Studio Audio', false, false],
         'gemini-2.5-flash-preview-05-20' => ['Gemini 2.5 Flash Preview 05-20 Adaptive thinking, cost efficiency', false, false],
         'gemini-3-pro-preview' => ['Gemini 3 Pro Preview The most intelligent model family to date, built on a foundation of state-of-the-art reasoning.', false, false],
         'gemini-3.1-pro-preview' => ['Gemini 3.1 Pro Preview Refined performance and reliability, thinking, multimodal, function calling, structured outputs.', false, false],
@@ -84,6 +94,13 @@ return [
         'gpt-5.6-sol' => ['GPT-5.6 Sol (Dec 01, 2025 knowledge cutoff, 128k max output tokens, 1.05M context.)', true, false],
         'gpt-5.6-terra' => ['GPT-5.6 Terra (Dec 01, 2025 knowledge cutoff, 128k max output tokens, 1.05M context.)', true, false],
         'gpt-5.6-luna' => ['GPT-5.6 Luna (Dec 01, 2025 knowledge cutoff, 128k max output tokens, 1.05M context.)', true, false],
+        'gpt-5.6-cyber' => ['GPT-5.6 Cyber (Specialized systems coding & automation)', true, false],
+        'gpt-6-astra' => ['GPT-6 Astra (Frontier Multithreaded Reasoning)', true, false],
+        'gpt-6-sol' => ['GPT-6 Sol (High precision deterministic logic & reasoning)', true, false],
+        'gpt-6-luna' => ['GPT-6 Luna (Frontier Creative Synthesis)', true, false],
+        'gpt-image-2' => ['GPT Image 2 (Frontier 2K rendering)', false, false],
+        'gpt-image-2.5-flare' => ['GPT Image 2.5 Flare (Cinematic lighting & poster engine)', false, false],
+        'gpt-image-2.5-sunburst' => ['GPT Image 2.5 Sunburst (High-saturation HDR visual engine)', false, false],
         'o3-deep-research' => ['o3 Deep Research (Multi-step web research with detailed reports)', false, false],
         'o4-mini-deep-research' => ['o4-mini Deep Research (Fast multi-step web research with reports)', false, false],
     ],
@@ -120,6 +137,7 @@ return [
         'perplexity' => ['Perplexity for Realtime Data', false, false],
     ],
     'xai' => [
+        'grok-4-6' => ['Grok 4.6 Frontier Truth-Seeking', false, false],
         'grok-2-1212' => ['Grok 2 1212', false, false],
         'grok-2-vision-1212' => ['Grok 2 Vision 1212', false, false],
         'grok-3' => ['Grok 3', false, false],
@@ -130,5 +148,11 @@ return [
         'grok-4-fast-reasoning' => ['Grok 4 Fast', false, false],
         'grok-4-1-fast-reasoning' => ['Grok 4.1 Fast Reasoning', false, false],
         'grok-4-1-fast-non-reasoning' => ['Grok 4.1 Fast Non-Reasoning', false, false],
+    ],
+    'elevenlabs' => [
+        'eleven_v4_turbo' => ['ElevenLabs V4 Turbo (Low Latency Conversational Voice)', false, false],
+        'eleven_v4' => ['ElevenLabs V4 (Ultra-Realistic Speech Synthesis)', false, false],
+        'eleven_v3' => ['ElevenLabs V3', false, false],
+        'elevenlabs' => ['ElevenLabs Multilingual v2', false, false],
     ],
 ];

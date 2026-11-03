@@ -465,6 +465,15 @@ class InstallController extends Controller
             Setting::put('claude_api_key', $data['claude_api_key']);
         }
 
+        // Establish Google Gemini as the platform default AI system
+        Setting::put('llm_engine', 'gemini');
+        Setting::put('llm_model', 'gemini-4-argon');
+        Setting::put('copilot_model', 'gemini-4-argon');
+        if (!empty($data['gemini_api_key'])) {
+            Setting::put('gemini_api_key', $data['gemini_api_key']);
+            Setting::put('llm_api_key', $data['gemini_api_key']);
+        }
+
         // Seed initial staff production accounts if requested
         if ($request->boolean('seed_staff', true)) {
             $defaultStaff = [

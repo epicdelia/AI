@@ -38,6 +38,10 @@ class ModelCatalog
     {
         return match ($engine) {
             EngineEnum::OPENAI, EngineEnum::ASSEMBLYAI => [
+                'gpt-6-astra' => ['GPT-6 Astra', self::GPT5_5, true, false],
+                'gpt-6-sol' => ['GPT-6 Sol', self::GPT5_5, true, false],
+                'gpt-6-luna' => ['GPT-6 Luna', self::GPT5_5, true, false],
+                'gpt-5.6-cyber' => ['GPT-5.6 Cyber', self::GPT5_1_PLUS, true, false],
                 'gpt-5.5' => ['GPT-5.5', self::GPT5_5, true, false],
                 'gpt-5.4' => ['GPT-5.4', self::GPT5_1_PLUS, true, false],
                 'gpt-5.4-mini' => ['GPT-5.4 mini', self::GPT5_1_PLUS, true, false],
@@ -78,6 +82,9 @@ class ModelCatalog
                 'claude-3-7-sonnet-20250219' => ['Claude 3.7 Sonnet', [], true, true],
             ],
             EngineEnum::GEMINI => [
+                'gemini-4-argon' => ['Gemini 4 Argon (Primary Default)', [], true, false],
+                'gemini-3.8-flash' => ['Gemini 3.8 Flash', [], true, false],
+                'gemini-3.7-flash' => ['Gemini 3.7 Flash', [], true, false],
                 'gemini-3.1-pro-preview' => ['Gemini 3.1 Pro (preview)', [], true, false],
                 'gemini-3-pro-preview' => ['Gemini 3 Pro (preview)', [], true, false],
                 'gemini-3-flash-preview' => ['Gemini 3 Flash (preview)', [], true, false],
@@ -88,10 +95,14 @@ class ModelCatalog
                 'gemini-1.5-pro' => ['Gemini 1.5 Pro', [], true, true],
             ],
             EngineEnum::DEEPSEEK => [
+                'deepseek-v4-pro' => ['DeepSeek V4 Pro', self::GPT5_5, true, false],
+                'deepseek-v4-flash-vision-exp' => ['DeepSeek V4 Flash Vision Exp', [], true, false],
+                'deepseek-v4-flash' => ['DeepSeek V4 Flash', [], true, false],
                 'deepseek-chat' => ['DeepSeek Chat', [], false, false],
                 'deepseek-reasoner' => ['DeepSeek Reasoner', [], false, false],
             ],
             EngineEnum::XAI => [
+                'grok-4-6' => ['Grok 4.6', [], true, false],
                 'grok-4-0709' => ['Grok 4', [], true, false],
                 'grok-4-1-fast-reasoning' => ['Grok 4.1 Fast (reasoning)', [], true, false],
                 'grok-4-1-fast-non-reasoning' => ['Grok 4.1 Fast', [], true, false],
@@ -99,6 +110,12 @@ class ModelCatalog
                 'grok-3' => ['Grok 3', [], false, false],
                 'grok-3-mini' => ['Grok 3 mini', [], false, false],
                 'grok-2-vision-1212' => ['Grok 2 Vision', [], true, true],
+            ],
+            EngineEnum::ELEVENLABS => [
+                'eleven_v4_turbo' => ['ElevenLabs V4 Turbo (Low Latency)', [], false, false],
+                'eleven_v4' => ['ElevenLabs V4 (Studio Speech Synthesis)', [], false, false],
+                'eleven_v3' => ['ElevenLabs V3', [], false, false],
+                'elevenlabs' => ['ElevenLabs Multilingual v2', [], false, false],
             ],
             EngineEnum::PERPLEXITY => [
                 'sonar' => ['Sonar', [], false, false],

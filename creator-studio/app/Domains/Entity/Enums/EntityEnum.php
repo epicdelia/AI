@@ -66,6 +66,9 @@ enum EntityEnum: string
     use StringBackedEnumTrait;
 
     // Anthropic
+    case CLAUDE_OPUS_5_5 = 'claude-opus-5-5';
+    case CLAUDE_SONNET_5_5 = 'claude-sonnet-5-5';
+    case CLAUDE_FABLE_5_1 = 'claude-fable-5-1';
     case CLAUDE_FABLE_5 = 'claude-fable-5';
     case CLAUDE_SONNET_5 = 'claude-sonnet-5';
     case CLAUDE_SONNET_4_5 = 'claude-sonnet-4-5-20250929';
@@ -170,6 +173,10 @@ enum EntityEnum: string
     case GPT_5_6_SOL = 'gpt-5.6-sol';
     case GPT_5_6_TERRA = 'gpt-5.6-terra';
     case GPT_5_6_LUNA = 'gpt-5.6-luna';
+    case GPT_5_6_CYBER = 'gpt-5.6-cyber';
+    case GPT_6_LUNA = 'gpt-6-luna';
+    case GPT_6_SOL = 'gpt-6-sol';
+    case GPT_6_ASTRA = 'gpt-6-astra';
     case O3_DEEP_RESEARCH = 'o3-deep-research';
     case O4_MINI_DEEP_RESEARCH = 'o4-mini-deep-research';
 
@@ -214,6 +221,10 @@ enum EntityEnum: string
     case AWS_BEDROCK = 'aws_bedrock';
 
     // Gemini
+    case GEMINI_4_ARGON = 'gemini-4-argon';
+    case GEMINI_3_8_FLASH = 'gemini-3.8-flash';
+    case GEMINI_3_7_FLASH = 'gemini-3.7-flash';
+    case LYRIA_3_5 = 'lyria-3.5';
     case GEMINI_2_5_FLASH_PREVIEW_05_20 = 'gemini-2.5-flash-preview-05-20';
     case GEMINI_3_PRO_PREVIEW = 'gemini-3-pro-preview';
     case GEMINI_3_1_PRO_PREVIEW = 'gemini-3.1-pro-preview';
@@ -247,8 +258,10 @@ enum EntityEnum: string
     case PEBBLELY = 'pebblely';
 
     case DEEPSEEK_CHAT = 'deepseek-chat';
-
     case DEEPSEEK_REASONER = 'deepseek-reasoner';
+    case DEEPSEEK_V4_FLASH = 'deepseek-v4-flash';
+    case DEEPSEEK_V4_FLASH_VISION_EXP = 'deepseek-v4-flash-vision-exp';
+    case DEEPSEEK_V4_PRO = 'deepseek-v4-pro';
 
     case UNSPLASH = 'unsplash';
 
@@ -258,6 +271,8 @@ enum EntityEnum: string
 
     case ELEVENLABS = 'elevenlabs';
     case ELEVENLABS_V3 = 'eleven_v3';
+    case ELEVENLABS_V4 = 'eleven_v4';
+    case ELEVENLABS_V4_TURBO = 'eleven_v4_turbo';
 
     case ELEVENLABS_VOICE_CHATBOT = 'elevenlabs-voice-chatbot';
 
@@ -290,6 +305,8 @@ enum EntityEnum: string
     case GPT_IMAGE_1 = 'gpt-image-1';
     case GPT_IMAGE_1_5 = 'gpt-image-1.5';
     case GPT_IMAGE_2 = 'gpt-image-2';
+    case GPT_IMAGE_2_5_FLARE = 'gpt-image-2.5-flare';
+    case GPT_IMAGE_2_5_SUNBURST = 'gpt-image-2.5-sunburst';
 
     case TTS_1 = 'tts-1';
     case TTS_1_HD = 'tts-1-hd';
@@ -303,6 +320,7 @@ enum EntityEnum: string
     case GROK_4_FAST = 'grok-4-fast-reasoning';
     case GROK_4_1_FAST_REASONING = 'grok-4-1-fast-reasoning';
     case GROK_4_1_FAST_NON_REASONING = 'grok-4-1-fast-non-reasoning';
+    case GROK_4_6 = 'grok-4-6';
 
     case GAMMA_AI = 'gamma-ai';
     case VEED = 'veed';
@@ -497,6 +515,11 @@ enum EntityEnum: string
             self::GPT_5_6_SOL,
             self::GPT_5_6_TERRA,
             self::GPT_5_6_LUNA,
+            self::GPT_5_6_CYBER,
+            self::GPT_6_LUNA,
+            self::GPT_6_SOL,
+            self::GPT_6_ASTRA,
+            self::DEEPSEEK_V4_PRO,
             self::GPT_5_5         => true,
             default               => false,
         };
@@ -543,8 +566,13 @@ enum EntityEnum: string
             self::GPT_5_PRO,
             self::GPT_5_2_PRO     => ['medium', 'high', 'xhigh'],
 
-            // GPT-5.5: none (default), low, medium, high, xhigh.
-            self::GPT_5_5         => ['none', 'low', 'medium', 'high', 'xhigh'],
+            // GPT-5.5 / GPT-6 / DeepSeek V4: none (default), low, medium, high, xhigh.
+            self::GPT_5_5,
+            self::GPT_5_6_CYBER,
+            self::GPT_6_LUNA,
+            self::GPT_6_SOL,
+            self::GPT_6_ASTRA,
+            self::DEEPSEEK_V4_PRO => ['none', 'low', 'medium', 'high', 'xhigh'],
 
             // O-series: low, medium, high.
             self::GPT_O_1,
@@ -1267,12 +1295,21 @@ enum EntityEnum: string
             self::GPT_5_6_SOL,
             self::GPT_5_6_TERRA,
             self::GPT_5_6_LUNA,
+            self::GPT_5_6_CYBER,
+            self::GPT_6_LUNA,
+            self::GPT_6_SOL,
+            self::GPT_6_ASTRA,
+            self::GPT_IMAGE_2_5_FLARE,
+            self::GPT_IMAGE_2_5_SUNBURST,
             self::O3_DEEP_RESEARCH,
             self::O4_MINI_DEEP_RESEARCH,
             self::SORA_2,
             self::SORA_2_PRO,
             self::GPT_O_4_MINI => EngineEnum::OPEN_AI,
             // Anthropic
+            self::CLAUDE_OPUS_5_5,
+            self::CLAUDE_SONNET_5_5,
+            self::CLAUDE_FABLE_5_1,
             self::CLAUDE_FABLE_5,
             self::CLAUDE_SONNET_5,
             self::CLAUDE_SONNET_4_5,
@@ -1297,7 +1334,7 @@ enum EntityEnum: string
             self::VOYAGE_LARGE_2,
             self::VOYAGE_CODE_2 => EngineEnum::ANTHROPIC,
             // Deepseek
-            self::DEEPSEEK_CHAT, self::DEEPSEEK_REASONER => EngineEnum::DEEP_SEEK,
+            self::DEEPSEEK_CHAT, self::DEEPSEEK_REASONER, self::DEEPSEEK_V4_FLASH, self::DEEPSEEK_V4_FLASH_VISION_EXP, self::DEEPSEEK_V4_PRO => EngineEnum::DEEP_SEEK,
             // Clipdrop
             self::CLIPDROP => EngineEnum::CLIPDROP,
             // Novita
@@ -1316,6 +1353,9 @@ enum EntityEnum: string
             // Pebblely
             self::PEBBLELY => EngineEnum::PEBBLELY,
             // Gemini
+            self::GEMINI_4_ARGON,
+            self::GEMINI_3_8_FLASH,
+            self::GEMINI_3_7_FLASH,
             self::GEMINI_3_PRO_PREVIEW,
             self::GEMINI_3_1_PRO_PREVIEW,
             self::GEMINI_2_5_FLASH_PREVIEW_05_20,
@@ -1330,6 +1370,7 @@ enum EntityEnum: string
             self::GEMINI_EMBEDDING_EXP,
             self::GEMINI_TEXT_EMBEDDING_004,
             // Lyria (Google Gemini)
+            self::LYRIA_3_5,
             self::LYRIA_3_CLIP,
             self::LYRIA_3_PRO => EngineEnum::GEMINI,
             // Unsplash
@@ -1341,6 +1382,8 @@ enum EntityEnum: string
             // Elevenlabs
             self::ELEVENLABS,
             self::ELEVENLABS_V3,
+            self::ELEVENLABS_V4,
+            self::ELEVENLABS_V4_TURBO,
             self::ELEVENLABS_VOICE_CHATBOT,
             self::ELEVENLABS_AI_MUSIC,
             self::ISOLATOR => EngineEnum::ELEVENLABS,
@@ -1359,7 +1402,7 @@ enum EntityEnum: string
             self::MIDJOURNEY => EngineEnum::PI_API,
             // X AI
             self::GROK_2_1212, self::GROK_2_VISION_1212, self::GROK_3, self::GROK_3_MINI, self::GROK_3_FAST,
-            self::GROK_3_MINI_FAST, self::GROK_4, self::GROK_4_FAST, self::GROK_4_1_FAST_REASONING, self::GROK_4_1_FAST_NON_REASONING => EngineEnum::X_AI,
+            self::GROK_3_MINI_FAST, self::GROK_4, self::GROK_4_FAST, self::GROK_4_1_FAST_REASONING, self::GROK_4_1_FAST_NON_REASONING, self::GROK_4_6 => EngineEnum::X_AI,
             // Gamma AI
             self::GAMMA_AI => EngineEnum::GAMMA_AI,
             // FAL AI
@@ -1485,6 +1528,12 @@ enum EntityEnum: string
             self::GPT_5_6_SOL                 => OpenAI\GPT56SolDriver::class,
             self::GPT_5_6_TERRA               => OpenAI\GPT56TerraDriver::class,
             self::GPT_5_6_LUNA                => OpenAI\GPT56LunaDriver::class,
+            self::GPT_5_6_CYBER               => OpenAI\GPT56CyberDriver::class,
+            self::GPT_6_LUNA                  => OpenAI\GPT6LunaDriver::class,
+            self::GPT_6_SOL                   => OpenAI\GPT6SolDriver::class,
+            self::GPT_6_ASTRA                 => OpenAI\GPT6AstraDriver::class,
+            self::GPT_IMAGE_2_5_FLARE         => OpenAI\GptImage25FlareDriver::class,
+            self::GPT_IMAGE_2_5_SUNBURST      => OpenAI\GptImage25SunburstDriver::class,
             self::GPT_5_5                     => OpenAI\GPT55Driver::class,
             self::O3_DEEP_RESEARCH            => OpenAI\O3DeepResearchDriver::class,
             self::O4_MINI_DEEP_RESEARCH       => OpenAI\O4MiniDeepResearchDriver::class,
@@ -1492,6 +1541,9 @@ enum EntityEnum: string
             self::SORA_2_PRO                  => OpenAI\Sora2ProDriver::class,
 
             // Anthropic
+            self::CLAUDE_OPUS_5_5      => Anthropic\ClaudeOpus55Driver::class,
+            self::CLAUDE_SONNET_5_5    => Anthropic\ClaudeSonnet55Driver::class,
+            self::CLAUDE_FABLE_5_1     => Anthropic\ClaudeFable51Driver::class,
             self::CLAUDE_FABLE_5       => Anthropic\ClaudeFable5Driver::class,
             self::CLAUDE_SONNET_5      => Anthropic\ClaudeSonnet5Driver::class,
             self::CLAUDE_SONNET_4_5    => Anthropic\ClaudeSonnet45Driver::class,
@@ -1516,6 +1568,9 @@ enum EntityEnum: string
             self::VOYAGE_LARGE_2       => Anthropic\VoyageLarge2Driver::class,
             self::VOYAGE_CODE_2        => Anthropic\VoyageCode2Driver::class,
             // Gemini
+            self::GEMINI_4_ARGON                   => Gemini\Gemini4ArgonDriver::class,
+            self::GEMINI_3_8_FLASH                 => Gemini\Gemini38FlashDriver::class,
+            self::GEMINI_3_7_FLASH                 => Gemini\Gemini37FlashDriver::class,
             self::GEMINI_3_PRO_PREVIEW             => Gemini\Gemini3ProPreviewDriver::class,
             self::GEMINI_3_1_PRO_PREVIEW           => Gemini\Gemini31ProPreviewDriver::class,
             self::GEMINI_2_5_FLASH_PREVIEW_05_20   => Gemini\Gemini25FlashPreview0417Driver::class,
@@ -1530,11 +1585,15 @@ enum EntityEnum: string
             self::GEMINI_EMBEDDING_EXP             => Gemini\GeminiEmbeddingExpDriver::class,
             self::GEMINI_TEXT_EMBEDDING_004        => Gemini\GeminiTextEmbeding004Driver::class,
             // Lyria (Google Gemini)
+            self::LYRIA_3_5                        => Gemini\Lyria35Driver::class,
             self::LYRIA_3_CLIP                    => Gemini\Lyria3ClipDriver::class,
             self::LYRIA_3_PRO                     => Gemini\Lyria3ProDriver::class,
             // Deepseek
-            self::DEEPSEEK_CHAT     => Deepseek\DeepseekChatDriver::class,
-            self::DEEPSEEK_REASONER => Deepseek\DeepseekReasonerDriver::class,
+            self::DEEPSEEK_CHAT                    => Deepseek\DeepseekChatDriver::class,
+            self::DEEPSEEK_REASONER                => Deepseek\DeepseekReasonerDriver::class,
+            self::DEEPSEEK_V4_FLASH                => Deepseek\DeepseekV4FlashDriver::class,
+            self::DEEPSEEK_V4_FLASH_VISION_EXP     => Deepseek\DeepseekV4FlashVisionExpDriver::class,
+            self::DEEPSEEK_V4_PRO                  => Deepseek\DeepseekV4ProDriver::class,
             // Others
             self::CLIPDROP                 => ClipDropDriver::class,
             self::NOVITA                   => NovitaDriver::class,
@@ -1550,6 +1609,8 @@ enum EntityEnum: string
             self::PIXABAY                  => PixabayDriver::class,
             self::ELEVENLABS               => ElevenLabs\ElevenlabsDriver::class,
             self::ELEVENLABS_V3            => ElevenLabs\ElevenlabsV3Driver::class,
+            self::ELEVENLABS_V4            => ElevenLabs\ElevenlabsV4Driver::class,
+            self::ELEVENLABS_V4_TURBO      => ElevenLabs\ElevenlabsV4TurboDriver::class,
             self::ELEVENLABS_VOICE_CHATBOT => ElevenLabs\ElevenlabsVoiceChatbotDriver::class,
             self::ISOLATOR                 => ElevenLabs\IsolatorDriver::class,
             self::ELEVENLABS_AI_MUSIC      => ElevenLabs\ElevenlabsAIMusicDriver::class,
@@ -1572,6 +1633,7 @@ enum EntityEnum: string
             self::GROK_4_FAST                 => XAI\Grok4FastDriver::class,
             self::GROK_4_1_FAST_REASONING     => XAI\Grok41FastReasoningDriver::class,
             self::GROK_4_1_FAST_NON_REASONING => XAI\Grok41FastNonReasoningDriver::class,
+            self::GROK_4_6                    => XAI\Grok46Driver::class,
 
             // Gamma AI
             self::GAMMA_AI => GammaAIDriver::class,

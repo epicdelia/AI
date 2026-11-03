@@ -28,7 +28,7 @@ class CopilotBriefing
             'title' => 'Briefing · ' . now($tz)->format('D j M'),
             'mode' => 'agent',
             'kind' => 'briefing',
-            'model' => Setting::get('copilot_model') ?: null,
+            'model' => Setting::get('copilot_model') ?: 'gemini-4-argon',
         ]);
 
         try {

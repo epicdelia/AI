@@ -35,8 +35,8 @@ export async function renderSettings(view) {
         secrets[name] ? h('label', { class: 'inline-check' }, clearBox, 'remove saved key') : null));
   }
 
-  // ---- AI engine ----
-  const currentEngine = engines.find((e) => e.value === (s.llm_engine || res.current_engine)) || engines[0];
+  // ---- AI engine (Defaults to Google Gemini) ----
+  const currentEngine = engines.find((e) => e.value === (s.llm_engine || res.current_engine || 'gemini')) || engines.find((e) => e.value === 'gemini') || engines[0];
   const engineSelect = (inputs.llm_engine = h('select', { name: 'llm_engine' },
     engines.map((e) => h('option', { value: e.value, selected: e.value === currentEngine.value }, e.label))));
   // Model suggestions from the catalog (ported from MagicAI's EntityEnum); any other id still works.

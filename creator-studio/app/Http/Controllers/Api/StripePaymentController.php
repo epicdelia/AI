@@ -170,7 +170,8 @@ class StripePaymentController extends Controller
         $object = $payload['data']['object'] ?? [];
         match ($payload['type'] ?? '') {
             'checkout.session.completed' => \App\Domains\Community\ProBilling::isCommunity($object)
-                ? \App\Domains\Community\ProBilling::completed($object) : self::checkoutCompleted($object),
+                ? \App\Domains\Community\ProBilling::completed($object)
+                : (ShopController::isProduct($object) ? ShopController::completed($object) : self::checkoutCompleted($object)),
             'invoice.paid', 'invoice.payment_succeeded' => \App\Domains\Community\ProBilling::invoicePaid($object) ?: self::invoicePaid($object),
             'customer.subscription.deleted' => \App\Domains\Community\ProBilling::ended($object) ?: self::subscriptionEnded($object),
             default => null,

@@ -59,6 +59,16 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
     });
 
     const submitBtn = h('button', { type: 'submit', class: 'btn primary' }, icon('calendar', 14), ' Request 30-Min Call');
+    // Brand partnerships: a few facts so she can answer fast (her inquiry autopilot uses them).
+    const budgetSelect = h('select', { class: 'input' }, h('option', { value: '' }, 'Prefer not to say'),
+      [['under_1k', 'Under $1k'], ['1k_3k', '$1k–3k'], ['3k_10k', '$3k–10k'], ['10k_plus', '$10k+']].map(([v, l]) => h('option', { value: v }, l)));
+    const timelineInput = h('input', { class: 'input', maxlength: 60, placeholder: 'e.g. in 4 weeks, early March' });
+    const deliverablesInput = h('input', { class: 'input', maxlength: 1000, placeholder: 'e.g. one YouTube integration + LinkedIn post' });
+    const productInput = h('input', { class: 'input', type: 'url', maxlength: 500, placeholder: 'https://…' });
+    const brandBox = h('div', { class: 'stack', hidden: typeSelect.value !== 'brand_deal' },
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } }, field('Budget', budgetSelect), field('When should it go live?', timelineInput)),
+      h('div', { class: 'grid grid-2', style: { gap: '14px' } }, field('What would you like?', deliverablesInput), field('Product link', productInput)));
+    typeSelect.addEventListener('change', () => { brandBox.hidden = typeSelect.value !== 'brand_deal'; });
     const cancelBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel');
 
     // Real open times (her working hours, minus booked calls), shown in the visitor's own time.
@@ -118,6 +128,10 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
             project_type: typeSelect.value,
             notes: notesInput.value.trim(),
             service: service || undefined,
+            ...(typeSelect.value === 'brand_deal' ? {
+              budget: budgetSelect.value || undefined, timeline: timelineInput.value.trim() || undefined,
+              deliverables: deliverablesInput.value.trim() || undefined, product_url: productInput.value.trim() || undefined,
+            } : {}),
             attribution: attribution(),
             ...(slot ? { slot } : { preferred_date: dateInput.value, preferred_time: timeSelect.value }),
           };
@@ -138,6 +152,7 @@ export function openBookingModal(initialType = 'mvp_build', service = '') {
       h('div', { class: 'grid grid-2', style: { gap: '14px' } },
         field('Company or Brand', companyInput, 'Optional'),
         field('Project Type', typeSelect)),
+      brandBox,
       slotBox,
       whenRow,
       field('Project Notes or Goals', notesInput, 'Tell Delia what you need built'),

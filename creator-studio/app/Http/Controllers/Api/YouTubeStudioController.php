@@ -68,6 +68,7 @@ class YouTubeStudioController extends Controller
                 'videos' => array_map(fn ($i) => [
                     'id' => $i['snippet']['resourceId']['videoId'] ?? null,
                     'title' => $i['snippet']['title'] ?? '',
+                    'description' => $i['snippet']['description'] ?? '',
                     'published_at' => $i['snippet']['publishedAt'] ?? null,
                     'thumb' => $i['snippet']['thumbnails']['default']['url'] ?? null,
                 ], $items),

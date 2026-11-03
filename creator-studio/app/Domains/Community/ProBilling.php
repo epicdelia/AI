@@ -84,6 +84,7 @@ class ProBilling
             'current_period_end' => now()->addMonth()->addDays(3), // the invoice webhook sets the real end
         ]);
         AgentEvent::log('payment', "New community Pro member: {$user->name}.");
+        rescue(fn () => MemberReferrals::proPurchased($user), null, true);
     }
 
     /**

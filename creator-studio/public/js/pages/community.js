@@ -250,12 +250,17 @@ export async function renderCommunityHub(view) {
     data.pro.perks.length ? h('ul', {}, data.pro.perks.map((p) => h('li', {}, p))) : null,
     upgradeButton()) : null;
 
+  const refCard = data.referrals ? h('div', { class: 'card community-hire' },
+    h('div', {}, h('h3', {}, 'Invite a friend'),
+      h('p', { class: 'muted small' }, `+10 points when they join; a free month of Pro when they go Pro. ${data.referrals.joined} joined · ${data.referrals.went_pro} went Pro.`)),
+    h('button', { type: 'button', class: 'btn', onclick: () => copyText(data.referrals.link, 'Invite link copied.') }, icon('copy', 13), ' Copy my invite link')) : null;
+
   const hire = data.hire ? h('div', { class: 'card callout community-hire' },
     h('div', {}, h('h3', {}, data.hire.headline), h('p', { class: 'muted small' }, data.hire.body)),
     h('a', { class: 'btn primary', href: data.hire.cta_url }, data.hire.cta_label)) : null;
 
   clear(view);
-  view.append(h('div', { class: 'community-hub-page' }, hero, hire, proPitch, tabNav, content));
+  view.append(h('div', { class: 'community-hub-page' }, hero, hire, proPitch, refCard, tabNav, content));
   draw();
 }
 
@@ -307,6 +312,8 @@ export async function renderCommunityAdmin(view) {
       h('div', { class: 'row', style: { flexShrink: 0 } },
         item.status === 'pending' ? h('button', { type: 'button', class: 'btn primary sm', onclick: () => patch(item, { status: 'published' }) }, 'Approve') : null,
         item.type === 'question' && !item.answer ? h('button', { type: 'button', class: 'btn primary sm', onclick: () => edit(item) }, 'Answer') : null,
+        item.type === 'question' ? h('button', { type: 'button', class: 'btn sm', title: 'Make it a video idea; the asker hears when it goes live', disabled: !!item.idea_id,
+          onclick: async () => { await api('POST', `community/admin/items/${item.id}/to-idea`); toast('Added to Ideas.'); reload(); } }, item.idea_id ? 'In Ideas ✓' : 'Send to Ideas') : null,
         h('button', { type: 'button', class: 'btn ghost sm', onclick: () => edit(item) }, 'Edit'),
         h('button', { type: 'button', class: 'btn ghost sm', 'aria-label': 'Delete', onclick: async () => { if (await confirmDialog(`Delete “${item.title}”?`)) { await api('DELETE', `community/admin/items/${item.id}`); reload(); } } }, icon('trash', 13))));
   }

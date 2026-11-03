@@ -50,7 +50,17 @@ class StaffScopeTest extends TestCase
                 continue;
             }
             $method = collect($route->methods())->first(fn ($m) => $m !== 'HEAD');
-            $uri = preg_replace('/\{\w+\??\}/', '1', $route->uri());
+            // A sample value that satisfies each parameter's pattern (ids, 11-char video ids, tokens…).
+            $uri = preg_replace_callback('/\{(\w+)\??\}/', function ($m) use ($route) {
+                $pattern = $route->wheres[$m[1]] ?? null;
+                foreach (['1', 'x', 'abcdefghijk', str_repeat('a', 48)] as $sample) {
+                    if (!$pattern || preg_match('/^' . $pattern . '$/', $sample)) {
+                        return $sample;
+                    }
+                }
+
+                return '1';
+            }, $route->uri());
             if (!Role::isPrivatePath($method, $uri)) {
                 continue;
             }

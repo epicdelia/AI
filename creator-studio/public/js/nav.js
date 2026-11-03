@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   // Community members & followers: starter kits, blueprints, AMA questions, perks
   { header: 'Community', ability: 'portal.community' },
   { to: '/community', label: 'Community Hub', icon: 'sparkle', ability: 'portal.community', desc: 'Starter kits, blueprints, AMA and perks' },
+  { to: '/shop', label: 'Shop', icon: 'gift', ability: 'portal.community', desc: 'Templates, guides and resources' },
 
   // Clients: their own requests, money and account.
   { header: 'Your projects', ability: 'portal.requests' },
@@ -59,6 +60,9 @@ export const NAV_ITEMS = [
   { to: '/clients', label: 'Clients', icon: 'users', ability: 'clients.manage', desc: 'Client accounts, their requests and messages' },
   { to: '/community/manage', label: 'Community', icon: 'sparkle', ability: 'studio.private', desc: 'Posts, answers, approvals, Pro tier and warm leads' },
   { to: '/crm', label: 'Contacts', icon: 'users', ability: 'studio.private', desc: 'Leads, clients and sponsors with follow-ups' },
+  { to: '/shop/manage', label: 'Shop', icon: 'gift', ability: 'studio.private', desc: 'Digital products, sales and download links' },
+  { to: '/affiliates', label: 'Affiliate links', icon: 'link', ability: 'studio.private', desc: 'Your /go/ links, clicks and commissions' },
+  { to: '/newsletter', label: 'Newsletter', icon: 'mail', ability: 'studio.private', desc: 'Email your subscribers' },
   { to: '/portal-brand', label: 'Portal branding', icon: 'sliders', ability: 'studio.private', desc: 'White-label what clients and members see' },
   { to: '/account', label: 'Account & security', icon: 'lock', desc: 'Your login, password and two-factor sign-in' },
   { to: '/connections', label: 'Connections', ability: 'studio.private', icon: 'plug', desc: 'Sign in to your networks' },

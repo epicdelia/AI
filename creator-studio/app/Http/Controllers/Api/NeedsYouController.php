@@ -79,6 +79,30 @@ class NeedsYouController extends Controller
             ])->all(),
         ));
 
+        $inquiries = Deal::where('stage', 'inquiry')->where(fn ($q) => $q->where('fit_verdict', 'review')->orWhere('auto_reply', 'draft'))
+            ->latest()->take(10)->get(['id', 'brand_name', 'fit_score', 'fit_verdict', 'auto_reply', 'created_at']);
+        $copyChanges = Deal::where('copy_status', 'changes')->take(10)->get(['id', 'brand_name', 'user_id', 'copy_note']);
+        $groups[] = $this->group('inquiries', 'Brand inquiries', 'briefcase', array_merge(
+            $inquiries->map(fn ($d) => [
+                'title' => ($d->auto_reply === 'draft' ? 'Reply drafted: ' : 'Look at: ') . $d->brand_name,
+                'meta' => $d->fit_score !== null ? "fit {$d->fit_score}/100 · {$d->fit_verdict}" : null,
+                'url' => '/deals',
+                'at' => $d->created_at?->toIso8601String(),
+            ])->all(),
+            $copyChanges->map(fn ($d) => [
+                'title' => "Copy changes asked: {$d->brand_name}",
+                'meta' => mb_substr((string)$d->copy_note, 0, 80),
+                'url' => '/deals',
+                'at' => null,
+            ])->all(),
+            \App\Domains\Deals\InquiryAutopilot::rules()['enabled'] && \App\Domains\Deals\InquiryAutopilot::rateCardStale() ? [[
+                'title' => 'Your rates haven’t been reviewed in 90+ days',
+                'meta' => 'the autopilot quotes your starting price',
+                'url' => '/deals',
+                'at' => null,
+            ]] : [],
+        ));
+
         $payouts = TeamTask::with('assignee:id,name')->where('payout_status', 'pending')->latest('completed_at')->take(10)->get();
         $overdue = TeamTask::with('assignee:id,name')->whereNull('completed_at')->whereNotNull('due_on')
             ->whereDate('due_on', '<', now()->toDateString())->orderBy('due_on')->take(10)->get();

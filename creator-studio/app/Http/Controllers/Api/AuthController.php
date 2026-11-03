@@ -96,6 +96,7 @@ class AuthController extends Controller
             'role' => 'nullable|string|max:50',
             'password' => ['required', 'confirmed', self::passwordRule()],
             'terms' => 'accepted',
+            'ref' => 'nullable|string|max:16',
         ]);
         $email = strtolower(trim($data['email']));
         $targetRole = Role::forSignUp($data['role'] ?? 'client');
@@ -123,6 +124,7 @@ class AuthController extends Controller
                 AgentEvent::log('lead', "New client sign-up: {$user->name} ({$user->email}), waiting for email confirmation.");
             } else {
                 AgentEvent::log('community', "New community member sign-up: {$user->name} ({$user->email}).");
+                rescue(fn () => \App\Domains\Community\MemberReferrals::record($user, $data['ref'] ?? null, $request->ip()), null, true);
             }
         }
 

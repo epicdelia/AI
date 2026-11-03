@@ -88,6 +88,36 @@ data class UsageRight(
 )
 
 @Serializable
+data class SponsoredCopy(
+    val text: String = "",
+    val status: String = "pending",
+    val note: String? = null,
+    @SerialName("due_on") val dueOn: String? = null,
+)
+
+// ---- Sales (her) --------------------------------------------------------------------------
+
+@Serializable
+data class ShopTotals(
+    @SerialName("revenue_30d") val revenue30d: Double = 0.0,
+    @SerialName("orders_30d") val orders30d: Int = 0,
+    @SerialName("revenue_all") val revenueAll: Double = 0.0,
+)
+
+@Serializable
+data class ShopAdmin(val totals: ShopTotals = ShopTotals())
+
+@Serializable
+data class AffiliateTotals(
+    @SerialName("earned_30d") val earned30d: Double = 0.0,
+    @SerialName("clicks_30d") val clicks30d: Int = 0,
+    val broken: Int = 0,
+)
+
+@Serializable
+data class AffiliateOverview(val totals: AffiliateTotals = AffiliateTotals())
+
+@Serializable
 data class RequestDetail(
     val id: Long = 0,
     val title: String = "",
@@ -103,6 +133,7 @@ data class RequestDetail(
     val onboarding: Onboarding? = null,
     val billing: BillingTerms? = null,
     val rights: List<UsageRight> = emptyList(),
+    @SerialName("sponsored_copy") val sponsoredCopy: SponsoredCopy? = null,
 )
 
 @Serializable

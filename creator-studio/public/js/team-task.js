@@ -65,10 +65,18 @@ export async function taskDetail(task, me, onChange = () => {}) {
       player || '');
   }
 
+  const checkBox = h('div');
+  function drawChecklist(items) {
+    clear(checkBox).append(items.length ? h('ul', { class: 'stack' }, items.map((i) => h('li', {}, h('label', { class: 'row', style: { gap: '6px' } },
+      h('input', { type: 'checkbox', checked: i.done, onchange: async (e) => { try { drawChecklist((await api('POST', `team/tasks/${task.id}/checklist/${i.key}`, { done: e.target.checked })).items); onChange(); } catch (err) { toast(err.message, 'err'); } } }),
+      i.label)))) : h('p', { class: 'muted small' }, `No checklist for the ${task.stage} stage.`));
+  }
+  drawChecklist(task.checklist || []);
   drawBrief();
   drawTime();
   drawFiles();
   await modal(task.title, () => h('div', {},
+    h('h3', {}, icon('check', 14), ` Before it leaves “${task.stage}”`), checkBox,
     h('h3', {}, icon('file-text', 14), ' Brief'), briefBox,
     h('h3', {}, icon('clock', 14), ' Time'), timeBox,
     h('h3', {}, icon('play', 14), ' Files & review'), filesBox), { wide: true });
@@ -86,6 +94,37 @@ export async function briefTemplatesDialog() {
       d.templates = (await api('PUT', 'team/brief-templates', { role, template: ta.value })).templates; toast('Saved.');
     }) }, 'Save')),
     h('p', { class: 'muted small' }, 'New tasks for this role (and "Repurpose a video") start with this brief filled in.')), { wide: true });
+}
+
+export async function checklistsDialog() {
+  const d = await api('GET', 'team/checklists');
+  let stage = d.stages[0];
+  const ta = h('textarea', { rows: 8, placeholder: 'One item per line' });
+  const fill = () => { ta.value = (d.checklists[stage] || []).map((i) => i.label).join('\n'); };
+  const pick = h('select', { onchange: (e) => { stage = e.target.value; fill(); } }, d.stages.map((s) => h('option', { value: s }, s)));
+  fill();
+  await modal('Stage checklists', () => h('div', {},
+    field('Stage', pick), field('Checklist', ta, 'A task can’t move past this stage until everything is ticked (you can still force it).'),
+    h('div', { class: 'row-end' }, h('button', { type: 'button', class: 'btn primary', onclick: (e) => busy(e.currentTarget, 'Saving…', async () => {
+      d.checklists = (await api('PUT', 'team/checklists', { stage, items: ta.value.split('\n').map((x) => x.trim()).filter(Boolean) })).checklists; toast('Saved.');
+    }) }, 'Save'))));
+}
+
+export async function workloadDialog(isAdmin) {
+  const box = h('div');
+  async function draw() {
+    const { people } = await api('GET', 'team/workload');
+    clear(box).append(h('ul', { class: 'stack' }, people.map((p) => {
+      const pct = p.capacity_minutes ? Math.min(100, Math.round((p.minutes / p.capacity_minutes) * 100)) : 0;
+      const hrs = h('input', { type: 'number', min: 0, max: 80, value: Math.round(p.capacity_minutes / 60), style: { width: '70px' }, 'aria-label': `Weekly hours for ${p.name}` });
+      return h('li', {},
+        h('div', { class: 'row-between' }, h('strong', {}, p.name), h('span', { class: p.over ? 'pill sm late' : 'muted small' }, `${Math.round(p.minutes / 60)}h of ${Math.round(p.capacity_minutes / 60)}h · ${p.tasks} task(s)`)),
+        h('div', { class: 'meter' }, h('span', { style: { width: `${pct}%`, background: p.over ? 'var(--bad, #d33)' : '' } })),
+        isAdmin ? h('div', { class: 'row small' }, 'Hours a week ', hrs, h('button', { type: 'button', class: 'btn ghost sm', onclick: async () => { await api('PUT', `team/hours/${p.id}`, { weekly_hours: Number(hrs.value || 0) }); draw(); } }, 'Save')) : null);
+    })), h('p', { class: 'muted small' }, 'Open tasks due in the next 7 days: their estimate, or what that person usually logs for that role (2h if unknown), minus time already logged.'));
+  }
+  await draw();
+  await modal('Workload this week', () => box);
 }
 
 export async function ratesDialog() {

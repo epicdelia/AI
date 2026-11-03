@@ -455,6 +455,12 @@ class ApiController extends Controller
                 . $askLines->implode("\n") . "\n";
         }
 
+        // What community members asked (most votes first): demand from her own audience.
+        $questions = \App\Domains\Community\QuestionsToVideos::signalLines();
+        if ($questions) {
+            $userPrompt .= "\nQuestions her community members asked and voted on (cite the source_url, put the vote count in why_now):\n" . implode("\n", $questions) . "\n";
+        }
+
         // Her own recent winners and duds, if My channel was opened recently (no extra API call).
         $channel = Setting::get('channel_id');
         $report = $channel ? Cache::get(AudienceController::cacheKey($channel)) : null;

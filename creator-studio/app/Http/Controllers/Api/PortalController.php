@@ -106,6 +106,7 @@ class PortalController extends Controller
                 // Only once there's a price they can see (her internal estimate stays hers).
                 'billing' => $detail['amount'] !== null ? \App\Domains\Deals\Billing::summary($d) : null,
                 'onboarding' => \App\Domains\Clients\ReviewAndOnboarding::checklist($d),
+                'sponsored_copy' => InquiryController::clientCopy($d),
                 'rights' => \App\Domains\Deals\DealRight::where('deal_id', $d->id)->orderBy('id')->get()->map(fn ($r) => \App\Domains\Deals\Rights::row($r))->values(),
                 'intake' => $d->intake,
                 'intake_at' => $d->intake_at?->toIso8601String(),

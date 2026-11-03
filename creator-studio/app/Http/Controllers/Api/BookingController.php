@@ -63,6 +63,11 @@ class BookingController extends Controller
             'preferred_time' => 'required_without:slot|nullable|string|max:50',
             'notes' => 'nullable|string|max:2000',
             'service' => 'nullable|string|max:100', // the landing-page service card it came from
+            // Brand inquiries: what the autopilot triages on.
+            'budget' => 'nullable|in:' . implode(',', array_keys(\App\Domains\Deals\InquiryAutopilot::BUDGETS)),
+            'timeline' => 'nullable|string|max:60',
+            'deliverables' => 'nullable|string|max:1000',
+            'product_url' => 'nullable|url:http,https|max:500',
         ] + Attribution::rules());
         $service = ($data['service'] ?? null) ?: null;
 
@@ -112,6 +117,14 @@ class BookingController extends Controller
             'source' => $from['source'],
             'attribution' => $from['attribution'],
         ]);
+
+        $deal->forceFill(array_filter([
+            'inquiry_budget' => $data['budget'] ?? null,
+            'inquiry_timeline' => $data['timeline'] ?? null,
+            'inquiry_deliverables' => $data['deliverables'] ?? null,
+            'inquiry_product_url' => $data['product_url'] ?? null,
+        ]))->saveQuietly();
+        rescue(fn () => \App\Domains\Deals\InquiryAutopilot::handle($deal, $data['project_type']), null, true);
 
         AgentEvent::log('lead', ($meetingAt ? 'Intro call booked' : 'Intro call request') . ": {$data['name']} ({$data['email']}), " . ($service ?: $label) . ", {$when}.");
 

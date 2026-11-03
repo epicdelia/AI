@@ -29,6 +29,9 @@ class Publisher
             ->orderBy('scheduled_for')->limit(20)->get();
 
         foreach ($posts as $post) {
+            if (\App\Domains\Deals\SponsoredCopy::blockReason($post)) {
+                continue; // the client hasn't approved the sponsored copy yet
+            }
             $account = $accounts[$post->platform] ?? null;
             $provider = isset(Connections::PROVIDERS[$post->platform]) ? Connections::provider($post->platform) : null;
             if (!$account || !$provider?->canPublish()) {
@@ -73,6 +76,9 @@ class Publisher
      */
     public static function publish(SocialPost $post, ?SocialAccount $account = null): array
     {
+        if ($why = \App\Domains\Deals\SponsoredCopy::blockReason($post)) {
+            throw new \RuntimeException($why);
+        }
         $account ??= SocialAccount::where('platform', $post->platform)->firstOrFail();
         $provider = Connections::provider($post->platform);
         $r = $provider->publish($account, Connections::token($account), $post);

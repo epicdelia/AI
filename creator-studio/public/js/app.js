@@ -55,6 +55,7 @@ const page = {
   community: () => import('./pages/community.js'),
   team: () => import('./pages/team.js'),
   admin: () => import('./pages/admin.js'),
+  income: () => import('./pages/income.js'),
   installer: () => import('./pages/installer.js'),
   legal: () => import('./pages/legal.js'),
 };
@@ -113,6 +114,10 @@ const ROUTES = [
   { path: /^\/snippets$/, render: lazy(page.snippets, 'renderSnippets'), nav: '/snippets' },
   { path: /^\/website$/, ability: 'studio.private', render: lazy(page.website, 'renderWebsite'), nav: '/website' },
   { path: /^\/landing$/, ability: 'studio.private', render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
+  { path: /^\/affiliates$/, ability: 'studio.private', render: lazy(page.income, 'renderAffiliates'), nav: '/affiliates' },
+  { path: /^\/shop\/manage$/, ability: 'studio.private', render: lazy(page.income, 'renderShopAdmin'), nav: '/shop/manage' },
+  { path: /^\/newsletter$/, ability: 'studio.private', render: lazy(page.income, 'renderNewsletter'), nav: '/newsletter' },
+  { path: /^\/shop$/, ability: 'any', render: lazy(page.income, 'renderShop'), nav: '/shop' },
   { path: /^\/needs-you$/, ability: 'studio.private', render: lazy(page.admin, 'renderNeedsYou'), nav: '/needs-you' },
   { path: /^\/crm$/, ability: 'studio.private', render: lazy(page.admin, 'renderCrm'), nav: '/crm' },
   { path: /^\/portal-brand$/, ability: 'studio.private', render: lazy(page.admin, 'renderPortalBrand'), nav: '/portal-brand' },
@@ -555,6 +560,7 @@ async function boot() {
       if (kit) { state.guestView = 'kit'; showKit(kit[1]); return; }
       const review = location.pathname.match(/^\/review\/([A-Za-z0-9]{20,64})$/);
       if (review) { state.guestView = 'review'; showPublic(renderReview, review[1], 'This review link isn’t active.'); return; }
+      if (location.pathname === '/shop') { state.guestView = 'shop'; showPublic((v) => page.income().then((m) => m.renderShop(v)), null, 'The shop isn’t available right now.'); return; }
       const join = location.pathname.match(/^\/join-team\/([A-Za-z0-9]{40,64})$/);
       if (join) { state.guestView = 'join'; showPublic((v, t) => page.team().then((m) => m.renderJoinTeam(v, t)), join[1], 'This invite link isn’t active. Ask for a new one.'); return; }
       const room = location.pathname.match(/^\/deal\/([A-Za-z0-9]{20,64})$/);

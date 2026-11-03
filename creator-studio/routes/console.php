@@ -58,7 +58,7 @@ $track = function ($command, string $name, callable $work): int {
 
 Artisan::command('studio:client-reminders', function () use ($track) {
     return $track($this, 'client-reminders', fn () => sprintf('Reminders sent: %d review(s), %d overdue invoice(s), %d rights ending.',
-        \App\Domains\Clients\ReviewAndOnboarding::remindReviews(), \App\Domains\Deals\Billing::remindOverdue(), \App\Domains\Deals\Rights::remindEnding()));
+        \App\Domains\Clients\ReviewAndOnboarding::remindReviews() + \App\Domains\Deals\SponsoredCopy::remind(), \App\Domains\Deals\Billing::remindOverdue(), \App\Domains\Deals\Rights::remindEnding()));
 })->purpose('Remind clients about reviews due, overdue invoices and usage rights ending');
 
 Artisan::command('studio:community-engage', function () use ($track) {
@@ -69,6 +69,14 @@ Artisan::command('studio:community-engage', function () use ($track) {
 Artisan::command('studio:weekly-digest', function () use ($track) {
     return $track($this, 'weekly-digest', fn () => 'Weekly summary sent to '.\App\Domains\Admin\WeeklyDigest::send().' admin(s).');
 })->purpose('Email her a summary of the week: money, clients, community, team');
+
+Artisan::command('studio:affiliate-check', function () use ($track) {
+    return $track($this, 'affiliate-check', fn () => \App\Http\Controllers\Api\AffiliateController::checkLinks().' affiliate link(s) broken.');
+})->purpose('Check every affiliate link still works; email her about new broken ones');
+
+Artisan::command('studio:newsletter', function () use ($track) {
+    return $track($this, 'newsletter', fn () => 'Newsletter emails sent: '.\App\Http\Controllers\Api\NewsletterController::drain().'.');
+})->purpose('Send the next batch of newsletter emails');
 
 Artisan::command('studio:community-digest', function () use ($track) {
     return $track($this, 'community-digest', fn () => 'Community digest sent to '.\App\Domains\Community\Community::sendDigests().' member(s).');
@@ -342,6 +350,8 @@ Schedule::command('studio:youtube')->everyMinute()->when(fn () => $enabled() && 
 Schedule::command('studio:client-reminders')->dailyAt('09:00')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:community-engage')->everyFifteenMinutes()->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:weekly-digest')->weeklyOn(1, '07:30')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:affiliate-check')->weeklyOn(2, '06:00')->timezone($tz)->when(fn () => $enabled() && rescue(fn () => \Illuminate\Support\Facades\DB::table('affiliate_links')->where('active', true)->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:newsletter')->everyMinute()->when(fn () => rescue(fn () => \Illuminate\Support\Facades\DB::table('campaigns')->where('status', 'sending')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:community-digest')->weeklyOn(4, '09:00')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:team-reminders')->dailyAt('08:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

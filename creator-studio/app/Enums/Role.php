@@ -47,6 +47,7 @@ enum Role: string
         'backups', 'backups/*', 'settings', 'settings/*', 'automations', 'user/keys', 'user/keys/*',
         'usage', 'schedule', 'schedule/*', 'studio/infra/*', 'mcp', 'mcp/*',
         'community/admin', 'community/admin/*', 'crm', 'crm/*', 'portal-brand', 'portal-brand/*', 'needs-you', 'needs-you/*',
+        'affiliates', 'affiliates/*', 'shop/admin', 'shop/admin/*', 'newsletter', 'newsletter/*', 'localize', 'localize/*', 'inquiry-rules',
     ];
 
     /**

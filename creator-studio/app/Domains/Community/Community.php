@@ -27,6 +27,7 @@ class Community
         'showcase_approved' => 15,
         'featured' => 25,
         'lesson' => 3,
+        'referred' => 10,
     ];
 
     /**

@@ -83,6 +83,7 @@ class CommunityItem extends Model
         return $this->toMember(true) + [
             'user_id' => $this->user_id,
             'author_email' => $this->user?->email,
+            'idea_id' => $this->idea_id,
         ];
     }
 }

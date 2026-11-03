@@ -109,6 +109,24 @@ function intakeValues(root) {
   return out;
 }
 
+function copyCard(r, id) {
+  const c = r.sponsored_copy;
+  if (!c) return null;
+  const note = h('textarea', { rows: 3, maxlength: 5000, placeholder: 'What should change?', 'aria-label': 'Changes' });
+  return h('div', { class: `card${c.status === 'pending' ? ' callout' : ''}` },
+    h('div', { class: 'card-header' }, h('h2', {}, 'Sponsored copy'), h('span', { class: `pill ${c.status === 'approved' ? 'ok' : c.status === 'changes' ? 'late' : ''}` },
+      c.status === 'approved' ? 'Approved' : c.status === 'changes' ? 'Changes asked' : `Waiting for you${c.due_on ? ` · by ${fmtDay(c.due_on)}` : ''}`)),
+    h('blockquote', { style: { whiteSpace: 'pre-wrap' } }, c.text),
+    c.note ? h('p', { class: 'muted small' }, `Your note: ${c.note}`) : null,
+    c.status === 'pending' ? h('div', { class: 'stack' },
+      h('button', { class: 'btn primary', type: 'button', onclick: (e) => busy(e.currentTarget, 'Saving…', async () => { await api('POST', `portal/requests/${id}/copy/approve`); toast('Approved. Thank you!'); navigate(`/requests/${id}`, { replace: true }); }) }, icon('check', 14), 'Approve this wording'),
+      note,
+      h('button', { class: 'btn', type: 'button', onclick: (e) => busy(e.currentTarget, 'Sending…', async () => {
+        if (note.value.trim().length < 5) { toast('Write what should change.', 'err'); return; }
+        await api('POST', `portal/requests/${id}/copy/changes`, { note: note.value.trim() }); toast('Sent.'); navigate(`/requests/${id}`, { replace: true });
+      }) }, 'Ask for changes')) : null);
+}
+
 function onboardingCard(r, id) {
   const o = r.onboarding;
   if (!o?.active || !o.steps.length) return null;
@@ -330,6 +348,7 @@ export async function renderRequest(view, id) {
       r.review_url ? h('p', {}, h('a', { class: 'btn', href: r.review_url }, icon('star', 15), 'Leave a review')) : null),
     milestonesSlot,
     r.review_due_on && r.can_review_work ? h('div', { class: `card callout${r.review_overdue ? ' warn' : ''}` }, icon('clock', 15), ` Your review is due ${fmtDay(r.review_due_on)}.`) : null,
+    copyCard(r, id),
     onboardingCard(r, id),
     billingTermsCard(r),
     rightsCard(r, id),

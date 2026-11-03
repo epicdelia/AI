@@ -91,6 +91,7 @@ class TeamController extends Controller
             'ok' => true,
             'message' => 'Task added.',
             'task' => $this->present($task->fresh(['assignee', 'script']), $me),
+            'workload_warning' => TeamOpsController::warningFor($task->assignee_id),
         ], 201);
     }
 
@@ -103,6 +104,10 @@ class TeamController extends Controller
             unset($data['payout_amount'], $data['payout_currency'], $data['hourly']);
         }
         $before = $task->assignee_id;
+        $leaving = (isset($data['stage']) && $data['stage'] !== $task->stage) || (($data['completed'] ?? false) && !$task->completed_at);
+        if ($leaving && !($me->isAdmin() && $request->boolean('force')) && ($missing = TeamOpsController::missing($task))) {
+            abort(422, 'Finish the ' . $task->stage . ' checklist first: ' . implode(', ', $missing) . '.');
+        }
 
         if (array_key_exists('completed', $data)) {
             $task->completed_at = $data['completed'] ? ($task->completed_at ?? now()) : null;
@@ -128,6 +133,7 @@ class TeamController extends Controller
             'ok' => true,
             'message' => 'Task updated.',
             'task' => $this->present($task->fresh(['assignee', 'script']), $me),
+            'workload_warning' => $task->assignee_id !== $before ? TeamOpsController::warningFor($task->assignee_id) : null,
         ]);
     }
 
@@ -454,6 +460,7 @@ class TeamController extends Controller
             'payout_currency' => 'nullable|string|size:3',
             'completed' => 'sometimes|boolean',
             'hourly' => 'sometimes|boolean',
+            'estimate_minutes' => 'nullable|integer|min:0|max:10000',
             'brief' => 'nullable|string|max:20000',
         ]);
         if (array_key_exists('role_specialty', $data)) {

@@ -133,11 +133,15 @@ fun NeedsYouLiveScreen(api: LiveApi) = SignedIn(api) {
     var data by remember { mutableStateOf<NeedsYou?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    var sales by remember { mutableStateOf<Pair<com.techunicorn.studio.data.live.ShopTotals, com.techunicorn.studio.data.live.AffiliateTotals>?>(null) }
     LaunchedEffect(reload) {
         when (val r = api.needsYou()) {
             is LiveResult.Ok -> { data = r.value; error = null }
             is LiveResult.Err -> error = if (r.status == 403) "Only the studio owner sees this." else r.message
         }
+        val shop = (api.shopTotals() as? LiveResult.Ok)?.value?.totals
+        val aff = (api.affiliateTotals() as? LiveResult.Ok)?.value?.totals
+        if (shop != null && aff != null) sales = shop to aff
     }
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -147,6 +151,16 @@ fun NeedsYouLiveScreen(api: LiveApi) = SignedIn(api) {
             }
         }
         error?.let { item { Message(it, true) } }
+        sales?.let { (shop, aff) ->
+            item {
+                SectionCard {
+                    Text("Sales (30 days)", fontWeight = FontWeight.SemiBold)
+                    Text("Shop: ${shop.orders30d} order(s), ${shop.revenue30d}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Affiliate: ${aff.earned30d} earned, ${aff.clicks30d} clicks" + if (aff.broken > 0) " · ${aff.broken} broken link(s)" else "",
+                        style = MaterialTheme.typography.bodyMedium, color = if (aff.broken > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
         val d = data
         if (d == null && error == null) item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         if (d != null && d.groups.isEmpty()) item { Message("All caught up: nothing is waiting on you.") }
@@ -271,6 +285,21 @@ private fun RequestDetailView(api: LiveApi, id: Long, onBack: () -> Unit) {
                 Text(d.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(d.status.label, style = MaterialTheme.typography.bodyMedium)
                 d.needsYou?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            }
+        }
+        d.sponsoredCopy?.let { c ->
+            item {
+                var copyNote by remember { mutableStateOf("") }
+                SectionCard {
+                    Text("Sponsored copy · " + when (c.status) { "approved" -> "approved"; "changes" -> "changes asked"; else -> "waiting for you" + (c.dueOn?.let { " (by $it)" } ?: "") },
+                        fontWeight = FontWeight.SemiBold)
+                    Text(c.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 6.dp))
+                    if (c.status == "pending") {
+                        Button(onClick = { scope.launch { api.approveCopy(id); reload++ } }) { Text("Approve this wording") }
+                        OutlinedTextField(copyNote, { copyNote = it }, label = { Text("Or what should change?") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                        OutlinedButton(enabled = copyNote.trim().length >= 5, onClick = { scope.launch { api.copyChanges(id, copyNote.trim()); copyNote = ""; reload++ } }) { Text("Ask for changes") }
+                    }
+                }
             }
         }
         if (d.canReviewWork) item {

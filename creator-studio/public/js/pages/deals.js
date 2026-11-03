@@ -4,6 +4,7 @@ import {
 } from '../core.js';
 import { icon } from '../icons.js';
 import { termsDialog } from '../deal-terms.js';
+import { inquiryRulesDialog, copyDialog } from '../deal-inquiry.js';
 import {
   followUpsCard, followUpDialog, proposalDialog, kitLinkDialog, complianceDialog, wrapReportDialog,
   outboundPitchDialog, prospectsDialog, sourceChip, meetingLine, leadScoreChip,
@@ -115,6 +116,8 @@ export async function renderDeals(view) {
           ['contracted', 'production', 'in_review', 'scheduled'].includes(deal.stage) || deal.script_id ? h('button', { class: 'btn sm ghost', onclick: () => complianceDialog(deal) }, icon('check', 13), 'Sponsor check') : null,
           h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice'),
           h('button', { class: 'btn sm ghost', title: 'Payment plan, deposit, review deadline, usage rights', onclick: () => termsDialog(deal, reload) }, icon('credit-card', 13), 'Terms & rights'),
+          h('button', { class: 'btn sm ghost', title: 'Inquiry fit, drafted reply, sponsored copy for the client to approve', onclick: () => copyDialog(deal, reload) }, icon('check', 13),
+            deal.auto_reply === 'draft' ? 'Reply drafted' : deal.copy_status === 'changes' ? 'Copy: changes asked' : deal.copy_status === 'pending' ? 'Copy: waiting' : deal.copy_status === 'approved' ? 'Copy ✓' : 'Copy approval'),
           h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report'),
           ['scheduled', 'invoiced', 'paid'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => wrapReportDialog(deal) }, icon('file-text', 13), 'Wrap report') : null,
           !['paid', 'lost'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', title: 'It didn’t happen: counts towards your win rate', onclick: () => lostDialog(deal, reload) }, icon('x', 13), 'Lost') : null),
@@ -491,6 +494,7 @@ Payment Terms: Net 30 days`;
     pageHead('Brand Deals & Sponsorships', 'Track inbound brand deals, calculate your rates, draft pitches, and generate natural sponsor reads.',
       link('/mediakit', { class: 'btn' }, icon('file-text', 15), 'Media kit'),
       h('button', { class: 'btn', onclick: rateCardDialog }, icon('target', 15), 'Rate card'),
+      h('button', { class: 'btn', onclick: inquiryRulesDialog, title: 'Triage website inquiries by your rules and reply instantly' }, icon('bot', 15), 'Inquiry autopilot'),
       h('button', { class: 'btn', onclick: pitchDialog }, icon('sparkle', 15), 'Draft pitch'),
       h('button', { class: 'btn', onclick: () => prospectsDialog(() => reload()) }, icon('trend', 15), 'Sponsor prospects'),
       h('button', { class: 'btn', onclick: () => outboundPitchDialog({ onSaved: () => reload() }) }, icon('megaphone', 15), 'Outbound pitch'),

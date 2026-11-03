@@ -189,6 +189,43 @@ export async function renderYouTubeStudio(view) {
     }) : h('p', { class: 'muted small' }, 'No Bayesian A/B/C tests running yet.'));
   }
 
+  // ---- translated titles & descriptions (YouTube localizations) ----
+  async function translateDialog() {
+    const list = await api('GET', 'youtube/studio/videos').catch((e) => { toast(e.message, 'err'); return null; });
+    if (!list) return;
+    const pick = h('select', {}, list.videos.map((v) => h('option', { value: v.id }, v.title)));
+    const box = h('div');
+    async function load() {
+      const v = list.videos.find((x) => x.id === pick.value);
+      const d = await api('GET', `localize/${pick.value}`);
+      const langs = h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px' } }, Object.entries(d.langs).map(([k, l]) => h('label', { class: 'pill sm' }, h('input', { type: 'checkbox', value: k, checked: d.drafts.some((x) => x.lang === k) }), ` ${l}`)));
+      const gloss = h('input', { value: d.glossary || '', placeholder: 'Words to keep as-is: brand names, your name, product names' });
+      clear(box).append(
+        field('Languages', langs), field('Glossary', gloss),
+        h('button', { type: 'button', class: 'btn', onclick: (e) => busy(e.currentTarget, 'Translating…', async () => {
+          const chosen = [...langs.querySelectorAll('input:checked')].map((x) => x.value);
+          if (!chosen.length) return toast('Pick at least one language.', 'err');
+          await api('POST', `localize/${pick.value}/translate`, { langs: chosen, title: v.title, description: v.description || '', glossary: gloss.value });
+          load();
+        }) }, icon('sparkle', 13), ' Translate'),
+        d.drafts.length ? h('div', { class: 'stack', style: { marginTop: '12px' } }, d.drafts.map((x) => {
+          const t = h('input', { value: x.title, maxlength: 100, 'aria-label': `${x.lang} title` });
+          const desc = h('textarea', { rows: 3, 'aria-label': `${x.lang} description` }, x.description || '');
+          return h('div', { class: 'card' }, h('div', { class: 'row-between' }, h('strong', {}, d.langs[x.lang] || x.lang), h('span', { class: 'muted small' }, x.pushed_at ? 'on YouTube' : x.error ? x.error : 'not sent yet')),
+            t, desc, h('div', { class: 'row-end' },
+              h('button', { type: 'button', class: 'btn ghost sm', onclick: async () => { await api('PUT', `localize/${pick.value}/${x.lang}`, { title: t.value, description: desc.value }); toast('Saved.'); } }, 'Save'),
+              h('button', { type: 'button', class: 'btn ghost sm', 'aria-label': 'Remove', onclick: async () => { await api('DELETE', `localize/${pick.value}/${x.lang}`); load(); } }, icon('trash', 12))));
+        })) : null,
+        d.drafts.length ? h('div', { class: 'row-end', style: { marginTop: '12px' } }, h('button', { type: 'button', class: 'btn primary', onclick: (e) => busy(e.currentTarget, 'Sending…', async () => {
+          try { toast((await api('POST', `localize/${pick.value}/push`)).message); } catch (err) { toast(err.message, 'err'); } load();
+        }) }, 'Send to YouTube')) : null);
+    }
+    pick.onchange = load;
+    await load();
+    await modal('Titles & descriptions in other languages', () => h('div', {}, field('Video', pick), box,
+      h('p', { class: 'muted small' }, 'Viewers see the title and description in their own language. Review each one before sending.')), { wide: true });
+  }
+
   // ---- legacy title tests ----
   async function newTest() {
     const list = await api('GET', 'youtube/studio/videos').catch((e) => { toast(e.message, 'err'); return null; });
@@ -256,7 +293,7 @@ export async function renderYouTubeStudio(view) {
             h('button', { class: 'btn sm primary', disabled: !d.connected, onclick: newAbTest }, icon('plus', 14), 'New A/B/C Test')),
           abTestsBox),
         h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Uploads queue')), uploadsBox),
-        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Sequential Rotator (Legacy)'), h('button', { class: 'btn sm', disabled: !d.connected, onclick: newTest }, icon('plus', 14), 'New turn test')), testsBox))));
+        h('div', { class: 'card' }, h('div', { class: 'card-header' }, h('h2', {}, 'Sequential Rotator (Legacy)'), h('div', { class: 'row' }, h('button', { class: 'btn sm', disabled: !d.connected, onclick: translateDialog, title: 'Titles and descriptions in other languages' }, icon('compass', 14), 'Translate'), h('button', { class: 'btn sm', disabled: !d.connected, onclick: newTest }, icon('plus', 14), 'New turn test'))), testsBox))));
 
   drawUploads();
   drawAbTests();

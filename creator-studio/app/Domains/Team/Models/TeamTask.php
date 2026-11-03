@@ -30,6 +30,7 @@ class TeamTask extends Model
             'timer_started_at' => 'datetime',
             'hourly' => 'boolean',
             'minutes_logged' => 'integer',
+            'checklist' => 'array',
         ];
     }
 
@@ -75,6 +76,8 @@ class TeamTask extends Model
             'timer_started_at' => $this->timer_started_at?->toIso8601String(),
             'hourly' => (bool)$this->hourly,
             'brief' => $this->brief,
+            'estimate_minutes' => $this->estimate_minutes,
+            'checklist' => \App\Http\Controllers\Api\TeamOpsController::itemsFor($this),
         ];
     }
 }

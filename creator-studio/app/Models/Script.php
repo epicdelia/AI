@@ -67,6 +67,9 @@ class Script extends Model
             }
         });
         static::saved(function (self $script) {
+            if ($script->status === 'published' && $script->youtube_url && ($script->wasChanged('status') || $script->wasChanged('youtube_url'))) {
+                rescue(fn () => \App\Domains\Community\QuestionsToVideos::notifyPublished($script), null, true);
+            }
             if ($script->wasChanged('revision') || $script->wasRecentlyCreated) {
                 \App\Domains\Scripts\LiveEditing::remember($script);
             }

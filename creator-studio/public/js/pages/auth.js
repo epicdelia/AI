@@ -236,6 +236,8 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
   // ?verified=1 after the email link, ?signup=1&email=… from her invite, ?two_factor=1 after Google.
   let notice = params.get('verified') ? 'Your email is confirmed. Sign in to open your dashboard.' : '';
   const invitedEmail = params.get('email') || '';
+  // A member's invite link (?ref=…): remembered for this tab and sent with the sign-up.
+  try { if (params.get('ref')) sessionStorage.setItem('member_ref', params.get('ref')); } catch { /* fine */ }
   if (params.toString()) history.replaceState({}, '', '/login');
 
   // Personalised for Delia
@@ -387,6 +389,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
             return;
           }
           if (mode === 'signup') {
+            try { const ref = sessionStorage.getItem('member_ref'); if (ref) body.ref = ref; } catch { /* fine */ }
             const res = await api('POST', 'auth/register', body);
             go('login', res.message);
             return;

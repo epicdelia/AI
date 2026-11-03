@@ -79,7 +79,11 @@ class SocialController extends Controller
 
     public function update(Request $request, SocialPost $post): JsonResponse
     {
-        $post->update($this->validated($request, false, $post));
+        $data = $this->validated($request, false, $post);
+        if (in_array($data['status'] ?? null, ['scheduled', 'posted'], true) && ($why = \App\Domains\Deals\SponsoredCopy::blockReason($post))) {
+            abort(422, $why . ' Or override it on the deal (Sponsored copy).');
+        }
+        $post->update($data);
 
         return response()->json([
             'post' => $post->fresh()->load('script:id,title'),

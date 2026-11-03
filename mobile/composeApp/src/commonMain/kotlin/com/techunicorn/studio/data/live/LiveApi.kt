@@ -126,7 +126,17 @@ class LiveApi {
 
     suspend fun needsYou(): LiveResult<NeedsYou> = call { client.get(url("needs-you")) { auth() } }
 
+    suspend fun shopTotals(): LiveResult<ShopAdmin> = call { client.get(url("shop/admin")) { auth() } }
+
+    suspend fun affiliateTotals(): LiveResult<AffiliateOverview> = call { client.get(url("affiliates")) { auth() } }
+
     // ---- clients ----------------------------------------------------------------------------
+
+    suspend fun approveCopy(id: Long): LiveResult<JsonObject> = call { client.post(url("portal/requests/$id/copy/approve")) { auth() } }
+
+    suspend fun copyChanges(id: Long, note: String): LiveResult<JsonObject> = call {
+        client.post(url("portal/requests/$id/copy/changes")) { auth(); contentType(ContentType.Application.Json); setBody(buildJsonObject { put("note", note) }) }
+    }
 
     suspend fun requests(): LiveResult<RequestList> = call { client.get(url("portal/requests")) { auth() } }
 

@@ -113,6 +113,14 @@ Route::prefix('api')->group(function () {
     Route::get('branding', [\App\Http\Controllers\Api\PortalBrandController::class, 'show'])->middleware('throttle:60,1');
     Route::get('branding/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'logo'])->middleware('throttle:60,1');
 
+    // Newsletter: the one-click unsubscribe link in every email (signed).
+    Route::match(['get', 'post'], 'newsletter/unsubscribe/{subscriber}', [\App\Http\Controllers\Api\NewsletterController::class, 'unsubscribe'])->whereNumber('subscriber')->name('newsletter.unsubscribe')->middleware('throttle:30,1');
+
+    // Shop: digital products (public list and checkout; the emailed download link).
+    Route::get('shop', [\App\Http\Controllers\Api\ShopController::class, 'index']);
+    Route::post('shop/{slug}/checkout', [\App\Http\Controllers\Api\ShopController::class, 'checkout'])->where('slug', '[a-z0-9-]{1,120}')->middleware('throttle:10,10');
+    Route::get('shop/download/{token}', [\App\Http\Controllers\Api\ShopController::class, 'download'])->where('token', '[A-Za-z0-9]{40,64}')->middleware('throttle:30,10');
+
     // A team member's invite link (sets their own password).
     Route::get('team-invite/{token}', [TeamController::class, 'showInvite'])->where('token', '[A-Za-z0-9]{40,64}')->middleware('throttle:30,1');
     Route::post('team-invite/{token}', [TeamController::class, 'acceptInvite'])->where('token', '[A-Za-z0-9]{40,64}')->middleware('throttle:10,10');
@@ -148,6 +156,7 @@ Route::prefix('api')->group(function () {
             Route::delete('account/sessions', [AccountController::class, 'endOtherSessions'])->middleware('throttle:5,1');
             Route::get('account/export', [AccountController::class, 'export'])->middleware('throttle:5,1');
             Route::get('account/devices', [\App\Http\Controllers\Api\MobileTokenController::class, 'index']);
+            Route::get('account/purchases/{order}/download', [\App\Http\Controllers\Api\ShopController::class, 'downloadMine'])->whereNumber('order');
             Route::delete('account/devices/{id}', [\App\Http\Controllers\Api\MobileTokenController::class, 'revoke'])->whereNumber('id');
         });
     });
@@ -199,6 +208,8 @@ Route::prefix('api')->group(function () {
         Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
         Route::get('requests/{deal}/results-report', [PortalController::class, 'resultsReport'])->whereNumber('deal');
         Route::post('requests/{deal}/intake', [PortalController::class, 'saveIntake'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::post('requests/{deal}/copy/approve', [\App\Http\Controllers\Api\InquiryController::class, 'clientApprove'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::post('requests/{deal}/copy/changes', [\App\Http\Controllers\Api\InquiryController::class, 'clientChanges'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::post('requests/{deal}/onboarding/{key}', [PortalController::class, 'tickOnboarding'])->whereNumber('deal')->where('key', '[a-z0-9_]{1,40}')->middleware('throttle:30,1');
         Route::post('requests/{deal}/rights/{right}/extend', [PortalController::class, 'extendRight'])->whereNumber(['deal', 'right'])->middleware('throttle:10,10');
         Route::get('requests/{deal}/compliance', [PortalController::class, 'compliance'])->whereNumber('deal');
@@ -244,6 +255,9 @@ Route::prefix('api')->group(function () {
         Route::post('team/thumbnails/simulate', [TeamController::class, 'simulateThumbnail']);
         Route::post('team/qa/toggle', [TeamController::class, 'toggleQaItem']);
         Route::get('team/payouts', [TeamController::class, 'payouts']);
+        Route::get('team/checklists', [\App\Http\Controllers\Api\TeamOpsController::class, 'index']);
+        Route::post('team/tasks/{id}/checklist/{key}', [\App\Http\Controllers\Api\TeamOpsController::class, 'tick'])->whereNumber('id')->where('key', '[a-z0-9_]{1,40}');
+        Route::get('team/workload', [\App\Http\Controllers\Api\TeamOpsController::class, 'workload']);
         Route::get('team/brief-templates', [\App\Http\Controllers\Api\TeamWorkController::class, 'briefTemplates']);
         Route::post('team/tasks/{id}/brief/apply', [\App\Http\Controllers\Api\TeamWorkController::class, 'applyBrief'])->whereNumber('id');
         Route::put('team/tasks/{id}/brief', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveBrief'])->whereNumber('id');
@@ -264,6 +278,8 @@ Route::prefix('api')->group(function () {
             Route::post('team/staff', [TeamController::class, 'inviteStaff'])->middleware('throttle:20,60');
             Route::delete('team/invites/{id}', [TeamController::class, 'withdrawInvite'])->whereNumber('id');
             Route::delete('team/staff/{id}', [TeamController::class, 'removeStaff'])->whereNumber('id');
+            Route::put('team/checklists', [\App\Http\Controllers\Api\TeamOpsController::class, 'save']);
+            Route::put('team/hours/{user}', [\App\Http\Controllers\Api\TeamOpsController::class, 'saveHours'])->whereNumber('user');
             Route::put('team/brief-templates', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveBriefTemplate']);
             Route::get('team/rates', [\App\Http\Controllers\Api\TeamWorkController::class, 'rates']);
             Route::put('team/rates/{user}', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveRate'])->whereNumber('user');
@@ -817,6 +833,45 @@ Route::prefix('api')->group(function () {
         Route::post('community/admin/events', [\App\Http\Controllers\Api\LearningController::class, 'saveEvent']);
         Route::patch('community/admin/events/{id}', [\App\Http\Controllers\Api\LearningController::class, 'saveEvent'])->whereNumber('id');
         Route::delete('community/admin/events/{id}', [\App\Http\Controllers\Api\LearningController::class, 'deleteEvent'])->whereNumber('id');
+        Route::post('community/admin/items/{id}/to-idea', [\App\Http\Controllers\Api\CommunityController::class, 'adminToIdea'])->whereNumber('id');
+        // Affiliate links: /go/{slug}, clicks, commissions, dead-link check.
+        Route::get('affiliates', [\App\Http\Controllers\Api\AffiliateController::class, 'index']);
+        Route::post('affiliates', [\App\Http\Controllers\Api\AffiliateController::class, 'store']);
+        Route::patch('affiliates/{id}', [\App\Http\Controllers\Api\AffiliateController::class, 'update'])->whereNumber('id');
+        Route::delete('affiliates/{id}', [\App\Http\Controllers\Api\AffiliateController::class, 'destroy'])->whereNumber('id');
+        Route::post('affiliates/earnings', [\App\Http\Controllers\Api\AffiliateController::class, 'addEarning']);
+        Route::delete('affiliates/earnings/{id}', [\App\Http\Controllers\Api\AffiliateController::class, 'deleteEarning'])->whereNumber('id');
+        Route::post('affiliates/import', [\App\Http\Controllers\Api\AffiliateController::class, 'import']);
+        Route::post('affiliates/check', [\App\Http\Controllers\Api\AffiliateController::class, 'checkNow']);
+        // Shop (hers): products, file, orders, resend a link.
+        Route::get('shop/admin', [\App\Http\Controllers\Api\ShopController::class, 'admin']);
+        Route::post('shop/admin/products', [\App\Http\Controllers\Api\ShopController::class, 'save']);
+        Route::patch('shop/admin/products/{id}', [\App\Http\Controllers\Api\ShopController::class, 'update'])->whereNumber('id');
+        Route::post('shop/admin/products/{id}/file', [\App\Http\Controllers\Api\ShopController::class, 'upload'])->whereNumber('id');
+        Route::delete('shop/admin/products/{id}', [\App\Http\Controllers\Api\ShopController::class, 'destroy'])->whereNumber('id');
+        Route::post('shop/admin/orders/{order}/resend', [\App\Http\Controllers\Api\ShopController::class, 'resend'])->whereNumber('order');
+        // Newsletter campaigns (hers).
+        Route::get('newsletter', [\App\Http\Controllers\Api\NewsletterController::class, 'index']);
+        Route::post('newsletter', [\App\Http\Controllers\Api\NewsletterController::class, 'save']);
+        Route::patch('newsletter/{id}', [\App\Http\Controllers\Api\NewsletterController::class, 'update'])->whereNumber('id');
+        Route::delete('newsletter/{id}', [\App\Http\Controllers\Api\NewsletterController::class, 'destroy'])->whereNumber('id');
+        Route::get('newsletter/from-script/{script}', [\App\Http\Controllers\Api\NewsletterController::class, 'fromScript'])->whereNumber('script');
+        Route::post('newsletter/{id}/test', [\App\Http\Controllers\Api\NewsletterController::class, 'test'])->whereNumber('id');
+        Route::post('newsletter/{id}/send', [\App\Http\Controllers\Api\NewsletterController::class, 'send'])->whereNumber('id');
+        // Inquiry autopilot and sponsored-copy approval (hers).
+        Route::get('inquiry-rules', [\App\Http\Controllers\Api\InquiryController::class, 'rules']);
+        Route::put('inquiry-rules', [\App\Http\Controllers\Api\InquiryController::class, 'saveRules']);
+        Route::post('deals/{deal}/auto-reply/send', [\App\Http\Controllers\Api\InquiryController::class, 'sendReply'])->whereNumber('deal');
+        Route::delete('deals/{deal}/auto-reply', [\App\Http\Controllers\Api\InquiryController::class, 'discardReply'])->whereNumber('deal');
+        Route::get('deals/{deal}/copy', [\App\Http\Controllers\Api\InquiryController::class, 'copy'])->whereNumber('deal');
+        Route::post('deals/{deal}/copy', [\App\Http\Controllers\Api\InquiryController::class, 'sendCopy'])->whereNumber('deal');
+        Route::put('deals/{deal}/copy/override', [\App\Http\Controllers\Api\InquiryController::class, 'overrideCopy'])->whereNumber('deal');
+        // Translated titles & descriptions for YouTube (hers).
+        Route::get('localize/{video}', [\App\Http\Controllers\Api\LocalizeController::class, 'show'])->where('video', '[A-Za-z0-9_-]{11}');
+        Route::post('localize/{video}/translate', [\App\Http\Controllers\Api\LocalizeController::class, 'translate'])->where('video', '[A-Za-z0-9_-]{11}');
+        Route::put('localize/{video}/{lang}', [\App\Http\Controllers\Api\LocalizeController::class, 'update'])->where(['video' => '[A-Za-z0-9_-]{11}', 'lang' => '[A-Za-z-]{2,8}']);
+        Route::delete('localize/{video}/{lang}', [\App\Http\Controllers\Api\LocalizeController::class, 'destroy'])->where(['video' => '[A-Za-z0-9_-]{11}', 'lang' => '[A-Za-z-]{2,8}']);
+        Route::post('localize/{video}/push', [\App\Http\Controllers\Api\LocalizeController::class, 'push'])->where('video', '[A-Za-z0-9_-]{11}');
         // @@ROLE-EXPANSION-ROUTES@@
     });
 });
@@ -831,6 +886,8 @@ Route::get('landing/thumb/{post}', [\App\Http\Controllers\LandingPageController:
 // Link in bio: public page and counted redirects
 Route::get('links', [BioLinksController::class, 'page']);
 Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('link');
+// Affiliate links: count the click, then on to the partner.
+Route::get('go/{slug}', [\App\Http\Controllers\Api\AffiliateController::class, 'go'])->where('slug', '[A-Za-z0-9-]{1,60}')->middleware('throttle:120,1');
 
 // "Login with Google" (uses the Google app from Connections → YouTube; only her own email)
 // The link in a client's confirmation email (signed; the hash must match their email).

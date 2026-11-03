@@ -79,6 +79,7 @@ class CommunityController extends Controller
                 'can_manage' => (bool)($user->stripe_customer_id && StripePaymentController::configured()),
             ],
             'hire' => Community::hireCard($user, $points),
+            'referrals' => \App\Domains\Community\MemberReferrals::stats($user),
             'digest' => (bool)($user->community_digest ?? true),
             'member' => [
                 'name' => $user->name,
@@ -458,6 +459,13 @@ class CommunityController extends Controller
             'ok' => true,
             'pro' => Community::isPro($member),
         ]);
+    }
+
+    public function adminToIdea(int $id): JsonResponse
+    {
+        $idea = \App\Domains\Community\QuestionsToVideos::toIdea(CommunityItem::findOrFail($id));
+
+        return response()->json(['ok' => true, 'idea_id' => $idea->id]);
     }
 
     /**

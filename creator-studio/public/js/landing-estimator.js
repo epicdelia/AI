@@ -1,7 +1,7 @@
 // Landing page "08: Project Estimator": Interactive MVP Scope & Timeline Estimator.
 // Allows founders to toggle project type, feature capabilities, and cloud targets
 // to calculate an immediate, honest scope, timeline, and pricing breakdown.
-import { h, ensureLandingCss } from './core.js';
+import { h, ensureLandingCss, modal, toast } from './core.js';
 import { icon } from './icons.js';
 
 ensureLandingCss(); // its styles live in landing.css
@@ -78,6 +78,12 @@ export function estimatorSection({ onBookCall, onStripePay }) {
             class: 'btn primary',
             onclick: () => onBookCall(typeObj.id === 'retainer' ? 'retainer' : 'mvp_build', `Estimated Project: ${typeObj.label} (${weeks})`),
           }, icon('calendar', 14), ' Book 30-Min Scoping Call', icon('arrow', 12)),
+          h('button', {
+            type: 'button',
+            class: 'btn ghost',
+            title: 'Generate an instant proposal blueprint and lock your scope parameters',
+            onclick: () => showProposalModal(typeObj, weeks, priceText, depositText, cloudObj),
+          }, icon('file-text', 14), ' Lock Scope & Proposal'),
           typeObj.id !== 'retainer' ? h('button', {
             type: 'button',
             class: 'btn ghost',
@@ -86,6 +92,61 @@ export function estimatorSection({ onBookCall, onStripePay }) {
         h('div', { class: 'landing-est-trust' },
           icon('check', 12),
           h('span', { class: 'small muted' }, 'Fixed-Price Guarantee · Zero Hidden Fees · Direct Line with Delia'))));
+  }
+
+  function showProposalModal(typeObj, weeks, priceText, depositText, cloudObj) {
+    const featNames = Array.from(selectedFeatures).map((id) => FEATURES.find((f) => f.id === id)?.label).filter(Boolean);
+    const summaryMd = [
+      `### Project Scope & Proposal Blueprint`,
+      `**Model:** ${typeObj.label} (${weeks})`,
+      `**Cloud Target:** ${cloudObj.label}`,
+      `**Fixed Investment:** ${priceText} (Deposit: ${depositText})`,
+      ``,
+      `#### Included Capabilities:`,
+      ...featNames.map((f) => `- ${f}`),
+      ``,
+      `#### Guarantees & Deliverables:`,
+      `- 100% Client Code & IP Ownership from Day 1`,
+      `- Weekly Friday Recorded Loom Video Walkthroughs`,
+      `- Live Password-Protected Staging Deployment`,
+      `- 30-Day Post-Launch Bug Warranty Included`,
+    ].join('\n');
+
+    modal('Project Scope & Proposal Blueprint', (close) => h('div', { class: 'landing-est-modal-body', style: { padding: '8px', lineHeight: '1.6' } },
+      h('div', { class: 'landing-est-modal-head', style: { marginBottom: '16px' } },
+        h('h3', { style: { margin: '0 0 6px 0', fontSize: '18px' } }, 'Custom Project Proposal Blueprint'),
+        h('p', { class: 'muted small', style: { margin: 0 } }, 'Locked scope specifications for engineering kickoff with Delia.')),
+      h('div', { class: 'landing-est-modal-specs', style: { background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '12px', padding: '16px', marginBottom: '16px' } },
+        h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '12px' } },
+          h('div', {}, h('span', { class: 'muted small', style: { display: 'block' } }, 'Model'), h('strong', {}, typeObj.label)),
+          h('div', {}, h('span', { class: 'muted small', style: { display: 'block' } }, 'Timeline'), h('strong', {}, weeks)),
+          h('div', {}, h('span', { class: 'muted small', style: { display: 'block' } }, 'Investment'), h('strong', { style: { color: 'var(--accent)' } }, priceText)),
+          h('div', {}, h('span', { class: 'muted small', style: { display: 'block' } }, 'Infrastructure'), h('strong', {}, cloudObj.label))),
+        h('div', { style: { borderTop: '1px solid var(--line)', paddingTop: '12px' } },
+          h('span', { class: 'muted small', style: { display: 'block', marginBottom: '6px' } }, 'Selected Core Capabilities:'),
+          h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } },
+            featNames.map((name) => h('span', { class: 'tag', style: { fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' } }, icon('check', 10), name))))),
+      h('div', { class: 'landing-est-modal-actions', style: { display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'flex-end', alignItems: 'center' } },
+        h('button', {
+          type: 'button',
+          class: 'btn ghost',
+          onclick: () => {
+            navigator.clipboard?.writeText(summaryMd).then(() => toast('Scope blueprint copied to clipboard!')).catch(() => {});
+          },
+        }, icon('copy', 13), ' Copy Blueprint'),
+        typeObj.id !== 'retainer' ? h('button', {
+          type: 'button',
+          class: 'btn ghost',
+          onclick: () => { close(); onStripePay('mvp_deposit'); },
+        }, icon('credit-card', 13), ` Lock Sprint (${depositText})`) : null,
+        h('button', {
+          type: 'button',
+          class: 'btn primary',
+          onclick: () => {
+            close();
+            onBookCall(typeObj.id === 'retainer' ? 'retainer' : 'mvp_build', `Blueprint Proposal: ${typeObj.label} (${weeks}) on ${cloudObj.label}`);
+          },
+        }, icon('calendar', 13), ' Book Scoping Call with Blueprint', icon('arrow', 11)))));
   }
 
   // Type Selector

@@ -69,9 +69,9 @@ export class ApiError extends Error {
 }
 
 /** Call the JSON API. Throws ApiError with the server's message on failure. */
-/** The landing page's stylesheet, added the first time a landing module loads (the studio skips it). */
+/** The landing page's stylesheet (pre-bundled in production build; fallback in dev). */
 export function ensureLandingCss() {
-  if (document.querySelector('link[data-landing-css]')) return;
+  if (document.querySelector('link[data-landing-css]') || document.querySelector('link[href*="build/assets/app-"]')) return;
   document.head.append(h('link', { rel: 'stylesheet', href: '/css/landing.css?v=1', 'data-landing-css': '' }));
 }
 

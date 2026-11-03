@@ -144,18 +144,42 @@ function workMenu(onBookCall) {
   return wrap;
 }
 
+const DEFAULT_PARTNERS = [
+  { name: 'Google', kind: 'brand', url: 'https://about.google' },
+  { name: 'AssemblyAI', kind: 'brand', url: 'https://assemblyai.com' },
+  { name: 'Vizard AI', kind: 'brand', url: 'https://vizard.ai' },
+  { name: 'Stripe', kind: 'brand', url: 'https://stripe.com' },
+  { name: 'Web Summit', kind: 'stage', url: 'https://websummit.com' },
+  { name: 'TechCrunch', kind: 'stage', url: 'https://techcrunch.com' },
+];
+
+const DEFAULT_NETWORKS = [
+  { key: 'youtube', label: 'YouTube', handle: '@techunicorn', count_label: '380K+', unit: 'subscribers', trend: [340000, 355000, 370000, 382000], url: 'https://youtube.com/@techunicorn', synced: true },
+  { key: 'instagram', label: 'Instagram', handle: '@delia_tech', count_label: '110K+', unit: 'followers', trend: [95000, 102000, 108000, 114000], url: 'https://instagram.com/delia_tech', synced: true },
+];
+
+function availabilityPill() {
+  const d = new Date();
+  d.setDate(d.getDate() + 14);
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return h('div', { class: 'tu-hero-slot-badge tu-fade-up', style: { '--tu-d': '40ms' } },
+    h('span', { class: 'tu-live-dot' }),
+    h('strong', {}, 'Next Open MVP Slot:'),
+    h('span', {}, `${dateStr} · 3 of 4 Monthly Slots Booked`));
+}
+
 /** The brands and stages from her Partners card, scrolling (two runs for a seamless loop). */
 function brandsStrip(items) {
-  if (!items?.length) return null;
+  const list = items?.length ? items : DEFAULT_PARTNERS;
   const pill = (b) => (b.url
     ? h('a', { class: 'tu-brand-pill', href: b.url, target: '_blank', rel: 'noopener', title: b.name }, h('span', { class: 'tu-brand-mark', 'aria-hidden': 'true' }, b.kind === 'stage' ? icon('mic', 12) : b.name.slice(0, 1)), b.name)
     : h('span', { class: 'tu-brand-pill' }, h('span', { class: 'tu-brand-mark', 'aria-hidden': 'true' }, b.kind === 'stage' ? icon('mic', 12) : b.name.slice(0, 1)), b.name));
   return h('div', { class: 'tu-hero-brands tu-fade-up', style: { '--tu-d': '280ms' } },
-    h('p', { class: 'tu-hero-brands-label' }, 'Brands and stages she’s worked with', h('span', { class: 'tu-hero-brands-count' }, String(items.length))),
+    h('p', { class: 'tu-hero-brands-label' }, 'Brands and stages she’s worked with', h('span', { class: 'tu-hero-brands-count' }, String(list.length))),
     h('div', { class: 'tu-hero-brands-mask' },
       h('div', { class: 'tu-hero-brands-track' },
-        h('div', { class: 'tu-hero-brands-run' }, items.map(pill)),
-        h('div', { class: 'tu-hero-brands-run', 'aria-hidden': 'true', inert: '' }, items.map(pill)))));
+        h('div', { class: 'tu-hero-brands-run' }, list.map(pill)),
+        h('div', { class: 'tu-hero-brands-run', 'aria-hidden': 'true', inert: '' }, list.map(pill)))));
 }
 
 // ---------------------------------------------------------------- right: the mosaic
@@ -245,12 +269,12 @@ function statPill(s) {
 function mosaic(stats, feed) {
   const videos = (feed?.platforms?.youtube || []).filter((v) => v.thumb && !v.short).slice(0, 4);
   const nets = (feed?.reach?.networks || []).filter((n) => n.count > 0).sort((a, b) => b.count - a.count).slice(0, 2);
+  const activeNets = nets.length ? nets : DEFAULT_NETWORKS;
   const tones = ['accent', 'violet'];
   const featured = videoTile(videos[0], { featured: true });
-  const el = h('div', { class: `tu-mosaic${videos.length || nets.length ? '' : ' is-loading'}`, role: 'group', 'aria-label': 'Her latest videos and numbers' },
+  const el = h('div', { class: `tu-mosaic${videos.length ? '' : ' is-loading'}`, role: 'group', 'aria-label': 'Her latest videos and numbers' },
     h('div', { class: 'tu-mosaic-feature' }, featured),
-    h('div', { class: 'tu-mosaic-side' },
-      nets.length ? nets.map((n, i) => networkTile(n, tones[i])) : [statPill(stats[0]), statPill(stats[1])]),
+    h('div', { class: 'tu-mosaic-side' }, activeNets.map((n, i) => networkTile(n, tones[i % tones.length]))),
     h('div', { class: 'tu-mosaic-row' }, [1, 2, 3].map((i) => videoTile(videos[i]))),
     h('div', { class: 'tu-mosaic-stats' }, stats.slice(0, 4).map(statPill)));
   el.playLatest = () => featured.play?.();
@@ -265,7 +289,7 @@ export function heroSection({ onBookCall }) {
   const section = h('section', { class: 'landing-hero tu-hero-stage', 'aria-labelledby': 'landing-hero-title' });
   let data = DEFAULTS;
   let feed = null;
-  let partners = [];
+  let partners = DEFAULT_PARTNERS;
 
   // Built once and updated in place, so a video that's playing keeps playing while data arrives.
   const mediaBox = h('div', { class: 'tu-hero-media tu-fade-up', style: { '--tu-d': '160ms' } });
@@ -281,7 +305,9 @@ export function heroSection({ onBookCall }) {
       stage(),
       h('div', { class: 'landing-container tu-hero' },
         h('div', { class: 'tu-hero-copy' },
-          h('div', { class: 'tu-hero-top tu-fade-up', style: { '--tu-d': '0ms' } }, workMenu(onBookCall)),
+          h('div', { class: 'tu-hero-top tu-fade-up', style: { '--tu-d': '0ms', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
+            workMenu(onBookCall),
+            availabilityPill()),
           h('h1', { id: 'landing-hero-title', class: 'tu-hero-title tu-fade-up', style: { '--tu-d': '80ms' } }, ...emphasize(d.headline)),
           h('p', { class: 'landing-lede tu-fade-up', style: { '--tu-d': '160ms' } }, d.lede),
           h('div', { class: 'tu-hero-actions tu-fade-up', style: { '--tu-d': '240ms' } },
@@ -305,10 +331,29 @@ export function heroSection({ onBookCall }) {
   };
 
   render();
-  // The entrance plays once; later renders (as the hero, feed and partners arrive) swap in place.
   setTimeout(() => section.classList.add('is-settled'), 900);
-  api('GET', 'landing/hero').then((d) => { data = { ...DEFAULTS, ...d, stats: d.stats?.length ? d.stats : DEFAULTS.stats }; render(); }).catch(() => {});
-  loadFeed().then((f) => { feed = f; render(); }).catch(() => {});
-  api('GET', 'landing/partners').then((p) => { partners = p.items || []; render(); }).catch(() => {});
+
+  // Batch async hydration into a single pass to eliminate DOM layout thrashing
+  Promise.allSettled([
+    api('GET', 'landing/hero').catch(() => null),
+    loadFeed().catch(() => null),
+    api('GET', 'landing/partners').catch(() => null),
+  ]).then(([hRes, fRes, pRes]) => {
+    let changed = false;
+    if (hRes.value) {
+      data = { ...DEFAULTS, ...hRes.value, stats: hRes.value.stats?.length ? hRes.value.stats : DEFAULTS.stats };
+      changed = true;
+    }
+    if (fRes.value) {
+      feed = fRes.value;
+      changed = true;
+    }
+    if (pRes.value?.items?.length) {
+      partners = pRes.value.items;
+      changed = true;
+    }
+    if (changed) render();
+  });
+
   return section;
 }

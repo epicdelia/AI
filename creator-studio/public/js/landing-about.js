@@ -83,7 +83,16 @@ function portrait(d) {
   const avail = f.availability;
   return h('div', { class: 'landing-about-showcase' },
     h('figure', { class: 'landing-about-photo-card' },
-      h('img', { src: d.portrait_url, alt: 'Delia Lazarescu, ex-Google engineer and founder', class: 'landing-about-photo', loading: 'eager', decoding: 'async' }),
+      h('img', {
+        src: d.portrait_url,
+        alt: 'Delia Lazarescu, ex-Google engineer and founder',
+        class: 'landing-about-photo',
+        width: '480',
+        height: '480',
+        style: { aspectRatio: '1 / 1', objectFit: 'cover' },
+        loading: 'eager',
+        decoding: 'async',
+      }),
       h('span', { class: 'landing-about-photo-tag' }, icon('code', 12), 'Ex-Google Engineer & Founder'),
       d.now || d.location || avail ? h('figcaption', { class: 'landing-about-now' },
         h('span', { class: 'landing-about-now-label' }, h('i', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }), 'Now'),

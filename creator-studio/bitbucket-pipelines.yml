@@ -1,0 +1,45 @@
+image: docker:stable
+
+options:
+  docker: true
+
+definitions:
+  steps:
+    - step: &build-test-analyze
+        name: Build, Test and Analyze
+        script:
+          - chmod +x .bitbucket/dependencies.sh
+          - .bitbucket/dependencies.sh
+          - make build-test
+          - make start-test
+          - docker ps -a
+          - make wait-for-db
+          - make drop-migrate
+          - make seed
+          - make info
+          - make phpunit
+          - make composer-audit
+          - make ecs
+          - make phpcs
+          - make phpstan
+          - make phpinsights
+          - make phpmd
+          - make phpcpd
+          - make down-test
+        artifacts:
+          - reports/**
+
+pipelines:
+  branches:
+    main:
+      - step: *build-test-analyze
+    develop:
+      - step: *build-test-analyze
+
+  pull-requests:
+    '**':
+      - step: *build-test-analyze
+
+  tags:
+    '*':
+      - step: *build-test-analyze

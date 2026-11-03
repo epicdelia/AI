@@ -1,0 +1,13 @@
+parameters:
+    bootstrapFiles:
+        - tools/01_phpunit/vendor/autoload.php
+    level: max
+    paths:
+        - app
+        - tests
+    editorUrl: '%%file%%:%%line%%'
+    checkExplicitMixed: false
+includes:
+    - phpstan-baseline.neon
+    - tools/02_phpstan/vendor/larastan/larastan/extension.neon
+    - tools/02_phpstan/vendor/nesbot/carbon/extension.neon

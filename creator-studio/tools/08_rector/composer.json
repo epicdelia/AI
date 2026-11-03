@@ -1,0 +1,22 @@
+{
+	"name": "epicdelia/creator-studio",
+	"description": "",
+	"require": {
+		"php": "^8.5.12"
+	},
+	"require-dev": {
+		"rector/rector": "2.5.*",
+		"driftingly/rector-laravel": "2.5.*",
+		"roave/security-advisories": "dev-latest"
+	},
+	"config": {
+		"allow-plugins": true,
+		"platform": {
+			"php": "8.5.12"
+		},
+		"preferred-install": {
+			"*": "dist"
+		},
+		"sort-packages": true
+	}
+}

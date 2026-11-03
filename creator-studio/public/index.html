@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The signed-out page is her public landing page, so search engines and link previews describe it; the studio retitles each page once signed in. -->
+  <title>Tech Unicorn · Delia Lazarescu, Engineer &amp; Creator</title>
+  <meta name="description" content="Making tech less scary: ex-Google engineer, creator for 470K+ people, and founder building AI-powered apps. MVP builds, AI integration, consulting, speaking and brand partnerships.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tech Unicorn · Delia Lazarescu">
+  <meta property="og:description" content="Ex-Google engineer and creator. Vibecoded MVPs in 2 to 4 weeks, practical AI integration, consulting, speaking and brand partnerships.">
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#fdfaf8">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Apply the saved theme before first paint (no white flash in dark mode). Logic mirrors js/theme.js.
+    (function () {
+      var pref = 'system';
+      try { pref = localStorage.getItem('studio-theme') || 'system'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme-pref', pref);
+      // Her accent, text size and density (Settings → Make it yours), cached from the last visit.
+      try {
+        var p = JSON.parse(localStorage.getItem('studio-prefs') || '{}');
+        if (p.accent) document.documentElement.setAttribute('data-accent', p.accent);
+        if (p.text) document.documentElement.setAttribute('data-text', p.text);
+        if (p.density) document.documentElement.setAttribute('data-density', p.density);
+        document.documentElement.setAttribute('data-nav', p.nav || 'top');
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Studio">
+  <link rel="stylesheet" href="/build/assets/app-V5sZTp8l.css">
+  <link rel="stylesheet" href="/css/i18n.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div id="app"></div>
+  <div id="toast-container" aria-live="polite"></div>
+  <noscript>Creator Studio needs JavaScript enabled.</noscript>
+  <script type="module" src="/build/assets/app-Ifp-1skB.js"></script>
+  <!-- Dev mode fallback: <script type="module" src="/js/app.js"></script> -->
+</body>
+</html>

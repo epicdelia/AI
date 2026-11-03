@@ -1,0 +1,602 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Domains\Landing\About;
+use App\Domains\Landing\Audience;
+use App\Domains\Landing\ClientJourney;
+use App\Domains\Landing\Hero;
+use App\Domains\Landing\LandingFeed;
+use App\Domains\Landing\Marquee;
+use App\Domains\Landing\Partners;
+use App\Domains\Landing\Pricing;
+use App\Domains\Landing\Talk;
+use App\Domains\Media\MediaFile;
+use App\Domains\Social\Models\SocialPost;
+use App\Models\Setting;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Her public Tech Unicorn landing page lives at "/" (the SPA, signed out). This controller serves
+ * its content feed, counts clicks on it, and lets her curate it from the dashboard.
+ */
+class LandingPageController extends Controller
+{
+    /**
+     * Old addresses (/techunicorn, /landing-page) point to the one landing page, keeping ?book= etc.
+     */
+    public function show(Request $request): RedirectResponse
+    {
+        $query = $request->getQueryString();
+
+        return redirect('/' . ($query ? '?' . $query : ''), 301);
+    }
+
+    /**
+     * "Content & Social Channels": YouTube, Instagram, TikTok, X and Threads.
+     */
+    public function socialFeed(): JsonResponse
+    {
+        return response()->json(LandingFeed::get())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /**
+     * Just the YouTube part (kept for older pages).
+     */
+    public function youtubeVideos(): JsonResponse
+    {
+        $feed = LandingFeed::get();
+
+        return response()->json([
+            'channel' => $feed['channel'],
+            'source' => $feed['sources']['youtube'],
+            'videos' => $feed['platforms']['youtube'],
+        ]);
+    }
+
+    /**
+     * "How it works": whether a build slot is open (counts only, set from her dashboard).
+     */
+    public function availability(): JsonResponse
+    {
+        $a = ClientJourney::availability();
+
+        return response()->json($a['show'] ? [
+            'show' => true,
+            'status' => $a['status'],
+            'open' => $a['open'],
+            'label' => $a['label'],
+        ] : [
+            'show' => false,
+        ]);
+    }
+
+    /**
+     * The hero: her headline and intro with real numbers, status pill and four stats.
+     */
+    public function hero(): JsonResponse
+    {
+        return response()->json(Hero::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function heroEdit(): JsonResponse
+    {
+        return response()->json(Hero::dashboard());
+    }
+
+    public function heroSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'headline' => 'required|string|max:160',
+            'lede' => 'required|string|max:400',
+            'reassurance' => 'nullable|string|max:160',
+            'cta' => 'required|string|max:40',
+            'show_status' => 'required|boolean',
+            'stats' => 'required|array|size:4',
+            'stats.*' => 'distinct|string|in:' . implode(',', Hero::STATS),
+        ]);
+        $data['reassurance'] = trim((string)($data['reassurance'] ?? ''));
+        Hero::save($data);
+
+        return response()->json(Hero::dashboard());
+    }
+
+    /**
+     * The band above the footer: her phrases and live facts, at her speed.
+     */
+    public function marquee(): JsonResponse
+    {
+        return response()->json(Marquee::publicData())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /**
+     * "Substack & Writing": latest long-form articles, essays and dispatches.
+     * Automatically synced from her live Substack RSS feed (https://techunicorn.substack.com/feed).
+     */
+    public function substack(): JsonResponse
+    {
+        return response()->json(\App\Domains\Landing\SubstackFeed::get())->header('Cache-Control', 'public, max-age=120');
+    }
+
+    /**
+     * Legacy substack method backup
+     */
+    private function legacySubstack(): JsonResponse
+    {
+        $defaultPosts = [
+            [
+                'id' => 101,
+                'title' => 'My new favourite AI has my credit card. Here are the rules I make it follow.',
+                'excerpt' => 'Giving an autonomous agent spend authority sounds terrifying until you build deterministic verification guardrails. Here is the exact sandbox architecture.',
+                'url' => 'https://techunicorn.substack.com/p/my-new-favourite-ai-has-my-credit-card',
+                'category' => 'AI Agents',
+                'read_time' => '6 min read',
+                'date' => 'Oct 2026',
+                'cover' => '/images/delia_hyperagent.jpg',
+                'popular' => true,
+            ],
+            [
+                'id' => 102,
+                'title' => 'How to set up a 24/7 AI employee (ClawdBot managed my business while I partied in Davos)',
+                'excerpt' => 'A practical, unvarnished walkthrough of building background autonomous workflows that triage client leads, schedule tasks, and keep the business running autonomously.',
+                'url' => 'https://techunicorn.substack.com/p/how-to-set-up-a-24-7-ai-employee',
+                'category' => 'Autonomous Systems',
+                'read_time' => '8 min read',
+                'date' => 'Jan 2026',
+                'cover' => '/images/delia_tech_ai.jpg',
+                'popular' => true,
+            ],
+            [
+                'id' => 103,
+                'title' => 'Is Your CS Degree About to Become Worthless?',
+                'excerpt' => 'The software industry shifted under our feet. Syntax memorization is dead; architecture, prompt harness design, and system debugging are the real defensible moats.',
+                'url' => 'https://techunicorn.substack.com/p/is-your-cs-degree-about-to-become-worthless',
+                'category' => 'Engineering',
+                'read_time' => '7 min read',
+                'date' => 'Jul 2025',
+                'cover' => '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+                'popular' => false,
+            ],
+            [
+                'id' => 104,
+                'title' => '$40/Hour to $400K at Google WITHOUT a Degree - The Roadmap Nobody Talks About',
+                'excerpt' => 'The raw, unfiltered blueprint of learning to code independently, mastering production systems, passing Google technical interviews, and trading the campus for a laptop bag.',
+                'url' => 'https://techunicorn.substack.com/p/40-hour-to-400k-at-google-without-a-degree',
+                'category' => 'Career & Nomad',
+                'read_time' => '10 min read',
+                'date' => 'Jun 2025',
+                'cover' => '/images/delia_portrait_round.jpg',
+                'popular' => true,
+            ],
+        ];
+
+        return response()->json([
+            'publication' => [
+                'name' => 'Tech Unicorns',
+                'author' => 'Delia Lazarescu',
+                'handle' => '@techunicorn',
+                'profile_url' => 'https://substack.com/@techunicorn',
+                'url' => 'https://techunicorn.substack.com',
+                'subscribers' => '24K+',
+                'tagline' => 'Coding, AI experiments, digital nomadism, and building software around the world.',
+            ],
+            'posts' => $defaultPosts,
+        ])->header('Cache-Control', 'public, max-age=120');
+    }
+
+    public function marqueeEdit(): JsonResponse
+    {
+        return response()->json(Marquee::dashboard());
+    }
+
+    public function marqueeSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'items' => 'present|array|max:12',
+            'items.*.label' => 'nullable|string|max:40',
+            'items.*.target' => 'required|string|in:' . implode(',', array_keys(Marquee::TARGETS)),
+            'show_live' => 'required|boolean',
+            'speed' => 'required|string|in:' . implode(',', array_keys(Marquee::SPEEDS)),
+        ]);
+        $data['items'] = array_values(array_filter(array_map(fn ($i) => [
+            'label' => trim((string)($i['label'] ?? '')),
+            'target' => $i['target'],
+        ], $data['items']), fn ($i) => $i['label'] !== ''));
+        if (!$data['items'] && !$data['show_live']) {
+            return response()->json([
+                'message' => 'Keep at least one phrase or the live facts.',
+                'errors' => [
+                    'items' => ['Add a phrase or turn on live facts.'],
+                ],
+            ], 422);
+        }
+        Marquee::save($data);
+
+        return response()->json(Marquee::dashboard());
+    }
+
+    /**
+     * "Brand Partners & Stages": her brands, then the stages from her talks.
+     */
+    public function partners(): JsonResponse
+    {
+        return response()->json([
+            'items' => Partners::items(),
+        ])->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function partnersEdit(): JsonResponse
+    {
+        return response()->json(Partners::dashboard());
+    }
+
+    public function partnersSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'brands' => 'present|array|max:24',
+            'brands.*.name' => 'nullable|string|max:40',
+            'brands.*.url' => 'nullable|url:http,https|max:300',
+            'show_stages' => 'required|boolean',
+            'hidden_stages' => 'present|array|max:100',
+            'hidden_stages.*' => 'string|max:150',
+        ]);
+        $data['brands'] = array_values(array_filter(array_map(
+            fn ($b) => [
+                'name' => trim((string)($b['name'] ?? '')),
+                'url' => trim((string)($b['url'] ?? '')),
+            ],
+            $data['brands'],
+        ), fn ($b) => $b['name'] !== ''));
+        Partners::save($data);
+
+        return response()->json(Partners::dashboard());
+    }
+
+    /**
+     * "04: Packages & Pricing": the cards, with her prices, live audience and build-slot availability.
+     */
+    public function pricing(): JsonResponse
+    {
+        $secret = Setting::get('stripe_secret_key') ?: env('STRIPE_SECRET_KEY');
+
+        return response()->json([
+            'plans' => Pricing::publicPlans(),
+            'stripe_configured' => (bool)$secret,
+        ])
+            ->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function pricingEdit(): JsonResponse
+    {
+        return response()->json(Pricing::dashboard());
+    }
+
+    public function pricingSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'plans' => 'required|array',
+            'plans.*.price' => 'required|integer|min:1|max:1000000',
+            'plans.*.visible' => 'required|boolean',
+            'plans.*.popular' => 'sometimes|boolean',
+        ]);
+        $plans = array_intersect_key($data['plans'], Pricing::PLANS);
+        if (!array_filter($plans, fn ($p) => $p['visible'])) {
+            return response()->json([
+                'message' => 'Keep at least one package on your website.',
+                'errors' => [
+                    'plans' => ['Keep at least one package visible.'],
+                ],
+            ], 422);
+        }
+
+        return response()->json(Pricing::save($plans));
+    }
+
+    /**
+     * "01: About": her words plus live facts (audience, latest talk, build-slot availability).
+     */
+    public function about(): JsonResponse
+    {
+        return response()->json(About::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /**
+     * The dashboard's "About you" editor.
+     */
+    public function aboutEdit(): JsonResponse
+    {
+        $about = About::get();
+
+        return response()->json([
+            'about' => $about + [
+                'portrait_url' => About::portraitUrl($about),
+            ],
+            'preview' => About::publicSection(),
+        ]);
+    }
+
+    public function aboutSave(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'headline' => 'required|string|max:120',
+            'bio' => 'present|array|max:3',
+            'bio.*' => 'nullable|string|max:900',
+            'thesis' => 'nullable|string|max:160',
+            'thesis_detail' => 'nullable|string|max:400',
+            'now' => 'nullable|string|max:120',
+            'location' => 'nullable|string|max:80',
+            'countries' => 'required|integer|min:0|max:250',
+            'story_url' => 'nullable|url:http,https|max:300',
+            'milestones' => 'present|array|max:6',
+            'milestones.*.label' => 'nullable|string|max:60',
+            'milestones.*.detail' => 'nullable|string|max:200',
+        ]);
+        $data['bio'] = array_values(array_map(fn ($p) => trim((string)$p), $data['bio']));
+        $data['milestones'] = array_values(array_map(fn ($m) => [
+            'label' => trim((string)($m['label'] ?? '')),
+            'detail' => trim((string)($m['detail'] ?? '')),
+        ], $data['milestones']));
+        foreach (['thesis', 'thesis_detail', 'now', 'location', 'story_url'] as $k) {
+            $data[$k] = trim((string)($data[$k] ?? ''));
+        }
+        About::save($data);
+
+        return $this->aboutEdit();
+    }
+
+    /**
+     * Her own portrait for the About section (JPEG, PNG or WebP up to 8 MB).
+     */
+    public function aboutPortrait(Request $request): JsonResponse
+    {
+        $file = $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp|max:8192',
+        ])['image'];
+        $old = About::get()['portrait'];
+        $path = $file->storeAs('about', \Illuminate\Support\Str::uuid() . '.' . strtolower($file->getClientOriginalExtension() ?: 'jpg'), 'local');
+        About::save([
+            'portrait' => $path,
+        ]);
+        if ($old) {
+            Storage::disk('local')->delete($old);
+        }
+
+        return $this->aboutEdit();
+    }
+
+    public function aboutPortraitReset(): JsonResponse
+    {
+        $old = About::get()['portrait'];
+        About::save([
+            'portrait' => null,
+        ]);
+        if ($old) {
+            Storage::disk('local')->delete($old);
+        }
+
+        return $this->aboutEdit();
+    }
+
+    public function aboutPortraitFile(): Response
+    {
+        $path = About::get()['portrait'];
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    /**
+     * "On Stage": her talks (featured, upcoming, past), stats from that list, and her talk topics.
+     */
+    public function talks(): JsonResponse
+    {
+        return response()->json(Talk::publicSection())->header('Cache-Control', 'public, max-age=60');
+    }
+
+    /**
+     * An uploaded stage photo, only for a talk that's on the page.
+     */
+    public function talkImage(Talk $talk): Response
+    {
+        abort_unless($talk->visible && $talk->image && !str_starts_with($talk->image, '/') && Storage::disk('local')->exists($talk->image), 404);
+
+        return Storage::disk('local')->response($talk->image, null, [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    /**
+     * Her dashboard's "Speaking": next talk, stats, and speaking requests from the website.
+     */
+    public static function speaking(): array
+    {
+        $talks = Talk::where('visible', true)->get();
+        $requests = Talk::requests();
+
+        return [
+            'next' => $talks->filter->upcoming->sortBy('date')->first(),
+            'stats' => Talk::stats($talks),
+            'requests' => $requests->count(),
+            'latest_requests' => $requests->sortByDesc('created_at')->take(3)->map(fn ($d) => [
+                'id' => $d->id,
+                'name' => $d->contact_name ?: $d->brand_name,
+                'company' => $d->brand_name,
+                'when' => $d->key_talking_points,
+                'created_at' => $d->created_at,
+            ])->values(),
+        ];
+    }
+
+    /**
+     * Her Website page: every editor card's data in one call (the same blocks the dashboard
+     * used to carry), plus where the public page lives.
+     */
+    public function workspace(): JsonResponse
+    {
+        return response()->json([
+            'hero' => rescue(fn () => Hero::dashboard(), null),
+            'marquee' => rescue(fn () => Marquee::dashboard(), null),
+            'partners' => rescue(fn () => Partners::dashboard(), null),
+            'pricing' => rescue(fn () => Pricing::dashboard(), null),
+            'about' => rescue(fn () => About::publicSection(), null),
+            'speaking' => rescue(fn () => self::speaking(), null),
+            'reach' => rescue(fn () => self::reach(), null),
+            'website' => rescue(fn () => self::summary(), null),
+            'journey' => ClientJourney::summary(),
+            'site_url' => \App\Http\Controllers\Api\PipelineController::siteUrl(),
+        ]);
+    }
+
+    /**
+     * A visitor opened an item (sent with sendBeacon, so the link itself is never delayed).
+     */
+    public function click(Request $request): Response
+    {
+        $data = $request->validate([
+            'key' => ['required', 'string', 'regex:/^(yt:[\w-]{11}|post:\d{1,10}|profile:[a-z]{1,12})$/'],
+            'platform' => 'required|string|in:' . implode(',', array_unique([...array_keys(LandingFeed::PLATFORMS), ...array_keys(Audience::PROFILES)])),
+        ]);
+        LandingFeed::recordClick($data['key'], $data['platform']);
+
+        return response()->noContent();
+    }
+
+    /**
+     * First image of a post shown on the landing page (the post is already public on the network).
+     */
+    public function thumb(SocialPost $post): Response
+    {
+        $visible = collect(LandingFeed::get()['platforms'])->flatten(1)->contains('key', 'post:' . $post->id);
+        $image = collect($post->media ?? [])->first(fn ($m) => str_starts_with((string)($m['mime'] ?? ''), 'image/'));
+        $file = $visible && $image ? MediaFile::find($image['id']) : null;
+        abort_unless($file && Storage::disk('local')->exists($file->path), 404);
+
+        return Storage::disk('local')->response($file->path, null, [
+            'Content-Type' => $file->mime,
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
+
+    // ---------------------------------------------------------------- her dashboard
+
+    /**
+     * Everything the feed could show (hidden items flagged), with clicks per item.
+     */
+    public function content(): JsonResponse
+    {
+        $feed = LandingFeed::build(withHidden: true);
+        $clicks30 = LandingFeed::clicks(30);
+        foreach ($feed['platforms'] as $platform => $items) {
+            foreach ($items as $i => $item) {
+                $feed['platforms'][$platform][$i]['clicks_30d'] = $clicks30[$item['key']] ?? 0;
+            }
+        }
+
+        return response()->json($feed + [
+            'summary' => self::summary(),
+        ]);
+    }
+
+    /**
+     * Pin or hide items; the public page updates straight away.
+     */
+    public function curate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'hidden' => 'present|array|max:200',
+            'hidden.*' => ['string', 'regex:/^(yt:[\w-]{11}|post:\d{1,10})$/'],
+            'pinned' => 'present|array|max:50',
+            'pinned.*' => ['string', 'regex:/^(yt:[\w-]{11}|post:\d{1,10})$/'],
+        ]);
+        Setting::put('landing_hidden', json_encode(array_values(array_unique($data['hidden']))));
+        Setting::put('landing_pinned', json_encode(array_values(array_unique(array_diff($data['pinned'], $data['hidden'])))));
+        LandingFeed::refresh();
+
+        return $this->content();
+    }
+
+    /**
+     * How many builds she takes on at once (0 hides availability on the landing page).
+     */
+    public function saveCapacity(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'capacity' => 'required|integer|min:0|max:10',
+        ]);
+        Setting::put('build_capacity', (string)$data['capacity']);
+
+        return response()->json(ClientJourney::summary());
+    }
+
+    /**
+     * Show or hide networks in "Reach & Content" (at least one stays visible).
+     */
+    public function saveReach(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'hidden' => 'present|array|max:5',
+            'hidden.*' => 'string|in:' . implode(',', array_keys(Audience::PROFILES)),
+        ]);
+        Setting::put('landing_reach_hidden', json_encode(array_values(array_unique($data['hidden']))));
+        LandingFeed::forget();
+
+        return response()->json(self::reach());
+    }
+
+    /**
+     * Her dashboard's "Public reach": what visitors see per network, plus profile opens in 30 days.
+     */
+    public static function reach(): array
+    {
+        $reach = Audience::reach();
+        $clicks = LandingFeed::clicks(30);
+        foreach ($reach['networks'] as $i => $n) {
+            // X was "twitter" in the content tabs; both count as opening her X profile.
+            $reach['networks'][$i]['opens_30d'] = ($clicks["profile:{$n['key']}"] ?? 0) + ($n['key'] === 'x' ? ($clicks['profile:twitter'] ?? 0) : 0);
+        }
+
+        return $reach;
+    }
+
+    public function refresh(): JsonResponse
+    {
+        LandingFeed::refresh();
+
+        return $this->content();
+    }
+
+    /**
+     * The dashboard card: what's live per network and what visitors open.
+     */
+    public static function summary(): array
+    {
+        $feed = LandingFeed::get();
+        $week = LandingFeed::clicks(7);
+        $items = collect($feed['platforms'])->flatMap(fn ($list, $platform) => collect($list)->map(fn ($i) => $i + [
+            'platform' => $platform,
+        ]));
+        $top = $items->map(fn ($i) => [
+            'key' => $i['key'],
+            'platform' => $i['platform'],
+            'title' => $i['title'],
+            'url' => $i['url'],
+            'clicks' => $week[$i['key']] ?? 0,
+        ])
+            ->filter(fn ($i) => $i['clicks'] > 0)->sortByDesc('clicks')->take(3)->values();
+
+        return [
+            'updated_at' => $feed['updated_at'],
+            'clicks_7d' => array_sum($week),
+            'top' => $top,
+            'sources' => $feed['sources'],
+            'counts' => array_map('count', $feed['platforms']),
+            'headline' => $feed['headline'],
+        ];
+    }
+}

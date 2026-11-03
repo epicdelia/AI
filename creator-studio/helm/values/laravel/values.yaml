@@ -1,0 +1,24 @@
+php:
+  repository: zeroc0d3/laravel-kubernetes
+  pullPolicy: IfNotPresent
+  tag: "latest"
+  fpmEnabled: false
+  envVars:
+    - name: APP_ENV
+      value: production
+    - name: APP_DEBUG
+      value: false
+    - name: DB_PORT
+      value: 3306
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  enabled: true
+  select:
+    node: "laravel"

@@ -1,0 +1,12 @@
+https://github.com/cloudposse/terraform-null-label.git
+https://github.com/cloudposse/terraform-aws-budgets.git
+https://github.com/cloudposse/terraform-aws-emr-cluster.git
+https://github.com/cloudposse/terraform-aws-mwaa.git
+https://github.com/cloudposse/terraform-aws-rds-cloudwatch-sns-alarms.git
+https://github.com/cloudposse/terraform-aws-route53-alias.git
+https://github.com/cloudposse/terraform-aws-s3-bucket.git
+https://github.com/cloudposse/terraform-aws-s3-log-storage.git
+https://github.com/cloudposse/terraform-aws-codebuild.git
+https://github.com/cloudposse/terraform-aws-cicd.git
+https://github.com/cloudposse/terraform-aws-ecs-codepipeline.git
+https://github.com/cloudposse/terraform-aws-code-deploy.git

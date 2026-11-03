@@ -1,0 +1,69 @@
+services:
+
+    nginx:
+        image: ${COMPOSE_PROJECT_NAME}-nginx:latest
+        pull_policy: build
+        build:
+            context: ./docker/
+            args:
+                NGINX_VERSION: ${NGINX_VERSION}
+                BUILD_ARGUMENT_ENV: prod
+            dockerfile: ./nginx/Dockerfile
+        container_name: ${COMPOSE_PROJECT_NAME}-nginx
+        restart: always
+        ports:
+            - "${WEB_PORT_HTTP}:80"
+            - "${WEB_PORT_SSL}:443"
+        volumes:
+            - ./:/var/www/html:ro,cached
+        depends_on:
+            - laravel
+        networks:
+            - laravel
+
+    laravel: &laravel-template
+        image: ${COMPOSE_PROJECT_NAME}-laravel:latest
+        pull_policy: build
+        build:
+            context: .
+            args:
+                BUILD_ARGUMENT_ENV: prod
+                HOST_UID: ${HOST_UID}
+                HOST_GID: ${HOST_GID}
+            dockerfile: ./Dockerfile
+        container_name: ${COMPOSE_PROJECT_NAME}-laravel
+        restart: always
+        depends_on:
+            - mysql
+        networks:
+            - laravel
+
+    ### Cron tasks
+    supervisord:
+        image: ${COMPOSE_PROJECT_NAME}-laravel:latest
+        container_name: ${COMPOSE_PROJECT_NAME}-supervisord
+        restart: always
+        depends_on:
+            - laravel
+        networks:
+            - laravel
+        expose: [ ]
+        command: [ "/usr/bin/supervisord" ]
+
+    mysql:
+        image: mysql:${MYSQL_VERSION}
+        platform: linux/x86_64
+        container_name: ${COMPOSE_PROJECT_NAME}-mysql
+        restart: always
+        command: --innodb-use-native-aio=${INNODB_USE_NATIVE_AIO:-1} --sql_mode=${SQL_MODE:-"ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"}
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: laravel
+        volumes:
+            - ./storage/mysql-data:/var/lib/mysql:delegated
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        name: laravel

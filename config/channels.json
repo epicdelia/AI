@@ -1,5 +1,5 @@
 {
-  "_note": "Entries are handles (without @) or channel IDs (UC...). Verified Sep 27 via the YouTube API: t3dotgg (Theo, 568k) and AlbertaTech (477k). Madeline Zhang (Google Health SWE) runs two channels, found by web search and not yet API-checked: 'Madeline Zhang' UCyhohEqNmmShW3pYfuw7Uqw and 'Maddy Zhang' UCJKzyA7mf4L6CtdNuRFExTw. 3 creators is a thin baseline, add 10-20 more adjacent ones.",
+  "_note": "Curated watchlist of 25 top tech & developer channels. Scored for breakout long-form videos (views / channel median >= 3.0x).",
   "lookback_days": 4,
   "min_outlier_score": 3,
   "min_views": 20000,
@@ -7,14 +7,27 @@
     "t3dotgg",
     "AlbertaTech",
     "UCyhohEqNmmShW3pYfuw7Uqw",
-    "UCJKzyA7mf4L6CtdNuRFExTw"
-  ],
-  "candidates_unused": [
+    "UCJKzyA7mf4L6CtdNuRFExTw",
     "Fireship",
     "ThePrimeTimeagen",
     "mreflow",
     "TinaHuang1",
     "NetworkChuck",
-    "aiexplained-official"
+    "aiexplained-official",
+    "jherr",
+    "ArjanCodes",
+    "NeetCode",
+    "devaslife",
+    "ByteByteGo",
+    "TechWithTim",
+    "WebDevSimplified",
+    "HusseinNasser-channel",
+    "TraversyMedia",
+    "continuousdelivery",
+    "DaveXiang",
+    "HealthySoftwareDeveloper",
+    "freecodecamp",
+    "coreyms",
+    "CodeBullet"
   ]
 }

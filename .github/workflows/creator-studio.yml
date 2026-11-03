@@ -1,0 +1,468 @@
+name: Creator Studio CI/CD
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+      - "claude/copilot-dark-love"
+      - "copilot-dark-love"
+      - "copilot dark love"
+      - "*copilot*"
+      - "claude/**"
+    paths:
+      - "creator-studio/**"
+      - ".github/workflows/creator-studio.yml"
+  pull_request:
+    branches:
+      - master
+      - main
+      - develop
+      - "claude/copilot-dark-love"
+      - "copilot-dark-love"
+      - "copilot dark love"
+      - "*copilot*"
+      - "claude/**"
+    paths:
+      - "creator-studio/**"
+      - ".github/workflows/creator-studio.yml"
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      run_infra:
+        description: "Run Terraform & Helm verification"
+        type: boolean
+        default: true
+      run_tests:
+        description: "Run unit & feature test suite"
+        type: boolean
+        default: true
+      run_quality:
+        description: "Run code quality & static analysis"
+        type: boolean
+        default: true
+      run_staging:
+        description: "Run staging environment build & migration"
+        type: boolean
+        default: true
+      run_prod:
+        description: "Run production environment verification"
+        type: boolean
+        default: true
+      publish_artifacts:
+        description: "Publish images and OCI artifacts to GHCR"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  infra-and-helm-validation:
+    name: "Terraform & Helm Verification"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_infra
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform Plugin Cache Directory
+        run: mkdir -p ~/.terraform.d/plugin-cache
+
+      - name: Cache Terraform Providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: tf-cache-${{ runner.os }}-${{ hashFiles('creator-studio/**/*.tf') }}
+          restore-keys: |
+            tf-cache-${{ runner.os }}-
+
+      - name: Cache Helm Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/helm
+          key: helm-cache-${{ runner.os }}-${{ hashFiles('creator-studio/**/Chart.lock') }}
+          restore-keys: |
+            helm-cache-${{ runner.os }}-
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+          terraform_wrapper: false
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.4"
+
+      - name: Download Official and Community Submodules
+        run: |
+          chmod +x get-community.sh get-officials.sh get-modules-codebuild.sh
+          ./get-community.sh
+          ./get-officials.sh
+
+      - name: Validate Terraform Stacks
+        env:
+          TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+        run: |
+          for dir in terraform/environment/providers/aws/infra/core \
+                     terraform/environment/providers/aws/infra/tfstate \
+                     terraform/environment/providers/aws/infra/resources/budget \
+                     terraform/environment/providers/aws/infra/resources/rds/laraveldb \
+                     terraform/environment/providers/aws/infra/resources/eks; do
+            echo "Initializing $dir..."
+            (cd $dir && terraform init -backend=false && terraform validate)
+          done
+
+      - name: Update Helm Chart Dependencies
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          for chart in helm/charts/stateful/mariadb \
+                       helm/charts/stateful/mysql \
+                       helm/charts/stateful/postgresql \
+                       helm/charts/stateful/redis \
+                       helm/charts/others/nginx \
+                       helm/charts/others/nginx-ingress-controller \
+                       helm/charts/others/node-exporter \
+                       helm/charts/others/kube-state-metrics \
+                       helm/charts/others/kube-prometheus; do
+            echo "Updating dependencies for $chart..."
+            (cd $chart && helm dependency update)
+          done
+
+      - name: Lint All Helm Charts
+        run: |
+          for chart in helm/templates/api \
+                       helm/templates/backend \
+                       helm/templates/configmap \
+                       helm/templates/frontend \
+                       helm/templates/secretref \
+                       helm/templates/stateful \
+                       helm/templates/svcrole \
+                       helm/charts/stateful/mariadb \
+                       helm/charts/stateful/mysql \
+                       helm/charts/stateful/postgresql \
+                       helm/charts/stateful/redis \
+                       helm/charts/others/nginx \
+                       helm/charts/others/nginx-ingress-controller \
+                       helm/charts/others/node-exporter \
+                       helm/charts/others/kube-state-metrics \
+                       helm/charts/others/kube-prometheus; do
+            echo "Linting $chart..."
+            helm lint "$chart"
+          done
+
+      - name: Dry-Run Template Rendering
+        run: |
+          for chart in api backend configmap frontend secretref stateful svcrole; do
+            echo "Rendering template $chart..."
+            helm template "$chart" "helm/templates/$chart" > /dev/null
+          done
+
+      - name: Package Helm Charts
+        run: |
+          mkdir -p artifacts/helm-charts
+          for chart in api backend configmap frontend secretref stateful svcrole; do
+            helm package "helm/templates/$chart" -d artifacts/helm-charts
+          done
+
+      - name: Package Terraform Infrastructure Bundle
+        run: |
+          mkdir -p artifacts/terraform
+          tar -czf artifacts/terraform/terraform-infra-bundles-${{ github.sha }}.tar.gz \
+            terraform/environment \
+            terraform/modules \
+            module_community.lst \
+            module_officials.lst
+
+      - name: Archive Verified Infrastructure Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-studio-infra-artifacts
+          path: creator-studio/artifacts/
+          retention-days: 14
+
+  unit-and-feature-tests:
+    name: "Unit & Feature Test Suite"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Reports Directory
+        run: mkdir -p reports/coverage reports/phpcpd reports/phpmetrics
+
+      - name: Build Test Docker Images
+        run: make build-test
+
+      - name: Start Test Environment Containers
+        run: make start-test
+
+      - name: Verify Running Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Database Migrations
+        run: make drop-migrate
+
+      - name: Seed Database
+        run: make seed
+
+      - name: Display PHP, Composer & Laravel Versions
+        run: make info
+
+      - name: Run PHPUnit Test Suite with Coverage
+        run: make phpunit
+
+      - name: Archive Test Reports & Coverage Data
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: creator-studio-test-reports
+          path: creator-studio/reports/
+          retention-days: 7
+
+      - name: Tear Down Test Environment
+        if: always()
+        run: make down-test
+
+  code-quality-and-lint:
+    name: "Code Quality & Static Analysis"
+    if: github.event_name != 'workflow_dispatch' || inputs.run_quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Reports Directory
+        run: mkdir -p reports/coverage reports/phpcpd reports/phpmetrics
+
+      - name: Build Test Docker Images
+        run: make build-test
+
+      - name: Start Test Environment Containers
+        run: make start-test
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Database Migrations
+        run: make drop-migrate
+
+      - name: Composer Security Vulnerability Audit
+        run: make composer-audit
+
+      - name: Easy Coding Standard (ECS) Check
+        run: make ecs
+
+      - name: PHP_CodeSniffer (PSR-12) Check
+        run: make phpcs
+
+      - name: PHPStan Static Analysis
+        run: make phpstan
+
+      - name: PHP Insights Analysis
+        run: make phpinsights
+
+      - name: PHP Mess Detector (PHPMD)
+        run: make phpmd
+
+      - name: PHP Copy/Paste Detector (PHPCPD)
+        run: make phpcpd
+
+      - name: Tear Down Test Environment
+        if: always()
+        run: make down-test
+
+  staging-check:
+    name: "Staging Environment Build & Migration"
+    needs: [unit-and-feature-tests, code-quality-and-lint]
+    if: |
+      always() &&
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_staging)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Staging Docker Images
+        run: make build-staging
+
+      - name: Start Staging Environment Containers
+        run: make start-staging
+
+      - name: Verify Staging Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Staging Database Migrations
+        run: make migrate-no-test
+
+      - name: Generate Application Key
+        run: make key-generate
+
+      - name: Display Environment Info
+        run: make info
+
+      - name: Tear Down Staging Environment
+        if: always()
+        run: make down-staging
+
+  production-check:
+    name: "Production Environment Build Verification"
+    needs: staging-check
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.staging-check.result == 'success' &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_prod)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Production Docker Images
+        run: make build-prod
+
+      - name: Start Production Environment Containers
+        run: make start-prod
+
+      - name: Verify Production Containers
+        run: docker ps -a
+
+      - name: Wait for MySQL Database Availability
+        run: make wait-for-db
+
+      - name: Run Production Database Migrations
+        run: make migrate-no-test
+
+      - name: Display Environment Info
+        run: make info
+
+      - name: Tear Down Production Environment
+        if: always()
+        run: make down-prod
+
+  publish-ghcr-artifacts:
+    name: "Publish to GitHub Container Registry (GHCR)"
+    needs: [infra-and-helm-validation, unit-and-feature-tests, code-quality-and-lint, production-check]
+    if: |
+      always() &&
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      (github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_artifacts))
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creator-studio
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.4"
+
+      - name: Download Built Infrastructure Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: creator-studio-infra-artifacts
+          path: creator-studio/artifacts/
+
+      - name: Set Lowercase Repository Variables
+        id: repo-meta
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          BRANCH_SLUG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          echo "owner_lc=${OWNER_LC}" >> $GITHUB_OUTPUT
+          echo "repo_lc=${REPO_LC}" >> $GITHUB_OUTPUT
+          echo "branch_slug=${BRANCH_SLUG}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker App to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: creator-studio
+          file: creator-studio/Dockerfile
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_ARGUMENT_ENV=prod
+          tags: |
+            ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-app:latest
+            ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-app:${{ github.sha }}
+            ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-app:${{ steps.repo-meta.outputs.branch_slug }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Creator Studio verified production container image
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Push Helm Charts to GHCR (OCI Registry)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          for chartPkg in artifacts/helm-charts/*.tgz; do
+            echo "Pushing $chartPkg to OCI registry..."
+            helm push "$chartPkg" "oci://ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/charts" || true
+          done
+
+      - name: Package & Push Terraform Artifacts to GHCR (OCI)
+        run: |
+          cat << 'EOF' > Dockerfile.terraform-artifact
+          FROM scratch
+          LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"
+          LABEL org.opencontainers.image.description="Creator Studio verified Terraform infrastructure bundle"
+          COPY artifacts/terraform/ /terraform-artifacts/
+          EOF
+          docker build -f Dockerfile.terraform-artifact \
+            -t "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:${{ github.sha }}" \
+            -t "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:latest" \
+            -t "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:${{ steps.repo-meta.outputs.branch_slug }}" \
+            .
+          docker push "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:${{ github.sha }}"
+          docker push "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:latest"
+          docker push "ghcr.io/${{ steps.repo-meta.outputs.owner_lc }}/creator-studio-terraform:${{ steps.repo-meta.outputs.branch_slug }}"
+          rm -f Dockerfile.terraform-artifact

@@ -1,0 +1,22 @@
+---
+repositories:
+  - name: creator-lab
+    url: s3://creator-helm-chart/lab
+
+templates:
+  default: &default
+    namespace: devops-tools
+    version: "1.4.0-rc"
+
+releases:
+  - name: laravel
+    chart: creator-lab/api
+    values:
+      - ./laravel-values.yml
+    <<: *default
+
+  - name: mariadb
+    chart: creator-lab/stateful
+    values:
+      - ./mariadb-values.yml
+    <<: *default

@@ -1,15 +1,16 @@
-const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "", snippets: "" };
+const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", studioUrl: "http://127.0.0.1:8000", style: "site", lang: "en", dict: "", snippets: "" };
 const $ = (id) => document.getElementById(id);
 const status = (html) => { $("status").innerHTML = html; };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 chrome.storage.sync.get(DEFAULTS).then((s) => {
-  for (const k of Object.keys(DEFAULTS)) $(k).value = s[k];
+  for (const k of Object.keys(DEFAULTS)) if ($(k)) $(k).value = s[k] || "";
 });
 
 $("save").addEventListener("click", async () => {
-  const v = Object.fromEntries(Object.keys(DEFAULTS).map((k) => [k, $(k).value.trim()]));
+  const v = Object.fromEntries(Object.keys(DEFAULTS).map((k) => [k, $(k) ? $(k).value.trim() : ""]));
   v.serverUrl = (v.serverUrl || DEFAULTS.serverUrl).replace(/\/+$/, "");
+  v.studioUrl = (v.studioUrl || DEFAULTS.studioUrl).replace(/\/+$/, "");
   await chrome.storage.sync.set(v);
   status('<span class="ok">Saved ✓</span>');
 });

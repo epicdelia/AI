@@ -4,7 +4,7 @@
 
 importScripts("site-style.js"); // styleFor(setting, url)
 
-const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", style: "site", lang: "en", dict: "", snippets: "" };
+const DEFAULTS = { serverUrl: "https://flow-dictation.onrender.com", studioUrl: "http://127.0.0.1:8000", style: "site", lang: "en", dict: "", snippets: "" };
 
 // Snippets: "cue => saved text" per line. The server marks cues as [[SNIPPET n]]; we insert the exact text.
 function parseSnippets(raw) {
@@ -20,7 +20,11 @@ let active = null; // { tabId, frameId }
 
 async function settings() {
   const s = await chrome.storage.sync.get(DEFAULTS);
-  return { ...s, serverUrl: s.serverUrl.replace(/\/+$/, "") };
+  return {
+    ...s,
+    serverUrl: (s.serverUrl || DEFAULTS.serverUrl).replace(/\/+$/, ""),
+    studioUrl: (s.studioUrl || DEFAULTS.studioUrl).replace(/\/+$/, "")
+  };
 }
 
 async function ensureOffscreen() {
@@ -123,12 +127,36 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   else if (msg.type === "final") finish(msg.text);
   else if (msg.type === "error") fail(msg.message);
   else if (msg.type === "get-settings") { settings().then(reply); return true; }
+  else if (msg.type === "studio-save") {
+    settings().then(async (cfg) => {
+      try {
+        const url = msg.kind === "idea" ? `${cfg.studioUrl}/api/ideas` : `${cfg.studioUrl}/api/notes`;
+        const body = msg.kind === "idea"
+          ? { title: msg.text.slice(0, 100).replace(/\n+/g, " "), notes: msg.text }
+          : { polished: msg.text, raw: msg.raw || msg.text, style: msg.style || "auto" };
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        reply({ ok: true });
+      } catch (e) {
+        reply({ ok: false, error: e.message });
+      }
+    });
+    return true;
+  }
 });
 
 chrome.commands.onCommand.addListener(async (command, tab) => {
-  if (command !== "toggle-dictation" || !tab) return;
-  if (active) stop();
-  else chrome.tabs.sendMessage(tab.id, { type: "flow-toggle-start" }).catch(() => {});
+  if (!tab) return;
+  if (command === "toggle-dictation") {
+    if (active) stop();
+    else chrome.tabs.sendMessage(tab.id, { type: "flow-toggle-start" }).catch(() => {});
+  } else if (command === "lint-selection") {
+    chrome.tabs.sendMessage(tab.id, { type: "flow-lint-selection" }).catch(() => {});
+  }
 });
 
 chrome.runtime.onInstalled.addListener((info) => {

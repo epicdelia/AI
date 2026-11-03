@@ -33,6 +33,13 @@
         "mac": "Alt+Shift+D"
       },
       "description": "Start / stop dictation"
+    },
+    "lint-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+L",
+        "mac": "Alt+Shift+L"
+      },
+      "description": "Lint selected text for AI tells"
     }
   },
   "options_page": "options.html",

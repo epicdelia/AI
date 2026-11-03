@@ -113,6 +113,81 @@ class LandingPageController extends Controller
         return response()->json(Marquee::publicData())->header('Cache-Control', 'public, max-age=60');
     }
 
+    /**
+     * "Substack & Writing": latest long-form articles, essays and dispatches.
+     * Automatically synced from her live Substack RSS feed (https://techunicorn.substack.com/feed).
+     */
+    public function substack(): JsonResponse
+    {
+        return response()->json(\App\Domains\Landing\SubstackFeed::get())->header('Cache-Control', 'public, max-age=120');
+    }
+
+    /**
+     * Legacy substack method backup
+     */
+    private function legacySubstack(): JsonResponse
+    {
+        $defaultPosts = [
+            [
+                'id' => 101,
+                'title' => 'My new favourite AI has my credit card. Here are the rules I make it follow.',
+                'excerpt' => 'Giving an autonomous agent spend authority sounds terrifying until you build deterministic verification guardrails. Here is the exact sandbox architecture.',
+                'url' => 'https://techunicorn.substack.com/p/my-new-favourite-ai-has-my-credit-card',
+                'category' => 'AI Agents',
+                'read_time' => '6 min read',
+                'date' => 'Oct 2026',
+                'cover' => '/images/delia_hyperagent.jpg',
+                'popular' => true,
+            ],
+            [
+                'id' => 102,
+                'title' => 'How to set up a 24/7 AI employee (ClawdBot managed my business while I partied in Davos)',
+                'excerpt' => 'A practical, unvarnished walkthrough of building background autonomous workflows that triage client leads, schedule tasks, and keep the business running autonomously.',
+                'url' => 'https://techunicorn.substack.com/p/how-to-set-up-a-24-7-ai-employee',
+                'category' => 'Autonomous Systems',
+                'read_time' => '8 min read',
+                'date' => 'Jan 2026',
+                'cover' => '/images/delia_tech_ai.jpg',
+                'popular' => true,
+            ],
+            [
+                'id' => 103,
+                'title' => 'Is Your CS Degree About to Become Worthless?',
+                'excerpt' => 'The software industry shifted under our feet. Syntax memorization is dead; architecture, prompt harness design, and system debugging are the real defensible moats.',
+                'url' => 'https://techunicorn.substack.com/p/is-your-cs-degree-about-to-become-worthless',
+                'category' => 'Engineering',
+                'read_time' => '7 min read',
+                'date' => 'Jul 2025',
+                'cover' => '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+                'popular' => false,
+            ],
+            [
+                'id' => 104,
+                'title' => '$40/Hour to $400K at Google WITHOUT a Degree - The Roadmap Nobody Talks About',
+                'excerpt' => 'The raw, unfiltered blueprint of learning to code independently, mastering production systems, passing Google technical interviews, and trading the campus for a laptop bag.',
+                'url' => 'https://techunicorn.substack.com/p/40-hour-to-400k-at-google-without-a-degree',
+                'category' => 'Career & Nomad',
+                'read_time' => '10 min read',
+                'date' => 'Jun 2025',
+                'cover' => '/images/delia_portrait_round.jpg',
+                'popular' => true,
+            ],
+        ];
+
+        return response()->json([
+            'publication' => [
+                'name' => 'Tech Unicorns',
+                'author' => 'Delia Lazarescu',
+                'handle' => '@techunicorn',
+                'profile_url' => 'https://substack.com/@techunicorn',
+                'url' => 'https://techunicorn.substack.com',
+                'subscribers' => '24K+',
+                'tagline' => 'Coding, AI experiments, digital nomadism, and building software around the world.',
+            ],
+            'posts' => $defaultPosts,
+        ])->header('Cache-Control', 'public, max-age=120');
+    }
+
     public function marqueeEdit(): JsonResponse
     {
         return response()->json(Marquee::dashboard());

@@ -107,6 +107,7 @@ Route::prefix('api')->group(function () {
     Route::get('landing/about', [\App\Http\Controllers\LandingPageController::class, 'about']);
     Route::get('landing/talks', [\App\Http\Controllers\LandingPageController::class, 'talks']);
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
+    Route::get('landing/substack', [\App\Http\Controllers\LandingPageController::class, 'substack']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
     // Multilingual & 24 EU Localization Routes

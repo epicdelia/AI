@@ -7429,3 +7429,392 @@ a.landing-stat-box:focus-visible .landing-stat-go {
   color: var(--accent, #d946ef);
   background: rgba(217, 70, 239, 0.08);
 }
+
+
+/* --- 08: Substack Newsletter & Blog Section --- */
+.landing-substack {
+  position: relative;
+  padding: 80px 0;
+  border-top: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.landing-substack-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.landing-substack-header-text {
+  max-width: 680px;
+}
+
+.landing-substack-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 18px rgba(217, 70, 239, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-substack-sub-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(217, 70, 239, 0.5);
+}
+
+.landing-substack-pill {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-weight: 800;
+}
+
+.landing-substack-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.landing-substack-tab {
+  background: var(--panel, rgba(255, 255, 255, 0.05));
+  color: var(--muted, rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.landing-substack-tab:hover {
+  background: var(--panel-2, rgba(255, 255, 255, 0.1));
+  color: var(--ink, #fff);
+  border-color: var(--line-active, rgba(255, 255, 255, 0.25));
+}
+
+.landing-substack-tab.is-active {
+  background: var(--accent, #d946ef);
+  color: #fff;
+  border-color: var(--accent, #d946ef);
+  box-shadow: 0 2px 10px rgba(217, 70, 239, 0.35);
+}
+
+/* Grid of Substack Cards */
+.landing-substack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.landing-substack-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--panel, rgba(23, 19, 26, 0.75));
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.landing-substack-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent, #d946ef);
+  border-color: var(--accent, #d946ef);
+}
+
+.landing-substack-card-cover-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #110d14;
+}
+
+.landing-substack-card-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-substack-card:hover .landing-substack-card-cover {
+  transform: scale(1.04);
+}
+
+.landing-substack-card-category {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(23, 19, 26, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.landing-substack-card-popular {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d946ef 0%, #ec4899 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(217, 70, 239, 0.4);
+}
+
+.landing-substack-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 18px 20px 20px 20px;
+}
+
+.landing-substack-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--muted, rgba(255, 255, 255, 0.65));
+  margin-bottom: 10px;
+}
+
+.landing-substack-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: #ff6719; /* Substack brand orange */
+}
+
+.landing-substack-card-title {
+  margin: 0 0 10px 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.landing-substack-card-title a {
+  color: var(--ink, #ffffff);
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+.landing-substack-card-title a:hover {
+  color: var(--accent, #d946ef);
+}
+
+.landing-substack-card-excerpt {
+  margin: 0 0 16px 0;
+  font-size: 0.82rem;
+  color: var(--muted, rgba(255, 255, 255, 0.7));
+  line-height: 1.55;
+  flex: 1;
+}
+
+.landing-substack-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.landing-substack-read-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent, #d946ef);
+  text-decoration: none;
+  transition: gap 0.2s ease, opacity 0.2s ease;
+}
+
+.landing-substack-read-link:hover {
+  gap: 9px;
+  opacity: 0.9;
+}
+
+/* Newsletter Box */
+.landing-substack-newsletter-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 32px 36px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(23, 19, 26, 0.9) 0%, rgba(42, 28, 48, 0.85) 100%);
+  border: 1px solid rgba(217, 70, 239, 0.25);
+  box-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.5);
+  flex-wrap: wrap;
+}
+
+.landing-substack-newsletter-content {
+  max-width: 480px;
+}
+
+.landing-substack-newsletter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ff0c4;
+  margin-bottom: 8px;
+}
+
+.landing-substack-newsletter-content h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.landing-substack-newsletter-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+
+.landing-substack-newsletter-action {
+  flex: 1;
+  min-width: 280px;
+  max-width: 480px;
+}
+
+.landing-substack-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.landing-substack-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+
+.landing-substack-input:focus {
+  border-color: var(--accent, #d946ef);
+}
+
+.landing-substack-submit-btn {
+  white-space: nowrap;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.landing-substack-newsletter-trust {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* Light Theme Overrides */
+:root[data-theme="light"] .landing-substack-card {
+  background: rgba(253, 250, 248, 0.95);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="light"] .landing-substack-card:hover {
+  box-shadow: 0 16px 36px -8px rgba(23, 19, 26, 0.14), 0 0 0 1px var(--accent, #d946ef);
+}
+
+:root[data-theme="light"] .landing-substack-card-title a {
+  color: #17131a;
+}
+
+:root[data-theme="light"] .landing-substack-card-excerpt {
+  color: #5f5566;
+}
+
+:root[data-theme="light"] .landing-substack-tab {
+  background: rgba(0, 0, 0, 0.04);
+  color: #5f5566;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .landing-substack-tab:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #17131a;
+}
+
+:root[data-theme="light"] .landing-substack-tab.is-active {
+  background: var(--accent, #d946ef);
+  color: #fff;
+}
+
+:root[data-theme="light"] .landing-substack-newsletter-box {
+  background: linear-gradient(135deg, #fbf7f4 0%, #f5eef8 100%);
+  border-color: rgba(217, 70, 239, 0.25);
+  box-shadow: 0 12px 32px rgba(23, 19, 26, 0.08);
+  color: #17131a;
+}
+
+:root[data-theme="light"] .landing-substack-newsletter-content p {
+  color: #5f5566;
+}
+
+:root[data-theme="light"] .landing-substack-newsletter-trust {
+  color: #5f5566;
+}
+
+:root[data-theme="light"] .landing-substack-input {
+  background: #ffffff;
+  color: #17131a;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 768px) {
+  .landing-substack-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing-substack-newsletter-box {
+    padding: 24px 20px;
+    gap: 20px;
+  }
+  .landing-substack-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

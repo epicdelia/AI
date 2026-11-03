@@ -58,8 +58,8 @@ class Audience
         ],
         'x' => [
             'label' => 'X',
-            'handle' => '@techunicorn_',
-            'url' => 'https://x.com/techunicorn_',
+            'handle' => '@tech__unicorn',
+            'url' => 'https://x.com/tech__unicorn',
             'unit' => 'followers',
             'blurb' => 'Raw engineering notes, launches, and hot takes as they happen.',
         ],

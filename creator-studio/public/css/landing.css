@@ -1947,6 +1947,100 @@ a.landing-trusted-item:focus-visible {
   margin: 0;
 }
 
+.landing-yt-poster-btn {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+  text-align: left;
+  color: inherit;
+}
+
+.landing-yt-inline-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  aspect-ratio: 16/9;
+}
+
+.landing-yt-out {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s, color 0.15s;
+}
+
+.landing-yt-out:hover {
+  background: rgba(0, 0, 0, 0.92);
+  color: var(--accent);
+}
+
+.landing-yt-title-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.landing-yt-title-link:hover {
+  color: var(--accent);
+}
+
+.landing-yt-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 0.76rem;
+}
+
+.landing-yt-watch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.landing-yt-watch-btn:hover {
+  opacity: 0.8;
+}
+
+.landing-yt-card-link {
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  transition: color 0.15s;
+}
+
+.landing-yt-card-link:hover {
+  color: var(--text);
+}
+
 /* ---- Content feed polish: real posts, follow cards, loading, arrows ---- */
 .landing-anchor {
   position: relative;
@@ -2179,6 +2273,227 @@ a.landing-trusted-item:focus-visible {
 
 .landing-post-card:hover .landing-post-open {
   color: var(--accent);
+}
+
+/* ---- Native Platform Cards: X, Threads, Instagram, TikTok ---- */
+
+/* X (Twitter) */
+.landing-post-card.is-x {
+  border-color: var(--line);
+}
+.landing-x-author-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.landing-post-avatar.x-avatar {
+  background: #000;
+  color: #fff;
+  border: 1px solid var(--line);
+}
+.landing-post-card.is-x.text-only .landing-post-text {
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  font-size: 0.90rem;
+  line-height: 1.6;
+}
+.landing-x-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+.x-action-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.x-action-item:hover {
+  color: #1d9bf0;
+}
+.x-action-item.is-heart:hover {
+  color: #f91880;
+}
+.x-action-item.is-out:hover {
+  color: var(--accent);
+}
+
+/* Threads */
+.landing-post-card.is-threads {
+  border-color: var(--line);
+}
+.landing-threads-avatar-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.landing-post-avatar.threads-avatar {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.landing-threads-spine {
+  width: 2px;
+  height: 14px;
+  background: var(--line);
+  border-radius: 1px;
+  margin-top: 3px;
+}
+.landing-threads-author-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.threads-dot {
+  font-weight: 700;
+}
+.landing-post-card.is-threads.text-only .landing-post-text {
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.landing-threads-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+}
+.threads-action-btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.threads-action-btn:hover {
+  color: var(--text);
+}
+.landing-threads-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* Instagram */
+.landing-ig-avatar-ring {
+  padding: 2px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  display: inline-flex;
+}
+.landing-post-avatar.ig-avatar {
+  background: #000;
+  color: #fff;
+}
+.landing-post-card.is-instagram .landing-post-media {
+  position: relative;
+  aspect-ratio: 4 / 5;
+}
+.landing-ig-reel-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+.ig-caption-author {
+  color: var(--text);
+  font-weight: 700;
+}
+.landing-ig-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.ig-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ig-action:hover {
+  color: #e1306c;
+}
+.ig-action.is-bookmark:hover {
+  color: var(--text);
+}
+
+/* TikTok */
+.landing-post-card.is-tiktok {
+  position: relative;
+}
+.landing-post-avatar.tt-avatar {
+  background: #000;
+  color: #25f4ee;
+  border: 1px solid var(--line);
+}
+.landing-post-card.is-tiktok .landing-post-media {
+  position: relative;
+}
+.landing-tt-views {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+.landing-tt-sound {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: -4px;
+}
+.tt-sound-icon {
+  font-weight: 700;
+  color: var(--accent);
+}
+.landing-tt-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.landing-tt-metrics > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Follow card: last in every row, or alone when a network has nothing published yet */

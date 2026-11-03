@@ -24,7 +24,7 @@ const PROFILES = [
   { key: 'youtube', label: 'YouTube', handle: '@Tech.Unicorn', url: 'https://youtube.com/@Tech.Unicorn' },
   { key: 'linkedin', label: 'LinkedIn', handle: 'Delia Lazarescu', url: 'https://linkedin.com/in/delialazarescu' },
   { key: 'tiktok', label: 'TikTok', handle: '@tech.unicorn', url: 'https://tiktok.com/@tech.unicorn' },
-  { key: 'x', label: 'X', handle: '@techunicorn_', url: 'https://x.com/techunicorn_' },
+  { key: 'x', label: 'X', handle: '@tech__unicorn', url: 'https://x.com/tech__unicorn' },
   { key: 'threads', label: 'Threads', handle: '@tech.unicorn', url: 'https://threads.net/@tech.unicorn' },
 ];
 

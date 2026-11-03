@@ -10,15 +10,31 @@ use Symfony\Component\HttpFoundation\Response;
  * Security headers on every response, and a Content Security Policy on every HTML page (the
  * studio and landing page shell, the link-in-bio page). Scripts only from this site plus the
  * page's own inline scripts, allowed by their hash (computed here, so editing one never breaks
- * the page). Frames only from YouTube (the hero's video player); connections only to this site
- * and AssemblyAI's streaming (dictation). Images and media may come from any https host:
+ * the page), and Google Translate for seamless multi-language translation. Frames only from
+ * YouTube (the hero's video player) and Google Translate; connections only to this site,
+ * AssemblyAI's streaming (dictation) and Google Translate. Images and media may come from any https host:
  * thumbnails and post media live on YouTube, social CDNs and her uploads.
  */
 class SecurityHeaders
 {
-    public const FRAMES = ['https://www.youtube-nocookie.com', 'https://www.youtube.com'];
+    public const FRAMES = [
+        'https://www.youtube-nocookie.com',
+        'https://www.youtube.com',
+        'https://translate.google.com',
+        'https://translate.googleapis.com',
+    ];
 
-    public const CONNECT = ['wss://streaming.assemblyai.com', 'https://streaming.assemblyai.com'];
+    public const CONNECT = [
+        'wss://streaming.assemblyai.com',
+        'https://streaming.assemblyai.com',
+        'https://translate.googleapis.com',
+        'https://translate.google.com',
+    ];
+
+    public const SCRIPTS = [
+        'https://translate.google.com',
+        'https://translate.googleapis.com',
+    ];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -43,13 +59,13 @@ class SecurityHeaders
 
     public static function policy(string $html): string
     {
-        $scripts = ["'self'", ...self::inlineScriptHashes($html)];
+        $scripts = ["'self'", ...self::SCRIPTS, ...self::inlineScriptHashes($html)];
 
         return implode('; ', [
             "default-src 'self'",
             'script-src ' . implode(' ', $scripts),
             // The UI sets inline styles all over (positions, widths, accent colours).
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com",
             "font-src 'self' data: https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
             "media-src 'self' data: blob: https:",

@@ -147,14 +147,26 @@ function portrait(d) {
   });
   track.append(...slideEls);
 
-  // Top header overlay: Tag pill on left, counter badge on right
+  // Indicators / Dots (defined before topOverlay which embeds dotsWrap)
+  const dotsWrap = h('div', { class: 'landing-slider-dots', role: 'tablist', 'aria-label': 'Choose photo' });
+  const dotEls = SLIDES.map((slideItem, idx) => h('button', {
+    type: 'button',
+    class: 'landing-slider-dot' + (idx === 0 ? ' is-active' : ''),
+    role: 'tab',
+    'aria-selected': String(idx === 0),
+    'aria-label': 'Go to slide ' + (idx + 1),
+    onclick: (e) => { e.stopPropagation(); goToSlide(idx); }
+  }));
+  dotsWrap.append(...dotEls);
+
+  // Top header overlay: Tag pill on left, dots in center, counter badge on right
   const tagEl = h('span', { class: 'landing-about-photo-tag' },
     h('span', { class: 'icon', 'aria-hidden': 'true' }, icon(SLIDES[0].icon, 12)),
     h('span', { class: 'landing-tag-label' }, SLIDES[0].tag)
   );
 
   const counterEl = h('span', { class: 'landing-slider-counter' }, '1 / ' + SLIDES.length);
-  const topOverlay = h('div', { class: 'landing-slider-top-bar' }, tagEl, counterEl);
+  const topOverlay = h('div', { class: 'landing-slider-top-bar' }, tagEl, dotsWrap, counterEl);
 
   // Navigation Arrows
   const prevBtn = h('button', {
@@ -170,18 +182,6 @@ function portrait(d) {
     'aria-label': 'Next photo',
     onclick: (e) => { e.stopPropagation(); goToSlide(currentIndex + 1); }
   }, icon('chevron-right', 16));
-
-  // Indicators / Dots
-  const dotsWrap = h('div', { class: 'landing-slider-dots', role: 'tablist', 'aria-label': 'Choose photo' });
-  const dotEls = SLIDES.map((_, idx) => h('button', {
-    type: 'button',
-    class: 'landing-slider-dot' + (idx === 0 ? ' is-active' : ''),
-    role: 'tab',
-    'aria-selected': String(idx === 0),
-    'aria-label': 'Go to slide ' + (idx + 1),
-    onclick: (e) => { e.stopPropagation(); goToSlide(idx); }
-  }));
-  dotsWrap.append(...dotEls);
 
   // Progress Bar
   const progressBar = h('div', { class: 'landing-slider-progress-bar' });
@@ -283,7 +283,7 @@ function portrait(d) {
 
   startAutoPlay();
 
-  card.append(track, topOverlay, prevBtn, nextBtn, dotsWrap, progressBar, figcaption);
+  card.append(track, topOverlay, prevBtn, nextBtn, figcaption, progressBar);
   showcase.appendChild(card);
   return showcase;
 }

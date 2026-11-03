@@ -48,3 +48,4 @@ class Helper
         return $default;
     }
 }
+

@@ -2,7 +2,7 @@
 // (posts to approve, comments and DMs to answer). A bell in the sidebar with an unread count.
 import { h, api, clear, toast, link, timeAgo, confirmDialog } from './core.js';
 import { icon } from './icons.js';
-import { PLATFORM_ICONS } from './pages/social.js';
+import { PLATFORM_ICONS } from './social-tools.js';
 
 const POLL_MS = 90000;
 const TYPE_ICON = { lead: 'briefcase', payment: 'tag', drafted: 'bot', approved: 'check', rejected: 'x', published: 'external', failed: 'x', learned: 'sparkle', created: 'bot', comment: 'chat', dm: 'chat' };

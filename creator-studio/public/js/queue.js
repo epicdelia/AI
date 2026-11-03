@@ -3,7 +3,8 @@
 // app is open (if she allows it), and the count in the tab title.
 import { h, api, busy, toast, clear, link } from './core.js';
 import { icon } from './icons.js';
-import { PLATFORM_ICONS, openInApp } from './pages/social.js';
+import { PLATFORM_ICONS } from './social-tools.js';
+const openInApp = async (...args) => (await import('./pages/social.js')).openInApp(...args);
 
 const SEEN = 'studio-reminded';
 const POLL_MS = 60000;

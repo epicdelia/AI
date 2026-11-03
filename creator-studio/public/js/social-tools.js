@@ -3,6 +3,8 @@ import { h, api, apiUpload, busy, toast, modal, clear, field, copyText, navigate
 import { icon } from './icons.js';
 import { skLines } from './skeleton.js';
 
+export const PLATFORM_ICONS = { linkedin: 'brand:linkedin', instagram: 'brand:instagram', x: 'brand:x', tiktok: 'brand:tiktok', threads: 'brand:threads', youtube: 'brand:youtube' };
+
 const chars = (s) => [...String(s || '')].length;
 
 /** Profile bio / headline with a live limit, AI options in her voice, and save. */

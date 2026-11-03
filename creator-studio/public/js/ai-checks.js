@@ -5,8 +5,10 @@
 // shown next to them where she has enough.
 import { h, api, busy, toast, clear, modal, field, copyText, pill } from './core.js';
 import { icon } from './icons.js';
-import { STUDIO_AGENT, retentionAuditModal, hookMatrixModal, banditTitlesModal, factCheckModal } from './pages/agents.js';
 import { complianceDialog } from './deal-tools.js';
+
+export const STUDIO_AGENT = { id: 'studio', name: 'Studio', platforms: ['youtube', 'linkedin', 'x', 'instagram', 'tiktok', 'threads'] };
+const loadAgents = () => import('./pages/agents.js');
 
 const ytId = (url) => String(url || '').match(/(?:youtu\.be\/|v=|\/shorts\/|\/live\/)([\w-]{11})/)?.[1] || '';
 
@@ -26,13 +28,13 @@ export function aiChecksPane(script, { before = async () => {}, selection = () =
         h('p', { class: 'muted small' }, 'Second opinions from the AI engines, run on this script with your brand and voice. Their scores are estimates, not measurements; title variants are also compared with your own videos once you have 8+ tracked.')),
       h('div', { class: 'ai-checks-grid' },
         checkCard('Retention audit', 'Where viewers are likely to drop off, and the pacing resets to add.',
-          h('button', { class: 'btn primary sm', onclick: run(() => retentionAuditModal(STUDIO_AGENT, null, { title: script.title, body: script.body })) }, icon('play', 14), 'Audit retention')),
+          h('button', { class: 'btn primary sm', onclick: run(async () => (await loadAgents()).retentionAuditModal(STUDIO_AGENT, null, { title: script.title, body: script.body })) }, icon('play', 14), 'Audit retention')),
         checkCard('Title variants', 'Four title directions with thumbnail ideas, checked against your past videos.',
-          h('button', { class: 'btn sm', onclick: run(() => banditTitlesModal(STUDIO_AGENT, null, { topic: script.title, videoId: ytId(script.youtube_url) })) }, icon('chart', 14), 'Write titles')),
+          h('button', { class: 'btn sm', onclick: run(async () => (await loadAgents()).banditTitlesModal(STUDIO_AGENT, null, { topic: script.title, videoId: ytId(script.youtube_url) })) }, icon('chart', 14), 'Write titles')),
         checkCard('Hook matrix', 'Six opening lines in different styles for this topic.',
-          h('button', { class: 'btn sm', onclick: run(() => hookMatrixModal(STUDIO_AGENT, null, { topic: script.title })) }, icon('sparkle', 14), 'Write hooks')),
+          h('button', { class: 'btn sm', onclick: run(async () => (await loadAgents()).hookMatrixModal(STUDIO_AGENT, null, { topic: script.title })) }, icon('sparkle', 14), 'Write hooks')),
         checkCard('Claim shield', 'A quick AI read of the technical claims (your selection, or the opening). For live sources, use the Facts tab.',
-          h('button', { class: 'btn sm', onclick: run(() => factCheckModal(STUDIO_AGENT, null, { text: selection() || String(script.body || '').slice(0, 4000) })) }, icon('check', 14), 'Check claims')),
+          h('button', { class: 'btn sm', onclick: run(async () => (await loadAgents()).factCheckModal(STUDIO_AGENT, null, { text: selection() || String(script.body || '').slice(0, 4000) })) }, icon('check', 14), 'Check claims')),
         deals.length ? checkCard(`Sponsor check: ${deals.map((d) => d.brand_name).join(', ')}`, 'Talking points, ad disclosure, do-nots, code and link, against the deal.',
           h('div', { class: 'row' }, deals.map((d) => h('button', { class: 'btn sm', onclick: run(() => complianceDialog(d, { content: script.body, title: script.title })) }, icon('briefcase', 14), d.brand_name)))) : null,
         script.status === 'published' ? checkCard('Evergreen reboot', 'Three fresh angles on this video for social, ready to schedule.',

@@ -2,7 +2,7 @@
 // daily brief, and follower goals with a forecast.
 import { h, api, busy, toast, clear, compact, link, modal, field, debounce, timeAgo } from './core.js';
 import { icon } from './icons.js';
-import { PLATFORM_ICONS } from './pages/social.js';
+import { PLATFORM_ICONS } from './social-tools.js';
 
 const LABEL = { linkedin: 'LinkedIn', instagram: 'Instagram', x: 'X', tiktok: 'TikTok', threads: 'Threads', youtube: 'YouTube' };
 const band = (s) => (s >= 58 ? 'good' : s >= 42 ? 'mid' : 'low');

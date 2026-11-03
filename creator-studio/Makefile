@@ -41,7 +41,13 @@ export LARAVEL_VERSION=8.65
 # =============== #
 #   GET MODULES   #
 # =============== #
-.PHONY: sub-officials sub-community sub-all codebuild-modules
+.PHONY: sub-officials sub-community sub-all codebuild-modules build-front
+build-front:
+	@echo "=============================================================="
+	@echo " Task      : Build Frontend (Vite, Code-Split, Pre-compress) "
+	@echo "=============================================================="
+	@npm run build
+
 sub-officials:
 	@echo "=============================================================="
 	@echo " Task      : Get Official Submodules "

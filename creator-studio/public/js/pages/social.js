@@ -11,7 +11,8 @@ import { bioCard, importDialog, demoControl } from '../social-tools.js';
 import { scoreCard } from '../growth.js';
 import { algorithmCheckDialog, evergreenDialog } from '../ai-checks.js';
 
-export const PLATFORM_ICONS = { linkedin: 'brand:linkedin', instagram: 'brand:instagram', x: 'brand:x', tiktok: 'brand:tiktok', threads: 'brand:threads', youtube: 'brand:youtube' };
+import { PLATFORM_ICONS } from '../social-tools.js';
+export { PLATFORM_ICONS };
 const STATUS_PILL = { idea: 'new', draft: 'WARN', scheduled: 'picked', posted: 'ok' };
 export const STATUS_LABEL = { idea: 'Idea', draft: 'Draft', scheduled: 'Scheduled', posted: 'Posted' };
 const PROFILE_URL = {

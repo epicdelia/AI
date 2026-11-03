@@ -20,8 +20,24 @@ self.addEventListener('fetch', (event) => {
   if (/^\/(api|oauth|storage|media)\//.test(url.pathname)) return; // live only
 
   const isPage = req.mode === 'navigate';
-  const isAsset = /^\/(css|js|icons)\//.test(url.pathname) || url.pathname === '/manifest.json';
+  const isImmutable = /^\/(build|dist)\/assets\//.test(url.pathname);
+  const isAsset = isImmutable || /^\/(css|js|icons)\//.test(url.pathname) || url.pathname === '/manifest.json';
   if (!isPage && !isAsset) return;
+
+  // Cache-first for content-hashed immutable build assets (0ms local hit)
+  if (isImmutable) {
+    event.respondWith(caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      });
+    }));
+    return;
+  }
 
   event.respondWith(fetch(req).then((res) => {
     if (res.ok) {

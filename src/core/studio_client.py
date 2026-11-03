@@ -8,6 +8,7 @@ class StudioClient:
     def __init__(self, base_url: str = STUDIO_API_URL, token: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
         self.token = token or os.getenv("STUDIO_API_TOKEN")
+        self._session = None
 
     def _get_httpx(self):
         try:
@@ -22,65 +23,80 @@ class StudioClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
 
+    def _client(self):
+        """Persistent keep-alive HTTP client session with connection pooling."""
+        if self._session is None:
+            httpx = self._get_httpx()
+            if httpx:
+                self._session = httpx.Client(timeout=5.0, headers=self._headers())
+        return self._session
+
+    def close(self):
+        if self._session is not None:
+            try:
+                self._session.close()
+            except Exception:
+                pass
+            self._session = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     def health(self) -> bool:
-        httpx = self._get_httpx()
-        if not httpx:
+        client = self._client()
+        if not client:
             return False
         try:
-            with httpx.Client(timeout=3.0) as client:
-                res = client.get(f"{self.base_url}/auth/status", headers=self._headers())
-                return res.status_code == 200
+            res = client.get(f"{self.base_url}/auth/status")
+            return res.status_code == 200
         except Exception:
             return False
 
     def sync_outlier(self, outlier_data: dict[str, Any]) -> bool:
         """Post a discovered breakout video to Creator Studio."""
-        httpx = self._get_httpx()
-        if not httpx:
+        client = self._client()
+        if not client:
             return False
         try:
-            with httpx.Client(timeout=5.0) as client:
-                res = client.post(
-                    f"{self.base_url}/breakouts/scan",
-                    json=outlier_data,
-                    headers=self._headers()
-                )
-                return res.status_code in (200, 201)
+            res = client.post(
+                f"{self.base_url}/breakouts/scan",
+                json=outlier_data
+            )
+            return res.status_code in (200, 201)
         except Exception:
             return False
 
     def save_idea(self, title: str, angle: str, hook: str) -> Optional[dict]:
         """Save a new greenlit idea to Creator Studio."""
-        httpx = self._get_httpx()
-        if not httpx:
+        client = self._client()
+        if not client:
             return None
         try:
-            with httpx.Client(timeout=5.0) as client:
-                res = client.post(
-                    f"{self.base_url}/ideas",
-                    json={"title": title, "angle": angle, "hook": hook},
-                    headers=self._headers()
-                )
-                if res.status_code in (200, 201):
-                    return res.json().get("idea")
+            res = client.post(
+                f"{self.base_url}/ideas",
+                json={"title": title, "angle": angle, "hook": hook}
+            )
+            if res.status_code in (200, 201):
+                return res.json().get("idea")
         except Exception:
             pass
         return None
 
     def save_note(self, text: str, source: str = "voice") -> Optional[dict]:
         """Save a voice dictation note to Creator Studio."""
-        httpx = self._get_httpx()
-        if not httpx:
+        client = self._client()
+        if not client:
             return None
         try:
-            with httpx.Client(timeout=5.0) as client:
-                res = client.post(
-                    f"{self.base_url}/notes",
-                    json={"body": text, "source": source},
-                    headers=self._headers()
-                )
-                if res.status_code in (200, 201):
-                    return res.json().get("note")
+            res = client.post(
+                f"{self.base_url}/notes",
+                json={"body": text, "source": source}
+            )
+            if res.status_code in (200, 201):
+                return res.json().get("note")
         except Exception:
             pass
         return None

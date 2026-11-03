@@ -61,27 +61,29 @@ def lint(text: str) -> list[tuple[str, int, str, str]]:
     return findings
 
 
+HUMANIZE_REPLACEMENTS = [
+    (re.compile(r"\bdelve into\b"), "explore"),
+    (re.compile(r"\bdelve\b"), "dig"),
+    (re.compile(r"\bgame-changer\b"), "big shift"),
+    (re.compile(r"\bgame changer\b"), "big shift"),
+    (re.compile(r"\btestament to\b"), "proof of"),
+    (re.compile(r"\bseamlessly\b"), "smoothly"),
+    (re.compile(r"\bIt is\b"), "It's"),
+    (re.compile(r"\bit is\b"), "it's"),
+    (re.compile(r"\bDo not\b"), "Don't"),
+    (re.compile(r"\bdo not\b"), "don't"),
+    (re.compile(r"\bCannot\b"), "Can't"),
+    (re.compile(r"\bcannot\b"), "can't"),
+    (re.compile(r"\bYou are\b"), "You're"),
+    (re.compile(r"\byou are\b"), "you're"),
+]
+
+
 def humanize(text: str) -> str:
     """Auto-correct common AI tells: em dashes, formal contractions, buzzwords."""
     clean = text.replace("—", ", ").replace(" – ", ", ")
-    replacements = [
-        (r"\bdelve into\b", "explore"),
-        (r"\bdelve\b", "dig"),
-        (r"\bgame-changer\b", "big shift"),
-        (r"\bgame changer\b", "big shift"),
-        (r"\btestament to\b", "proof of"),
-        (r"\bseamlessly\b", "smoothly"),
-        (r"\bIt is\b", "It's"),
-        (r"\bit is\b", "it's"),
-        (r"\bDo not\b", "Don't"),
-        (r"\bdo not\b", "don't"),
-        (r"\bCannot\b", "Can't"),
-        (r"\bcannot\b", "can't"),
-        (r"\bYou are\b", "You're"),
-        (r"\byou are\b", "you're"),
-    ]
-    for pattern, repl in replacements:
-        clean = re.sub(pattern, repl, clean)
+    for pattern, repl in HUMANIZE_REPLACEMENTS:
+        clean = pattern.sub(repl, clean)
     return clean
 
 

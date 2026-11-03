@@ -83,12 +83,36 @@ export function botTrap() {
   return h('input', { type: 'text', name: 'website', tabindex: '-1', autocomplete: 'off', class: 'hp-field', 'aria-hidden': 'true' });
 }
 
-export async function api(method, path, body) {
-  if (method === 'POST' && body && typeof body === 'object' && BOT_GUARDED.test(path) && body._t === undefined) {
+const apiMemoryCache = new Map();
+
+/** Invalidate client-side API in-memory cache */
+export function invalidateApiCache(prefix = null) {
+  if (!prefix) {
+    apiMemoryCache.clear();
+  } else {
+    for (const k of apiMemoryCache.keys()) {
+      if (k.startsWith(prefix)) apiMemoryCache.delete(k);
+    }
+  }
+}
+
+export async function api(method, path, body, options = {}) {
+  const upper = (method || 'GET').toUpperCase();
+  const cacheMs = options.cacheMs ?? (upper === 'GET' ? 15000 : 0);
+  const cacheKey = path;
+
+  if (upper === 'GET' && cacheMs > 0 && !options.fresh) {
+    const hit = apiMemoryCache.get(cacheKey);
+    if (hit && Date.now() - hit.time < cacheMs) {
+      return hit.data;
+    }
+  }
+
+  if (upper === 'POST' && body && typeof body === 'object' && BOT_GUARDED.test(path) && body._t === undefined) {
     body = { ...body, _t: Math.round(performance.now()) };
   }
   const opts = {
-    method,
+    method: upper,
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   };
@@ -112,11 +136,18 @@ export async function api(method, path, body) {
   }
   // A sensitive action wants the password again (EnsureFreshPassword): ask, then retry once.
   if (res.status === 423 && data.password_confirm_required && !path.startsWith('auth/')) {
-    if (await askPassword()) return api(method, path, body);
+    if (await askPassword()) return api(method, path, body, options);
   }
   if (!res.ok) {
     throw new ApiError(errorMessage(data, res.status), res.status, data);
   }
+
+  if (upper === 'GET' && cacheMs > 0) {
+    apiMemoryCache.set(cacheKey, { time: Date.now(), data });
+  } else if (upper !== 'GET') {
+    invalidateApiCache();
+  }
+
   return data;
 }
 

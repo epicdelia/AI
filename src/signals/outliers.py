@@ -14,16 +14,29 @@ from datetime import UTC, datetime
 from typing import Any, Callable, Optional
 from src.core.studio_client import StudioClient
 
+import time
+
 API = "https://www.googleapis.com/youtube/v3/"
 SHORTS_MAX_SECONDS = 180
+_API_CACHE: dict[str, tuple[float, dict]] = {}
+CACHE_TTL_SECONDS = 3600
 
 
 def api_get(endpoint: str, params: dict) -> dict:
     key = os.environ.get("YOUTUBE_API_KEY", "")
     params = dict(params, key=key)
     url = API + endpoint + "?" + urllib.parse.urlencode(params)
+
+    now = time.time()
+    if url in _API_CACHE:
+        cached_time, cached_data = _API_CACHE[url]
+        if now - cached_time < CACHE_TTL_SECONDS:
+            return cached_data
+
     with urllib.request.urlopen(url, timeout=30) as resp:
-        return json.load(resp)
+        data = json.load(resp)
+        _API_CACHE[url] = (now, data)
+        return data
 
 
 def parse_duration(iso: Optional[str]) -> int:

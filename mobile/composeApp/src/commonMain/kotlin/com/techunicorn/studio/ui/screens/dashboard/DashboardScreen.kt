@@ -213,6 +213,66 @@ fun DashboardScreen(
                 }
             }
         }
+
+        // Active Deliverables Due Tracker (Revenue Protection)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Deliverables Due", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Badge(containerColor = StudioAmber.copy(alpha = 0.2f)) {
+                    Text("2 In Flight", color = StudioAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Supabase · 60s Video Mid-Roll", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Linked to: 'Building Production App in 48h'", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(StudioCoral.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("Due in 2 days", color = StudioCoral, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Cursor · Dedicated X Thread & Carousel", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Rate: \$15,000 · Waiting on video publish", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(StudioEmerald.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("Due in 5 days", color = StudioEmerald, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.techunicorn.studio.domain.lint.AiTellsLinter
 import com.techunicorn.studio.domain.models.Script
 import com.techunicorn.studio.domain.models.ScriptChapter
 import com.techunicorn.studio.ui.theme.*
@@ -249,13 +250,45 @@ fun CameraPrompterScreen(
                     Spacer(Modifier.width(8.dp))
                     val mins = recordingSeconds / 60
                     val secs = recordingSeconds % 60
-                    val timeStr = "%02d:%02d".format(mins, secs)
+                    val minPad = if (mins < 10) "0$mins" else "$mins"
+                    val secPad = if (secs < 10) "0$secs" else "$secs"
+                    val timeStr = "$minPad:$secPad"
                     Text(
                         text = if (isRecording) "REC $timeStr" else "READY 00:00",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+
+            // AI-Tell Linter Script Status Badge
+            val scriptLint = remember(script.body) { AiTellsLinter.lint(script.body) }
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Black.copy(alpha = 0.7f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (scriptLint.hardCount > 0) StudioCoral else StudioEmerald
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (scriptLint.hardCount > 0) StudioCoral else StudioEmerald)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (scriptLint.isClean) "LINTER: 100% CLEAN" else "${scriptLint.findings.size} TELLS",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

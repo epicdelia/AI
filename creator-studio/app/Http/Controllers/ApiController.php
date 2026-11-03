@@ -24,6 +24,7 @@ use App\Models\Week;
 use App\Services\AiTellsLinter;
 use App\Services\BreakoutScanner;
 use App\Services\Dictation;
+use App\Services\EditBriefGenerator;
 use App\Services\Llm;
 use App\Services\NextStep;
 use App\Services\Prompts;
@@ -765,6 +766,21 @@ class ApiController extends Controller
         return response()->json([
             'edit_brief' => $brief,
             'message' => 'Editor brief generated.',
+        ]);
+    }
+
+    public function editBriefPack(Script $script, Request $request): JsonResponse
+    {
+        $publishDate = $request->input('publish_date');
+        $pack = EditBriefGenerator::generate($script, $publishDate);
+
+        $script->update([
+            'edit_brief' => $pack['markdown'],
+        ]);
+
+        return response()->json([
+            'pack' => $pack,
+            'message' => 'Editor Handoff Pack generated successfully.',
         ]);
     }
 

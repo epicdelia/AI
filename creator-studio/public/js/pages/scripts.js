@@ -626,7 +626,7 @@ export async function renderScript(view, id) {
     { key: 'package', label: 'Package', pane: packagePane, onShow: drawPackage },
     { key: 'transcript', label: 'Transcript', pane: transcriptPane, onShow: drawTranscript },
     { key: 'substack', label: 'Substack', pane: docTab('substack', { title: 'Substack post', generate: { path: `scripts/${script.id}/substack` }, empty: 'Generate a Substack post from the transcript (or the script, if there is no transcript yet).', help: 'Best after filming: paste the transcript first so the post reflects what you actually said.' }) },
-    { key: 'brief', label: 'Edit brief', pane: docTab('edit_brief', { title: 'Editor brief', generate: { path: `scripts/${script.id}/edit-brief` }, empty: 'Generate a brief for your editor from the script’s [VISUAL] and [B-ROLL] notes.' }) },
+    { key: 'brief', label: 'Edit brief', pane: docTab('edit_brief', { title: '1-Click Editor Handoff Pack', generate: { path: `scripts/${script.id}/edit-brief-pack` }, empty: 'Generate a structured 1-Click Handoff Pack for your editor with Google Drive folder scaffolding, timecoded shot list, and 48h SLA from the script’s [VISUAL] notes.' }) },
     { key: 'publish', label: 'Publish', pane: publishPane, onShow: drawPublish },
   ];
   const tabBar = h('div', { class: 'tabs', role: 'tablist' });

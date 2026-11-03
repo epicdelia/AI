@@ -1,6 +1,9 @@
 package com.techunicorn.studio.ui.viewmodels
 
+import com.techunicorn.studio.data.api.StudioAiClient
+import com.techunicorn.studio.data.api.VoicePolishResult
 import com.techunicorn.studio.data.repository.StudioRepository
+import com.techunicorn.studio.domain.models.ScriptChapter
 import com.techunicorn.studio.platform.audio.AudioEngine
 import com.techunicorn.studio.platform.audio.AudioSample
 import com.techunicorn.studio.platform.audio.RecordingState
@@ -18,6 +21,9 @@ data class FlowVoiceUiState(
     val rawTranscription: String = "",
     val polishedHook: String = "",
     val polishedAngle: String = "",
+    val chapters: List<ScriptChapter> = emptyList(),
+    val xThreadOpener: String = "",
+    val linkedInTakeaway: String = "",
     val isPolishing: Boolean = false
 )
 
@@ -29,6 +35,7 @@ sealed interface FlowVoiceEvent {
 class FlowVoiceViewModel(
     private val audioEngine: AudioEngine,
     private val repository: StudioRepository,
+    private val aiClient: StudioAiClient,
     private val haptics: HapticEngine
 ) : BaseViewModel<FlowVoiceUiState, FlowVoiceEvent>(FlowVoiceUiState()) {
 
@@ -80,13 +87,14 @@ class FlowVoiceViewModel(
 
     private fun simulateTranscriptionAndAiPolish(durationMillis: Long) {
         viewModelScope.launch {
+            val transcript = "I was thinking about how developer tools are changing with AI swarms... like, instead of building another copilot, what if the entire creator pipeline from script to teleprompter to brand contract was handled natively in Kotlin?"
             updateState {
                 it.copy(
                     recordingState = RecordingState.PROCESSING_STT,
-                    rawTranscription = "I was thinking about how developer tools are changing with AI swarms... like, instead of building another copilot, what if the entire creator pipeline from script to teleprompter to brand contract was handled natively in Kotlin?"
+                    rawTranscription = transcript
                 )
             }
-            delay(1200)
+            delay(500)
 
             updateState {
                 it.copy(
@@ -94,18 +102,23 @@ class FlowVoiceViewModel(
                     isPolishing = true
                 )
             }
-            delay(1000)
+
+            // Real Gemini / Creator Studio Polish Call
+            val polishResult = aiClient.polishVoiceTranscript(transcript)
 
             updateState {
                 it.copy(
                     recordingState = RecordingState.IDLE,
                     isPolishing = false,
-                    polishedHook = "Why 99% of AI Startups Build the Wrong Thing (And How to Fix It)",
-                    polishedAngle = "Contrast standalone chat wrappers with deep native Kotlin Multiplatform execution suites."
+                    polishedHook = polishResult.title,
+                    polishedAngle = polishResult.angle,
+                    chapters = polishResult.chapters,
+                    xThreadOpener = polishResult.xThreadOpener,
+                    linkedInTakeaway = polishResult.linkedInTakeaway
                 )
             }
             haptics.success()
-            sendEvent(FlowVoiceEvent.ShowToast("Transcription and AI Polish complete!"))
+            sendEvent(FlowVoiceEvent.ShowToast("Gemini Voice Polish & Multi-Platform Cascade ready!"))
         }
     }
 

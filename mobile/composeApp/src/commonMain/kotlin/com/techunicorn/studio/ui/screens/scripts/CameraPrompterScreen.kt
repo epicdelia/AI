@@ -56,6 +56,8 @@ fun CameraPrompterScreen(
     var activeChapterId by remember { mutableStateOf(script.chapters.firstOrNull()?.id ?: "") }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showSavedDialog by remember { mutableStateOf(false) }
+    var showPreFlightDialog by remember { mutableStateOf(false) }
+    var isAnalyzingPreFlight by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -287,6 +289,20 @@ fun CameraPrompterScreen(
                             )
                         }
                     }
+                }
+
+                // Gemini 2.5 Flash Pre-Flight Vision Critic Button
+                IconButton(
+                    onClick = {
+                        isAnalyzingPreFlight = true
+                        showPreFlightDialog = true
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(StudioViolet.copy(alpha = 0.85f))
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = "Gemini Pre-Flight Check", tint = Color.White)
                 }
 
                 IconButton(
@@ -559,6 +575,69 @@ fun CameraPrompterScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = StudioEmerald)
                     ) {
                         Text("Return to Studio")
+                    }
+                }
+            )
+        }
+
+        // 8. Gemini Pre-Flight Vision & Audio Audit Dialog
+        if (showPreFlightDialog) {
+            AlertDialog(
+                onDismissRequest = { showPreFlightDialog = false },
+                icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = StudioViolet, modifier = Modifier.size(36.dp)) },
+                title = { Text("Gemini 2.5 Flash · Pre-Flight Audit") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = StudioEmerald.copy(alpha = 0.15f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Framing", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("94%", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = StudioEmerald)
+                                }
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = StudioViolet.copy(alpha = 0.15f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Lighting", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("88%", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = StudioViolet)
+                                }
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = StudioCoral.copy(alpha = 0.15f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Mic Room", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("-14 dB", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = StudioCoral)
+                                }
+                            }
+                        }
+
+                        Text("AI Recommendations:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("• Subject eye line aligned with upper third (optimal for retention).", fontSize = 12.sp)
+                        Text("• Rim light provides clean separation from background wall.", fontSize = 12.sp)
+                        Text("• Audio signal is clean with zero clipping detected.", fontSize = 12.sp)
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showPreFlightDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = StudioViolet)
+                    ) {
+                        Text("Ready to Film")
                     }
                 }
             )

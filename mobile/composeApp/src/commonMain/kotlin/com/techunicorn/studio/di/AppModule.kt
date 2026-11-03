@@ -1,5 +1,6 @@
 package com.techunicorn.studio.di
 
+import com.techunicorn.studio.data.api.StudioAiClient
 import com.techunicorn.studio.data.api.StudioApiClient
 import com.techunicorn.studio.data.cache.StudioLocalCache
 import com.techunicorn.studio.data.repository.StudioRepository
@@ -17,6 +18,7 @@ import org.koin.dsl.module
 val appModule: Module = module {
     // Singletons - Data & Platform Infrastructure
     single<StudioApiClient> { StudioApiClient() }
+    single<StudioAiClient> { StudioAiClient() }
     single<StudioLocalCache> { StudioLocalCache() }
     single<NetworkMonitor> { createPlatformNetworkMonitor() }
     single<HapticEngine> { getPlatformHapticEngine() }
@@ -34,9 +36,10 @@ val appModule: Module = module {
     // ViewModels / Presenters
     factory { DashboardViewModel(repository = get(), networkMonitor = get(), haptics = get()) }
     factory { YouTubeHubViewModel(repository = get(), haptics = get()) }
-    factory { CameraPrompterViewModel(haptics = get()) }
-    factory { FlowVoiceViewModel(audioEngine = get(), repository = get(), haptics = get()) }
-    factory { DealRoomViewModel(repository = get(), haptics = get()) }
+    factory { CameraPrompterViewModel(aiClient = get(), haptics = get()) }
+    factory { FlowVoiceViewModel(audioEngine = get(), repository = get(), aiClient = get(), haptics = get()) }
+    factory { DealRoomViewModel(repository = get(), aiClient = get(), haptics = get()) }
+    factory { CopilotViewModel(aiClient = get(), haptics = get()) }
 }
 
 private var isKoinInitialized = false

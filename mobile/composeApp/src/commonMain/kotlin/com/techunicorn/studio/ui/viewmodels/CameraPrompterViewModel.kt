@@ -1,5 +1,7 @@
 package com.techunicorn.studio.ui.viewmodels
 
+import com.techunicorn.studio.data.api.PreFlightAuditResult
+import com.techunicorn.studio.data.api.StudioAiClient
 import com.techunicorn.studio.domain.models.Script
 import com.techunicorn.studio.domain.models.ScriptChapter
 import com.techunicorn.studio.platform.haptics.HapticEngine
@@ -18,15 +20,19 @@ data class CameraPrompterUiState(
     val elapsedSeconds: Int = 0,
     val wordsReadEstimate: Int = 0,
     val currentWpm: Int = 145,
-    val activeChapterIndex: Int = 0
+    val activeChapterIndex: Int = 0,
+    val isAuditingPreFlight: Boolean = false,
+    val preFlightAudit: PreFlightAuditResult? = null
 )
 
 sealed interface CameraPrompterEvent {
     data object FinishReading : CameraPrompterEvent
     data class ChapterAnnounced(val chapterTitle: String) : CameraPrompterEvent
+    data class ShowToast(val message: String) : CameraPrompterEvent
 }
 
 class CameraPrompterViewModel(
+    private val aiClient: StudioAiClient,
     private val haptics: HapticEngine
 ) : BaseViewModel<CameraPrompterUiState, CameraPrompterEvent>(CameraPrompterUiState()) {
 
@@ -99,6 +105,22 @@ class CameraPrompterViewModel(
                     )
                 }
             }
+        }
+    }
+
+    fun runPreFlightAudit(imageBase64: String? = null) {
+        haptics.click()
+        updateState { it.copy(isAuditingPreFlight = true) }
+        viewModelScope.launch {
+            val result = aiClient.auditCameraFraming(imageBase64)
+            updateState {
+                it.copy(
+                    isAuditingPreFlight = false,
+                    preFlightAudit = result
+                )
+            }
+            haptics.success()
+            sendEvent(CameraPrompterEvent.ShowToast("Pre-Flight Check: ${result.framingScore}% Framing Score"))
         }
     }
 

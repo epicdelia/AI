@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.domain.models.DealRoomData
 import com.techunicorn.studio.domain.models.DealTier
 import com.techunicorn.studio.platform.haptics.rememberPlatformHapticEngine
+import com.techunicorn.studio.ui.components.MobilePaymentSheet
 import com.techunicorn.studio.ui.components.SignatureCanvas
 import com.techunicorn.studio.ui.theme.*
 import com.techunicorn.studio.ui.viewmodels.StrokePath
@@ -40,6 +41,7 @@ fun DealRoomScreen(
     var isAccepted by remember { mutableStateOf(dealData.acceptedAt != null) }
     var isPaid by remember { mutableStateOf(dealData.paidAt != null) }
     var signatureStrokes by remember { mutableStateOf<List<StrokePath>>(emptyList()) }
+    var showPaymentSheet by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -216,23 +218,40 @@ fun DealRoomScreen(
 
                     if (isAccepted && !isPaid) {
                         Spacer(Modifier.height(8.dp))
+                        val currentRate = dealData.tiers.find { it.key == selectedTierKey }?.amount ?: dealData.amount
                         Button(
                             onClick = {
-                                haptics.success()
-                                isPaid = true
+                                haptics.click()
+                                showPaymentSheet = true
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = StudioEmerald),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            val currentRate = dealData.tiers.find { it.key == selectedTierKey }?.amount ?: dealData.amount
-                            Text("Pay \$${currentRate.toInt()} via Stripe")
+                            Text("Pay \$${currentRate.toInt()} via Google Pay / Stripe")
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showPaymentSheet) {
+        val currentRate = dealData.tiers.find { it.key == selectedTierKey }?.amount ?: dealData.amount
+        val currentTierName = dealData.tiers.find { it.key == selectedTierKey }?.name ?: selectedTierKey
+        MobilePaymentSheet(
+            packageId = selectedTierKey,
+            packageName = "${dealData.brandName} · $currentTierName",
+            amount = currentRate,
+            clientNameDefault = legalSignName,
+            companyNameDefault = dealData.brandName,
+            onDismiss = { showPaymentSheet = false },
+            onPaymentSuccess = { tx ->
+                isPaid = true
+                showPaymentSheet = false
+            }
+        )
     }
 }
 

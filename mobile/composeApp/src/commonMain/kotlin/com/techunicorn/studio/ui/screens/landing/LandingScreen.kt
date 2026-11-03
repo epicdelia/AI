@@ -51,6 +51,10 @@ fun LandingScreen(
     var bookingNotes by remember { mutableStateOf("") }
     var bookingConfirmed by remember { mutableStateOf(false) }
     var activeVideoModal by remember { mutableStateOf<HeroMosaicVideo?>(null) }
+    var showPaymentSheet by remember { mutableStateOf(false) }
+    var paymentPackageId by remember { mutableStateOf("retainer") }
+    var paymentPackageName by remember { mutableStateOf("Monthly AI Advisory") }
+    var paymentAmount by remember { mutableStateOf(3500.0) }
 
     // FAQ filter
     var selectedFaqCategory by remember { mutableStateOf("all") }
@@ -652,17 +656,31 @@ fun LandingScreen(
                         Text("Done")
                     }
                 } else {
-                    Button(
-                        onClick = {
-                            if (bookingName.isNotBlank() && bookingEmail.contains("@")) {
-                                bookingConfirmed = true
-                            } else {
-                                bookingConfirmed = true
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val isMvp = selectedServiceForBooking.contains("MVP", ignoreCase = true)
+                                paymentPackageId = if (isMvp) "mvp_full" else "retainer"
+                                paymentPackageName = if (isMvp) "Sprint MVP Build Package" else "Monthly AI Advisory Retainer"
+                                paymentAmount = if (isMvp) 12000.0 else 3500.0
+                                showPaymentSheet = true
+                                showBookingDialog = false
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = StudioCoral)
-                    ) {
-                        Text("Send Call Request")
+                        ) {
+                            Text("Instant Pay")
+                        }
+                        Button(
+                            onClick = {
+                                if (bookingName.isNotBlank() && bookingEmail.contains("@")) {
+                                    bookingConfirmed = true
+                                } else {
+                                    bookingConfirmed = true
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = StudioCoral)
+                        ) {
+                            Text("Send Call Request")
+                        }
                     }
                 }
             },
@@ -768,6 +786,21 @@ fun LandingScreen(
             },
             shape = RoundedCornerShape(14.dp),
             containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
+    if (showPaymentSheet) {
+        MobilePaymentSheet(
+            packageId = paymentPackageId,
+            packageName = paymentPackageName,
+            amount = paymentAmount,
+            clientNameDefault = bookingName,
+            clientEmailDefault = bookingEmail,
+            onDismiss = { showPaymentSheet = false },
+            onPaymentSuccess = {
+                showPaymentSheet = false
+                bookingConfirmed = true
+            }
         )
     }
 }

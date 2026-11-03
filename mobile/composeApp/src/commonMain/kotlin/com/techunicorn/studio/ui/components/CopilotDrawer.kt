@@ -25,11 +25,15 @@ import com.techunicorn.studio.ui.theme.StudioViolet
 @Composable
 fun CopilotDrawerContent(
     messages: List<CopilotMessage>,
+    isStreaming: Boolean = false,
+    activeStreamText: String = "",
     onSendMessage: (String) -> Unit,
     onApplyAction: (CopilotAction) -> Unit,
+    onDismissAction: (String) -> Unit = {},
     onClose: () -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
+    val quickSlashCommands = listOf("/hook", "/titles", "/thumbnail", "/factcheck", "/sponsor", "/plan")
 
     Column(
         modifier = Modifier
@@ -125,7 +129,7 @@ fun CopilotDrawerContent(
                                                     Text("Apply Change", fontSize = 11.sp)
                                                 }
                                                 OutlinedButton(
-                                                    onClick = {},
+                                                    onClick = { onDismissAction(action.id) },
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                                 ) {
                                                     Text("Dismiss", fontSize = 11.sp)
@@ -139,21 +143,43 @@ fun CopilotDrawerContent(
                     }
                 }
             }
+
+            // Live streaming bubble
+            if (isStreaming && activeStreamText.isNotEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.95f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(StudioViolet.copy(alpha = 0.08f))
+                            .border(1.dp, StudioViolet.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Gemini Studio Copilot", style = MaterialTheme.typography.labelSmall, color = StudioViolet, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.width(8.dp))
+                                CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 2.dp, color = StudioViolet)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(text = activeStreamText, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
         }
 
-        // Quick Suggestions
+        // Quick Suggestions & Slash Commands
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            SuggestionChip(
-                onClick = { onSendMessage("Audit retention for current script") },
-                label = { Text("Audit retention", fontSize = 11.sp) }
-            )
-            SuggestionChip(
-                onClick = { onSendMessage("Generate 5 viral hooks") },
-                label = { Text("5 viral hooks", fontSize = 11.sp) }
-            )
+            for (cmd in quickSlashCommands) {
+                SuggestionChip(
+                    onClick = { onSendMessage(cmd) },
+                    label = { Text(cmd, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                )
+            }
         }
 
         // Message input field

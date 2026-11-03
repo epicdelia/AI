@@ -173,6 +173,38 @@ data class FaqItem(
 )
 
 @Serializable
+enum class PaymentMethodType {
+    GOOGLE_PAY,
+    APPLE_PAY,
+    CREDIT_CARD,
+    STRIPE_CHECKOUT
+}
+
+@Serializable
+enum class PaymentTxStatus {
+    PENDING,
+    PROCESSING,
+    SUCCEEDED,
+    FAILED
+}
+
+@Serializable
+data class StudioPaymentTransaction(
+    val transactionId: String,
+    val packageId: String,
+    val packageName: String,
+    val amount: Double,
+    val currency: String = "USD",
+    val paymentMethod: PaymentMethodType,
+    val clientEmail: String,
+    val companyName: String? = null,
+    val timestamp: String,
+    val invoiceNumber: String,
+    val status: PaymentTxStatus = PaymentTxStatus.SUCCEEDED,
+    val receiptUrl: String? = null
+)
+
+@Serializable
 data class Talk(
     val id: Long,
     val title: String,

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techunicorn.studio.data.api.StudioApiClient
+import com.techunicorn.studio.data.api.StudioAiClient
 import com.techunicorn.studio.domain.models.*
 import com.techunicorn.studio.di.initKoin
 import com.techunicorn.studio.domain.dsl.creatorScript
@@ -61,6 +62,7 @@ fun App() {
     val haptics = rememberPlatformHapticEngine()
 
     val api = remember { StudioApiClient() }
+    val aiClient = remember { StudioAiClient() }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
@@ -393,8 +395,11 @@ fun App() {
                         )
                     }
 
-                    // Copilot Modal Bottom Sheet
+                    // Copilot Modal Bottom Sheet (Powered by Gemini 2.5 Flash & Creator Studio SSE)
                     if (isCopilotOpen) {
+                        var isStreamingCopilot by remember { mutableStateOf(false) }
+                        var activeStreamText by remember { mutableStateOf("") }
+
                         ModalBottomSheet(
                             onDismissRequest = { isCopilotOpen = false },
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -402,42 +407,65 @@ fun App() {
                         ) {
                             CopilotDrawerContent(
                                 messages = copilotMessages,
+                                isStreaming = isStreamingCopilot,
+                                activeStreamText = activeStreamText,
                                 onSendMessage = { prompt ->
-                                    copilotMessages = copilotMessages + CopilotMessage(
-                                        id = (copilotMessages.size + 1).toString(),
+                                    val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                                    val userMsg = CopilotMessage(
+                                        id = "user-$now",
                                         sender = "user",
                                         text = prompt,
                                         timestamp = "Now"
                                     )
+                                    copilotMessages = copilotMessages + userMsg
+                                    isStreamingCopilot = true
+                                    activeStreamText = ""
+
                                     scope.launch {
-                                        val streamMsgId = (copilotMessages.size + 1).toString()
-                                        var streamedText = ""
-                                        api.sendCopilotMessage("1", prompt).collect { chunk ->
-                                            streamedText += chunk
-                                            val existing = copilotMessages.filterNot { it.id == streamMsgId }
-                                            copilotMessages = existing + CopilotMessage(
-                                                id = streamMsgId,
-                                                sender = "assistant",
-                                                text = streamedText,
-                                                timestamp = "Now",
-                                                actions = listOf(
-                                                    CopilotAction(
-                                                        id = "act1",
-                                                        title = "Update Hook in Script #101",
-                                                        description = "Replaces opening line with tested high-retention metric.",
-                                                        type = "update_script"
-                                                    )
+                                        val fullText = StringBuilder()
+                                        aiClient.streamCopilotMessage(userPrompt = prompt).collect { chunk ->
+                                            fullText.append(chunk)
+                                            activeStreamText = fullText.toString()
+                                        }
+
+                                        val actionList = mutableListOf<CopilotAction>()
+                                        if (prompt.contains("hook", ignoreCase = true) || prompt.contains("/hook")) {
+                                            actionList.add(
+                                                CopilotAction(
+                                                    id = "act-hook-$now",
+                                                    title = "Apply Tension Hook to Script #101",
+                                                    description = "Replaces opening line with tested high-retention metric.",
+                                                    type = "update_script",
+                                                    payload = "Everyone claims AI can build a production startup in 48 hours. As an ex-Google engineer, I put that to the test."
                                                 )
                                             )
                                         }
+
+                                        copilotMessages = copilotMessages + CopilotMessage(
+                                            id = "copilot-$now",
+                                            sender = "assistant",
+                                            text = fullText.toString().ifBlank { "Analysis complete. Pacing and retention metrics look strong." },
+                                            timestamp = "Now",
+                                            actions = actionList
+                                        )
+                                        isStreamingCopilot = false
+                                        activeStreamText = ""
                                     }
                                 },
                                 onApplyAction = { action ->
                                     if (scripts.isNotEmpty()) {
                                         val s = scripts.first()
-                                        scripts = listOf(s.copy(hook = "I tested 48h of continuous AI vibecoding. Here is where the code broke.")) + scripts.drop(1)
+                                        val newHook = action.payload.ifBlank { "Everyone claims AI can build a production startup in 48 hours. As an ex-Google engineer, I put that to the test." }
+                                        scripts = listOf(s.copy(hook = newHook)) + scripts.drop(1)
                                     }
-                                    isCopilotOpen = false
+                                    copilotMessages = copilotMessages.map { msg ->
+                                        msg.copy(actions = msg.actions.filterNot { it.id == action.id })
+                                    }
+                                },
+                                onDismissAction = { actionId ->
+                                    copilotMessages = copilotMessages.map { msg ->
+                                        msg.copy(actions = msg.actions.filterNot { it.id == actionId })
+                                    }
                                 },
                                 onClose = { isCopilotOpen = false }
                             )

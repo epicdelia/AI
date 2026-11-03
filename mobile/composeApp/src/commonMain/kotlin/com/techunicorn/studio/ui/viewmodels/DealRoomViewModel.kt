@@ -1,6 +1,8 @@
 package com.techunicorn.studio.ui.viewmodels
 
 import androidx.compose.ui.geometry.Offset
+import com.techunicorn.studio.data.api.DealPitchResult
+import com.techunicorn.studio.data.api.StudioAiClient
 import com.techunicorn.studio.data.repository.StudioRepository
 import com.techunicorn.studio.domain.models.DealRoomData
 import com.techunicorn.studio.domain.models.DealTier
@@ -25,7 +27,9 @@ data class DealRoomUiState(
     val isDpaAccepted: Boolean = false,
     val isSigningInProgress: Boolean = false,
     val isDealLockedAndSigned: Boolean = false,
-    val stripeCheckoutUrl: String? = null
+    val stripeCheckoutUrl: String? = null,
+    val isSynthesizingPitch: Boolean = false,
+    val aiPitchResult: DealPitchResult? = null
 )
 
 sealed interface DealRoomEvent {
@@ -36,6 +40,7 @@ sealed interface DealRoomEvent {
 
 class DealRoomViewModel(
     private val repository: StudioRepository,
+    private val aiClient: StudioAiClient,
     private val haptics: HapticEngine
 ) : BaseViewModel<DealRoomUiState, DealRoomEvent>(DealRoomUiState()) {
 
@@ -116,6 +121,28 @@ class DealRoomViewModel(
             haptics.success()
             sendEvent(DealRoomEvent.DealSignedSuccessfully)
             sendEvent(DealRoomEvent.ShowToast("Deal legally signed and encrypted. Stripe payment ready!"))
+        }
+    }
+
+    fun synthesizeAiPitch(brandName: String) {
+        haptics.click()
+        updateState { it.copy(isSynthesizingPitch = true) }
+        viewModelScope.launch {
+            val tierName = when (uiState.value.selectedTierIndex) {
+                0 -> "essential"
+                2 -> "enterprise"
+                else -> "growth"
+            }
+            val result = aiClient.synthesizeBrandPitch(brandName, tierName)
+            updateState {
+                it.copy(
+                    isSynthesizingPitch = false,
+                    aiPitchResult = result,
+                    computedTotalAmount = result.suggestedValue
+                )
+            }
+            haptics.success()
+            sendEvent(DealRoomEvent.ShowToast("Gemini synthesized proposal for $brandName!"))
         }
     }
 }

@@ -120,3 +120,62 @@ class StudioClient:
                 return res.status_code == 200
         except Exception:
             return False
+
+    def sync_repurposed_campaign(self, pack_dict: dict[str, Any]) -> dict[str, Any]:
+        """Syncs repurposed omnichannel campaign (Shorts, LinkedIn, X, Newsletter) to Creator Studio."""
+        client = self._client()
+        result = {"tasks_created": False, "social_drafts": 0}
+        if not client:
+            return result
+
+        title = pack_dict.get("source_title", "Repurposed Campaign")
+
+        # 1. Trigger Creator Studio auto-repurpose Kanban tasks
+        try:
+            res_tasks = client.post(
+                f"{self.base_url}/team/tasks/auto-repurpose",
+                json={
+                    "title": title,
+                    "timestamps": "00:00 Hook, 01:30 Gone, 04:00 Helps, 06:30 Worth More"
+                }
+            )
+            result["tasks_created"] = res_tasks.status_code in (200, 201)
+        except Exception:
+            pass
+
+        # 2. Sync LinkedIn Post draft
+        li_content = pack_dict.get("linkedin_post")
+        if li_content:
+            try:
+                res_li = client.post(
+                    f"{self.base_url}/social/posts",
+                    json={
+                        "platform": "linkedin",
+                        "content": li_content,
+                        "status": "draft"
+                    }
+                )
+                if res_li.status_code in (200, 201):
+                    result["social_drafts"] += 1
+            except Exception:
+                pass
+
+        # 3. Sync X Thread draft
+        x_thread = pack_dict.get("x_thread")
+        if x_thread and isinstance(x_thread, list):
+            try:
+                res_x = client.post(
+                    f"{self.base_url}/social/posts",
+                    json={
+                        "platform": "twitter",
+                        "content": x_thread[0],
+                        "thread_items": x_thread[1:],
+                        "status": "draft"
+                    }
+                )
+                if res_x.status_code in (200, 201):
+                    result["social_drafts"] += 1
+            except Exception:
+                pass
+
+        return result

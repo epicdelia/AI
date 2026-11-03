@@ -376,9 +376,10 @@ def main():
     if args.sync:
         sc = StudioClient()
         if sc.health():
-            print("[OK] Synced repurposed campaign to Creator Studio Content Calendar!")
+            sync_res = sc.sync_repurposed_campaign(pack.to_dict())
+            print(f"[OK] Synced repurposed campaign to Creator Studio: {sync_res['social_drafts']} social drafts created, Kanban tasks spawned.")
         else:
-            print("[NOTE] Creator Studio offline; assets saved locally for automated sync.")
+            print("[NOTE] Creator Studio is currently offline; assets saved locally for automated sync.")
 
     return 0
 

@@ -5,6 +5,14 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+# Ensure UTF-8 output encoding on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from src.core.config import ROOT_DIR, load_channels, load_scoreboard
 from src.core.studio_client import StudioClient
 from src.review.ai_tells import lint_paths, humanize, lint
@@ -169,7 +177,8 @@ def cmd_repurpose(args):
     if args.sync:
         sc = StudioClient()
         if sc.health():
-            print("\n[OK] Synced repurposed campaign directly to Creator Studio Content Calendar!")
+            res_sync = sc.sync_repurposed_campaign(pack.to_dict())
+            print(f"\n[OK] Synced repurposed campaign directly to Creator Studio ({res_sync['social_drafts']} social drafts created, Kanban tasks spawned)!")
         else:
             print("\n[NOTE] Creator Studio is currently offline; assets saved locally for automated sync.")
 

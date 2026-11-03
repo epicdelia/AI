@@ -70,6 +70,7 @@ Route::prefix('api')->group(function () {
     Route::post('install/setup-db', [InstallController::class, 'setupDatabase'])->middleware('throttle:5,1');
     Route::post('install/run-migrations', [InstallController::class, 'runMigrations'])->middleware('throttle:5,1');
     Route::post('install/vps', [InstallController::class, 'vpsInstall'])->middleware('throttle:5,1');
+    Route::get('install/nginx', [InstallController::class, 'nginxSnippet']);
 
     // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
     Route::get('stripe/packages', [StripePaymentController::class, 'packages']);

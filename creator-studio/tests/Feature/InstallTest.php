@@ -87,4 +87,42 @@ class InstallTest extends TestCase
         ])->assertStatus(422);
         $this->assertDatabaseCount('users', 0);
     }
+
+    public function test_nginx_snippet_generator_returns_tailored_config(): void
+    {
+        $res = $this->getJson('/api/install/nginx?app_url=https://studio.thetechunicorn.com')->assertOk();
+        $res->assertJsonPath('ok', true);
+        $res->assertJsonPath('host', 'studio.thetechunicorn.com');
+        $this->assertStringContainsString('server_name studio.thetechunicorn.com;', $res->json('config'));
+        $this->assertStringContainsString('fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;', $res->json('config'));
+        $this->assertStringContainsString('add_header Cache-Control', $res->json('config'));
+    }
+
+    public function test_vps_install_seeds_initial_staff_roles(): void
+    {
+        $payload = [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'app_url' => 'https://studio.test',
+            'admin_name' => 'Delia Lazarescu',
+            'admin_email' => 'delia@thetechunicorn.com',
+            'admin_password' => 'MasterPass2026!',
+            'admin_password_confirmation' => 'MasterPass2026!',
+            'timezone' => 'Europe/Berlin',
+            'currency' => 'EUR',
+            'brand_accent' => 'rose',
+            'seed_staff' => true,
+        ];
+
+        $res = $this->postJson('/api/install/vps', $payload)->assertOk();
+        $res->assertJsonPath('ok', true);
+        $this->assertAuthenticated();
+        $this->assertSame('delia@thetechunicorn.com', Auth::user()->email);
+        $this->assertSame('rose', Setting::get('accent'));
+        $this->assertSame('Europe/Berlin', Setting::get('timezone'));
+
+        // Staff members seeded
+        $staffCount = \App\Models\User::where('role', \App\Enums\Role::Staff)->count();
+        $this->assertGreaterThanOrEqual(3, $staffCount);
+    }
 }

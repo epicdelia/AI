@@ -39,6 +39,12 @@ class InstallController extends Controller
         $envWritable = $envExists ? is_writable($envPath) : is_writable(base_path());
 
         $phpOk = version_compare(PHP_VERSION, '8.2.0', '>=');
+        $phpMemory = ini_get('memory_limit') ?: '256M';
+        $maxExecution = ini_get('max_execution_time') ?: '30';
+        $uploadMax = ini_get('upload_max_filesize') ?: '20M';
+        $osFamily = PHP_OS_FAMILY;
+        $serverSoftware = $_SERVER['SERVER_SOFTWARE'] ?? (PHP_SAPI === 'cli' ? 'CLI Environment' : 'Linux / Nginx');
+        $serverIp = $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
 
         $extensions = [
             'pdo' => extension_loaded('pdo'),
@@ -50,13 +56,20 @@ class InstallController extends Controller
             'curl' => extension_loaded('curl'),
             'fileinfo' => extension_loaded('fileinfo'),
             'tokenizer' => extension_loaded('tokenizer'),
+            'xml' => extension_loaded('xml'),
+            'ctype' => extension_loaded('ctype'),
+            'json' => extension_loaded('json'),
+            'bcmath' => extension_loaded('bcmath'),
         ];
 
         $storageWritable = is_writable(storage_path());
         $cacheWritable = is_writable(base_path('bootstrap/cache'));
         $databaseWritable = is_writable(database_path());
+        $storageLogsWritable = is_writable(storage_path('logs'));
+        $storageFrameworkWritable = is_writable(storage_path('framework'));
 
         $hasAppKey = !empty(config('app.key'));
+        $basePath = base_path();
 
         return response()->json([
             'installed' => $hasUsers,
@@ -68,13 +81,22 @@ class InstallController extends Controller
             'server' => [
                 'php_version' => PHP_VERSION,
                 'php_ok' => $phpOk,
+                'memory_limit' => $phpMemory,
+                'max_execution_time' => $maxExecution,
+                'upload_max_filesize' => $uploadMax,
+                'os_family' => $osFamily,
+                'server_software' => $serverSoftware,
+                'server_ip' => $serverIp,
                 'extensions' => $extensions,
                 'storage_writable' => $storageWritable,
+                'storage_logs_writable' => $storageLogsWritable,
+                'storage_framework_writable' => $storageFrameworkWritable,
                 'cache_writable' => $cacheWritable,
                 'database_writable' => $databaseWritable,
                 'env_exists' => $envExists,
                 'env_writable' => $envWritable,
                 'has_app_key' => $hasAppKey,
+                'fix_permissions_cmd' => "sudo chown -R www-data:www-data {$basePath} && sudo chmod -R 775 {$basePath}/storage {$basePath}/bootstrap/cache",
             ],
         ]);
     }
@@ -116,7 +138,7 @@ class InstallController extends Controller
                 }
 
                 $path = $database;
-                if (!File::isAbsolutePath($path)) {
+                if (!$this->isAbsolutePath($path)) {
                     $path = base_path($path);
                 }
                 $dir = dirname($path);
@@ -216,16 +238,15 @@ class InstallController extends Controller
 
         // Test connection first
         if ($driver === 'sqlite') {
-            $path = $database;
-            if (!File::isAbsolutePath($path)) {
-                $path = base_path($path);
-            }
-            $dir = dirname($path);
-            if (!File::isDirectory($dir)) {
-                File::makeDirectory($dir, 0755, true, true);
-            }
-            if (!File::exists($path)) {
-                File::put($path, '');
+            if ($database !== ':memory:') {
+                $path = $this->isAbsolutePath($database) ? $database : base_path($database);
+                $dir = dirname($path);
+                if (!File::isDirectory($dir)) {
+                    File::makeDirectory($dir, 0755, true, true);
+                }
+                if (!File::exists($path)) {
+                    File::put($path, '');
+                }
             }
         }
 
@@ -245,12 +266,14 @@ class InstallController extends Controller
 
         $this->updateEnvFile($envUpdates);
 
+        $sqliteDb = $driver === 'sqlite' ? ($database === ':memory:' ? ':memory:' : ($this->isAbsolutePath($database) ? $database : base_path($database))) : $database;
+
         // Update runtime config
         config([
             'database.default' => $driver,
             "database.connections.{$driver}.host" => $host,
             "database.connections.{$driver}.port" => $port,
-            "database.connections.{$driver}.database" => $driver === 'sqlite' ? (File::isAbsolutePath($database) ? $database : base_path($database)) : $database,
+            "database.connections.{$driver}.database" => $sqliteDb,
             "database.connections.{$driver}.username" => $user,
             "database.connections.{$driver}.password" => $pass,
         ]);
@@ -315,6 +338,9 @@ class InstallController extends Controller
             'youtube_api_key' => 'nullable|string|max:200',
             'timezone' => 'nullable|string|max:50',
             'currency' => 'nullable|string|max:10',
+            'brand_accent' => 'nullable|string|max:20',
+            'seed_staff' => 'nullable|boolean',
+            'claude_api_key' => 'nullable|string|max:200',
         ]);
 
         $driver = $data['driver'] === 'mariadb' ? 'mysql' : $data['driver'];
@@ -326,16 +352,15 @@ class InstallController extends Controller
 
         // SQLite path setup
         if ($driver === 'sqlite') {
-            $path = $database;
-            if (!File::isAbsolutePath($path)) {
-                $path = base_path($path);
-            }
-            $dir = dirname($path);
-            if (!File::isDirectory($dir)) {
-                File::makeDirectory($dir, 0755, true, true);
-            }
-            if (!File::exists($path)) {
-                File::put($path, '');
+            if ($database !== ':memory:') {
+                $path = $this->isAbsolutePath($database) ? $database : base_path($database);
+                $dir = dirname($path);
+                if (!File::isDirectory($dir)) {
+                    File::makeDirectory($dir, 0755, true, true);
+                }
+                if (!File::exists($path)) {
+                    File::put($path, '');
+                }
             }
         }
 
@@ -363,16 +388,20 @@ class InstallController extends Controller
 
         $this->updateEnvFile($envUpdates);
 
-        config([
-            'database.default' => $driver,
-            "database.connections.{$driver}.host" => $host,
-            "database.connections.{$driver}.port" => $port,
-            "database.connections.{$driver}.database" => $driver === 'sqlite' ? (File::isAbsolutePath($database) ? $database : base_path($database)) : $database,
-            "database.connections.{$driver}.username" => $user,
-            "database.connections.{$driver}.password" => $pass,
-        ]);
+        if (!app()->environment('testing')) {
+            $vpsSqliteDb = $driver === 'sqlite' ? ($database === ':memory:' ? ':memory:' : ($this->isAbsolutePath($database) ? $database : base_path($database))) : $database;
 
-        DB::purge();
+            config([
+                'database.default' => $driver,
+                "database.connections.{$driver}.host" => $host,
+                "database.connections.{$driver}.port" => $port,
+                "database.connections.{$driver}.database" => $vpsSqliteDb,
+                "database.connections.{$driver}.username" => $user,
+                "database.connections.{$driver}.password" => $pass,
+            ]);
+
+            DB::purge();
+        }
 
         if (empty(config('app.key'))) {
             try {
@@ -383,7 +412,9 @@ class InstallController extends Controller
 
         // Run migrations
         try {
-            Artisan::call('migrate', ['--force' => true]);
+            if (!\Illuminate\Support\Facades\Schema::hasTable('users')) {
+                Artisan::call('migrate', ['--force' => true]);
+            }
         } catch (Throwable $e) {
             return response()->json([
                 'ok' => false,
@@ -410,6 +441,34 @@ class InstallController extends Controller
         if (!empty($data['currency'])) {
             Setting::put('currency', $data['currency']);
         }
+        if (!empty($data['brand_accent'])) {
+            Setting::put('accent', $data['brand_accent']);
+        }
+        if (!empty($data['claude_api_key'])) {
+            Setting::put('claude_api_key', $data['claude_api_key']);
+        }
+
+        // Seed initial staff production accounts if requested
+        if ($request->boolean('seed_staff', true)) {
+            $defaultStaff = [
+                ['name' => 'Alex Rivers (Editor)', 'email' => 'alex@thetechunicorn.com'],
+                ['name' => 'Elena Vance (Design)', 'email' => 'elena@thetechunicorn.com'],
+                ['name' => 'Marcus Brody (Copy)', 'email' => 'marcus@thetechunicorn.com'],
+            ];
+            foreach ($defaultStaff as $st) {
+                if (!User::where('email', $st['email'])->exists()) {
+                    $u = new User([
+                        'name' => $st['name'],
+                        'email' => $st['email'],
+                        'password' => 'StaffPass2026!',
+                    ]);
+                    $u->forceFill([
+                        'role' => Role::Staff,
+                        'email_verified_at' => now(),
+                    ])->save();
+                }
+            }
+        }
 
         // Sign in immediately
         $request->session()->regenerate();
@@ -419,6 +478,78 @@ class InstallController extends Controller
             'ok' => true,
             'message' => "Welcome, {$adminUser->name}! VPS setup complete. Launching your studio.",
             'user' => $adminUser->toSession(),
+        ]);
+    }
+
+    /**
+     * Generate ready-to-use production Nginx server block for the VPS.
+     */
+    public function nginxSnippet(Request $request): JsonResponse
+    {
+        $rawUrl = (string)$request->input('app_url', config('app.url') ?: 'studio.thetechunicorn.com');
+        $host = parse_url($rawUrl, PHP_URL_HOST) ?: parse_url('https://' . $rawUrl, PHP_URL_HOST) ?: 'studio.thetechunicorn.com';
+        $root = base_path('public');
+
+        $nginxConfig = <<<NGINX
+# /etc/nginx/sites-available/{$host}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {$host};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {$host};
+    root {$root};
+
+    # SSL Certificates (managed via Certbot or manual certificates)
+    ssl_certificate /etc/letsencrypt/live/{$host}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{$host}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    index index.html index.php;
+    charset utf-8;
+
+    # Pre-compressed Brotli & Gzip static asset delivery
+    location ~* \.(?:ico|css|js|gif|jpe?g|png|woff2?|eot|ttf|svg|br|gz)$ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        access_log off;
+        try_files \$uri \$uri/ =404;
+    }
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+NGINX;
+
+        return response()->json([
+            'ok' => true,
+            'host' => $host,
+            'path' => "/etc/nginx/sites-available/{$host}",
+            'config' => $nginxConfig,
+            'enable_cmd' => "sudo ln -s /etc/nginx/sites-available/{$host} /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl reload nginx",
         ]);
     }
 
@@ -502,5 +633,10 @@ class InstallController extends Controller
         if (is_writable($envPath) || (!File::exists($envPath) && is_writable(base_path()))) {
             File::put($envPath, $content);
         }
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/') || str_starts_with($path, '\\') || (strlen($path) > 2 && ctype_alpha($path[0]) && $path[1] === ':');
     }
 }

@@ -16035,158 +16035,709 @@ body.nav-open .sidebar .drawer-close {
   margin-top: 16px;
 }
 
-/* ---- VPS Installer Styles (/install) ---- */
+/* ==========================================================================
+   VPS PRODUCTION INSTALLER: RESPONSIVE BOXED DESKTOP & NO-BOXED MOBILE LAYOUT
+   ========================================================================== */
+
+/* Outer Viewport Wrapper */
+.installer-page-wrap,
+.installer-viewport,
 .installer-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background: var(--bg);
-}
-
-.installer-box {
   width: 100%;
-  max-width: 760px;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: var(--panel);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-
-.installer-header {
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  flex-direction: column;
 }
 
+/* ==========================================================================
+   DESKTOP BOXED LAYOUT (min-width: 1000px)
+   The installer sits on the soft canvas, sharing a centered 1200px frame
+   with its top header and bottom footer, exactly like the desktop landing page.
+   ========================================================================== */
+@media (min-width: 1000px) {
+  .installer-page-wrap,
+  .installer-viewport,
+  .installer-page {
+    height: 100vh;
+    padding: 14px 24px 20px;
+    background:
+      radial-gradient(circle at 10% 15%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 45%),
+      radial-gradient(circle at 90% 85%, color-mix(in srgb, #6366f1 10%, transparent), transparent 45%),
+      var(--canvas, var(--bg));
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .installer-header-top {
+    width: 100%;
+    max-width: var(--box-w, 1200px);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-radius: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+  }
+
+  .installer-card-box {
+    width: 100%;
+    max-width: var(--box-w, 1200px);
+    height: calc(100vh - 140px);
+    max-height: 820px;
+    min-height: 560px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    border-radius: 24px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+    position: relative;
+    flex-grow: 1;
+  }
+
+  .installer-sidebar {
+    height: 100%;
+    border-right: 1px solid var(--line);
+  }
+
+  .installer-main {
+    height: 100%;
+  }
+
+  .installer-footer-bottom {
+    width: 100%;
+    max-width: var(--box-w, 1200px);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px 0;
+    font-size: 0.78rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+}
+
+/* ==========================================================================
+   BELOW DESKTOP: NO BOXED LAYOUT (max-width: 999px)
+   Edge-to-edge native full width without borders, radius or artificial shadows,
+   matching the mobile landing page and dashboard.
+   ========================================================================== */
+@media (max-width: 999px) {
+  .installer-page-wrap,
+  .installer-viewport,
+  .installer-page {
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+    background: var(--bg);
+    overflow-y: auto;
+  }
+
+  .installer-header-top {
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .installer-card-box {
+    width: 100%;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    min-height: auto;
+  }
+
+  .installer-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .installer-content-body {
+    padding: 22px 16px;
+  }
+
+  .installer-workspace-head,
+  .installer-workspace-foot {
+    padding: 12px 16px;
+  }
+
+  .installer-footer-bottom {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    border-top: 1px solid var(--line);
+    padding: 18px 16px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    background: var(--panel);
+  }
+
+  .installer-footer-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Header Top Inner Elements */
 .installer-header-brand {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.installer-header-text strong {
+.installer-header-titles strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--ink);
 }
 
-.installer-stepper {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--line);
-  border-bottom: 1px solid var(--line);
+.installer-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-@media (max-width: 680px) {
-  .installer-stepper {
-    grid-template-columns: 1fr 1fr;
+.installer-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .installer-top-return-btn {
+    display: none;
   }
 }
 
-.installer-step {
+/* Footer Bottom Inner Elements */
+.installer-footer-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+
+.installer-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.installer-footer-stat {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+@media (max-width: 780px) {
+  .installer-footer-stat {
+    display: none;
+  }
+}
+
+.installer-footer-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.76rem;
+  transition: color 0.15s ease;
+}
+
+.installer-footer-link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* Master Sidebar Styles */
+.installer-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px;
+  background: color-mix(in srgb, var(--panel-2) 65%, var(--panel));
+  overflow-y: auto;
+  gap: 18px;
+}
+
+.installer-sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.installer-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.installer-brand-badge h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.installer-edition-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.installer-brand-tagline {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Host Diagnostic Snapshot */
+.installer-host-widget {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
   background: var(--panel);
 }
 
-.installer-step.current {
-  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+.installer-host-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
 }
 
-.installer-step.done .installer-step-num {
-  background: var(--good);
+.installer-host-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+
+.installer-host-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.installer-host-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* Vertical Stepper Navigation */
+.installer-sidebar-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+@media (max-width: 999px) {
+  .installer-sidebar-stepper {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 540px) {
+  .installer-sidebar-stepper {
+    grid-template-columns: 1fr;
+  }
+}
+
+.installer-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--muted);
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.installer-step-item:hover {
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.installer-step-item.is-current {
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  color: var(--ink);
+}
+
+.installer-step-item.is-current .installer-step-icon {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 10px var(--accent-soft);
+}
+
+.installer-step-item.is-done .installer-step-icon {
+  background: #22c55e;
+  border-color: #22c55e;
   color: #fff;
 }
 
-.installer-step-num {
+.installer-step-icon {
   width: 26px;
   height: 26px;
-  border-radius: 999px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--line);
+  font-size: 0.76rem;
+  font-weight: 750;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
   color: var(--muted);
-  flex: none;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.installer-step.current .installer-step-num {
-  background: var(--accent);
-  color: #fff;
+.installer-step-meta {
+  flex-grow: 1;
 }
 
-.installer-step-info strong {
+.installer-step-meta strong {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.25;
 }
 
-.installer-step-info small {
+.installer-step-meta small {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: var(--muted);
+  margin-top: 1px;
 }
 
-.installer-body {
-  padding: 28px 24px;
+/* Production Advice Callout */
+.installer-advice-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
 }
 
-.installer-body h2 {
-  font-size: 1.3rem;
+.installer-advice-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
   margin-bottom: 6px;
+}
+
+.installer-advice-box p {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* Sidebar Footer */
+.installer-sidebar-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.installer-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.installer-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #ff548d);
+  transition: width 0.35s ease;
+}
+
+.installer-progress-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Main Workspace */
+.installer-main {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.installer-workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+}
+
+.installer-head-breadcrumbs {
+  font-size: 0.86rem;
+}
+
+.installer-head-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.installer-content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.installer-content-body h2 {
+  font-size: 1.35rem;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .installer-lead {
   font-size: 0.88rem;
   line-height: 1.5;
-  margin-bottom: 24px;
+  margin: 0 0 8px;
 }
 
+/* Status Banner */
+.installer-status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.installer-status-banner.ok {
+  background: color-mix(in srgb, #22c55e 8%, var(--panel));
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.installer-status-banner.ok .installer-status-icon {
+  color: #22c55e;
+}
+
+.installer-status-banner.warn {
+  background: color-mix(in srgb, #eab308 8%, var(--panel));
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.installer-status-banner.warn .installer-status-icon {
+  color: #eab308;
+}
+
+.installer-status-banner h4 {
+  margin: 0 0 4px;
+  font-size: 0.96rem;
+}
+
+.installer-status-banner p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+/* Diagnostics Check Grid */
 .installer-checks-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
 }
 
 .installer-check-card {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.installer-check-card.is-ok {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.installer-check-card.is-ok .installer-check-icon {
+  color: #22c55e;
+}
+
+.installer-check-card.is-warn {
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.installer-check-card.is-warn .installer-check-icon {
+  color: #eab308;
+}
+
+.installer-check-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.installer-check-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.installer-check-val {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* Code Snippet Cards */
+.installer-code-card {
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: #110e14;
+  border: 1px solid var(--line);
+  color: #e2e8f0;
+}
+
+.installer-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.installer-code-pre {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: #38bdf8;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Driver Selection Pills */
+.installer-driver-pills {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .installer-driver-pills {
+    grid-template-columns: 1fr;
+  }
+}
+
+.installer-driver-pill {
+  display: flex;
+  flex-direction: column;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: var(--field);
+  background: var(--panel-2);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  transition: all 0.15s ease;
 }
 
-.installer-check-card.ok {
-  border-color: color-mix(in srgb, var(--good) 40%, var(--line));
+.installer-driver-pill:hover {
+  border-color: var(--accent);
 }
 
-.installer-check-card.ok .installer-check-icon {
-  color: var(--good);
+.installer-driver-pill.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-.installer-check-card.warn .installer-check-icon {
-  color: var(--bad);
+.installer-driver-pill strong {
+  font-size: 0.88rem;
 }
 
-.installer-check-text strong {
-  display: block;
-  font-size: 0.84rem;
-}
-
-.installer-check-text small {
+.installer-driver-pill small {
   font-size: 0.72rem;
   color: var(--muted);
+  margin-top: 2px;
 }
 
 .installer-form-row {
@@ -16195,20 +16746,230 @@ body.nav-open .sidebar .drawer-close {
   gap: 14px;
 }
 
-@media (max-width: 540px) {
+@media (max-width: 580px) {
   .installer-form-row {
     grid-template-columns: 1fr;
   }
 }
 
-.installer-actions {
+/* Password Strength Indicator */
+.installer-strength-bar-wrap {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 12px;
-  margin-top: 28px;
-  padding-top: 20px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+
+.installer-strength-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.installer-strength-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.installer-strength-fill.warn {
+  background: #eab308;
+}
+
+.installer-strength-fill.ok {
+  background: #22c55e;
+}
+
+.installer-strength-fill.accent {
+  background: var(--accent);
+}
+
+.installer-strength-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.installer-strength-label.warn {
+  color: #eab308;
+}
+
+.installer-strength-label.ok {
+  color: #22c55e;
+}
+
+.installer-strength-label.accent {
+  color: var(--accent);
+}
+
+/* Brand Accent Color Picker */
+.installer-accent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.installer-accent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+  transition: all 0.15s ease;
+}
+
+.installer-accent-pill:hover {
+  border-color: var(--accent);
+}
+
+.installer-accent-pill.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.installer-accent-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-sample, var(--accent));
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Staff Provisioning Card */
+.installer-staff-box {
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+  border: 1px solid var(--line);
+}
+
+.installer-staff-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.installer-staff-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 28px;
+}
+
+.installer-staff-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* Deploy Summary & Progress */
+.installer-deploy-card {
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.installer-deploy-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  color: var(--accent);
+}
+
+.installer-deploy-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.installer-deploy-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.installer-deploy-progress {
+  font-size: 0.92rem;
+  font-weight: 600;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.installer-launch-btn {
+  background: linear-gradient(135deg, var(--accent), #e03272);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 18px var(--accent-soft);
+  font-weight: 750;
+}
+
+.installer-launch-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px var(--accent-soft);
+}
+
+/* Workspace Footer */
+.installer-workspace-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
   border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+}
+
+.installer-foot-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+/* Nginx VirtualHost Modal */
+.installer-nginx-modal {
+  max-width: 720px;
+  width: 90vw;
+}
+
+.installer-nginx-cmd-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.installer-nginx-cmd-box code {
+  display: block;
+  margin-top: 4px;
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
 }
 
 /* ---- Team & Production Pipeline (/team) ---- */

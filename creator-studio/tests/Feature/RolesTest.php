@@ -31,7 +31,7 @@ class RolesTest extends TestCase
         $this->assertFalse(Role::Client->allows(Role::STUDIO));
         $this->assertFalse(Role::Client->allows(Role::CLIENTS_MANAGE));
         $this->assertTrue(Role::Client->allows(Role::PORTAL_REQUESTS));
-        $this->assertTrue(Role::Admin->requiresTwoFactor());
+        $this->assertFalse(Role::Admin->requiresTwoFactor());
         $this->assertFalse(Role::Client->requiresTwoFactor());
         $this->assertSame(Role::Client, Role::forSignUp());
     }
@@ -67,7 +67,7 @@ class RolesTest extends TestCase
         $this->assertGreaterThan(300, $checked);
     }
 
-    public function test_an_admin_must_turn_on_two_factor_before_using_the_studio(): void
+    public function test_two_factor_is_optional_for_admin_and_can_be_enabled_and_disabled(): void
     {
         $admin = User::first();
         $admin->forceFill([
@@ -76,8 +76,10 @@ class RolesTest extends TestCase
         ])->save();
         $this->actingAs($admin);
 
-        $this->getJson('/api/dashboard')->assertForbidden()->assertJsonPath('two_factor_setup_required', true);
+        // 2FA is optional: admin can access the studio without it
+        $this->getJson('/api/dashboard')->assertOk();
 
+        // Admin can optionally enable 2FA
         $secret = str_replace(' ', '', $this->postJson('/api/account/two-factor/start')->assertOk()->json('secret'));
         $this->postJson('/api/account/two-factor/confirm', [
             'code' => '000000',
@@ -89,9 +91,11 @@ class RolesTest extends TestCase
         $this->assertCount(8, $codes);
 
         $this->getJson('/api/dashboard')->assertOk();
+
+        // Since it's optional, admin can also disable it
         $this->deleteJson('/api/account/two-factor', [
             'current_password' => 'secret123',
-        ])->assertForbidden(); // admins keep it
+        ])->assertOk();
     }
 
     public function test_admin_sign_in_needs_the_authenticator_code_once(): void

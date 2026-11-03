@@ -63,7 +63,7 @@ class InstallTest extends TestCase
             'email' => 'Delia@TechUnicorn.test',
             'password' => 'supersecret123',
             'password_confirmation' => 'supersecret123',
-        ])->assertOk()->assertJsonPath('user.role', 'admin')->assertJsonPath('user.two_factor.required', true);
+        ])->assertOk()->assertJsonPath('user.role', 'admin')->assertJsonPath('user.two_factor.required', false);
 
         $this->assertAuthenticated();
         $this->assertSame('delia@techunicorn.test', Auth::user()->email);

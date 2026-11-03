@@ -6,6 +6,7 @@ import { themeSwitch } from '../theme.js';
 import { setLove } from '../love.js';
 
 const GOOGLE = '<svg width="20" height="20" viewBox="0 0 25 24" aria-hidden="true"><path d="M23 12.23c0-.86-.07-1.49-.23-2.14H12.72v3.9h5.9c-.12.97-.76 2.42-2.19 3.4l-.02.13 3.18 2.42.22.02C21.83 18.12 23 15.43 23 12.23Z" fill="#4285F4"/><path d="M12.71 22.5c2.9 0 5.32-.93 7.1-2.54l-3.38-2.57c-.9.62-2.12 1.05-3.72 1.05a6.45 6.45 0 0 1-6.09-4.36l-.13.01-3.3 2.51-.05.12a10.7 10.7 0 0 0 9.57 5.78Z" fill="#34A853"/><path d="M6.62 14.08A6.63 6.63 0 0 1 6.26 12c0-.72.13-1.42.35-2.08v-.14L3.25 7.24l-.1.05a10.5 10.5 0 0 0 0 9.42l3.47-2.63Z" fill="#FBBC05"/><path d="M12.71 5.56c2.01 0 3.37.85 4.15 1.56l3.02-2.89A10.36 10.36 0 0 0 12.71 1.5 10.7 10.7 0 0 0 3.14 7.29l3.47 2.63a6.48 6.48 0 0 1 6.1-4.36Z" fill="#EB4335"/></svg>';
+const LINKEDIN = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
 
 function passwordField(name, label, autocomplete, extra = {}) {
   const input = h('input', { type: 'password', name, required: true, autocomplete, placeholder: 'Your password', ...extra });
@@ -244,14 +245,16 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
   }
 
   let mode = !initialized ? 'setup' : params.get('two_factor') ? 'two_factor' : params.get('signup') ? 'signup' : 'login';
+  let selectedRole = params.get('role') === 'client' ? 'client' : 'member';
   let codeSent = false;
   let resetEmail = '';
   let resetNote = '';
 
   const container = h('div', { class: 'auth-inner' });
 
-  function go(next, message = '') {
+  function go(next, message = '', role = null) {
     mode = next;
+    if (role) selectedRole = role;
     codeSent = false;
     notice = message;
     errorMsg = '';
@@ -265,7 +268,7 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
     const remember = h('input', { type: 'checkbox', name: 'remember', checked: true });
 
     let titleText = 'Sign in';
-    let subText = `Welcome back. Sign in to ${creatorName}’s studio or your client dashboard.`;
+    let subText = `Welcome back. Sign in to ${creatorName}’s studio, community hub or client portal.`;
     let submitLabel = 'Sign in';
 
     if (mode === 'setup') {
@@ -273,9 +276,15 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       subText = `Welcome, ${creatorName}! Create your administrator account to launch your creator studio.`;
       submitLabel = 'Create my studio';
     } else if (mode === 'signup') {
-      titleText = 'Create your client account';
-      subText = `Follow your projects with ${creatorName}: proposals, deliverables, invoices and messages in one place.`;
-      submitLabel = 'Create account';
+      if (selectedRole === 'client') {
+        titleText = 'Create your client account';
+        subText = `Follow your projects with ${creatorName}: proposals, deliverables, invoices and messages in one place.`;
+        submitLabel = 'Create Client Account';
+      } else {
+        titleText = 'Join Delia’s Community';
+        subText = `Free account for her 519K+ followers: open-source starter kits, architecture blueprints, AMA question board and partner tool perks.`;
+        submitLabel = 'Join Community (Free)';
+      }
     } else if (mode === 'forgot') {
       titleText = 'Reset password';
       subText = codeSent ? resetNote : 'Enter your email address and we’ll email you a 6-digit code.';
@@ -290,6 +299,28 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       type: 'button', class: 'auth-back-link',
       onclick: () => go('login'),
     }, icon('back', 16), ' Back to sign in') : null;
+
+    const roleGrid = mode === 'signup' ? h('div', { class: 'auth-role-grid', role: 'radiogroup', 'aria-label': 'Account type' },
+      h('button', {
+        type: 'button',
+        class: `auth-role-card ${selectedRole === 'member' ? 'is-active' : ''}`,
+        role: 'radio',
+        'aria-checked': String(selectedRole === 'member'),
+        onclick: () => { selectedRole = 'member'; updateView(); },
+      },
+        h('div', { class: 'auth-role-badge' }, icon('sparkle', 12), 'Community (Free)'),
+        h('div', { class: 'auth-role-title' }, 'Follower / Engineer'),
+        h('div', { class: 'auth-role-desc' }, 'Starter kits, AI templates, AMA question board, and $350 in partner credits.')),
+      h('button', {
+        type: 'button',
+        class: `auth-role-card ${selectedRole === 'client' ? 'is-active' : ''}`,
+        role: 'radio',
+        'aria-checked': String(selectedRole === 'client'),
+        onclick: () => { selectedRole = 'client'; updateView(); },
+      },
+        h('div', { class: 'auth-role-badge' }, icon('briefcase', 12), 'Commercial Partner'),
+        h('div', { class: 'auth-role-title' }, 'Client Account'),
+        h('div', { class: 'auth-role-desc' }, 'Proposals, deliverables, engineering retainers, and invoices.'))) : null;
 
     const formFields = [];
     const newPassword = (label = 'Password') => {
@@ -312,12 +343,17 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })));
       newPassword();
     } else if (mode === 'signup') {
-      formFields.push(
-        field('Your name', h('input', { type: 'text', name: 'name', required: true, maxlength: 100, autocomplete: 'name' })),
-        field('Company', h('input', { type: 'text', name: 'company', maxlength: 150, autocomplete: 'organization' }), 'optional'),
-        field('Email address', h('input', { type: 'email', name: 'email', required: true, value: invitedEmail, autocomplete: 'email', placeholder: 'you@company.com' }), 'the one you used on the website, so your requests show up'));
+      formFields.push(h('input', { type: 'hidden', name: 'role', value: selectedRole }));
+      formFields.push(field('Your name', h('input', { type: 'text', name: 'name', required: true, maxlength: 100, autocomplete: 'name', placeholder: 'Your name or handle' })));
+      if (selectedRole === 'client') {
+        formFields.push(field('Company', h('input', { type: 'text', name: 'company', maxlength: 150, autocomplete: 'organization', placeholder: 'Acme Corp' }), 'optional'));
+      }
+      formFields.push(field('Email address', h('input', { type: 'email', name: 'email', required: true, value: invitedEmail, autocomplete: 'email', placeholder: selectedRole === 'client' ? 'you@company.com' : 'you@domain.com' }), selectedRole === 'client' ? 'the one you used on the website, so your requests show up' : 'for AMA replies, kit updates, and partner credit codes'));
       newPassword();
-      formFields.push(h('label', { class: 'auth-remember' }, h('input', { type: 'checkbox', name: 'terms', required: true }), ' I agree that my details are stored to manage my projects.'), botTrap());
+      const termsText = selectedRole === 'client'
+        ? ' I agree that my details are stored to manage my projects.'
+        : ' I agree that my details are stored to manage my community perks and updates.';
+      formFields.push(h('label', { class: 'auth-remember' }, h('input', { type: 'checkbox', name: 'terms', required: true }), termsText), botTrap());
     } else {
       formFields.push(
         field('Email address', h('input', { type: 'email', name: 'email', required: true, autocomplete: 'email', placeholder: 'your@email.com' })),
@@ -339,14 +375,12 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
           const body = formData(form);
           if (mode === 'forgot') {
             if (!codeSent) {
-              // The code arrives by email, never in this response.
               const res = await api('POST', 'auth/forgot-password', { email: body.email });
               resetEmail = body.email;
               resetNote = res.message;
               codeSent = true;
               updateView();
             } else {
-              // A new password never signs in by itself: sign in again (with two-factor if on).
               const res = await api('POST', 'auth/reset-password', body);
               go('login', res.message);
             }
@@ -366,7 +400,6 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
           if (res.two_factor) { go('two_factor'); return; }
           onDone(res.user);
         } catch (err) {
-          // The password step expired: start again.
           if (mode === 'two_factor' && err.status === 401) { go('login'); errorMsg = err.message; updateView(); return; }
           error.textContent = err.message;
           error.hidden = false;
@@ -375,10 +408,27 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       },
     }, formFields, error, submit);
 
-    const google = (mode === 'login' && initialized && welcome?.google) ? [
-      h('a', { class: 'auth-social', href: '/auth/google/redirect', onclick: (e) => { e.currentTarget.href = `/auth/google/redirect?remember=${remember.checked ? 1 : 0}`; } },
-        h('span', { class: 'auth-social-ico', html: GOOGLE }), 'Login with Google'),
-      h('div', { class: 'auth-or' }, h('span'), 'or', h('span')),
+    const hasOAuth = initialized && (mode === 'login' || mode === 'signup') && (welcome?.google || welcome?.linkedin);
+    const socialButtons = hasOAuth ? [
+      h('div', { class: 'auth-social-grid' },
+        welcome?.google ? h('a', {
+          class: 'auth-social-btn google-btn',
+          href: `/auth/google/redirect?remember=${remember?.checked ? 1 : 1}${mode === 'signup' ? `&role=${selectedRole}` : ''}`,
+          onclick: (e) => {
+            const rem = remember ? (remember.checked ? 1 : 0) : 1;
+            e.currentTarget.href = `/auth/google/redirect?remember=${rem}${mode === 'signup' ? `&role=${selectedRole}` : ''}`;
+          },
+        }, h('span', { class: 'auth-social-ico', html: GOOGLE }), mode === 'signup' ? 'Google' : 'Continue with Google') : null,
+        welcome?.linkedin ? h('a', {
+          class: 'auth-social-btn linkedin-btn',
+          href: `/auth/linkedin/redirect?remember=${remember?.checked ? 1 : 1}${mode === 'signup' ? `&role=${selectedRole}` : ''}`,
+          onclick: (e) => {
+            const rem = remember ? (remember.checked ? 1 : 0) : 1;
+            e.currentTarget.href = `/auth/linkedin/redirect?remember=${rem}${mode === 'signup' ? `&role=${selectedRole}` : ''}`;
+          },
+        }, h('span', { class: 'auth-social-ico linkedin-ico', html: LINKEDIN }), mode === 'signup' ? 'LinkedIn' : 'Continue with LinkedIn') : null,
+      ),
+      h('div', { class: 'auth-or' }, h('span'), 'or continue with email', h('span')),
     ] : null;
 
     // Dev/testing only (DEMO_CLIENT_LOGIN=true): straight into the demo client's dashboard.
@@ -390,7 +440,9 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       } }, icon('user', 16), 'Sign in as demo client')) : null;
 
     const switchRow = initialized && mode === 'login'
-      ? h('p', { class: 'auth-foot muted small' }, 'Working with us? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('signup') }, 'Create a client account'))
+      ? h('div', { class: 'auth-switch-box' },
+          h('p', { class: 'auth-foot muted small' }, 'Follower & Engineer? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('signup', '', 'member') }, 'Join Delia’s Community (Free)')),
+          h('p', { class: 'auth-foot muted small' }, 'Working with us on a project? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('signup', '', 'client') }, 'Create a client account')))
       : initialized && mode === 'signup'
         ? h('p', { class: 'auth-foot muted small' }, 'Already have an account? ', h('button', { type: 'button', class: 'auth-link', onclick: () => go('login') }, 'Sign in'))
         : null;
@@ -400,7 +452,8 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       h('h1', {}, titleText),
       h('p', { class: 'muted auth-sub' }, subText),
       info,
-      google,
+      roleGrid,
+      socialButtons,
       form,
       demo,
       switchRow,

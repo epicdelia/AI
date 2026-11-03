@@ -15,7 +15,9 @@ namespace App\Enums;
 enum Role: string
 {
     case Admin = 'admin';
+    case Staff = 'staff';
     case Client = 'client';
+    case Member = 'member';
 
     /**
      * The whole studio: every page and API she has (scripts, social, deals, settings…).
@@ -26,6 +28,11 @@ enum Role: string
      * The Clients page: client accounts, linking deals, invites, messaging clients.
      */
     public const CLIENTS_MANAGE = 'clients.manage';
+
+    /**
+     * Staff team & production: editorial workflow, task dispatcher, QA checklist.
+     */
+    public const STAFF_TEAM = 'staff.team';
 
     /**
      * A client's own requests (deals), proposals, deliverables and messages.
@@ -43,6 +50,11 @@ enum Role: string
     public const PORTAL_TEAM = 'portal.team';
 
     /**
+     * Follower & Community Hub: starter kits, architecture blueprints, AMA questions, dispatches.
+     */
+    public const PORTAL_COMMUNITY = 'portal.community';
+
+    /**
      * Their own profile, password, two-factor sign-in (everyone signed in).
      */
     public const ACCOUNT = 'account';
@@ -53,8 +65,10 @@ enum Role: string
     public function abilities(): array
     {
         return match ($this) {
-            self::Admin => [self::STUDIO, self::CLIENTS_MANAGE, self::ACCOUNT],
-            self::Client => [self::PORTAL_REQUESTS, self::PORTAL_BILLING, self::PORTAL_TEAM, self::ACCOUNT],
+            self::Admin => [self::STUDIO, self::CLIENTS_MANAGE, self::STAFF_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
+            self::Staff => [self::STUDIO, self::STAFF_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
+            self::Client => [self::PORTAL_REQUESTS, self::PORTAL_BILLING, self::PORTAL_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
+            self::Member => [self::PORTAL_COMMUNITY, self::ACCOUNT],
         };
     }
 
@@ -67,16 +81,18 @@ enum Role: string
     {
         return match ($this) {
             self::Admin => 'Admin',
+            self::Staff => 'Staff / Team',
             self::Client => 'Client',
+            self::Member => 'Community Member',
         };
     }
 
     /**
-     * Admins hold every key, secret and client record: they can't sign in without a second factor.
+     * Two-factor authentication is optional across roles (configurable via REQUIRE_TWO_FACTOR).
      */
     public function requiresTwoFactor(): bool
     {
-        return $this === self::Admin;
+        return (bool)env('REQUIRE_TWO_FACTOR', false);
     }
 
     /**
@@ -88,10 +104,13 @@ enum Role: string
     }
 
     /**
-     * The only role public sign-up can ever create.
+     * Sign-up role selection: clients or community members/followers.
      */
-    public static function forSignUp(): self
+    public static function forSignUp(?string $role = 'client'): self
     {
-        return self::Client;
+        return match ($role) {
+            'member' => self::Member,
+            default => self::Client,
+        };
     }
 }

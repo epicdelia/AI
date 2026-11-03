@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -283,6 +285,140 @@ class InstallController extends Controller
             'ok' => true,
             'message' => 'Database configured and migrations completed successfully!',
             'output' => trim($migrationOutput),
+        ]);
+    }
+
+    /**
+     * Complete VPS installation: Database config, app key, migrations, and Admin account creation.
+     */
+    public function vpsInstall(Request $request): JsonResponse
+    {
+        if ($this->installed()) {
+            return $this->alreadyInstalled();
+        }
+
+        $data = $request->validate([
+            'driver' => 'required|string|in:sqlite,mysql,mariadb,pgsql',
+            'host' => 'nullable|string',
+            'port' => 'nullable|numeric',
+            'database' => 'required|string',
+            'username' => 'nullable|string',
+            'password' => 'nullable|string',
+            'app_url' => 'nullable|url',
+            // Admin user details
+            'admin_name' => 'required|string|max:100',
+            'admin_email' => 'required|email|max:200',
+            'admin_password' => ['required', 'string', 'min:8', 'confirmed'],
+            // Optional keys
+            'gemini_api_key' => 'nullable|string|max:200',
+            'openai_api_key' => 'nullable|string|max:200',
+            'youtube_api_key' => 'nullable|string|max:200',
+            'timezone' => 'nullable|string|max:50',
+            'currency' => 'nullable|string|max:10',
+        ]);
+
+        $driver = $data['driver'] === 'mariadb' ? 'mysql' : $data['driver'];
+        $database = trim($data['database']);
+        $host = !empty($data['host']) ? $data['host'] : '127.0.0.1';
+        $port = !empty($data['port']) ? (int)$data['port'] : ($driver === 'pgsql' ? 5432 : 3306);
+        $user = $data['username'] ?? '';
+        $pass = $data['password'] ?? '';
+
+        // SQLite path setup
+        if ($driver === 'sqlite') {
+            $path = $database;
+            if (!File::isAbsolutePath($path)) {
+                $path = base_path($path);
+            }
+            $dir = dirname($path);
+            if (!File::isDirectory($dir)) {
+                File::makeDirectory($dir, 0755, true, true);
+            }
+            if (!File::exists($path)) {
+                File::put($path, '');
+            }
+        }
+
+        $envUpdates = [
+            'DB_CONNECTION' => $driver,
+            'DB_HOST' => $host,
+            'DB_PORT' => (string)$port,
+            'DB_DATABASE' => $database,
+            'DB_USERNAME' => $user,
+            'DB_PASSWORD' => $pass,
+        ];
+
+        if (!empty($data['app_url'])) {
+            $envUpdates['APP_URL'] = $data['app_url'];
+        }
+        if (!empty($data['gemini_api_key'])) {
+            $envUpdates['GEMINI_API_KEY'] = $data['gemini_api_key'];
+        }
+        if (!empty($data['openai_api_key'])) {
+            $envUpdates['OPENAI_API_KEY'] = $data['openai_api_key'];
+        }
+        if (!empty($data['youtube_api_key'])) {
+            $envUpdates['YOUTUBE_API_KEY'] = $data['youtube_api_key'];
+        }
+
+        $this->updateEnvFile($envUpdates);
+
+        config([
+            'database.default' => $driver,
+            "database.connections.{$driver}.host" => $host,
+            "database.connections.{$driver}.port" => $port,
+            "database.connections.{$driver}.database" => $driver === 'sqlite' ? (File::isAbsolutePath($database) ? $database : base_path($database)) : $database,
+            "database.connections.{$driver}.username" => $user,
+            "database.connections.{$driver}.password" => $pass,
+        ]);
+
+        DB::purge();
+
+        if (empty(config('app.key'))) {
+            try {
+                Artisan::call('key:generate', ['--force' => true]);
+            } catch (Throwable) {
+            }
+        }
+
+        // Run migrations
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Database migration failed: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        // Provision Delia's Admin Account
+        $adminUser = new User([
+            'name' => $data['admin_name'],
+            'email' => strtolower(trim($data['admin_email'])),
+            'password' => $data['admin_password'],
+        ]);
+
+        $adminUser->forceFill([
+            'role' => Role::Admin,
+            'email_verified_at' => now(),
+        ])->save();
+
+        Setting::put('creator_name', $data['admin_name']);
+        if (!empty($data['timezone'])) {
+            Setting::put('timezone', $data['timezone']);
+        }
+        if (!empty($data['currency'])) {
+            Setting::put('currency', $data['currency']);
+        }
+
+        // Sign in immediately
+        $request->session()->regenerate();
+        auth()->login($adminUser, true);
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Welcome, {$adminUser->name}! VPS setup complete. Launching your studio.",
+            'user' => $adminUser->toSession(),
         ]);
     }
 

@@ -68,8 +68,12 @@ class AuthController extends Controller
 
         $this->signIn($request, $user, true);
 
+        $msg = $user->role()->requiresTwoFactor()
+            ? "Welcome, {$user->name}! One last step: turn on two-factor sign-in."
+            : "Welcome, {$user->name}!";
+
         return response()->json([
-            'message' => "Welcome, {$user->name}! One last step: turn on two-factor sign-in.",
+            'message' => $msg,
             'user' => $user->toSession(),
         ]);
     }
@@ -89,17 +93,19 @@ class AuthController extends Controller
             'name' => 'required|string|max:100',
             'email' => 'required|email|max:200',
             'company' => 'nullable|string|max:150',
+            'role' => 'nullable|string|max:50',
             'password' => ['required', 'confirmed', self::passwordRule()],
             'terms' => 'accepted',
         ]);
         $email = strtolower(trim($data['email']));
+        $targetRole = Role::forSignUp($data['role'] ?? 'client');
 
         $existing = User::whereRaw('lower(email) = ?', [$email])->first();
         if ($existing) {
             self::mail(
                 $email,
                 'Someone tried to sign up with your email',
-                'Someone (hopefully you) tried to create a client account at ' . url('/') . " with this email, but you already have one.\n\nSign in at " . url('/login') . ", or use \"Forgot password?\" there.\n\nIf it wasn't you, you can ignore this email."
+                'Someone (hopefully you) tried to create an account at ' . url('/') . " with this email, but you already have one.\n\nSign in at " . url('/login') . ", or use \"Forgot password?\" there.\n\nIf it wasn't you, you can ignore this email."
             );
         } else {
             $user = new User([
@@ -109,15 +115,24 @@ class AuthController extends Controller
                 'company' => $data['company'] ?? null,
             ]);
             $user->forceFill([
-                'role' => Role::forSignUp(),
+                'role' => $targetRole,
+                'email_verified_at' => $targetRole === Role::Member ? now() : null,
             ])->save();
-            rescue(fn () => $user->sendEmailVerificationNotification(), null, true);
-            AgentEvent::log('lead', "New client sign-up: {$user->name} ({$user->email}), waiting for email confirmation.");
+            if ($targetRole === Role::Client) {
+                rescue(fn () => $user->sendEmailVerificationNotification(), null, true);
+                AgentEvent::log('lead', "New client sign-up: {$user->name} ({$user->email}), waiting for email confirmation.");
+            } else {
+                AgentEvent::log('community', "New community member sign-up: {$user->name} ({$user->email}).");
+            }
         }
+
+        $msg = $targetRole === Role::Member
+            ? "Welcome to Delia’s community! Your account is ready. Sign in to access your member perks."
+            : "Almost there! We've sent a confirmation link to {$email}. Open it, then sign in.";
 
         return response()->json([
             'ok' => true,
-            'message' => "Almost there! We've sent a confirmation link to {$email}. Open it, then sign in.",
+            'message' => $msg,
         ], 202);
     }
 

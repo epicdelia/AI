@@ -602,7 +602,7 @@ function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
   const socials = h('div', { class: 'ld-socials' });
 
   const drawSections = (live = null) => {
-    sectionsBox.replaceChildren(...getLandingNavConfig(handlers, live).map((sec, i) => h('details', { class: 'ld-group', open: i === 0 },
+    sectionsBox.replaceChildren(...getLandingNavConfig(handlers, live).map((sec) => h('details', { class: 'ld-group', open: true },
       h('summary', {}, h('span', {}, sec.label), h('small', {}, sec.groups.reduce((n, g) => n + g.items.length, 0)), icon('chevron-down', 13)),
       // close is defined further down: look it up when a row is clicked, not while building.
       h('div', { class: 'ld-list' }, sec.groups.flatMap((g) => g.items).map((it) => navRow(it, 'ln-row is-drawer', () => close()))))));
@@ -615,10 +615,10 @@ function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
       closeBtn),
     h('div', { class: 'ld-cta' },
       status,
-      h('button', { type: 'button', class: 'ld-primary', onclick: () => { close(); onBookCall('mvp_build'); } }, icon('calendar', 14), 'Book an Intro Call', icon('arrow', 12)),
+      h('button', { type: 'button', class: 'ld-primary', onclick: () => { close(); navigate('/login?signup=1&role=member'); } }, icon('sparkle', 14), 'Join Community Hub (Free)', icon('arrow', 12)),
       h('div', { class: 'ld-secondary' },
-        h('button', { type: 'button', onclick: () => { close(); onStripePay('retainer'); } }, icon('credit-card', 13), 'Pay with Stripe'),
-        h('button', { type: 'button', onclick: () => { close(); onAuthClick(); } }, icon('sparkle', 13), isAuth ? 'Dashboard' : 'Studio login'))),
+        h('button', { type: 'button', onclick: () => { close(); onBookCall('mvp_build'); } }, icon('calendar', 13), 'Book Intro Call'),
+        h('button', { type: 'button', onclick: () => { close(); onAuthClick(); } }, icon('user', 13), isAuth ? 'Dashboard' : 'Sign in'))),
     sectionsBox,
     h('div', { class: 'ld-foot' },
       socials,
@@ -780,13 +780,18 @@ export function renderLanding(view, options = {}) {
       }, brandMark(28)),
       megaNav,
       h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-        // Visitors: a client account to follow their requests (sign-up only ever makes clients).
         isAuth ? null : h('button', {
           type: 'button',
-          class: 'btn sm landing-register',
-          title: 'Create a client account to follow your projects',
-          onclick: () => (options.onRegisterClick || (() => navigate('/login?signup=1')))(),
-        }, icon('user', 15), h('span', { class: 'landing-register-label' }, 'Register')),
+          class: 'btn primary sm landing-join-community',
+          title: 'Join Delia’s Community: Starter kits, AMA board, perks',
+          onclick: () => navigate('/login?signup=1&role=member'),
+        }, icon('sparkle', 14), h('span', {}, 'Join Community')),
+        isAuth ? null : h('button', {
+          type: 'button',
+          class: 'btn ghost sm landing-register',
+          title: 'Sign in to studio or client portal',
+          onclick: () => onAuthClick(),
+        }, icon('user', 14), h('span', { class: 'landing-register-label' }, 'Sign in')),
         h('button', {
           type: 'button',
           class: 'landing-drawer-toggle',

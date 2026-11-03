@@ -52,6 +52,9 @@ const page = {
   client: () => import('./pages/client.js'),
   account: () => import('./pages/account.js'),
   clients: () => import('./pages/clients.js'),
+  community: () => import('./pages/community.js'),
+  team: () => import('./pages/team.js'),
+  installer: () => import('./pages/installer.js'),
   legal: () => import('./pages/legal.js'),
 };
 const renderBrandKit = lazy(page.mediakit, 'renderBrandKit');
@@ -67,8 +70,9 @@ const renderSubprocessors = lazy(page.legal, 'renderSubprocessors');
 // `ability`: the Role ability needed (none = 'studio'; 'any' = everyone signed in). The API checks
 // the same abilities; this only decides what the dashboard offers.
 const ROUTES = [
-  // "/" is each role's home: her dashboard, or a client's overview.
-  { path: /^\/$/, ability: 'any', render: (view) => (can(state.user, 'studio') ? lazy(page.dashboard, 'renderDashboard') : lazy(page.client, 'renderClientHome'))(view), nav: '/' },
+  // "/" is each role's home: her dashboard, a client's overview, or a follower's community hub.
+  { path: /^\/$/, ability: 'any', render: (view) => (can(state.user, 'studio') ? lazy(page.dashboard, 'renderDashboard') : can(state.user, 'portal.requests') ? lazy(page.client, 'renderClientHome') : lazy(page.community, 'renderCommunityHub'))(view), nav: '/' },
+  { path: /^\/community$/, ability: 'portal.community', render: lazy(page.community, 'renderCommunityHub'), nav: '/community' },
   { path: /^\/requests$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequests'), nav: '/requests' },
   { path: /^\/requests\/new$/, ability: 'portal.requests', render: lazy(page.client, 'renderNewRequest'), nav: '/requests/new' },
   { path: /^\/requests\/(\d+)$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequest'), nav: '/requests' },
@@ -107,6 +111,7 @@ const ROUTES = [
   { path: /^\/snippets$/, render: lazy(page.snippets, 'renderSnippets'), nav: '/snippets' },
   { path: /^\/website$/, render: lazy(page.website, 'renderWebsite'), nav: '/website' },
   { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
+  { path: /^\/team$/, ability: 'staff.team', render: (view) => page.team().then((m) => m.render(view)), nav: '/team' },
   { path: /^\/connections$/, render: lazy(page.connections, 'renderConnections'), nav: '/connections' },
   { path: /^\/agents$/, render: lazy(page.agents, 'renderAgents'), nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: lazy(page.agents, 'renderAgent'), nav: '/agents' },
@@ -508,6 +513,13 @@ async function boot() {
       renderAuth(root, status.initialized, status.welcome, onLoginSuccess, showLanding);
     };
 
+    const showInstaller = () => {
+      state.guestCleanup?.();
+      state.guestCleanup = null;
+      state.guestView = 'installer';
+      page.installer().then((m) => m.renderInstaller(root, onLoginSuccess));
+    };
+
     const showLanding = async () => {
       state.guestCleanup?.();
       state.guestCleanup = null;
@@ -543,6 +555,7 @@ async function boot() {
       if (location.pathname === '/impressum') { state.guestView = 'impressum'; showPublic(renderImpressum, null, 'Legal notice not available.'); return; }
       if (location.pathname === '/dpa') { state.guestView = 'dpa'; showPublic(renderDpa, null, 'DPA not available.'); return; }
       if (location.pathname === '/subprocessors') { state.guestView = 'subprocessors'; showPublic(renderSubprocessors, null, 'Sub-processors directory not available.'); return; }
+      if (location.pathname === '/install' || location.search.includes('install=1')) { state.guestView = 'installer'; showInstaller(); return; }
       const want = isLoginPath() ? 'auth' : 'landing';
       if (want !== state.guestView) (want === 'auth' ? showAuth : showLanding)();
     };

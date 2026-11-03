@@ -244,6 +244,15 @@ export function reachSection() {
     grid.replaceChildren(...PROFILES.map(profileCard));
   });
 
+  const communityCallout = h('div', { class: 'landing-reach-community-box' },
+    h('div', { class: 'landing-reach-community-left' },
+      h('span', { class: 'landing-reach-community-badge' }, icon('sparkle', 14), ' Follower Community · 519K+ Strong'),
+      h('h3', {}, 'Join Delia’s Engineering & AI Community'),
+      h('p', { class: 'muted' }, 'Create a free member account for instant access to production starter kits, architecture blueprints, our community AMA board, and up to $350 in partner developer credits.')),
+    h('div', { class: 'landing-reach-community-actions' },
+      h('a', { class: 'btn primary', href: '/login?signup=1&role=member' }, icon('sparkle', 15), 'Join Free Community'),
+      h('a', { class: 'btn ghost sm', href: '/login' }, 'Already a member? Sign in')));
+
   return h('section', { class: 'landing-section landing-reach', id: 'reach', 'aria-labelledby': 'landing-reach-title' },
     h('div', { class: 'landing-container' },
       h('div', { class: 'landing-section-head' },
@@ -251,5 +260,6 @@ export function reachSection() {
         h('h2', { id: 'landing-reach-title' }, 'Where the ', h('em', {}, 'internet'), ' finds me')),
       summary,
       grid,
-      more));
+      more,
+      communityCallout));
 }

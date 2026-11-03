@@ -71,6 +71,48 @@ php artisan serve
 
 ---
 
+### 2. Live VPS Deployment (Step-by-Step Web Installer `/install`)
+
+Deploying Creator Studio on a production VPS (Ubuntu/Debian) is automated with the built-in step-by-step form:
+
+1. **Clone & install dependencies on your server:**
+   ```bash
+   git clone https://github.com/your-repo/creator-studio.git /var/www/creator-studio
+   cd /var/www/creator-studio/creator-studio
+   composer install --no-dev --optimize-autoloader
+   npm ci && npm run build
+   sudo chown -R www-data:www-data storage bootstrap/cache
+   ```
+2. **Point your domain & open the installer:**
+   Navigate in your browser to:
+   ```text
+   https://studio.yourdomain.com/install
+   ```
+3. **The 4-Step Guided Setup:**
+   - **Step 1: VPS Pre-flight Checks** (validates PHP 8.2+, PDO MySQL/SQLite, write permissions, extensions).
+   - **Step 2: Database Configuration** (MySQL/MariaDB, SQLite, PostgreSQL with live "Test Connection" button).
+   - **Step 3: Delia's Admin Account Creation** (master administrator name, email, password, timezone, currency).
+   - **Step 4: AI Keys & Automated Launch** (Gemini/OpenAI API keys, writes `.env`, runs `migrate --force`, and signs in immediately).
+
+---
+
+### 3. Roles & Production Team Management
+
+Creator Studio supports 4 distinct user roles:
+
+| Role | Target User | Capabilities |
+| :--- | :--- | :--- |
+| **Admin** | Delia (Studio Owner) | Complete studio suite, Team pipeline, Clients management, Settings, optional 2FA |
+| **Staff** | Employees / Freelancers | Studio suite, **Team & Production Pipeline** (`/team`), **Publishing QA Checklist** |
+| **Client** | Commercial Sponsors & Buyers | Proposals, deliverables, proofing annotations, billing invoices |
+| **Member** | Followers & Tech Community | **Follower Community Hub** (`/community`), free starter kits, AMA question board |
+
+- **Staff Provisioning**: Delia can invite video editors, thumbnail artists, and copywriters directly via `/team` or `POST /api/team/staff`.
+- **High ROI Production Board**: Kanban stages (`Scripting` → `Filming` → `Editing` → `Review/QA` → `Published`), staff assignments, and the 6-point Content Retention QA Checklist.
+- **Social Sign-In**: One-click Google and LinkedIn OAuth authentication for community members, clients, and staff.
+
+---
+
 ### 2. Native Mobile Companion App (`mobile/`)
 
 Run the mobile app natively on your laptop with zero emulator overhead via Compose Desktop:

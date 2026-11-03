@@ -164,15 +164,97 @@ the signed-in user has (`public/js/nav.js`, `app.js` routes).
 
 | Role | Who | Sees | Sign-in |
 |---|---|---|---|
-| **Admin** | Her (the first install) | The whole studio, plus **Clients** | Password + authenticator app (required) |
+| **Admin** | Her (the first install) | The whole studio suite, **Team & Production**, and **Clients** management | Password, optional authenticator app |
+| **Staff** | Her employees (video editors, thumbnail artists, copywriters) | Studio suite, **Team & Production Pipeline**, and **Publishing QA** | Password, optional authenticator app |
 | **Client** | Anyone who signs up ("Register" on the website, "Create a client account" on sign-in) | Only their own requests, proposals, deliverables, billing and messages | Password, optional authenticator app |
+| **Member** | Her followers and community members ("Join Community" on landing page) | Follower Community Hub: starter kits, blueprints, AMA question board, and partner perks | Password, optional authenticator app |
 
-- Public sign-up can only ever create a **client**. Clients confirm their email first: their requests are matched by email (`ClientLink`), so the email has to be proven theirs. After that, a deal's `user_id` decides who sees it.
-- A client sees a deal through an allow-list (`ClientDeal`): her notes, talking points, prep, lead score, attribution and internal estimates never leave the server.
+- Public sign-up allows creating either a **community member** (instant access for followers) or a **client** (for commercial projects). Clients confirm their email first: their requests are matched by email (`ClientLink`), so the email has to be proven theirs.
+- **Staff / Team accounts**: Provisioned directly by Delia from the **Team & Production** page (`/team`) or via API (`POST /api/team/staff`). Staff members gain access to YouTube scripts, production queues, and social tools while keeping financial billing and client management securely restricted to the studio admin.
 - Her side: **Clients** page (accounts, linking deals, switching access off, confirming an email by hand, messages), and **Invite to dashboard** on any deal.
-- Every client action (sign-up, new request, accept, message) shows in her activity feed and is emailed to her.
+- **Team & Production Pipeline** (`/team`): Live Kanban production pipeline (Ideation → Scripting → Filming → Editing → Review/QA → Published), staff task assignments (Editor, Thumbnail Artist, Copywriter, Social Manager), and the 6-point Content Retention & Publishing QA Checklist.
 
-**Before going live on a VPS:** set your SMTP server in `.env` (`MAIL_*`, see `.env.prod`), `APP_URL=https://…`, `SESSION_SECURE_COOKIE=true`, and keep `DEMO_CLIENT_LOGIN=false`. On first sign-in she sets up two-factor and stores her recovery codes.
+---
+
+## 🚀 Live VPS Installation Guide (Step-by-Step Guided Form)
+
+Installing Creator Studio on any live Linux VPS (Ubuntu 22.04 / 24.04, Debian 12, or RHEL) takes under 5 minutes with the built-in web installer at `/install`.
+
+### 1. VPS Server Provisioning & Prerequisites
+
+Run on your VPS terminal:
+```bash
+# 1. Update packages
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install PHP 8.2+ and required extensions
+sudo apt install -y php8.2 php8.2-fpm php8.2-mysql php8.2-sqlite3 php8.2-pgsql \
+    php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-bcmath nginx git unzip
+
+# 3. Install Composer
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+# 4. Clone repository
+git clone https://github.com/your-repo/creator-studio.git /var/www/creator-studio
+cd /var/www/creator-studio/creator-studio
+
+# 5. Install PHP and Frontend dependencies
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+
+# 6. Set directory permissions
+sudo chown -R www-data:www-data /var/www/creator-studio
+sudo chmod -R 775 /var/www/creator-studio/creator-studio/storage
+sudo chmod -R 775 /var/www/creator-studio/creator-studio/bootstrap/cache
+```
+
+### 2. Configure Nginx Web Server
+
+Create `/etc/nginx/sites-available/creator-studio`:
+```nginx
+server {
+    listen 80;
+    server_name studio.yourdomain.com;
+    root /var/www/creator-studio/creator-studio/public;
+
+    index index.html index.php;
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+```
+Enable site and generate SSL certificate:
+```bash
+sudo ln -s /etc/nginx/sites-available/creator-studio /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d studio.yourdomain.com
+```
+
+### 3. Launch the Step-by-Step VPS Web Installer
+
+Navigate to your domain with `/install` in your browser:
+```text
+https://studio.yourdomain.com/install
+```
+The installer guides you through 4 thorough steps:
+1. **Pre-flight Check**: Validates PHP version, write permissions (`storage/`, `bootstrap/cache/`), and PDO extensions.
+2. **Database & APP_URL**: Select MySQL/MariaDB or SQLite, enter connection credentials, and click **"Test Connection"** (auto-creates database if missing!).
+3. **Creator Identity & Admin Account**: Enter Delia's name, master administrator email, password, studio timezone, and currency.
+4. **AI Keys & Instant Launch**: Optionally enter Gemini/OpenAI API keys, click **"Launch Creator Studio"**, which automatically writes `.env`, generates `APP_KEY`, runs database migrations (`migrate --force`), provisions Delia's admin account, and launches straight into the dashboard!
+
+---
 
 ### VPS Security Checklist (Production)
 

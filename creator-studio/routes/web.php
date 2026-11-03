@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\VisionController;
 use App\Http\Controllers\Api\WorkflowsController;
 use App\Http\Controllers\Api\YouTubeController;
 use App\Http\Controllers\Api\StripePaymentController;
+use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PipelineController;
 use App\Http\Controllers\Api\SocialProofController;
@@ -68,6 +69,7 @@ Route::prefix('api')->group(function () {
     Route::post('install/test-db', [InstallController::class, 'testDatabase'])->middleware('throttle:10,1');
     Route::post('install/setup-db', [InstallController::class, 'setupDatabase'])->middleware('throttle:5,1');
     Route::post('install/run-migrations', [InstallController::class, 'runMigrations'])->middleware('throttle:5,1');
+    Route::post('install/vps', [InstallController::class, 'vpsInstall'])->middleware('throttle:5,1');
 
     // Public Stripe Payments & Intro Bookings (Tech Unicorn Landing & Retainers)
     Route::get('stripe/packages', [StripePaymentController::class, 'packages']);
@@ -136,6 +138,13 @@ Route::prefix('api')->group(function () {
         });
     });
 
+    // Community Hub: for regular users, followers and clients
+    Route::prefix('portal/community')->middleware(['auth', 'active', 'two-factor', 'ability:portal.community'])->group(function () {
+        Route::get('hub', [\App\Http\Controllers\Api\CommunityController::class, 'hub']);
+        Route::post('ask', [\App\Http\Controllers\Api\CommunityController::class, 'ask'])->middleware('throttle:10,1');
+        Route::post('upvote', [\App\Http\Controllers\Api\CommunityController::class, 'upvote'])->middleware('throttle:30,1');
+    });
+
     // Clients: only their own requests, payments and messages, once their email is confirmed.
     Route::prefix('portal')->middleware(['auth', 'active', 'verified', 'two-factor', 'ability:portal.requests'])->group(function () {
         Route::get('overview', [PortalController::class, 'overview']);
@@ -187,6 +196,15 @@ Route::prefix('api')->group(function () {
             Route::delete('team/members/{member}', [PortalController::class, 'removeMember'])->whereNumber('member');
             Route::delete('team/invites/{invite}', [PortalController::class, 'withdrawInvite'])->whereNumber('invite');
         });
+    });
+
+    // Staff & Team Production Pipeline (Admin & Staff)
+    Route::middleware(['auth', 'active', 'two-factor', 'ability:staff.team'])->group(function () {
+        Route::get('team', [TeamController::class, 'index']);
+        Route::post('team/tasks', [TeamController::class, 'createTask']);
+        Route::patch('team/tasks/{id}', [TeamController::class, 'updateTask']);
+        Route::post('team/qa/toggle', [TeamController::class, 'toggleQaItem']);
+        Route::post('team/staff', [TeamController::class, 'inviteStaff']);
     });
 
     // Her: the Clients page (client accounts, linking deals, invites, messages).
@@ -690,8 +708,10 @@ Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('l
 Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->whereNumber('id')->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
-Route::get('auth/google/redirect', [\App\Http\Controllers\GoogleLoginController::class, 'redirect']);
-Route::get('auth/google/callback', [\App\Http\Controllers\GoogleLoginController::class, 'callback']);
+Route::get('auth/google/redirect', [\App\Http\Controllers\OAuthLoginController::class, 'googleRedirect']);
+Route::get('auth/google/callback', [\App\Http\Controllers\OAuthLoginController::class, 'googleCallback']);
+Route::get('auth/linkedin/redirect', [\App\Http\Controllers\OAuthLoginController::class, 'linkedinRedirect']);
+Route::get('auth/linkedin/callback', [\App\Http\Controllers\OAuthLoginController::class, 'linkedinCallback']);
 
 // OAuth return from each network (a browser redirect, so it uses the session, not the JSON API)
 Route::get('oauth/{platform}/callback', [SocialAccountsController::class, 'callback'])->where('platform', '[a-z]+');

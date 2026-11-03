@@ -4,6 +4,10 @@
 // `ability` is the Role ability (app/Enums/Role.php) a user needs to see the item; none means
 // 'studio' (hers alone). The API enforces the same abilities, so hiding is never the only guard.
 export const NAV_ITEMS = [
+  // Community members & followers: starter kits, blueprints, AMA questions, perks
+  { header: 'Community', ability: 'portal.community' },
+  { to: '/community', label: 'Community Hub', icon: 'sparkle', ability: 'portal.community', desc: 'Starter kits, blueprints, AMA and perks' },
+
   // Clients: their own requests, money and account.
   { header: 'Your projects', ability: 'portal.requests' },
   { to: '/', label: 'Overview', icon: 'home', ability: 'portal.requests', desc: 'What’s happening and what needs you' },
@@ -50,6 +54,7 @@ export const NAV_ITEMS = [
   { to: '/library', label: 'Library', icon: 'book', desc: 'Everything you saved' },
   { to: '/media', label: 'Media', icon: 'image', desc: 'Every image, video and audio file' },
   { header: 'Studio' },
+  { to: '/team', label: 'Team & Production', icon: 'users', ability: 'staff.team', desc: 'Editorial pipeline, staff assignments, and QA checklist' },
   { to: '/clients', label: 'Clients', icon: 'users', ability: 'clients.manage', desc: 'Client accounts, their requests and messages' },
   { to: '/account', label: 'Account & security', icon: 'lock', desc: 'Your login, password and two-factor sign-in' },
   { to: '/connections', label: 'Connections', icon: 'plug', desc: 'Sign in to your networks' },
@@ -75,10 +80,12 @@ export const MEGA = [
     actions: [{ label: 'Plan the week', to: '/agents', icon: 'bot' }, { label: 'Open the calendar', to: '/calendar', icon: 'calendar' }, { label: 'Brand deals', to: '/deals', icon: 'briefcase' }] },
   { id: 'create', label: 'Create', groups: [{ title: 'Create', items: ['/website', '/landing', '/snippets', '/tools', '/chat', '/library', '/media'] }],
     actions: [{ label: 'Website funnel', to: '/website', icon: 'chart' }, { label: 'Preview landing page', to: '/landing', icon: 'globe' }, { label: 'New code card', to: '/snippets', icon: 'code' }] },
-  { id: 'studio', label: 'Studio', groups: [{ title: 'Clients', items: ['/clients'] }, { title: 'Studio', items: ['/connections', '/brand', '/settings', '/account'] }],
-    actions: [{ label: 'Make it yours', to: '/settings', icon: 'sliders' }, { label: 'Your clients', to: '/clients', icon: 'users' }] },
+  { id: 'studio', label: 'Studio', groups: [{ title: 'Team', items: ['/team', '/clients'] }, { title: 'Studio', items: ['/connections', '/brand', '/settings', '/account'] }],
+    actions: [{ label: 'Team pipeline', to: '/team', icon: 'users' }, { label: 'Your clients', to: '/clients', icon: 'users' }] },
   { id: 'projects', label: 'Your projects', ability: 'portal.requests', groups: [{ title: 'Projects', items: ['/', '/requests', '/requests/new', '/billing'] }, { title: 'You', items: ['/account'] }],
     actions: [{ label: 'Ask for something new', to: '/requests/new', icon: 'plus' }, { label: 'Billing', to: '/billing', icon: 'credit-card' }] },
+  { id: 'community', label: 'Community', ability: 'portal.community', groups: [{ title: 'Community Hub', items: ['/community'] }, { title: 'Account', items: ['/account'] }],
+    actions: [{ label: 'Starter kits & perks', to: '/community', icon: 'sparkle' }] },
 ];
 
 /** True when the signed-in user's role grants the ability (see app/Enums/Role.php). */
@@ -88,6 +95,13 @@ export function can(user, ability) {
 
 /** The sidebar items and header menus this user's role may see. */
 export function navFor(user) {
-  const items = NAV_ITEMS.filter((i) => can(user, i.ability));
+  const seen = new Set();
+  const items = NAV_ITEMS.filter((i) => {
+    if (!can(user, i.ability)) return false;
+    if (i.header) return true;
+    if (seen.has(i.to)) return false;
+    seen.add(i.to);
+    return true;
+  });
   return { items, mega: MEGA.filter((m) => can(user, m.ability)) };
 }

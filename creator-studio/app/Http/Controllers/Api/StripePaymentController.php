@@ -185,7 +185,7 @@ class StripePaymentController extends Controller
      * A Stripe Checkout Session for a deal: {url, id}, or null when Stripe isn't set up or says no.
      * $pkg is {name, description, amount (cents), currency, interval}. The webhook marks it paid.
      */
-    public static function startCheckout(Deal $deal, array $pkg, ?string $email = null, ?string $returnTo = null): ?array
+    public static function startCheckout(Deal $deal, array $pkg, ?string $email = null, ?string $returnTo = null, array $meta = []): ?array
     {
         $secret = self::secret();
         if ($secret === null) {
@@ -220,7 +220,7 @@ class StripePaymentController extends Controller
                     'metadata' => [
                         'deal_id' => $deal->id,
                         'package_id' => $pkg['id'] ?? 'proposal',
-                    ],
+                    ] + $meta,
                     'subscription_data' => !empty($pkg['interval']) ? [
                         'metadata' => [
                             'deal_id' => $deal->id,
@@ -283,6 +283,12 @@ class StripePaymentController extends Controller
     {
         $deal = Deal::find($session['metadata']['deal_id'] ?? null);
         if (!$deal || ($session['payment_status'] ?? 'paid') !== 'paid') {
+            return;
+        }
+        $part = (string)($session['metadata']['part'] ?? 'full');
+        if ($part === 'deposit' || str_starts_with($part, 'rights:')) {
+            self::partPaid($deal, $session, $part);
+
             return;
         }
         // Remember the Stripe customer so the client can manage cards and invoices themselves.
@@ -363,6 +369,38 @@ class StripePaymentController extends Controller
                 'subscription_status' => 'cancelled',
             ]);
             AgentEvent::log('payment', "Retainer cancelled: {$deal->brand_name}.");
+        }
+    }
+
+    /**
+     * A deposit (the deal stays open for its balance) or a usage-rights extension.
+     */
+    private static function partPaid(Deal $deal, array $session, string $part): void
+    {
+        $amount = isset($session['amount_total']) ? $session['amount_total'] / 100 : 0;
+        if (!empty($session['id'])) {
+            $p = Payment::firstOrCreate(['stripe_id' => (string)$session['id']], [
+                'deal_id' => $deal->id,
+                'amount' => $amount,
+                'currency' => strtoupper((string)($session['currency'] ?? 'usd')),
+                'kind' => $part === 'deposit' ? 'deposit' : 'rights',
+                'paid_at' => now(),
+            ]);
+            if (!$p->wasRecentlyCreated) {
+                return; // Stripe retried the event
+            }
+        }
+        if ($part === 'deposit') {
+            $deal->forceFill(['deposit_paid_at' => now(), 'deposit_amount' => $amount, 'payment_status' => 'pending'])->save();
+            AgentEvent::log('payment', "Deposit paid: {$deal->brand_name}, $" . number_format($amount, 2) . '.');
+            \App\Domains\Clients\ClientNotifier::event($deal, 'deposit', 'Deposit received');
+
+            return;
+        }
+        $right = \App\Domains\Deals\DealRight::where('deal_id', $deal->id)->find((int)substr($part, 7));
+        if ($right) {
+            \App\Domains\Deals\Rights::extend($right);
+            AgentEvent::log('payment', "Rights extended: {$deal->brand_name} ({$right->kind}, +{$right->days} days).");
         }
     }
 

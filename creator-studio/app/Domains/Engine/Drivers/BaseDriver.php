@@ -74,7 +74,9 @@ abstract class BaseDriver implements EngineDriver
 
         $raw = ($options['api_key'] ?? null)
             ?: ($user?->getApiKeyFor($this->engine)
-            ?: \App\Domains\Engine\EngineKeys::for($this->engine, $user));
+            ?: \App\Domains\Engine\EngineKeys::for($this->engine, $user))
+            // The studio's main key, whichever engine this driver is for (as before BYOK).
+            ?: (Setting::get('llm_api_key') ?: ($this->engine->canUseAssemblyKey() ? Setting::get('assemblyai_api_key') : null));
 
         $keys = array_values(array_filter(array_map('trim', explode(',', (string)$raw))));
         if (!$keys) {

@@ -89,7 +89,9 @@ class ClientDeal
     public static function canPay(Deal $deal): bool
     {
         return $deal->payment_status !== 'paid' && $deal->stage !== 'lost' && (float)$deal->rate > 0
-            && ($deal->accepted_at || $deal->stage === 'invoiced') && StripePaymentController::configured();
+            && ($deal->accepted_at || $deal->stage === 'invoiced') && StripePaymentController::configured()
+            // After a deposit, the balance waits until the work is live.
+            && \App\Domains\Deals\Billing::balanceReady($deal);
     }
 
     /**
@@ -171,7 +173,10 @@ class ClientDeal
             return 'Review and accept the proposal';
         }
         if (self::canReviewWork($deal)) {
-            return 'Review the work: approve it or ask for changes';
+            return 'Review the work: approve it or ask for changes' . ($deal->review_due_on ? ' (due ' . $deal->review_due_on->toFormattedDateString() . ')' : '');
+        }
+        if (\App\Domains\Deals\Billing::isOverdue($deal)) {
+            return 'Invoice overdue since ' . $deal->invoice_due_on->toFormattedDateString();
         }
         if (self::canPay($deal)) {
             return 'Payment due';

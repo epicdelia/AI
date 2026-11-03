@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.techunicorn.studio.data.live.TokenStore.init(this)
         setContent {
             App()
         }

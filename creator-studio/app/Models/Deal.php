@@ -186,6 +186,13 @@ class Deal extends Model
             'deliverables' => 'array',
             'intake' => 'array',
             'intake_at' => 'datetime',
+            'review_due_on' => 'date',
+            'review_reminded_on' => 'date',
+            'onboarding' => 'array',
+            'deposit_paid_at' => 'datetime',
+            'deposit_amount' => 'decimal:2',
+            'invoice_due_on' => 'date',
+            'pay_reminded_on' => 'date',
             'talking_points_checklist' => 'array',
             'attribution' => 'array',
             'proposal' => 'array',
@@ -225,6 +232,16 @@ class Deal extends Model
             if ($deal->isDirty('stage') && !$deal->isDirty('stage_changed_at')) {
                 $deal->stage_changed_at = now();
             }
+            // Review deadline: work sent for sign-off gets a due date (Setting review_days, default 3).
+            if ($deal->isDirty('stage') && $deal->stage === 'in_review' && !$deal->isDirty('review_due_on')) {
+                $deal->review_due_on = now()->addDays(max(1, (int)(\App\Models\Setting::get('review_days') ?: 3)))->toDateString();
+                $deal->review_reminders = 0;
+                $deal->review_reminded_on = null;
+            }
+            // Invoice due date from the payment plan (net 7/15/30, on receipt).
+            if ($deal->isDirty('invoiced_at') && $deal->invoiced_at && !$deal->isDirty('invoice_due_on')) {
+                $deal->invoice_due_on = \App\Domains\Deals\Billing::dueDate($deal);
+            }
         });
 
         // A deal from a verified client's email (website booking, checkout, added by her) is theirs.
@@ -237,6 +254,13 @@ class Deal extends Model
         // The client's timeline and emails (proposal ready, new status, invoice, delivery).
         static::created(fn (Deal $deal) => rescue(fn () => \App\Domains\Clients\ClientNotifier::created($deal), null, true));
         static::updated(fn (Deal $deal) => rescue(fn () => \App\Domains\Clients\ClientNotifier::updated($deal), null, true));
+
+        // Usage rights start counting when the content goes live.
+        static::updated(function (Deal $deal) {
+            if ($deal->wasChanged('published_at') && $deal->published_at) {
+                rescue(fn () => \App\Domains\Deals\Rights::startAll($deal), null, true);
+            }
+        });
 
         // Business events for Workflows (each fires once per deal and stage; never blocks the save).
         static::created(function (Deal $deal) {

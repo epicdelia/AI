@@ -52,9 +52,36 @@ class NeedsYouController extends Controller
             'at' => $d->intake_at?->toIso8601String(),
         ])->all());
 
+        $overdueInvoices = Deal::whereNotNull('invoice_due_on')->whereDate('invoice_due_on', '<', now()->toDateString())
+            ->where('payment_status', '!=', 'paid')->where('stage', '!=', 'lost')->orderBy('invoice_due_on')->take(10)->get();
+        $lateReviews = Deal::where('stage', 'in_review')->whereNotNull('review_due_on')->whereDate('review_due_on', '<', now()->toDateString())
+            ->orderBy('review_due_on')->take(10)->get();
+        $rights = \App\Domains\Deals\DealRight::with('deal:id,brand_name,user_id')->where('status', 'active')->whereNotNull('ends_on')
+            ->whereDate('ends_on', '<=', now()->addDays(\App\Domains\Deals\Rights::REMIND_DAYS_BEFORE)->toDateString())->orderBy('ends_on')->take(10)->get();
+        $groups[] = $this->group('money', 'Payments & deadlines', 'credit-card', array_merge(
+            $overdueInvoices->map(fn ($d) => [
+                'title' => "Overdue invoice: {$d->brand_name}",
+                'meta' => \App\Domains\Deals\Billing::daysOverdue($d) . ' days · ' . number_format(\App\Domains\Deals\Billing::nextPayment($d)['amount'], 2) . ' ' . ($d->currency ?: 'USD'),
+                'url' => '/deals',
+                'at' => $d->invoice_due_on->toIso8601String(),
+            ])->all(),
+            $lateReviews->map(fn ($d) => [
+                'title' => "Client review late: {$d->brand_name}",
+                'meta' => 'due ' . $d->review_due_on->toFormattedDateString(),
+                'url' => $d->user_id ? '/clients/' . $d->user_id : '/deals',
+                'at' => $d->review_due_on->toIso8601String(),
+            ])->all(),
+            $rights->map(fn ($r) => [
+                'title' => 'Rights ending: ' . ($r->deal?->brand_name ?? 'deal') . ' · ' . (\App\Domains\Deals\Rights::KINDS[$r->kind] ?? $r->kind),
+                'meta' => 'ends ' . $r->ends_on->toFormattedDateString(),
+                'url' => '/deals',
+                'at' => $r->ends_on->toIso8601String(),
+            ])->all(),
+        ));
+
         $payouts = TeamTask::with('assignee:id,name')->where('payout_status', 'pending')->latest('completed_at')->take(10)->get();
         $overdue = TeamTask::with('assignee:id,name')->whereNull('completed_at')->whereNotNull('due_on')
-            ->where('due_on', '<', now()->toDateString())->orderBy('due_on')->take(10)->get();
+            ->whereDate('due_on', '<', now()->toDateString())->orderBy('due_on')->take(10)->get();
         $groups[] = $this->group('team', 'Team', 'users', array_merge(
             $payouts->map(fn ($t) => [
                 'title' => 'Approve payout: ' . $t->title,

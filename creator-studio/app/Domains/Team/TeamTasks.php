@@ -45,7 +45,7 @@ class TeamTasks
     public static function remindDue(): int
     {
         $tasks = TeamTask::with('assignee')->whereNull('completed_at')->whereNotNull('assignee_id')
-            ->whereNotNull('due_on')->where('due_on', '<=', now()->addDay()->toDateString())
+            ->whereNotNull('due_on')->whereDate('due_on', '<=', now()->addDay()->toDateString())
             ->get()->groupBy('assignee_id');
         $sent = 0;
         foreach ($tasks as $list) {
@@ -70,13 +70,14 @@ class TeamTasks
      */
     public static function statementRows(iterable $tasks): array
     {
-        $rows = [['Task', 'Team member', 'Role', 'Completed', 'Amount', 'Currency', 'Status', 'Paid on', 'Reference']];
+        $rows = [['Task', 'Team member', 'Role', 'Completed', 'Hours', 'Amount', 'Currency', 'Status', 'Paid on', 'Reference']];
         foreach ($tasks as $t) {
             $rows[] = [
                 $t->title,
                 $t->assignee?->name ?? 'Unassigned',
                 (string)$t->role_label,
                 $t->completed_at?->toDateString() ?? '',
+                number_format(((int)$t->minutes_logged) / 60, 2, '.', ''),
                 number_format((float)$t->payout_amount, 2, '.', ''),
                 $t->payout_currency,
                 $t->payout_status,

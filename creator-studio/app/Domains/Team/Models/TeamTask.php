@@ -27,6 +27,9 @@ class TeamTask extends Model
             'approved_at' => 'datetime',
             'paid_at' => 'datetime',
             'completed_at' => 'datetime',
+            'timer_started_at' => 'datetime',
+            'hourly' => 'boolean',
+            'minutes_logged' => 'integer',
         ];
     }
 
@@ -68,6 +71,10 @@ class TeamTask extends Model
             'paid_at' => $this->paid_at?->toIso8601String(),
             'paid_ref' => $this->paid_ref,
             'created_at' => $this->created_at?->toIso8601String(),
+            'minutes_logged' => (int)$this->minutes_logged,
+            'timer_started_at' => $this->timer_started_at?->toIso8601String(),
+            'hourly' => (bool)$this->hourly,
+            'brief' => $this->brief,
         ];
     }
 }

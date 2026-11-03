@@ -66,6 +66,8 @@ class DrawerEntriesBuilder(private val userRole: UserRole) {
         val rawSections: List<Pair<String, List<Pair<StudioDestination, DrawerBadge>>>> = when (userRole) {
             UserRole.CLIENT -> listOf(
                 "Client Workspace" to listOf(
+                    StudioDestination.MyRequests to DrawerBadge("Live"),
+                    StudioDestination.Community to DrawerBadge("Live"),
                     StudioDestination.ClientPortal to DrawerBadge.NONE,
                     StudioDestination.Deals to DrawerBadge("Active"),
                     StudioDestination.Snippets to DrawerBadge.NONE,
@@ -76,12 +78,15 @@ class DrawerEntriesBuilder(private val userRole: UserRole) {
                 "Explore" to listOf(
                     StudioDestination.Landing to DrawerBadge.NONE,
                     StudioDestination.Snippets to DrawerBadge("Free"),
+                    StudioDestination.Community to DrawerBadge("Sign In"),
                     StudioDestination.ClientPortal to DrawerBadge("Sign In")
                 )
             )
             UserRole.STUDIO -> listOf(
                 "Today & Pacing" to listOf(
                     StudioDestination.Dashboard to DrawerBadge.NONE,
+                    StudioDestination.NeedsYou to DrawerBadge("Live"),
+                    StudioDestination.MyTasks to DrawerBadge("Live"),
                     StudioDestination.Flow to DrawerBadge("Wispr"),
                     StudioDestination.Love to DrawerBadge("💌")
                 ),

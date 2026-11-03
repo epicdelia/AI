@@ -176,14 +176,19 @@ class DealRoomController extends Controller
             ], 409);
         }
         $p = $deal->proposal ?? [];
+        $next = \App\Domains\Deals\Billing::nextPayment($deal);
+        $retainer = ($p['plan'] ?? null) === 'retainer';
+        if ($retainer) {
+            $next = ['amount' => (float)$deal->rate, 'part' => 'full']; // a subscription has no deposit
+        }
         $session = StripePaymentController::startCheckout($deal, [
             'id' => 'deal_room',
-            'name' => $p['title'] ?? $deal->brand_name,
+            'name' => ($p['title'] ?? $deal->brand_name) . ($next['part'] === 'deposit' ? " ({$deal->deposit_percent}% deposit)" : ($next['part'] === 'balance' ? ' (balance)' : '')),
             'description' => isset($p['summary']) ? mb_substr($p['summary'], 0, 300) : null,
-            'amount' => (int)round((float)$deal->rate * 100),
+            'amount' => (int)round($next['amount'] * 100),
             'currency' => strtolower($deal->currency ?: 'usd'),
-            'interval' => ($p['plan'] ?? null) === 'retainer' ? 'month' : null,
-        ], $deal->contact_email, $returnTo);
+            'interval' => $retainer ? 'month' : null,
+        ], $deal->contact_email, $returnTo, ['part' => $next['part']]);
 
         return $session
             ? response()->json([

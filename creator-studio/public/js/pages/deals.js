@@ -3,6 +3,7 @@ import {
   h, api, busy, toast, pageHead, emptyState, clear, pill, modal, confirmDialog, field, navigate, link, compact, timeAgo,
 } from '../core.js';
 import { icon } from '../icons.js';
+import { termsDialog } from '../deal-terms.js';
 import {
   followUpsCard, followUpDialog, proposalDialog, kitLinkDialog, complianceDialog, wrapReportDialog,
   outboundPitchDialog, prospectsDialog, sourceChip, meetingLine, leadScoreChip,
@@ -113,6 +114,7 @@ export async function renderDeals(view) {
           h('button', { class: 'btn sm ghost', onclick: () => scriptGeneratorDialog(deal) }, icon('sparkle', 13), 'Sponsor script'),
           ['contracted', 'production', 'in_review', 'scheduled'].includes(deal.stage) || deal.script_id ? h('button', { class: 'btn sm ghost', onclick: () => complianceDialog(deal) }, icon('check', 13), 'Sponsor check') : null,
           h('button', { class: 'btn sm ghost', onclick: () => invoiceDialog(deal) }, icon('file-text', 13), 'Invoice'),
+          h('button', { class: 'btn sm ghost', title: 'Payment plan, deposit, review deadline, usage rights', onclick: () => termsDialog(deal, reload) }, icon('credit-card', 13), 'Terms & rights'),
           h('button', { class: 'btn sm ghost', onclick: () => campaignReportDialog(deal) }, icon('chart', 13), 'Campaign report'),
           ['scheduled', 'invoiced', 'paid'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', onclick: () => wrapReportDialog(deal) }, icon('file-text', 13), 'Wrap report') : null,
           !['paid', 'lost'].includes(deal.stage) ? h('button', { class: 'btn sm ghost', title: 'It didn’t happen: counts towards your win rate', onclick: () => lostDialog(deal, reload) }, icon('x', 13), 'Lost') : null),

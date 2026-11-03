@@ -100,12 +100,47 @@ class PortalController extends Controller
         $service = $d->deliverables[0]['project_type'] ?? null;
 
         return response()->json([
-            'request' => ClientDeal::detail($d) + [
+            'request' => ($detail = ClientDeal::detail($d)) + [
+                'review_due_on' => $d->review_due_on?->toDateString(),
+                'review_overdue' => \App\Domains\Clients\ReviewAndOnboarding::reviewOverdue($d),
+                // Only once there's a price they can see (her internal estimate stays hers).
+                'billing' => $detail['amount'] !== null ? \App\Domains\Deals\Billing::summary($d) : null,
+                'onboarding' => \App\Domains\Clients\ReviewAndOnboarding::checklist($d),
+                'rights' => \App\Domains\Deals\DealRight::where('deal_id', $d->id)->orderBy('id')->get()->map(fn ($r) => \App\Domains\Deals\Rights::row($r))->values(),
                 'intake' => $d->intake,
                 'intake_at' => $d->intake_at?->toIso8601String(),
                 'intake_questions' => $d->intake ? [] : \App\Domains\Clients\Intake::questionsFor($service),
             ],
         ]);
+    }
+
+    public function tickOnboarding(Request $request, int $deal, string $key): JsonResponse
+    {
+        $d = $this->find($request, $deal);
+        $data = $request->validate(['done' => 'required|boolean']);
+
+        return response()->json([
+            'onboarding' => \App\Domains\Clients\ReviewAndOnboarding::tick($d, $key, (bool)$data['done']),
+        ]);
+    }
+
+    /**
+     * Pay to extend usage rights / whitelisting / exclusivity for another period.
+     */
+    public function extendRight(Request $request, int $deal, int $right): JsonResponse
+    {
+        $d = $this->find($request, $deal);
+        $r = \App\Domains\Deals\DealRight::where('deal_id', $d->id)->findOrFail($right);
+        abort_unless((float)$r->price > 0 && StripePaymentController::configured(), 409, 'Online payment isn’t available for this: message us to extend it.');
+        $session = StripePaymentController::startCheckout($d, [
+            'id' => 'rights_' . $r->id,
+            'name' => (\App\Domains\Deals\Rights::KINDS[$r->kind] ?? 'Rights') . " (+{$r->days} days)",
+            'amount' => (int)round((float)$r->price * 100),
+            'currency' => strtolower($d->currency ?: 'usd'),
+        ], $request->user()->email, '/requests/' . $d->id, ['part' => 'rights:' . $r->id]);
+        abort_unless($session, 502, 'Payment couldn’t start. Please try again in a minute.');
+
+        return response()->json(['checkout_url' => $session['url']]);
     }
 
     /**

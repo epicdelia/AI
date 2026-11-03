@@ -36,6 +36,10 @@ class CommunityController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $seen = $user->community_seen_at ? \Carbon\CarbonImmutable::parse($user->community_seen_at) : null;
+        if (!$seen || $seen->lt(now()->subHour())) {
+            $user->forceFill(['community_seen_at' => now()])->saveQuietly();
+        }
         $pro = Community::isPro($user);
         $voted = CommunityVote::where('user_id', $user->id)->pluck('item_id')->all();
         $items = CommunityItem::with('user:id,name')
@@ -332,6 +336,10 @@ class CommunityController extends Controller
                 'unanswered' => $items->where('type', 'question')->where('status', 'published')->whereNull('answered_at')->count(),
                 'members' => $memberIds->count(),
                 'pro' => CommunityMembership::whereIn('status', ['active', 'comped'])->count(),
+                // Quiet for 21+ days (they get one win-back email).
+                'at_risk' => User::where('role', Role::Member->value)->where(fn ($q) => $q->where('community_seen_at', '<', now()->subDays(Community::WINBACK_DAYS))
+                    ->orWhere(fn ($q) => $q->whereNull('community_seen_at')->where('created_at', '<', now()->subDays(Community::WINBACK_DAYS))))->count(),
+                'pro_cancelled_30d' => CommunityMembership::where('status', 'cancelled')->where('updated_at', '>=', now()->subDays(30))->count(),
             ],
             'leaderboard' => Community::leaderboard(20),
             'warm_leads' => $warm,

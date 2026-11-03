@@ -46,7 +46,7 @@ enum Role: string
         'agents/*/synthesize-brand-pitch', 'agents/*/architect-sponsor-placement', 'agents/*/escalate-lead-deal',
         'backups', 'backups/*', 'settings', 'settings/*', 'automations', 'user/keys', 'user/keys/*',
         'usage', 'schedule', 'schedule/*', 'studio/infra/*', 'mcp', 'mcp/*',
-        'community/admin', 'community/admin/*', 'crm', 'crm/*', 'portal-brand', 'portal-brand/*', 'needs-you',
+        'community/admin', 'community/admin/*', 'crm', 'crm/*', 'portal-brand', 'portal-brand/*', 'needs-you', 'needs-you/*',
     ];
 
     /**

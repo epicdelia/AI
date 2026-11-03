@@ -109,6 +109,44 @@ function intakeValues(root) {
   return out;
 }
 
+function onboardingCard(r, id) {
+  const o = r.onboarding;
+  if (!o?.active || !o.steps.length) return null;
+  const box = h('div', { class: 'card' });
+  function draw(c) {
+    clear(box).append(h('div', { class: 'card-header' }, h('h2', {}, 'Getting started'), h('span', { class: `pill ${c.done === c.total ? 'ok' : ''}` }, `${c.done}/${c.total}`)),
+      h('ul', { class: 'stack' }, c.steps.map((s) => h('li', { class: 'row' },
+        s.auto ? h('span', { class: `pill sm ${s.done ? 'ok' : ''}`, 'aria-label': s.done ? 'Done' : 'To do' }, s.done ? '✓' : '·')
+          : h('input', { type: 'checkbox', checked: s.done, 'aria-label': s.label, onchange: async (e) => { try { draw((await api('POST', `portal/requests/${id}/onboarding/${s.key}`, { done: e.target.checked })).onboarding); } catch (err) { toast(err.message, 'err'); } } }),
+        h('span', { style: { textDecoration: s.done ? 'line-through' : '' } }, s.label),
+        s.auto && !s.done ? h('span', { class: 'muted small' }, s.type === 'upload' ? ' · add a file below' : s.type === 'intake' ? ' · answer the questions above' : s.type === 'vault' ? ' · open Brand Vault' : s.type === 'call' ? ' · book a call' : '') : null))));
+  }
+  draw(o);
+  return box;
+}
+
+function billingTermsCard(r) {
+  const b = r.billing;
+  if (!b || r.amount == null || (!b.payment_plan && !b.deposit_percent && !b.invoice_due_on)) return null;
+  return h('div', { class: `card${b.overdue ? ' callout warn' : ''}` }, h('h2', {}, 'Payment terms'),
+    h('ul', { class: 'stack small' },
+      b.payment_plan ? h('li', {}, `Plan: ${{ on_receipt: 'due on receipt', net7: 'net 7 days', net15: 'net 15 days', net30: 'net 30 days' }[b.payment_plan] || b.payment_plan}`) : null,
+      b.deposit_percent ? h('li', {}, `${b.deposit_percent}% deposit${b.deposit_paid_at ? ` paid ${fmtDay(b.deposit_paid_at.slice(0, 10))}` : ' up front'}; the balance once the work is live`) : null,
+      b.invoice_due_on ? h('li', {}, `Invoice due ${fmtDay(b.invoice_due_on)}${b.overdue ? ` · ${b.days_overdue} days overdue` : ''}`) : null,
+      b.late_fee_percent && b.invoice_due_on ? h('li', { class: 'muted' }, `Late payments may carry a ${b.late_fee_percent}% monthly fee.`) : null));
+}
+
+function rightsCard(r, id) {
+  if (!r.rights?.length) return null;
+  return h('div', { class: 'card' }, h('h2', {}, 'Usage rights'),
+    h('ul', { class: 'stack' }, r.rights.map((x) => h('li', { class: 'row-between' },
+      h('span', {}, h('strong', {}, x.label), x.scope ? ` · ${x.scope}` : '',
+        h('div', { class: 'muted small' }, x.ends_on ? `Until ${fmtDay(x.ends_on)}${x.status === 'ended' ? ' (ended)' : x.ends_soon ? ' · ends soon' : ''}` : `${x.days} days from the publish date`)),
+      (x.ends_soon || x.status === 'ended') && x.price > 0 ? h('button', { class: 'btn sm primary', type: 'button', onclick: (e) => busy(e.currentTarget, 'Opening checkout…', async () => {
+        location.href = (await api('POST', `portal/requests/${id}/rights/${x.id}/extend`)).checkout_url;
+      }) }, `Extend ${x.days} days · ${money(x.price, r.currency)}`) : null))));
+}
+
 function intakeCard(r, id, onSaved) {
   if (r.intake?.length) {
     return h('div', { class: 'card' }, h('h2', {}, 'Your brief'),
@@ -267,7 +305,8 @@ export async function renderRequest(view, id) {
 
   const pay = r.can_pay ? h('button', { class: 'btn primary', type: 'button', onclick: (e) => busy(e.currentTarget, 'Opening checkout…', async () => {
     location.href = (await api('POST', `portal/requests/${id}/pay`)).checkout_url;
-  }) }, icon('credit-card', 15), `Pay ${money(r.amount, r.currency)}`) : null;
+  }) }, icon('credit-card', 15), r.billing?.next_part === 'deposit' ? `Pay ${r.billing.deposit_percent}% deposit · ${money(r.billing.next_amount, r.currency)}`
+    : `Pay ${money(r.billing?.next_amount ?? r.amount, r.currency)}${r.billing?.next_part === 'balance' ? ' (balance)' : ''}`) : null;
 
   const deliverables = r.deliverables.length ? h('div', { class: 'card' },
     h('div', { class: 'card-header' },
@@ -290,6 +329,10 @@ export async function renderRequest(view, id) {
       pay,
       r.review_url ? h('p', {}, h('a', { class: 'btn', href: r.review_url }, icon('star', 15), 'Leave a review')) : null),
     milestonesSlot,
+    r.review_due_on && r.can_review_work ? h('div', { class: `card callout${r.review_overdue ? ' warn' : ''}` }, icon('clock', 15), ` Your review is due ${fmtDay(r.review_due_on)}.`) : null,
+    onboardingCard(r, id),
+    billingTermsCard(r),
+    rightsCard(r, id),
     intakeCard(r, id, () => navigate(`/requests/${id}`, { replace: true })),
     reviewSlot,
     roiSlot,

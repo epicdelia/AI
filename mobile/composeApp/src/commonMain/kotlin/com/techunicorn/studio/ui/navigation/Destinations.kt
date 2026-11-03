@@ -16,6 +16,7 @@ enum class StudioDestination(
     Dashboard("dashboard", "Dashboard", "Today", Icons.Filled.Home, Icons.Outlined.Home),
     Flow("flow", "Dictate", "Today", Icons.Filled.Mic, Icons.Outlined.Mic),
     Love("love", "For You", "Today", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
+    NeedsYou("needs-you", "Needs You", "Today", Icons.Filled.NotificationsActive, Icons.Outlined.NotificationsActive),
 
     // YouTube
     Breakouts("breakouts", "Breakouts", "YouTube", Icons.Filled.TrendingUp, Icons.Outlined.TrendingUp),
@@ -48,11 +49,14 @@ enum class StudioDestination(
 
     // Studio & Operations
     Clients("clients", "Clients", "Studio", Icons.Filled.People, Icons.Outlined.People),
+    MyTasks("my-tasks", "My Tasks", "Studio", Icons.Filled.TaskAlt, Icons.Outlined.TaskAlt),
     Account("account", "Account & Security", "Studio", Icons.Filled.Lock, Icons.Outlined.Lock),
     Connections("connections", "Connections", "Studio", Icons.Filled.Power, Icons.Outlined.Power),
     Brand("brand", "Brand Kit", "Studio", Icons.Filled.Palette, Icons.Outlined.Palette),
     Settings("settings", "Settings", "Studio", Icons.Filled.Settings, Icons.Outlined.Settings),
 
     // Client Portal
-    ClientPortal("portal", "Client Portal", "Projects", Icons.Filled.Business, Icons.Outlined.Business)
+    ClientPortal("portal", "Client Portal", "Projects", Icons.Filled.Business, Icons.Outlined.Business),
+    MyRequests("my-requests", "My Requests", "Projects", Icons.Filled.Assignment, Icons.Outlined.Assignment),
+    Community("community", "Community", "Projects", Icons.Filled.Groups, Icons.Outlined.Groups)
 }

@@ -23,11 +23,20 @@ export function needsYouCard() {
   return card;
 }
 
+async function weeklyDialog() {
+  const w = await api('GET', 'needs-you/weekly');
+  const on = h('input', { type: 'checkbox', checked: w.on, onchange: async (e) => { await api('PUT', 'needs-you/weekly', { on: e.target.checked }); toast(e.target.checked ? 'Monday email on.' : 'Monday email off.'); } });
+  await modal('Your Monday email', () => h('div', {},
+    h('label', { class: 'row small', style: { gap: '6px' } }, on, 'Send me this every Monday at 07:30'),
+    h('pre', { style: { whiteSpace: 'pre-wrap', marginTop: '12px' } }, w.text)), { wide: true });
+}
+
 export async function renderNeedsYou(view) {
   view.append(loading());
   const d = await api('GET', 'needs-you');
   clear(view).append(
-    pageHead('Needs you', d.total ? `${d.total} thing${d.total === 1 ? '' : 's'} waiting across clients, team, community and contacts.` : 'Nothing is waiting on you.'),
+    pageHead('Needs you', d.total ? `${d.total} thing${d.total === 1 ? '' : 's'} waiting across clients, team, community and contacts.` : 'Nothing is waiting on you.',
+      h('button', { type: 'button', class: 'btn ghost', onclick: weeklyDialog }, icon('mail', 14), 'Monday email')),
     d.groups.length ? h('div', { class: 'grid grid-2' }, d.groups.map((g) => h('div', { class: 'card' },
       h('h2', {}, icon(g.icon, 15), ` ${g.title} (${g.count})`),
       h('ul', { class: 'stack' }, g.items.map((i) => h('li', { class: 'row-between' },

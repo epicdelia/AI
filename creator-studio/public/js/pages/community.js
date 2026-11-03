@@ -1,5 +1,6 @@
 import { h, api, toast, clear, modal, confirmDialog, pageHead, emptyState, loading, field, copyText, timeAgo, navigate } from '../core.js';
 import { icon } from '../icons.js';
+import { coursesTab, eventsTab, adminCoursesTab, adminEventsTab } from '../community-learning.js';
 
 // The Community Hub (members, clients and her) and her side of it (/community/manage).
 // Everything shown is real: what she publishes, members' questions and approved projects.
@@ -32,6 +33,8 @@ export async function renderCommunityHub(view) {
     ['showcase', 'Showcase', 'sparkle', data.showcase],
     ['question', 'Ask', 'chat', data.ama],
     ['perk', 'Perks', 'tag', data.perks],
+    ['courses', 'Courses', 'book', null],
+    ['events', 'Live sessions', 'calendar', null],
     ['leaderboard', 'Leaderboard', 'trend', data.leaderboard],
   ];
   const tabNav = h('div', { class: 'community-tabs', role: 'tablist' }, tabs.map(([id, label, ic, list]) => h('button', {
@@ -43,7 +46,7 @@ export async function renderCommunityHub(view) {
       e.currentTarget.setAttribute('aria-selected', 'true');
       draw();
     },
-  }, icon(ic, 14), h('span', {}, label), h('span', { class: 'community-tab-badge' }, String(list?.length || 0)))));
+  }, icon(ic, 14), h('span', {}, label), list ? h('span', { class: 'community-tab-badge' }, String(list.length)) : null)));
 
   function upgradeButton(label = `Join ${data.pro.name}`) {
     if (!data.pro.available || data.pro.active) return null;
@@ -164,6 +167,10 @@ export async function renderCommunityHub(view) {
         p.body ? h('p', { class: 'muted small' }, p.body) : null,
         p.code ? h('div', { class: 'community-perk-code-box' }, h('code', {}, p.code), h('button', { type: 'button', class: 'btn ghost sm', onclick: () => copyText(p.code, 'Code copied.') }, icon('copy', 12), ' Copy')) : null,
         p.url ? h('a', { href: p.url, target: '_blank', rel: 'noopener', class: 'btn primary block sm', style: { marginTop: '12px' } }, 'Redeem ', icon('external', 12)) : null)))) : emptyState(icon('tag', 28), 'No perks yet', 'Partner offers will appear here.'));
+    } else if (active === 'courses') {
+      coursesTab(content, () => upgradeButton('Unlock'));
+    } else if (active === 'events') {
+      eventsTab(content);
     } else if (active === 'leaderboard') {
       content.append(h('div', { class: 'card' },
         h('h2', {}, 'Most active this month'),
@@ -278,6 +285,8 @@ export async function renderCommunityAdmin(view) {
     ['inbox', `To do (${d.counts.pending + d.counts.unanswered})`],
     ['content', 'Content'],
     ['members', `Members (${d.counts.members})`],
+    ['courses', 'Courses'],
+    ['events', 'Live sessions'],
     ['settings', 'Pro tier & "work with me"'],
   ].map(([id, label]) => h('button', {
     type: 'button', role: 'tab', class: `community-tab-btn${tab === id ? ' is-active' : ''}`,
@@ -356,8 +365,16 @@ export async function renderCommunityAdmin(view) {
       body.append(
         h('div', { class: 'row', style: { flexWrap: 'wrap', marginBottom: '12px' } }, ['dispatch', 'kit', 'blueprint', 'perk'].map((t) => h('button', { type: 'button', class: 'btn sm', onclick: () => edit(null, t) }, icon('plus', 12), ` ${TYPE_LABEL[t].replace(/s$/, '')}`))),
         d.items.length ? h('div', { class: 'stack' }, d.items.map(row)) : emptyState(icon('doc', 28), 'Nothing published yet', 'Start with a post, a starter kit or a perk.'));
+    } else if (tab === 'courses') {
+      adminCoursesTab(body);
+    } else if (tab === 'events') {
+      adminEventsTab(body);
     } else if (tab === 'members') {
       body.append(
+        h('div', { class: 'grid grid-3' },
+          h('div', { class: 'card' }, h('strong', {}, String(d.counts.at_risk ?? 0)), h('p', { class: 'muted small' }, 'Quiet for 21+ days (they get one “what you missed” email)')),
+          h('div', { class: 'card' }, h('strong', {}, String(d.counts.pro)), h('p', { class: 'muted small' }, 'Pro members')),
+          h('div', { class: 'card' }, h('strong', {}, String(d.counts.pro_cancelled_30d ?? 0)), h('p', { class: 'muted small' }, 'Pro cancellations in 30 days. Tip: turn on “pause subscription” in Stripe’s customer portal settings.'))),
         h('div', { class: 'card' },
           h('h2', {}, 'Warm leads'),
           h('p', { class: 'muted small' }, `Members with ${d.hire.min_points}+ points. They see your "work with me" card${d.hire.enabled ? '' : ' (turned off)'}.`),

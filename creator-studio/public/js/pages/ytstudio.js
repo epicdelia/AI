@@ -221,6 +221,9 @@ export async function renderYouTubeStudio(view) {
           h('span', { class: 'clamp-1' }, r.title, t.status === 'running' && t.current === i ? h('em', { class: 'muted small' }, ' (live now)') : null, t.winner === i ? icon('trophy', 13) : ''),
           h('span', { class: 'yt-bar', role: 'img', 'aria-label': `${r.views_per_hour} views per hour` }, h('span', { style: { width: `${(r.views_per_hour / best) * 100}%` } })),
           h('strong', { class: 'small' }, `${r.views_per_hour}/h`)))),
+        t.impact ? h('p', { class: 'small muted' }, icon('chart', 12), ' ', t.impact.ages.map((a) => a.views == null ? `Day ${a.day}: not reached yet`
+          : a.median == null ? `Day ${a.day}: ${a.views.toLocaleString()} views (need ${3} older videos to compare)`
+            : `Day ${a.day}: ${a.views.toLocaleString()} views, ${a.change_pct >= 0 ? '+' : ''}${a.change_pct}% vs your usual ${a.median.toLocaleString()}`).join(' · ')) : null,
         t.error ? h('p', { class: 'error-text small' }, t.error) : null,
         t.status === 'running' ? h('button', { class: 'btn ghost sm', onclick: async () => { if (await confirmDialog('Stop the test and put the original title back?', { ok: 'Stop' })) { await api('POST', `youtube/tests/${t.id}/stop`); refresh(); } } }, 'Stop & restore title') : null);
     }) : h('p', { class: 'muted small' }, 'No legacy tests yet.'));

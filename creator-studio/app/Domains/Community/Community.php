@@ -26,7 +26,13 @@ class Community
         'answered' => 10,
         'showcase_approved' => 15,
         'featured' => 25,
+        'lesson' => 3,
     ];
+
+    /**
+     * Quiet this many days → one "here's what you missed" email (at most every 60 days).
+     */
+    public const WINBACK_DAYS = 21;
 
     /**
      * Asking earns points for at most this many questions a day.
@@ -214,6 +220,36 @@ class Community
             'Your question was answered',
             "Hi {$u->name},\n\nYour question in the community was answered:\n\n“{$q->title}”\n\n{$q->answer}\n\nSee it in the Community Hub: " . url('/community') . "\n\nYou can turn these emails off under Account & security."
         );
+    }
+
+    /**
+     * Members (and clients) quiet for 21+ days get the three most-voted things they missed.
+     * Returns emails sent.
+     */
+    public static function sendWinbacks(): int
+    {
+        $top = CommunityItem::published()->whereIn('type', ['dispatch', 'question', 'showcase', 'kit'])
+            ->where('published_at', '>=', now()->subDays(self::WINBACK_DAYS + 9))
+            ->orderByDesc('upvotes')->latest('published_at')->take(3)->get();
+        if ($top->isEmpty()) {
+            return 0;
+        }
+        $lines = $top->map(fn ($i) => '• ' . ($i->type === 'question' ? 'Asked: ' : '') . $i->title . ($i->tier === 'pro' ? ' (Pro)' : ''))->implode("\n");
+        $sent = 0;
+        User::where('role', Role::Member->value)->whereNull('disabled_at')->where('notify_email', true)->where('community_digest', true)
+            ->where(fn ($q) => $q->where('community_seen_at', '<', now()->subDays(self::WINBACK_DAYS))
+                ->orWhere(fn ($q) => $q->whereNull('community_seen_at')->where('created_at', '<', now()->subDays(self::WINBACK_DAYS))))
+            ->where(fn ($q) => $q->whereNull('winback_sent_at')->orWhere('winback_sent_at', '<', now()->subDays(60)))
+            ->chunkById(200, function ($users) use ($lines, &$sent) {
+                foreach ($users as $u) {
+                    if (AuthController::mail($u->email, 'What you missed in the community', "Hi {$u->name},\n\nHere's what people liked most lately:\n\n{$lines}\n\nCatch up: " . url('/community') . "\n\nTurn these emails off under Account & security.")) {
+                        $sent++;
+                    }
+                    $u->forceFill(['winback_sent_at' => now()])->save();
+                }
+            });
+
+        return $sent;
     }
 
     /**

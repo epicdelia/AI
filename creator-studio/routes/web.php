@@ -61,6 +61,9 @@ Route::prefix('api')->group(function () {
     Route::post('auth/two-factor', [AuthController::class, 'twoFactorChallenge'])->middleware('throttle:10,1');
     Route::post('auth/demo-client', [AuthController::class, 'demoClient'])->middleware('throttle:10,1'); // 404 unless DEMO_CLIENT_LOGIN=true
     Route::post('auth/logout', [AuthController::class, 'logout']);
+    // The native app: email + password (+ code) → a bearer token.
+    Route::post('auth/mobile-token', [\App\Http\Controllers\Api\MobileTokenController::class, 'issue'])->middleware('throttle:10,1');
+    Route::delete('auth/mobile-token', [\App\Http\Controllers\Api\MobileTokenController::class, 'revokeCurrent']);
     Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,10');
     Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
 
@@ -144,6 +147,8 @@ Route::prefix('api')->group(function () {
             Route::get('account/sessions', [AccountController::class, 'sessions']);
             Route::delete('account/sessions', [AccountController::class, 'endOtherSessions'])->middleware('throttle:5,1');
             Route::get('account/export', [AccountController::class, 'export'])->middleware('throttle:5,1');
+            Route::get('account/devices', [\App\Http\Controllers\Api\MobileTokenController::class, 'index']);
+            Route::delete('account/devices/{id}', [\App\Http\Controllers\Api\MobileTokenController::class, 'revoke'])->whereNumber('id');
         });
     });
 
@@ -161,6 +166,12 @@ Route::prefix('api')->group(function () {
         Route::put('digest', [\App\Http\Controllers\Api\CommunityController::class, 'digest'])->middleware('throttle:10,1');
         Route::post('pro/checkout', [\App\Http\Controllers\Api\CommunityController::class, 'proCheckout'])->middleware('throttle:5,10');
         Route::post('pro/manage', [\App\Http\Controllers\Api\CommunityController::class, 'proManage'])->middleware('throttle:10,10');
+        Route::get('courses', [\App\Http\Controllers\Api\LearningController::class, 'courses']);
+        Route::get('courses/{id}', [\App\Http\Controllers\Api\LearningController::class, 'course'])->whereNumber('id');
+        Route::post('lessons/{lesson}/complete', [\App\Http\Controllers\Api\LearningController::class, 'complete'])->whereNumber('lesson')->middleware('throttle:60,1');
+        Route::get('events', [\App\Http\Controllers\Api\LearningController::class, 'events']);
+        Route::post('events/{id}/rsvp', [\App\Http\Controllers\Api\LearningController::class, 'rsvp'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::get('events/{id}/ics', [\App\Http\Controllers\Api\LearningController::class, 'ics'])->whereNumber('id');
     });
 
     // Clients: only their own requests, payments and messages, once their email is confirmed.
@@ -188,6 +199,8 @@ Route::prefix('api')->group(function () {
         Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
         Route::get('requests/{deal}/results-report', [PortalController::class, 'resultsReport'])->whereNumber('deal');
         Route::post('requests/{deal}/intake', [PortalController::class, 'saveIntake'])->whereNumber('deal')->middleware('throttle:10,1');
+        Route::post('requests/{deal}/onboarding/{key}', [PortalController::class, 'tickOnboarding'])->whereNumber('deal')->where('key', '[a-z0-9_]{1,40}')->middleware('throttle:30,1');
+        Route::post('requests/{deal}/rights/{right}/extend', [PortalController::class, 'extendRight'])->whereNumber(['deal', 'right'])->middleware('throttle:10,10');
         Route::get('requests/{deal}/compliance', [PortalController::class, 'compliance'])->whereNumber('deal');
         Route::get('requests/{deal}/compliance/report', [PortalController::class, 'complianceReport'])->whereNumber('deal');
         Route::get('requests/{deal}/dpa', [PortalController::class, 'dpa'])->whereNumber('deal');
@@ -231,6 +244,19 @@ Route::prefix('api')->group(function () {
         Route::post('team/thumbnails/simulate', [TeamController::class, 'simulateThumbnail']);
         Route::post('team/qa/toggle', [TeamController::class, 'toggleQaItem']);
         Route::get('team/payouts', [TeamController::class, 'payouts']);
+        Route::get('team/brief-templates', [\App\Http\Controllers\Api\TeamWorkController::class, 'briefTemplates']);
+        Route::post('team/tasks/{id}/brief/apply', [\App\Http\Controllers\Api\TeamWorkController::class, 'applyBrief'])->whereNumber('id');
+        Route::put('team/tasks/{id}/brief', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveBrief'])->whereNumber('id');
+        Route::get('team/tasks/{id}/time', [\App\Http\Controllers\Api\TeamWorkController::class, 'time'])->whereNumber('id');
+        Route::post('team/tasks/{id}/timer', [\App\Http\Controllers\Api\TeamWorkController::class, 'timer'])->whereNumber('id');
+        Route::post('team/tasks/{id}/time', [\App\Http\Controllers\Api\TeamWorkController::class, 'addTime'])->whereNumber('id');
+        Route::get('team/tasks/{id}/files', [\App\Http\Controllers\Api\TeamWorkController::class, 'files'])->whereNumber('id');
+        Route::post('team/tasks/{id}/files', [\App\Http\Controllers\Api\TeamWorkController::class, 'upload'])->whereNumber('id')->middleware('throttle:30,10');
+        Route::get('team/tasks/{id}/files/{file}/stream', [\App\Http\Controllers\Api\TeamWorkController::class, 'stream'])->whereNumber(['id', 'file']);
+        Route::get('team/tasks/{id}/notes', [\App\Http\Controllers\Api\TeamWorkController::class, 'notes'])->whereNumber('id');
+        Route::post('team/tasks/{id}/notes', [\App\Http\Controllers\Api\TeamWorkController::class, 'addNote'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('team/tasks/{id}/notes/{note}/resolve', [\App\Http\Controllers\Api\TeamWorkController::class, 'resolveNote'])->whereNumber(['id', 'note']);
+        Route::post('team/tasks/{id}/send-back', [\App\Http\Controllers\Api\TeamWorkController::class, 'sendBack'])->whereNumber('id');
         // Hers alone: money and who is on the team.
         Route::middleware('ability:studio.private')->group(function () {
             Route::post('team/tasks/{id}/approve-payout', [TeamController::class, 'approvePayout'])->whereNumber('id');
@@ -238,6 +264,9 @@ Route::prefix('api')->group(function () {
             Route::post('team/staff', [TeamController::class, 'inviteStaff'])->middleware('throttle:20,60');
             Route::delete('team/invites/{id}', [TeamController::class, 'withdrawInvite'])->whereNumber('id');
             Route::delete('team/staff/{id}', [TeamController::class, 'removeStaff'])->whereNumber('id');
+            Route::put('team/brief-templates', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveBriefTemplate']);
+            Route::get('team/rates', [\App\Http\Controllers\Api\TeamWorkController::class, 'rates']);
+            Route::put('team/rates/{user}', [\App\Http\Controllers\Api\TeamWorkController::class, 'saveRate'])->whereNumber('user');
         });
     });
 
@@ -263,6 +292,16 @@ Route::prefix('api')->group(function () {
         Route::get('deals/{deal}/roi', [ClientsController::class, 'roi'])->whereNumber('deal');
         Route::delete('deals/{deal}/share-links', [ClientsController::class, 'revokeLinks']);
         Route::get('security/audit', [ClientsController::class, 'audit']);
+        // Getting paid and keeping work moving: terms per deal, usage rights, defaults, onboarding.
+        Route::get('deals/{deal}/terms', [\App\Http\Controllers\Api\DealTermsController::class, 'show'])->whereNumber('deal');
+        Route::put('deals/{deal}/terms', [\App\Http\Controllers\Api\DealTermsController::class, 'update'])->whereNumber('deal');
+        Route::post('deals/{deal}/rights', [\App\Http\Controllers\Api\DealTermsController::class, 'addRight'])->whereNumber('deal');
+        Route::patch('deals/{deal}/rights/{right}', [\App\Http\Controllers\Api\DealTermsController::class, 'updateRight'])->whereNumber(['deal', 'right']);
+        Route::delete('deals/{deal}/rights/{right}', [\App\Http\Controllers\Api\DealTermsController::class, 'deleteRight'])->whereNumber(['deal', 'right']);
+        Route::get('clients/terms', [\App\Http\Controllers\Api\DealTermsController::class, 'defaults']);
+        Route::put('clients/terms', [\App\Http\Controllers\Api\DealTermsController::class, 'saveDefaults']);
+        Route::get('clients/onboarding', [\App\Http\Controllers\Api\DealTermsController::class, 'onboardingSteps']);
+        Route::put('clients/onboarding', [\App\Http\Controllers\Api\DealTermsController::class, 'saveOnboardingSteps']);
         Route::get('clients/intake', [ClientsController::class, 'intakeQuestions']);
         Route::put('clients/intake', [ClientsController::class, 'saveIntakeQuestions']);
         Route::post('deals/{deal}/messages', [ClientsController::class, 'sendMessage']);
@@ -745,6 +784,12 @@ Route::prefix('api')->group(function () {
         Route::post('community/admin/members/{user}/to-crm', [\App\Http\Controllers\Api\CommunityController::class, 'adminToCrm'])->whereNumber('user');
         // Everything waiting on her, across clients, team, community and CRM.
         Route::get('needs-you', \App\Http\Controllers\Api\NeedsYouController::class);
+        Route::get('needs-you/weekly', fn () => response()->json(['data' => $d = \App\Domains\Admin\WeeklyDigest::build(), 'text' => \App\Domains\Admin\WeeklyDigest::text($d), 'on' => \App\Models\Setting::get('weekly_digest', '1') !== '0']));
+        Route::put('needs-you/weekly', function (\Illuminate\Http\Request $r) {
+            \App\Models\Setting::put('weekly_digest', $r->validate(['on' => 'required|boolean'])['on'] ? '1' : '0');
+
+            return response()->json(['on' => \App\Models\Setting::get('weekly_digest', '1') !== '0']);
+        });
         // CRM: contacts, stages, follow-ups and a timeline per person.
         Route::get('crm', [\App\Http\Controllers\Api\CrmController::class, 'index']);
         Route::post('crm', [\App\Http\Controllers\Api\CrmController::class, 'store']);
@@ -760,6 +805,18 @@ Route::prefix('api')->group(function () {
         Route::put('portal-brand', [\App\Http\Controllers\Api\PortalBrandController::class, 'update']);
         Route::post('portal-brand/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'uploadLogo']);
         Route::delete('portal-brand/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'deleteLogo']);
+        // Courses and live events (hers).
+        Route::get('community/admin/courses', [\App\Http\Controllers\Api\LearningController::class, 'adminCourses']);
+        Route::post('community/admin/courses', [\App\Http\Controllers\Api\LearningController::class, 'saveCourse']);
+        Route::patch('community/admin/courses/{id}', [\App\Http\Controllers\Api\LearningController::class, 'saveCourse'])->whereNumber('id');
+        Route::delete('community/admin/courses/{id}', [\App\Http\Controllers\Api\LearningController::class, 'deleteCourse'])->whereNumber('id');
+        Route::post('community/admin/courses/{course}/lessons', [\App\Http\Controllers\Api\LearningController::class, 'saveLesson'])->whereNumber('course');
+        Route::patch('community/admin/lessons/{id}', [\App\Http\Controllers\Api\LearningController::class, 'updateLesson'])->whereNumber('id');
+        Route::delete('community/admin/lessons/{id}', [\App\Http\Controllers\Api\LearningController::class, 'deleteLesson'])->whereNumber('id');
+        Route::get('community/admin/events', [\App\Http\Controllers\Api\LearningController::class, 'adminEvents']);
+        Route::post('community/admin/events', [\App\Http\Controllers\Api\LearningController::class, 'saveEvent']);
+        Route::patch('community/admin/events/{id}', [\App\Http\Controllers\Api\LearningController::class, 'saveEvent'])->whereNumber('id');
+        Route::delete('community/admin/events/{id}', [\App\Http\Controllers\Api\LearningController::class, 'deleteEvent'])->whereNumber('id');
         // @@ROLE-EXPANSION-ROUTES@@
     });
 });

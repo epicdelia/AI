@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             \App\Http\Middleware\EnsureSessionDriverAvailable::class,
         ]);
+        // The native app signs in with a bearer token (MobileTokenController).
+        $middleware->web(append: [
+            \App\Http\Middleware\AuthenticateMobileToken::class,
+        ]);
         // Security headers everywhere, and a Content Security Policy on HTML pages.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         // FORCE_HTTPS=true (public server): plain http is redirected before anything else runs.
@@ -41,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'bots' => \App\Http\Middleware\BlockBots::class,
             'fresh-password' => \App\Http\Middleware\EnsureFreshPassword::class,
         ]);
+        $middleware->prependToPriorityList(\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class, \App\Http\Middleware\AuthenticateMobileToken::class);
         $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureAbility::class);
         $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureStudioPrivate::class);
         $middleware->prependToPriorityList(\App\Http\Middleware\EnsureAbility::class, \App\Http\Middleware\EnsureTwoFactor::class);

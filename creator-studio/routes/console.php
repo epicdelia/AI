@@ -56,6 +56,20 @@ $track = function ($command, string $name, callable $work): int {
     }
 };
 
+Artisan::command('studio:client-reminders', function () use ($track) {
+    return $track($this, 'client-reminders', fn () => sprintf('Reminders sent: %d review(s), %d overdue invoice(s), %d rights ending.',
+        \App\Domains\Clients\ReviewAndOnboarding::remindReviews(), \App\Domains\Deals\Billing::remindOverdue(), \App\Domains\Deals\Rights::remindEnding()));
+})->purpose('Remind clients about reviews due, overdue invoices and usage rights ending');
+
+Artisan::command('studio:community-engage', function () use ($track) {
+    return $track($this, 'community-engage', fn () => sprintf('Event reminders: %d · win-back emails: %d.',
+        \App\Http\Controllers\Api\LearningController::remindEvents(), now()->hour === 10 ? \App\Domains\Community\Community::sendWinbacks() : 0));
+})->purpose('Remind RSVPs before live events; once a day, email members who went quiet');
+
+Artisan::command('studio:weekly-digest', function () use ($track) {
+    return $track($this, 'weekly-digest', fn () => 'Weekly summary sent to '.\App\Domains\Admin\WeeklyDigest::send().' admin(s).');
+})->purpose('Email her a summary of the week: money, clients, community, team');
+
 Artisan::command('studio:community-digest', function () use ($track) {
     return $track($this, 'community-digest', fn () => 'Community digest sent to '.\App\Domains\Community\Community::sendDigests().' member(s).');
 })->purpose('Email members what is new in the Community Hub this week');
@@ -325,6 +339,9 @@ Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->w
 Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:workflows')->everyMinute()->when(fn () => $enabled() && rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:youtube')->everyMinute()->when(fn () => $enabled() && rescue(fn () => \App\Domains\YouTube\VideoUpload::whereIn('status', ['queued', 'uploading'])->exists() || \App\Domains\YouTube\TitleTest::where('status', 'running')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:client-reminders')->dailyAt('09:00')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:community-engage')->everyFifteenMinutes()->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:weekly-digest')->weeklyOn(1, '07:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:community-digest')->weeklyOn(4, '09:00')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:team-reminders')->dailyAt('08:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

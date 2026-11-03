@@ -62,6 +62,8 @@ fun App() {
     val haptics = rememberPlatformHapticEngine()
 
     val api = remember { StudioApiClient() }
+    // The real server, signed in with a bearer token (Needs You, My Tasks, My Requests, Community).
+    val liveApi = remember { com.techunicorn.studio.data.live.LiveApi() }
     val aiClient = remember { StudioAiClient() }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -339,6 +341,10 @@ fun App() {
                             },
                             onOpenDealRoom = { isDealRoomActive = true }
                         )
+                        StudioDestination.NeedsYou -> com.techunicorn.studio.ui.screens.live.NeedsYouLiveScreen(liveApi)
+                        StudioDestination.MyTasks -> com.techunicorn.studio.ui.screens.live.MyTasksLiveScreen(liveApi)
+                        StudioDestination.MyRequests -> com.techunicorn.studio.ui.screens.live.MyRequestsLiveScreen(liveApi)
+                        StudioDestination.Community -> com.techunicorn.studio.ui.screens.live.CommunityLiveScreen(liveApi)
                         StudioDestination.Toolkit -> ToolkitScreen(templates = toolkitTemplates)
                         StudioDestination.Chat -> ProducerChatScreen()
                         StudioDestination.Love -> LoveScreen(letters = loveLetters, memoryJar = memoryJar)

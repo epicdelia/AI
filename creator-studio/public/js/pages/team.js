@@ -3,6 +3,7 @@
 // only she sets, approves and pays payouts and invites or removes people.
 import { h, api, clear, field, toast, modal, confirmDialog, loading, emptyState, copyText, fmtDay } from '../core.js';
 import { icon } from '../icons.js';
+import { taskDetail, briefTemplatesDialog, ratesDialog } from '../team-task.js';
 
 const STAGES = [
   ['idea', 'Idea'], ['script', 'Script & research'], ['filming', 'Filming & B-roll'], ['editing', 'Editing'],
@@ -53,7 +54,9 @@ export async function render(view) {
         h('div', { class: 'team-header-actions' },
           h('button', { type: 'button', class: 'btn secondary', onclick: repurposeModal }, icon('repeat', 14), ' Repurpose a video'),
           h('button', { type: 'button', class: 'btn primary', onclick: () => taskModal() }, icon('plus', 14), ' New task'),
-          me.admin ? h('button', { type: 'button', class: 'btn secondary', onclick: inviteModal }, icon('user', 14), ' Invite') : null)),
+          me.admin ? h('button', { type: 'button', class: 'btn secondary', onclick: inviteModal }, icon('user', 14), ' Invite') : null,
+          me.admin ? h('button', { type: 'button', class: 'btn ghost', onclick: briefTemplatesDialog }, icon('file-text', 14), ' Brief templates') : null,
+          me.admin ? h('button', { type: 'button', class: 'btn ghost', onclick: ratesDialog }, icon('credit-card', 14), ' Rates') : null)),
       h('div', { class: 'team-metrics-grid' },
         metric('Open tasks', metrics.total_tasks, `${metrics.in_progress} in production`),
         metric('Overdue', metrics.overdue, metrics.overdue ? 'Past their due date' : 'All on time', metrics.overdue ? 'warn' : ''),
@@ -80,12 +83,14 @@ export async function render(view) {
       h('h4', { class: 'team-task-title' }, t.title),
       t.script_title ? h('p', { class: 'small' }, h('a', { href: `/scripts/${t.script_id}` }, icon('doc', 11), ` ${t.script_title}`)) : null,
       t.notes ? h('p', { class: 'team-task-notes', style: { whiteSpace: 'pre-wrap' } }, t.notes) : null,
+      t.minutes_logged || t.timer_started_at ? h('p', { class: 'small muted' }, icon('clock', 11), ` ${Math.floor(t.minutes_logged / 60)}h ${t.minutes_logged % 60}m${t.timer_started_at ? ' · timer running' : ''}${t.hourly ? ' · hourly' : ''}`) : null,
       h('div', { class: 'team-task-foot' },
         h('div', { class: 'team-task-assignee' }, h('span', { class: 'team-task-avatar' }, (t.assignee_name[0] || 'U').toUpperCase()), h('span', { class: 'team-task-name' }, t.assignee_name)),
         t.due_on ? h('div', { class: 'team-task-date' }, icon('clock', 12), ' ', fmtDay(t.due_on)) : null),
       h('div', { class: 'team-task-actions row' },
         !t.completed && t.stage !== 'published' ? h('button', { type: 'button', class: 'btn sm ghost', onclick: () => patch(t, { stage: nextStage(t.stage) }) }, `→ ${STAGE_LABEL[nextStage(t.stage)]}`) : null,
         !t.completed ? h('button', { type: 'button', class: 'btn sm ghost', onclick: () => patch(t, { completed: true }) }, icon('check', 12), ' Done') : h('span', { class: 'small muted' }, icon('check', 12), ' Done'),
+        h('button', { type: 'button', class: 'btn sm ghost', onclick: () => taskDetail(t, data.me, load) }, 'Open'),
         h('button', { type: 'button', class: 'btn sm ghost', onclick: () => taskModal(t) }, 'Edit')));
   }
 
@@ -207,11 +212,12 @@ export async function render(view) {
     const payout = h('input', { type: 'number', class: 'input', min: 0, step: '0.01', value: t?.payout_amount ?? '' });
     const currency = h('select', { class: 'input' }, ['USD', 'EUR', 'GBP'].map((c) => h('option', { value: c, selected: (t?.payout_currency || 'USD') === c }, c)));
     const notes = h('textarea', { class: 'input', rows: 3, maxlength: 2000 }, t?.notes || '');
+    const hourly = h('input', { type: 'checkbox', checked: !!t?.hourly });
     await modal(t ? 'Edit task' : 'New task', (close) => h('form', {
       onsubmit: async (e) => {
         e.preventDefault();
         const body = { title: title.value, stage: stage.value, assignee_id: assignee.value ? Number(assignee.value) : null, role_label: role.value || null, due_on: due.value || null, notes: notes.value || null };
-        if (data.me.admin) { body.payout_amount = Number(payout.value || 0); body.payout_currency = currency.value; }
+        if (data.me.admin) { body.payout_amount = Number(payout.value || 0); body.payout_currency = currency.value; body.hourly = hourly.checked; }
         try {
           if (t) await api('PATCH', `team/tasks/${t.id}`, body); else await api('POST', 'team/tasks', body);
           toast(t ? 'Saved.' : 'Task added; they got an email.');
@@ -224,6 +230,7 @@ export async function render(view) {
     h('div', { class: 'installer-form-row' }, field('Stage', stage), field('Due', due)),
     h('div', { class: 'installer-form-row' }, field('Assignee', assignee), field('Role', role)),
     data.me.admin ? h('div', { class: 'installer-form-row' }, field('Payout', payout, 'Paid once the task is done and you approve it'), field('Currency', currency)) : null,
+    data.me.admin ? h('label', { class: 'row small', style: { gap: '6px' } }, hourly, 'Billed hourly (hours × their rate, set under Rates)') : null,
     field('Notes', notes),
     h('div', { class: 'modal-actions' },
       t ? h('button', { type: 'button', class: 'btn ghost', onclick: async () => { if (await confirmDialog('Delete this task?')) { try { await api('DELETE', `team/tasks/${t.id}`); close(); load(); } catch (err) { toast(err.message, 'err'); } } } }, 'Delete') : null,

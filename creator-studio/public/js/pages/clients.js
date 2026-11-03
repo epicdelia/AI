@@ -3,6 +3,7 @@
 import { h, api, busy, toast, pageHead, emptyState, clear, link, navigate, confirmDialog, timeAgo, modal, field } from '../core.js';
 import { icon } from '../icons.js';
 import { reviewPlayer } from '../review-player.js';
+import { termsDefaultsDialog, onboardingEditor } from '../deal-terms.js';
 
 const money = (n, c = 'USD') => new Intl.NumberFormat(undefined, { style: 'currency', currency: c || 'USD', maximumFractionDigits: 0 }).format(n || 0);
 
@@ -10,7 +11,9 @@ export async function renderClients(view) {
   const { clients, unread_total: unread } = await api('GET', 'clients');
   view.append(
     pageHead('Clients', 'People who signed up to follow their requests. Invite a contact from any deal (Brand deals → a deal → Invite to dashboard).',
-      h('button', { class: 'btn', type: 'button', onclick: intakeEditor }, icon('file-text', 14), 'Intake questions')),
+      h('button', { class: 'btn', type: 'button', onclick: intakeEditor }, icon('file-text', 14), 'Intake questions'),
+      h('button', { class: 'btn', type: 'button', onclick: onboardingEditor }, icon('check', 14), 'Onboarding'),
+      h('button', { class: 'btn', type: 'button', onclick: termsDefaultsDialog }, icon('credit-card', 14), 'Payment terms')),
     unread ? h('div', { class: 'card callout' }, icon('chat', 15), ` ${unread} unread message${unread === 1 ? '' : 's'} from clients.`) : null,
     clients.length ? h('div', { class: 'card' }, h('table', { class: 'table' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Client'), h('th', {}, 'Requests'), h('th', {}, 'Messages'), h('th', {}, 'Due'), h('th', {}, 'Last sign-in'), h('th', {}, 'Status'))),

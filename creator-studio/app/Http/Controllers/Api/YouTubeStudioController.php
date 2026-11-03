@@ -37,7 +37,8 @@ class YouTubeStudioController extends Controller
         return response()->json([
             'connected' => $connected,
             'uploads' => VideoUpload::latest()->limit(20)->get(),
-            'tests' => TitleTest::latest()->limit(20)->get(),
+            // Each test with its video's real day-7 / day-28 views against her usual (TestImpact).
+            'tests' => TitleTest::latest()->limit(20)->get()->map(fn ($t) => $t->toArray() + ['impact' => \App\Domains\YouTube\TestImpact::forVideo((string)$t->video_id)]),
             'ab_tests' => VideoAbTest::latest()->limit(20)->get(),
             'checks' => VideoCheck::with(['videoUpload', 'deal'])->latest()->limit(20)->get(),
             'thumbnails' => MediaFile::whereIn('kind', ['thumbnail', 'mockup'])->latest()->limit(24)->get(['id', 'title', 'kind', 'mime', 'created_at']),

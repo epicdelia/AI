@@ -76,12 +76,15 @@ class TeamController extends Controller
         $data = $this->validated($request, true);
         $me = $request->user();
         if (!$me->isAdmin()) {
-            unset($data['payout_amount'], $data['payout_currency']);
+            unset($data['payout_amount'], $data['payout_currency'], $data['hourly']);
         }
         $task = TeamTask::create($data + [
             'created_by' => $me->id,
             'completed_at' => ($data['stage'] ?? 'idea') === 'published' ? now() : null,
         ]);
+        if (!$task->brief && ($brief = TeamWorkController::renderBrief($task->load(['script', 'assignee'])))) {
+            $task->update(['brief' => $brief]);
+        }
         TeamTasks::notifyAssigned($task->load('assignee'), $me);
 
         return response()->json([
@@ -97,7 +100,7 @@ class TeamController extends Controller
         $me = $request->user();
         $data = $this->validated($request, false);
         if (!$me->isAdmin()) {
-            unset($data['payout_amount'], $data['payout_currency']);
+            unset($data['payout_amount'], $data['payout_currency'], $data['hourly']);
         }
         $before = $task->assignee_id;
 
@@ -113,6 +116,7 @@ class TeamController extends Controller
             $task->completed_at = now();
         }
         if ($task->completed_at) {
+            TeamWorkController::settleHourly($task);
             TeamTasks::completed($task);
         }
         $task->save();
@@ -170,6 +174,9 @@ class TeamController extends Controller
                 'notes' => $notes ?: null,
                 'created_by' => $me->id,
             ]);
+            if ($brief = TeamWorkController::renderBrief($task->load(['script', 'assignee']), $data['video_url'] ?? null)) {
+                $task->update(['brief' => $brief]);
+            }
             TeamTasks::notifyAssigned($task->load('assignee'), $me);
             $created[] = $this->present($task, $me);
         }
@@ -446,6 +453,8 @@ class TeamController extends Controller
             'payout_amount' => 'nullable|numeric|min:0|max:100000',
             'payout_currency' => 'nullable|string|size:3',
             'completed' => 'sometimes|boolean',
+            'hourly' => 'sometimes|boolean',
+            'brief' => 'nullable|string|max:20000',
         ]);
         if (array_key_exists('role_specialty', $data)) {
             $data['role_label'] ??= $data['role_specialty'];

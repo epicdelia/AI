@@ -128,3 +128,20 @@ cd c:\AI-master\mobile
 # Install on connected device or emulator via adb:
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install composeApp\build\outputs\apk\debug\composeApp-debug.apk
 ```
+
+---
+
+## Live Studio Data (real server, per role)
+
+Four screens run on the real Creator Studio API instead of sample data. Each one asks you to sign in first, with the same email and password as the website (plus your authenticator code if two-factor sign-in is on):
+
+| Screen | Who | What |
+|---|---|---|
+| **Needs You** | Studio owner | Everything waiting on you: client messages, late reviews, overdue invoices, usage rights ending, payouts to approve, community questions, follow-ups |
+| **My Tasks** | Team | Your open production tasks with brief, due date, start/stop timer, +15 min, Done |
+| **My Requests** | Clients | Approve work or ask for changes (with its review deadline), the onboarding checklist, payment terms and online payment (deposit/balance), usage rights with "Extend" |
+| **Community** | Members | Live sessions (RSVP, join, replays) and courses (lessons, progress) |
+
+- **Server address:** asked for on the sign-in screen. The default is `http://10.0.2.2:8000` (Android emulator → your computer) or `http://localhost:8000` (desktop preview). On a real phone, use your server's https address.
+- **Sign-in:** the app calls `POST /api/auth/mobile-token` and gets a 90-day token, stored on the device (Android SharedPreferences, or Java Preferences on desktop). Only the token's SHA-256 hash is kept on the server. You can see and revoke devices with `GET/DELETE /api/account/devices`.
+- **Code:** `data/live/` (API + models + token storage) and `ui/screens/live/LiveScreens.kt`.

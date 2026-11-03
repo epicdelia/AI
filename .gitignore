@@ -16,3 +16,6 @@ mobile/local.properties
 YouTube/
 hiring/trials/
 
+
+# Nexly repo (separate git clone)
+Nexly/

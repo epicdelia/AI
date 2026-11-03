@@ -16,6 +16,7 @@ import { versionsDialog } from '../versions.js';
 import { feedPreview } from '../preview.js';
 import { skLines, skList } from '../skeleton.js';
 import { aiChecksPane } from '../ai-checks.js';
+import { merge3 } from '../merge3.js';
 
 const STATUSES = ['draft', 'reviewed', 'filmed', 'published'];
 
@@ -98,24 +99,81 @@ export async function renderScript(view, id) {
   const script = data.script;
   script.body = script.body || '';
 
-  // ---- autosave ----
+  // ---- autosave (merged with whoever else is editing: see LiveEditing / Merge3) ----
   const pending = {};
   const saveState = h('span', { class: 'save-state muted' }, 'Saved');
+  const presence = h('span', { class: 'presence-chips', 'aria-live': 'polite' });
+  let baseRev = script.revision ?? 0;
+  let saving = false;
+  const syncRev = (s) => { if (s && s.revision != null) baseRev = s.revision; };
+  // Replace the editor text keeping the cursor on the same line.
+  function setText(text) {
+    if (textarea.value === text) return;
+    const line = textarea.value.slice(0, textarea.selectionStart).split('\n').length - 1;
+    const col = textarea.selectionStart - textarea.value.lastIndexOf('\n', textarea.selectionStart - 1) - 1;
+    const top = textarea.scrollTop;
+    const focused = document.activeElement === textarea;
+    textarea.value = text;
+    const lines = text.split('\n');
+    const l = Math.min(line, lines.length - 1);
+    const at = lines.slice(0, l).reduce((n, x) => n + x.length + 1, 0) + Math.min(col, (lines[l] || '').length);
+    if (focused) textarea.setSelectionRange(at, at);
+    textarea.scrollTop = top;
+    drawStats();
+    lintSoon();
+  }
   async function save() {
     const fields = { ...pending };
-    if (!Object.keys(fields).length) return;
+    if (!Object.keys(fields).length || saving) return;
     for (const k of Object.keys(fields)) delete pending[k];
+    const sentBody = fields.body;
+    if (sentBody !== undefined) fields.base_revision = baseRev;
+    saving = true;
     saveState.textContent = 'Saving…';
     try {
       const res = await api('PATCH', `scripts/${script.id}`, fields);
       Object.assign(script, res.script, { body: res.script.body || '' });
-      saveState.textContent = `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      syncRev(res.script);
+      if (sentBody !== undefined && res.merged) {
+        if (textarea.value === sentBody) setText(script.body);
+        else {
+          // Typed more while the save was merging: fold those edits into the merged text.
+          const local = merge3(sentBody, textarea.value, script.body).text;
+          setText(local);
+          pending.body = local;
+          saveSoon();
+        }
+      }
+      if (res.conflicts) toast(res.message, 'warn', 8000);
+      saveState.textContent = res.merged ? 'Saved (merged with a teammate’s edits)' : `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     } catch (err) {
+      delete fields.base_revision;
       Object.assign(pending, fields);
       saveState.textContent = 'Not saved';
       toast(err.message, 'err');
+    } finally {
+      saving = false;
+      if (Object.keys(pending).length) saveSoon();
     }
   }
+
+  // Who else is here, and their saved changes when you have nothing unsaved.
+  async function poll() {
+    if (!document.body.contains(textarea)) return;
+    const line = textarea.value.slice(0, textarea.selectionStart).split('\n').length;
+    try {
+      const r = await api('POST', `scripts/${script.id}/live`, { revision: baseRev, line });
+      clear(presence).append(...r.others.map((o) => h('span', { class: 'pill sm picked', title: o.line ? `On line ${o.line}` : 'Here' }, icon('user', 11), ` ${o.name}${o.line ? ` · line ${o.line}` : ''}`)));
+      if (r.changed && pending.body === undefined && !saving && !textarea.readOnly) {
+        script.body = r.body || '';
+        setText(script.body);
+        baseRev = r.revision;
+        saveState.textContent = 'Updated with a teammate’s changes';
+      }
+    } catch { /* offline: try again next time */ }
+  }
+  const pollTimer = setInterval(poll, 4000);
+  setTimeout(poll, 300);
   const saveSoon = debounce(save, 1200);
   function change(fieldName, value) {
     script[fieldName] = value;
@@ -662,6 +720,7 @@ export async function renderScript(view, id) {
       beforeOpen: () => saveSoon.flush(),
       onRestored: (r) => {
         script.body = r.script.body || '';
+        syncRev(r.script);
         textarea.value = script.body;
         drawStats();
         drawLint(r.findings, r.has_hard);
@@ -745,7 +804,7 @@ export async function renderScript(view, id) {
     h('div', { class: 'editor-head' },
       link('/scripts', { class: 'btn ghost sm' }, icon('back', 15), 'Scripts'),
       h('div', { class: 'editor-title' }, titleInput, h('h1', { class: 'sr-only' }, script.title)),
-      h('div', { class: 'row' }, saveState, statusSelect,
+      h('div', { class: 'row' }, presence, saveState, statusSelect,
         exportMenu(`scripts/${script.id}?parts=outline,body`, { getPrint: () => ({ title: script.title, markdown: script.body }) }))),
     script.idea ? h('p', { class: 'muted small', style: { margin: '-8px 0 14px' } }, 'From idea: ', h('strong', {}, script.idea.title), script.idea.premise ? ` · ${script.idea.premise}` : '') : null,
     script.outline?.chapters?.length ? h('details', { class: 'plan-box' },
@@ -780,6 +839,7 @@ export async function renderScript(view, id) {
       },
     }).then((r) => {
       script.body = r.script.body || '';
+      syncRev(r.script);
       textarea.value = script.body;
       drawStats();
       drawLint(r.findings, r.findings.some((f) => f.severity === 'HARD'));
@@ -812,6 +872,7 @@ export async function renderScript(view, id) {
     const s = e.detail?.script;
     if (!s || s.id !== script.id) return;
     script.body = s.body || '';
+    syncRev(s);
     script.title = s.title;
     textarea.value = script.body;
     titleInput.value = script.title;
@@ -837,6 +898,8 @@ export async function renderScript(view, id) {
   window.addEventListener('beforeunload', onUnload);
 
   return () => {
+    clearInterval(pollTimer);
+    api('POST', `scripts/${script.id}/live`, { leave: true }).catch(() => {});
     draftAbort?.abort();
     window.removeEventListener('copilot:before-apply', onBeforeApply);
     window.removeEventListener('copilot:applied', onApplied);

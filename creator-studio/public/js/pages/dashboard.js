@@ -18,6 +18,8 @@ import { marqueeCard } from '../marquee-editor.js';
 import { siteHeroCard } from '../hero-editor.js';
 import { revenueCard } from '../revenue.js';
 import { followUpsCard } from '../deal-tools.js';
+import { needsYouCard } from './admin.js';
+import { openUserKeysModal } from '../user-keys.js';
 
 const SETUP_LINKS = {
   channel_id: '/settings',
@@ -248,6 +250,66 @@ function listCard(title, to, items, renderItem, empty) {
     items.length ? h('ul', { class: 'item-list' }, items.map(renderItem)) : h('p', { class: 'muted' }, empty));
 }
 
+function aiHubCard(hub, onRefresh) {
+  if (!hub) return null;
+  const isByok = hub.user_keys_configured > 0;
+  return h('div', { class: 'card ai-hub-card', style: { border: '1px solid var(--border-accent, #9333ea55)', position: 'relative', overflow: 'hidden' } },
+    h('div', { class: 'card-header', style: { flexWrap: 'wrap', gap: '10px' } },
+      h('div', {},
+        h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+          h('h2', { style: { margin: 0 } }, 'AI Multi-Model Engine Command Center'),
+          h('span', { class: 'pill tone-accent small' }, 'Gemini 4 Argon (Default)')),
+        h('p', { class: 'muted small', style: { margin: '4px 0 0' } },
+          `High-ROI creator orchestration · ${hub.user_keys_configured} of ${hub.total_supported_providers} personal keys active (BYOK) · Balance: ${Number(hub.credit_balance || 0).toFixed(2)} credits`)),
+      h('button', {
+        class: 'btn sm primary',
+        onclick: () => openUserKeysModal(onRefresh)
+      }, icon('key', 14), ' Manage My AI Keys')),
+    h('div', { class: 'grid grid-3', style: { gap: '10px', marginTop: '14px' } },
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '🎯 Viral Packaging Matrix'),
+          h('span', { class: 'pill tone-good small' }, 'Claude Fable 5.1')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, 'Triple-threat viral hook + Grok 4.6 contrarian title + GPT Image 2.5 mockup.'),
+        link('/scripts', { class: 'btn sm ghost-light' }, 'Package video', icon('arrow', 13))),
+
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '💼 Deal ROI & Rate Card'),
+          h('span', { class: 'pill tone-accent small' }, 'DeepSeek V4 Pro')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, 'Mathematical sponsorship rate benchmarks, contract audit & Sonnet 5.5 counter-pitch.'),
+        link('/deals', { class: 'btn sm ghost-light' }, 'Sponsor valuation', icon('arrow', 13))),
+
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '🎙️ Voice Rehearsal'),
+          h('span', { class: 'pill tone-warn small' }, 'ElevenLabs V4 Turbo')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, '150 WPM spoken cadence rehearsal; smooth awkward phrases before recording.'),
+        link('/prompter', { class: 'btn sm ghost-light' }, 'Open prompter', icon('arrow', 13))),
+
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '🎵 Studio Soundscapes'),
+          h('span', { class: 'pill tone-good small' }, 'Lyria 3.5')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, 'Custom background audio beds, mood stems, and intro stagers.'),
+        link('/flow', { class: 'btn sm ghost-light' }, 'Generate audio bed', icon('arrow', 13))),
+
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '⚡ Visual Code Cards'),
+          h('span', { class: 'pill tone-accent small' }, 'GPT 5.6 Cyber')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, 'Syntax-perfect terminal cards & developer graphic slides for tutorials.'),
+        link('/snippets', { class: 'btn sm ghost-light' }, 'Code studio', icon('arrow', 13))),
+
+      h('div', { class: 'card', style: { padding: '10px 12px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))' } },
+        h('div', { class: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+          h('strong', { class: 'small' }, '🔑 Personal AI Key Vault'),
+          isByok ? h('span', { class: 'pill tone-good small' }, 'BYOK Active') : h('span', { class: 'pill small' }, 'Managed Credits')),
+        h('p', { class: 'muted small clamp-2', style: { margin: '6px 0 8px' } }, 'Set your personal API keys for all 9 AI families to bypass studio credit limits.'),
+        h('button', { class: 'btn sm ghost-light', onclick: () => openUserKeysModal(onRefresh) }, 'Open key vault', icon('key', 13)))
+    ));
+}
+
 export async function renderDashboard(view) {
   const d = await api('GET', 'dashboard');
   const s = d.stats;
@@ -256,8 +318,10 @@ export async function renderDashboard(view) {
   if (love) loveExtras().then((x) => love.append(x));
   // Every block has an id so she can hide and reorder them (Customise).
   const blocks = [
+    { id: 'ai-hub', label: 'AI Multi-Model Engine Command Center', node: aiHubCard(d.ai_engine_hub, () => redraw()) },
     { id: 'launchpad', label: 'Studio launchpad', node: launchpadCard() },
     { id: 'hero', label: 'Week & greeting', node: heroCard(d) },
+    { id: 'needs-you', label: 'Needs you', node: d.revenue !== undefined ? needsYouCard() : null },
     { id: 'next', label: 'Next step', node: nextStepCard(d.next_step) },
     { id: 'agent-approvals', label: 'AI agent approvals', node: agentApprovalsCard(d.agent_approvals, () => redraw()) },
     { id: 'revenue', label: 'Revenue', node: revenueCard(d.revenue) },

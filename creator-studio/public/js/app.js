@@ -54,6 +54,7 @@ const page = {
   clients: () => import('./pages/clients.js'),
   community: () => import('./pages/community.js'),
   team: () => import('./pages/team.js'),
+  admin: () => import('./pages/admin.js'),
   installer: () => import('./pages/installer.js'),
   legal: () => import('./pages/legal.js'),
 };
@@ -73,6 +74,7 @@ const ROUTES = [
   // "/" is each role's home: her dashboard, a client's overview, or a follower's community hub.
   { path: /^\/$/, ability: 'any', render: (view) => (can(state.user, 'studio') ? lazy(page.dashboard, 'renderDashboard') : can(state.user, 'portal.requests') ? lazy(page.client, 'renderClientHome') : lazy(page.community, 'renderCommunityHub'))(view), nav: '/' },
   { path: /^\/community$/, ability: 'portal.community', render: lazy(page.community, 'renderCommunityHub'), nav: '/community' },
+  { path: /^\/community\/manage$/, ability: 'studio.private', render: lazy(page.community, 'renderCommunityAdmin'), nav: '/community/manage' },
   { path: /^\/requests$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequests'), nav: '/requests' },
   { path: /^\/requests\/new$/, ability: 'portal.requests', render: lazy(page.client, 'renderNewRequest'), nav: '/requests/new' },
   { path: /^\/requests\/(\d+)$/, ability: 'portal.requests', render: lazy(page.client, 'renderRequest'), nav: '/requests' },
@@ -98,7 +100,7 @@ const ROUTES = [
   { path: /^\/scripts\/(\d+)$/, render: lazy(page.scripts, 'renderScript'), nav: '/scripts' },
   { path: /^\/goals$/, render: lazy(page.goals, 'renderGoals'), nav: '/goals' },
   { path: /^\/flow$/, render: lazy(page.flow, 'renderFlow'), nav: '/flow' },
-  { path: /^\/settings$/, render: lazy(page.settings, 'renderSettings'), nav: '/settings' },
+  { path: /^\/settings$/, ability: 'studio.private', render: lazy(page.settings, 'renderSettings'), nav: '/settings' },
   { path: /^\/tools$/, render: lazy(page.tools, 'renderTools'), nav: '/tools' },
   { path: /^\/tools\/([\w-]+)$/, render: lazy(page.tools, 'renderTools'), nav: '/tools' },
   { path: /^\/library$/, render: lazy(page.library, 'renderLibrary'), nav: '/library' },
@@ -106,21 +108,24 @@ const ROUTES = [
   { path: /^\/chat\/(\d+)$/, render: lazy(page.chat, 'renderChat'), nav: '/chat' },
   { path: /^\/calendar$/, render: lazy(page.calendar, 'renderCalendar'), nav: '/calendar' },
   { path: /^\/analytics$/, render: lazy(page.analytics, 'renderAnalytics'), nav: '/analytics' },
-  { path: /^\/deals$/, render: lazy(page.deals, 'renderDeals'), nav: '/deals' },
-  { path: /^\/mediakit$/, render: lazy(page.mediakit, 'renderMediaKit'), nav: '/mediakit' },
+  { path: /^\/deals$/, ability: 'studio.private', render: lazy(page.deals, 'renderDeals'), nav: '/deals' },
+  { path: /^\/mediakit$/, ability: 'studio.private', render: lazy(page.mediakit, 'renderMediaKit'), nav: '/mediakit' },
   { path: /^\/snippets$/, render: lazy(page.snippets, 'renderSnippets'), nav: '/snippets' },
-  { path: /^\/website$/, render: lazy(page.website, 'renderWebsite'), nav: '/website' },
-  { path: /^\/landing$/, render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
+  { path: /^\/website$/, ability: 'studio.private', render: lazy(page.website, 'renderWebsite'), nav: '/website' },
+  { path: /^\/landing$/, ability: 'studio.private', render: (view) => renderLanding(view, { user: state.user, onAuthClick: () => navigate('/') }), nav: '/landing' },
+  { path: /^\/needs-you$/, ability: 'studio.private', render: lazy(page.admin, 'renderNeedsYou'), nav: '/needs-you' },
+  { path: /^\/crm$/, ability: 'studio.private', render: lazy(page.admin, 'renderCrm'), nav: '/crm' },
+  { path: /^\/portal-brand$/, ability: 'studio.private', render: lazy(page.admin, 'renderPortalBrand'), nav: '/portal-brand' },
   { path: /^\/team$/, ability: 'staff.team', render: (view) => page.team().then((m) => m.render(view)), nav: '/team' },
-  { path: /^\/connections$/, render: lazy(page.connections, 'renderConnections'), nav: '/connections' },
+  { path: /^\/connections$/, ability: 'studio.private', render: lazy(page.connections, 'renderConnections'), nav: '/connections' },
   { path: /^\/agents$/, render: lazy(page.agents, 'renderAgents'), nav: '/agents' },
   { path: /^\/agents\/(\d+)$/, render: lazy(page.agents, 'renderAgent'), nav: '/agents' },
   { path: /^\/inbox$/, render: lazy(page.inbox, 'renderInbox'), nav: '/inbox' },
-  { path: /^\/love$/, render: lazy(page.love, 'renderLove'), nav: '/love' },
+  { path: /^\/love$/, ability: 'studio.private', render: lazy(page.love, 'renderLove'), nav: '/love' },
   { path: /^\/youtube$/, render: lazy(page.ytstudio, 'renderYouTubeStudio'), nav: '/youtube' },
   { path: /^\/media$/, render: lazy(page.mediapage, 'renderMediaLibrary'), nav: '/media' },
-  { path: /^\/brand$/, render: lazy(page.brand, 'renderBrand'), nav: '/brand' },
-  { path: /^\/bio$/, render: lazy(page.bio, 'renderBio'), nav: '/bio' },
+  { path: /^\/brand$/, ability: 'studio.private', render: lazy(page.brand, 'renderBrand'), nav: '/brand' },
+  { path: /^\/bio$/, ability: 'studio.private', render: lazy(page.bio, 'renderBio'), nav: '/bio' },
   { path: /^\/workflows$/, render: lazy(page.workflows, 'renderWorkflows'), nav: '/workflows' },
   { path: /^\/workflows\/(\d+)$/, render: lazy(page.workflows, 'renderWorkflow'), nav: '/workflows' },
   { path: /^\/repurpose$/, render: lazy(page.social, 'renderRepurpose'), nav: '/repurpose' },
@@ -128,6 +133,8 @@ const ROUTES = [
   { path: /^\/posts\/(\d+)$/, render: lazy(page.social, 'renderPost'), nav: '' },                // set by the page
 ];
 
+/** The portal's name: her white-label brand for clients and members, else Creator Studio. */
+const appName = () => (!isStudio() && state.brand?.name) || 'Creator Studio';
 const allowed = (r) => r.ability === 'any' || can(state.user, r.ability);
 const isStudio = () => can(state.user, 'studio');
 const myNav = () => navFor(state.user);
@@ -204,9 +211,9 @@ function buildShell() {
     h('aside', { class: 'sidebar', id: 'sidebar' },
       h('div', { class: 'brand' },
         link('/', { class: 'brand-link', onclick: () => openDrawer(false), 'aria-label': 'Creator Studio Dashboard' },
-          brandMark(20),
+          state.brand?.logo_url ? h('img', { src: state.brand.logo_url, alt: '', class: 'brand-logo', style: { height: '24px', maxWidth: '40px', objectFit: 'contain' } }) : brandMark(20),
           h('div', { class: 'brand-text nav-label' },
-            h('span', { class: 'brand-title' }, 'Creator Studio'),
+            h('span', { class: 'brand-title' }, appName()),
             h('span', { class: 'brand-badge' }, isStudio() ? 'PRO' : 'CLIENT'))),
         h('div', { class: 'brand-actions' },
           isStudio() ? heartButton() : null,
@@ -465,7 +472,7 @@ async function route() {
     state.cleanup = cleanup;
     clear(content).append(view);
     const heading = view.querySelector('h1')?.textContent || '';
-    document.title = heading ? `${heading} · Creator Studio` : (view.querySelector('.wf-name')?.value ? `${view.querySelector('.wf-name').value} · Creator Studio` : 'Creator Studio');
+    document.title = heading ? `${heading} · ${appName()}` : (view.querySelector('.wf-name')?.value ? `${view.querySelector('.wf-name').value} · ${appName()}` : appName());
     pageRendered(heading);
   } catch (err) {
     console.error(err);
@@ -548,6 +555,8 @@ async function boot() {
       if (kit) { state.guestView = 'kit'; showKit(kit[1]); return; }
       const review = location.pathname.match(/^\/review\/([A-Za-z0-9]{20,64})$/);
       if (review) { state.guestView = 'review'; showPublic(renderReview, review[1], 'This review link isn’t active.'); return; }
+      const join = location.pathname.match(/^\/join-team\/([A-Za-z0-9]{40,64})$/);
+      if (join) { state.guestView = 'join'; showPublic((v, t) => page.team().then((m) => m.renderJoinTeam(v, t)), join[1], 'This invite link isn’t active. Ask for a new one.'); return; }
       const room = location.pathname.match(/^\/deal\/([A-Za-z0-9]{20,64})$/);
       if (room) { state.guestView = 'deal'; showPublic(renderDealRoom, room[1], 'This proposal link isn’t active.'); return; }
       if (location.pathname === '/privacy') { state.guestView = 'privacy'; showPublic(renderPrivacy, null, 'Privacy policy not available.'); return; }
@@ -585,6 +594,9 @@ async function enter(status) {
   }
   if (!isStudio()) {
     window.__studioName = user.name || '';
+    // Her white-label branding for clients and members (name, logo, accent).
+    state.brand = await page.admin().then((m) => m.applyPortalBrand()).catch(() => null);
+    window.__portalBrand = state.brand;
     await route();
     return;
   }

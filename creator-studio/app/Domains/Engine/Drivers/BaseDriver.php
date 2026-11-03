@@ -70,11 +70,15 @@ abstract class BaseDriver implements EngineDriver
      */
     protected function keys(array $options = []): array
     {
+        $user = ($options['user'] ?? null) instanceof \App\Models\User ? $options['user'] : auth()->user();
+
         $raw = ($options['api_key'] ?? null)
-            ?: (Setting::get('llm_api_key') ?: ($this->engine->canUseAssemblyKey() ? Setting::get('assemblyai_api_key') : null));
+            ?: ($user?->getApiKeyFor($this->engine)
+            ?: \App\Domains\Engine\EngineKeys::for($this->engine, $user));
+
         $keys = array_values(array_filter(array_map('trim', explode(',', (string)$raw))));
         if (!$keys) {
-            throw new RuntimeException("No {$this->engine->label()} key yet. Add one under Settings.");
+            throw new RuntimeException("No {$this->engine->label()} key yet. Add one under Settings or your User Profile.");
         }
         shuffle($keys);
 

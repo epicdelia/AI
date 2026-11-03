@@ -62,6 +62,7 @@ class ClientsController extends Controller
                 'payment_status' => $d->payment_status,
                 'client_status' => ClientDeal::status($d)['label'],
                 'unread' => $d->messages()->where('from_admin', false)->whereNull('read_at')->count(),
+                'intake' => $d->intake,
             ])->values(),
             // Deals from the same email not linked to anyone yet: one click links them.
             'suggested' => Deal::whereNull('user_id')->where('stage', '!=', 'prospect')
@@ -256,6 +257,11 @@ class ClientsController extends Controller
         return DealFiles::download($deal->files()->findOrFail($file));
     }
 
+    public function streamFile(Deal $deal, int $file): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        return DealFiles::stream($deal->files()->findOrFail($file));
+    }
+
     public function deleteFile(Deal $deal, int $file): JsonResponse
     {
         $deal->files()->findOrFail($file)->delete();
@@ -348,6 +354,41 @@ class ClientsController extends Controller
     public function roi(Deal $deal): JsonResponse
     {
         return response()->json(ClientAnalytics::forDeal($deal));
+    }
+
+    /**
+     * Her intake questions per service (and "*" for the default).
+     */
+    public function intakeQuestions(): JsonResponse
+    {
+        $services = collect(\App\Http\Controllers\Api\BookingController::PROJECT_LABELS)->map(fn ($label, $key) => [
+            'key' => $key,
+            'label' => $label,
+            'questions' => \App\Domains\Clients\Intake::questionsFor($key),
+            'custom' => array_key_exists($key, \App\Domains\Clients\Intake::all()),
+        ])->values();
+
+        return response()->json([
+            'default' => \App\Domains\Clients\Intake::questionsFor('*'),
+            'services' => $services,
+            'types' => \App\Domains\Clients\Intake::TYPES,
+        ]);
+    }
+
+    public function saveIntakeQuestions(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'service' => 'required|string|max:60',
+            'questions' => 'present|array|max:15',
+            'questions.*.label' => 'nullable|string|max:200',
+            'questions.*.type' => 'nullable|string',
+            'questions.*.required' => 'nullable|boolean',
+            'questions.*.options' => 'nullable|array|max:20',
+        ]);
+
+        return response()->json([
+            'questions' => \App\Domains\Clients\Intake::save($data['service'], $data['questions']),
+        ]);
     }
 
     /**

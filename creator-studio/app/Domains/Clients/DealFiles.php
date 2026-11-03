@@ -189,6 +189,24 @@ class DealFiles
         ]);
     }
 
+    /**
+     * Play a video deliverable inline (with range requests, so the player can seek). Only
+     * mp4 / webm / mov, with their real type; everything else is download-only.
+     */
+    public static function stream(DealFile $file): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $types = ['mp4' => 'video/mp4', 'webm' => 'video/webm', 'mov' => 'video/quicktime'];
+        $ext = strtolower(pathinfo((string)$file->name, PATHINFO_EXTENSION));
+        abort_unless(isset($types[$ext]) && Storage::disk('local')->exists($file->path), 404);
+
+        return response()->file(Storage::disk('local')->path($file->path), [
+            'Content-Type' => $types[$ext],
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+            'Content-Disposition' => 'inline',
+        ]);
+    }
+
     public static function download(DealFile $file): StreamedResponse
     {
         return Storage::disk('local')->download($file->path, $file->name, [

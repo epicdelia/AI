@@ -147,6 +147,7 @@ class DomainsPortTest extends TestCase
     public function test_vision_refused_for_text_only_models(): void
     {
         Setting::put('llm_engine', 'deepseek');
+        Setting::put('llm_model', 'deepseek-chat'); // text-only (the default V4 Pro reads images)
         Setting::put('llm_api_key', 'sk');
         $this->expectExceptionMessage("can't look at images");
         app(Llm::class)->see('s', 'x', [[

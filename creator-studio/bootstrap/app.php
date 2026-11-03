@@ -35,12 +35,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // runs before route model binding, so a client probing studio URLs only ever sees 403.
         $middleware->alias([
             'ability' => \App\Http\Middleware\EnsureAbility::class,
+            'studio-private' => \App\Http\Middleware\EnsureStudioPrivate::class,
             'active' => \App\Http\Middleware\EnsureActive::class,
             'two-factor' => \App\Http\Middleware\EnsureTwoFactor::class,
             'bots' => \App\Http\Middleware\BlockBots::class,
             'fresh-password' => \App\Http\Middleware\EnsureFreshPassword::class,
         ]);
         $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureAbility::class);
+        $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\EnsureStudioPrivate::class);
         $middleware->prependToPriorityList(\App\Http\Middleware\EnsureAbility::class, \App\Http\Middleware\EnsureTwoFactor::class);
         $middleware->prependToPriorityList(\App\Http\Middleware\EnsureTwoFactor::class, \App\Http\Middleware\EnsureActive::class);
     })

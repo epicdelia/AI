@@ -61,6 +61,19 @@ class CopilotTools
 
     public const CLIENT = ['open_page'];
 
+    /**
+     * Money and pipeline tools: only for whoever has Role::STUDIO_PRIVATE (her, not staff).
+     */
+    public const PRIVATE_TOOLS = ['list_brand_deals', 'get_rate_card', 'get_revenue_overview', 'list_follow_ups', 'draft_follow_up',
+        'get_pipeline_insights', 'prep_call', 'list_sponsor_prospects', 'check_deal_compliance', 'update_deal', 'create_deal', 'write_proposal'];
+
+    public static function allowedFor(string $tool, ?\App\Models\User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return !in_array($tool, self::PRIVATE_TOOLS, true) || ($user && $user->hasAbility(\App\Enums\Role::STUDIO_PRIVATE));
+    }
+
     public function __construct(
         private Memory $memory,
         private Llm $llm
@@ -441,7 +454,7 @@ class CopilotTools
             ]);
         }
 
-        return $tools;
+        return array_values(array_filter($tools, fn ($t) => self::allowedFor((string)($t['name'] ?? ''))));
     }
 
     public static function kind(string $tool): string
@@ -492,6 +505,9 @@ class CopilotTools
     public function read(string $tool, array $a): string
     {
         $json = fn ($v) => json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if (!self::allowedFor($tool)) {
+            return $json(['error' => 'Only the studio owner can use this tool.']);
+        }
 
         return match ($tool) {
             'get_studio_overview' => $json(self::overview()),
@@ -625,6 +641,7 @@ class CopilotTools
      */
     public function propose(CopilotThread $thread, string $tool, array $a): CopilotAction
     {
+        abort_unless(self::allowedFor($tool), 403, 'Only the studio owner can use this tool.');
         [$summary, $preview] = match ($tool) {
             'edit_script' => $this->previewEdit($a),
             'create_script' => [
@@ -709,6 +726,7 @@ class CopilotTools
      */
     public function apply(CopilotAction $action): array
     {
+        abort_unless(self::allowedFor($action->tool), 403, 'Only the studio owner can use this tool.');
         $a = $action->args;
 
         return match ($action->tool) {

@@ -21,8 +21,9 @@ export const NAV_ITEMS = [
   // Her studio.
   { header: 'Today' },
   { to: '/', label: 'Dashboard', icon: 'home', desc: 'Your day, what’s due and the week at a glance' },
+  { to: '/needs-you', label: 'Needs you', icon: 'alert', ability: 'studio.private', desc: 'Everything waiting on you, across every role' },
   { to: '/flow', label: 'Dictate', icon: 'mic', desc: 'Talk it out; it becomes a clean note' },
-  { to: '/love', label: 'For you', icon: 'heart', love: true, desc: 'Letters, dates and little moments' },
+  { to: '/love', label: 'For you', ability: 'studio.private', icon: 'heart', love: true, desc: 'Letters, dates and little moments' },
   { header: 'YouTube' },
   { to: '/breakouts', label: 'Breakouts', icon: 'trend', desc: 'Videos beating their channel’s usual' },
   { to: '/ideas', label: 'Ideas', icon: 'bulb', desc: 'Generate, sort and pick your next video' },
@@ -33,21 +34,21 @@ export const NAV_ITEMS = [
   { header: 'Social' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar', desc: 'Every post on every network' },
   { to: '/analytics', label: 'Analytics', icon: 'chart', desc: 'Reports, best times and goals' },
-  { to: '/deals', label: 'Brand deals', icon: 'briefcase', desc: 'Sponsorship pipeline, deliverables and rates' },
-  { to: '/mediakit', label: 'Media kit', icon: 'file-text', desc: 'Audience reach, demographics and rate card' },
+  { to: '/deals', label: 'Brand deals', ability: 'studio.private', icon: 'briefcase', desc: 'Sponsorship pipeline, deliverables and rates' },
+  { to: '/mediakit', label: 'Media kit', ability: 'studio.private', icon: 'file-text', desc: 'Audience reach, demographics and rate card' },
   { to: '/agents', label: 'Agents', icon: 'bot', desc: 'AI that plans, writes and learns' },
   { to: '/workflows', label: 'Workflows', icon: 'flow', desc: 'When this happens, do that' },
   { to: '/inbox', label: 'Inbox', icon: 'inbox', desc: 'Comments and DMs in one place' },
   { to: '/repurpose', label: 'Repurpose', icon: 'repeat', desc: 'One piece, native posts everywhere' },
-  { to: '/bio', label: 'Link in bio', icon: 'link', desc: 'One page for your bios, clicks counted' },
+  { to: '/bio', label: 'Link in bio', ability: 'studio.private', icon: 'link', desc: 'One page for your bios, clicks counted' },
   { to: '/linkedin', label: 'LinkedIn', icon: 'brand:linkedin', desc: 'Posts and carousels' },
   { to: '/instagram', label: 'Instagram', icon: 'brand:instagram', desc: 'Carousels, Reels and Stories' },
   { to: '/x', label: 'X', icon: 'brand:x', desc: 'Posts and threads' },
   { to: '/tiktok', label: 'TikTok', icon: 'brand:tiktok', desc: 'Videos and photo carousels' },
   { to: '/threads', label: 'Threads', icon: 'brand:threads', desc: 'Posts and threads' },
   { header: 'Create' },
-  { to: '/website', label: 'Website', icon: 'chart', desc: 'Funnel, page sections, booking hours and tracked links' },
-  { to: '/landing', label: 'Landing page', icon: 'globe', desc: 'Public portfolio, services and packages' },
+  { to: '/website', label: 'Website', ability: 'studio.private', icon: 'chart', desc: 'Funnel, page sections, booking hours and tracked links' },
+  { to: '/landing', label: 'Landing page', ability: 'studio.private', icon: 'globe', desc: 'Public portfolio, services and packages' },
   { to: '/snippets', label: 'Code cards', icon: 'code', desc: 'Visual code snippets and terminal cards' },
   { to: '/tools', label: 'Toolkit', icon: 'sparkle', desc: 'Writing templates for every job' },
   { to: '/chat', label: 'Producer chat', icon: 'chat', desc: 'Think out loud with your producer' },
@@ -56,10 +57,13 @@ export const NAV_ITEMS = [
   { header: 'Studio' },
   { to: '/team', label: 'Team & Production', icon: 'users', ability: 'staff.team', desc: 'Editorial pipeline, staff assignments, and QA checklist' },
   { to: '/clients', label: 'Clients', icon: 'users', ability: 'clients.manage', desc: 'Client accounts, their requests and messages' },
+  { to: '/community/manage', label: 'Community', icon: 'sparkle', ability: 'studio.private', desc: 'Posts, answers, approvals, Pro tier and warm leads' },
+  { to: '/crm', label: 'Contacts', icon: 'users', ability: 'studio.private', desc: 'Leads, clients and sponsors with follow-ups' },
+  { to: '/portal-brand', label: 'Portal branding', icon: 'sliders', ability: 'studio.private', desc: 'White-label what clients and members see' },
   { to: '/account', label: 'Account & security', icon: 'lock', desc: 'Your login, password and two-factor sign-in' },
-  { to: '/connections', label: 'Connections', icon: 'plug', desc: 'Sign in to your networks' },
-  { to: '/brand', label: 'Brand kit', icon: 'sliders', desc: 'Colours, font, logo and voice rules' },
-  { to: '/settings', label: 'Settings', icon: 'gear', desc: 'AI, keys, voice and make it yours' },
+  { to: '/connections', label: 'Connections', ability: 'studio.private', icon: 'plug', desc: 'Sign in to your networks' },
+  { to: '/brand', label: 'Brand kit', ability: 'studio.private', icon: 'sliders', desc: 'Colours, font, logo and voice rules' },
+  { to: '/settings', label: 'Settings', ability: 'studio.private', icon: 'gear', desc: 'AI, keys, voice and make it yours' },
 ];
 
 /**
@@ -67,7 +71,7 @@ export const NAV_ITEMS = [
  * `badge` keys read live counts (see app.js megaCounts).
  */
 export const MEGA = [
-  { id: 'today', label: 'Today', groups: [{ title: 'Today', items: ['/', '/flow', '/love'] }],
+  { id: 'today', label: 'Today', groups: [{ title: 'Today', items: ['/', '/needs-you', '/flow', '/love'] }],
     actions: [{ label: 'Dictate an idea', to: '/flow', icon: 'mic' }, { label: 'Open today’s note', to: '/love', icon: 'heart', love: true }] },
   { id: 'youtube', label: 'YouTube', groups: [
     { title: 'Research', items: ['/breakouts', '/channel'] },

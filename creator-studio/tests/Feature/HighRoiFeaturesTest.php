@@ -145,28 +145,32 @@ class HighRoiFeaturesTest extends TestCase
 
     public function test_community_blueprints_and_scaffolder_flow(): void
     {
-        $blueprintsRes = $this->getJson('/api/portal/community/blueprints');
-        $blueprintsRes->assertOk();
-        $blueprintsRes->assertJsonStructure(['blueprints']);
-        $this->assertNotEmpty($blueprintsRes->json('blueprints'));
+        // Nothing is invented: blueprints are the ones she publishes.
+        $this->getJson('/api/portal/community/blueprints')->assertOk()->assertJsonPath('blueprints', []);
+        $bp = \App\Domains\Community\Models\CommunityItem::create([
+            'type' => 'blueprint', 'title' => 'Hybrid RAG', 'status' => 'published', 'published_at' => now(),
+            'meta' => ['components' => ['pgvector', 'Redis']],
+        ]);
+        $this->assertNotEmpty($this->getJson('/api/portal/community/blueprints')->json('blueprints'));
 
         $scaffoldRes = $this->postJson('/api/portal/community/blueprints/scaffold', [
-            'blueprint_id' => 'rag_enterprise',
+            'blueprint_id' => $bp->id,
             'project_name' => 'unicorn-rag-app',
             'database' => 'postgres',
             'cache' => 'redis',
         ]);
         $scaffoldRes->assertOk();
         $scaffoldRes->assertJsonPath('ok', true);
-        $scaffoldRes->assertJsonStructure(['files' => ['docker_compose', 'readme', 'env']]);
-        $this->assertStringContainsString('pgvector/pgvector:pg16', $scaffoldRes->json('files.docker_compose'));
+        $scaffoldRes->assertJsonStructure(['files' => ['docker-compose.yml', 'README.md', '.env.example']]);
+        $this->assertStringContainsString('pgvector/pgvector:pg16', $scaffoldRes->json('files')['docker-compose.yml']);
+        $this->postJson('/api/portal/community/blueprints/scaffold', ['blueprint_id' => 99999])->assertNotFound();
     }
 
     public function test_community_showcase_submission_and_upvoting(): void
     {
         $showcaseRes = $this->getJson('/api/portal/community/showcase');
         $showcaseRes->assertOk();
-        $showcaseRes->assertJsonStructure(['showcases']);
+        $showcaseRes->assertJsonStructure(['showcase']);
 
         $submitRes = $this->postJson('/api/portal/community/showcase', [
             'title' => 'Edge AI Streaming Proxy',
@@ -177,8 +181,11 @@ class HighRoiFeaturesTest extends TestCase
         ]);
         $submitRes->assertStatus(201);
         $submitRes->assertJsonPath('ok', true);
-        $showcaseId = $submitRes->json('project.id');
+        $showcaseId = $submitRes->json('item.id');
 
+        // Votes come from other members (one each), never from the author.
+        $this->postJson("/api/portal/community/showcase/{$showcaseId}/upvote")->assertStatus(422);
+        $this->actingAs($this->member());
         $upvoteRes = $this->postJson("/api/portal/community/showcase/{$showcaseId}/upvote");
         $upvoteRes->assertOk();
         $upvoteRes->assertJsonPath('ok', true);
@@ -218,7 +225,7 @@ class HighRoiFeaturesTest extends TestCase
         $teamRes = $this->getJson('/api/team');
         $teamRes->assertOk();
         $teamRes->assertJsonStructure(['members', 'tasks', 'qa', 'metrics', 'roles_available']);
-        $this->assertGreaterThan(0, $teamRes->json('metrics.velocity_monthly'));
+        $this->assertSame(0, $teamRes->json('metrics.completed_this_month'));
 
         // Auto-repurpose cascade
         $repurposeRes = $this->postJson('/api/team/tasks/auto-repurpose', [
@@ -238,8 +245,8 @@ class HighRoiFeaturesTest extends TestCase
         ]);
         $simRes->assertOk();
         $simRes->assertJsonPath('ok', true);
-        $this->assertEquals(96, $simRes->json('metrics.mobile_readability_score'));
-        $this->assertStringContainsString('AAA', $simRes->json('metrics.contrast_dark_mode'));
+        $this->assertEquals(95, $simRes->json('metrics.mobile_readability_score'));
+        $this->assertArrayNotHasKey('contrast_dark_mode', $simRes->json('metrics')); // not measured, so not claimed
 
         // QA checklist toggle
         $qaRes = $this->postJson('/api/team/qa/toggle', [

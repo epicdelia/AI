@@ -115,7 +115,7 @@ class GlobalSearchController extends Controller
                 ]),
         ];
 
-        $groups[] = [
+        $groups[] = !$request->user()?->hasAbility(\App\Enums\Role::STUDIO_PRIVATE) ? ['title' => 'Brand Deals', 'items' => collect()] : [
             'title' => 'Brand Deals',
             'items' => \App\Models\Deal::query()
                 ->where(fn ($w) => $w->where('brand_name', 'like', $like)->orWhere('contact_name', 'like', $like)->orWhere('notes', 'like', $like))

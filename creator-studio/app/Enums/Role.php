@@ -25,6 +25,36 @@ enum Role: string
     public const STUDIO = 'studio';
 
     /**
+     * Her private side of the studio: money (deals, revenue, subscribers), her website, keys,
+     * settings, connections, backups and the love pages. Admin only: staff get the content
+     * studio (scripts, ideas, social, media) without it, like YouTube's "Editor (no revenue)".
+     */
+    public const STUDIO_PRIVATE = 'studio.private';
+
+    /**
+     * API paths (after /api/) inside the studio that need STUDIO_PRIVATE, as fnmatch patterns.
+     * `GET:` limits a pattern to writes being blocked (reads stay open), e.g. the brand kit
+     * staff need for thumbnails. Enforced by App\Http\Middleware\EnsureStudioPrivate.
+     */
+    public const PRIVATE_PATHS = [
+        'deals', 'deals/*', 'scripts/*/sponsor', 'engage/items/*/to-deal',
+        'website', 'landing/*', 'testimonials', 'testimonials/*', 'subscribers', 'subscribers/*',
+        'hero', 'marquee', 'partners', 'pricing', 'about', 'about/*', 'talks', 'talks/*', 'bio',
+        'love', 'love/*',
+        'social/accounts', 'social/accounts/*',
+        'agents/*/sponsor-*', 'agents/*/audit-deal-fulfillment', 'agents/*/generate-deal-wrap-report',
+        'agents/*/synthesize-brand-pitch', 'agents/*/architect-sponsor-placement', 'agents/*/escalate-lead-deal',
+        'backups', 'backups/*', 'settings', 'settings/*', 'automations', 'user/keys', 'user/keys/*',
+        'usage', 'schedule', 'schedule/*', 'studio/infra/*', 'mcp', 'mcp/*',
+        'community/admin', 'community/admin/*', 'crm', 'crm/*', 'portal-brand', 'portal-brand/*', 'needs-you',
+    ];
+
+    /**
+     * Paths where only writes are private (staff may read).
+     */
+    public const PRIVATE_WRITES = ['brand', 'brand/*', 'me/avatar'];
+
+    /**
      * The Clients page: client accounts, linking deals, invites, messaging clients.
      */
     public const CLIENTS_MANAGE = 'clients.manage';
@@ -65,11 +95,33 @@ enum Role: string
     public function abilities(): array
     {
         return match ($this) {
-            self::Admin => [self::STUDIO, self::CLIENTS_MANAGE, self::STAFF_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
+            self::Admin => [self::STUDIO, self::STUDIO_PRIVATE, self::CLIENTS_MANAGE, self::STAFF_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
             self::Staff => [self::STUDIO, self::STAFF_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
             self::Client => [self::PORTAL_REQUESTS, self::PORTAL_BILLING, self::PORTAL_TEAM, self::PORTAL_COMMUNITY, self::ACCOUNT],
             self::Member => [self::PORTAL_COMMUNITY, self::ACCOUNT],
         };
+    }
+
+    /**
+     * True when `api/<path>` with this method needs STUDIO_PRIVATE.
+     */
+    public static function isPrivatePath(string $method, string $path): bool
+    {
+        $path = trim(preg_replace('~^api/~', '', trim($path, '/')), '/');
+        foreach (self::PRIVATE_PATHS as $pattern) {
+            if (fnmatch($pattern, $path, FNM_NOESCAPE)) {
+                return true;
+            }
+        }
+        if (!in_array(strtoupper($method), ['GET', 'HEAD'], true)) {
+            foreach (self::PRIVATE_WRITES as $pattern) {
+                if (fnmatch($pattern, $path, FNM_NOESCAPE)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function allows(string $ability): bool

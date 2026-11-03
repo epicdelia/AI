@@ -106,6 +106,14 @@ Route::prefix('api')->group(function () {
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
+    // The portal's white-label look (name, logo, accent) for clients and members.
+    Route::get('branding', [\App\Http\Controllers\Api\PortalBrandController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('branding/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'logo'])->middleware('throttle:60,1');
+
+    // A team member's invite link (sets their own password).
+    Route::get('team-invite/{token}', [TeamController::class, 'showInvite'])->where('token', '[A-Za-z0-9]{40,64}')->middleware('throttle:30,1');
+    Route::post('team-invite/{token}', [TeamController::class, 'acceptInvite'])->where('token', '[A-Za-z0-9]{40,64}')->middleware('throttle:10,10');
+
     // EU Compliance & Commercial Legal Framework
     Route::get('legal/privacy', [LegalController::class, 'privacy']);
     Route::get('legal/terms', [LegalController::class, 'terms']);
@@ -149,6 +157,10 @@ Route::prefix('api')->group(function () {
         Route::post('showcase/{id}/upvote', [\App\Http\Controllers\Api\CommunityController::class, 'upvoteShowcase'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post('ask', [\App\Http\Controllers\Api\CommunityController::class, 'ask'])->middleware('throttle:10,1');
         Route::post('upvote', [\App\Http\Controllers\Api\CommunityController::class, 'upvote'])->middleware('throttle:30,1');
+        Route::post('items/{id}/vote', [\App\Http\Controllers\Api\CommunityController::class, 'vote'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::put('digest', [\App\Http\Controllers\Api\CommunityController::class, 'digest'])->middleware('throttle:10,1');
+        Route::post('pro/checkout', [\App\Http\Controllers\Api\CommunityController::class, 'proCheckout'])->middleware('throttle:5,10');
+        Route::post('pro/manage', [\App\Http\Controllers\Api\CommunityController::class, 'proManage'])->middleware('throttle:10,10');
     });
 
     // Clients: only their own requests, payments and messages, once their email is confirmed.
@@ -168,11 +180,14 @@ Route::prefix('api')->group(function () {
         Route::get('requests/{deal}/files', [PortalController::class, 'files'])->whereNumber('deal');
         Route::post('requests/{deal}/files', [PortalController::class, 'uploadFile'])->whereNumber('deal')->middleware('throttle:30,10');
         Route::get('requests/{deal}/files/{file}', [PortalController::class, 'downloadFile'])->whereNumber(['deal', 'file']);
+        Route::get('requests/{deal}/files/{file}/stream', [PortalController::class, 'streamFile'])->whereNumber(['deal', 'file']);
         Route::delete('requests/{deal}/files/{file}', [PortalController::class, 'deleteFile'])->whereNumber(['deal', 'file']);
         Route::get('requests/{deal}/annotations', [PortalController::class, 'annotations'])->whereNumber('deal');
         Route::post('requests/{deal}/annotations', [PortalController::class, 'addAnnotation'])->whereNumber('deal')->middleware('throttle:30,1');
         Route::post('requests/{deal}/annotations/{annotation}/resolve', [PortalController::class, 'resolveAnnotation'])->whereNumber(['deal', 'annotation'])->middleware('throttle:30,1');
         Route::get('requests/{deal}/roi', [PortalController::class, 'roi'])->whereNumber('deal');
+        Route::get('requests/{deal}/results-report', [PortalController::class, 'resultsReport'])->whereNumber('deal');
+        Route::post('requests/{deal}/intake', [PortalController::class, 'saveIntake'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::get('requests/{deal}/compliance', [PortalController::class, 'compliance'])->whereNumber('deal');
         Route::get('requests/{deal}/compliance/report', [PortalController::class, 'complianceReport'])->whereNumber('deal');
         Route::get('requests/{deal}/dpa', [PortalController::class, 'dpa'])->whereNumber('deal');
@@ -195,6 +210,7 @@ Route::prefix('api')->group(function () {
             Route::get('payments/{payment}/receipt', [PortalController::class, 'receipt'])->whereNumber('payment');
             Route::get('requests/{deal}/invoice', [PortalController::class, 'invoice'])->whereNumber('deal');
             Route::post('checkout', [PortalController::class, 'checkout'])->middleware('throttle:5,10');
+            Route::post('billing/manage', [PortalController::class, 'manageBilling'])->middleware('throttle:10,10');
         });
         Route::middleware('ability:portal.team')->group(function () {
             Route::get('team', [PortalController::class, 'team']);
@@ -208,12 +224,21 @@ Route::prefix('api')->group(function () {
     // Staff & Team Production Pipeline (Admin & Staff)
     Route::middleware(['auth', 'active', 'two-factor', 'ability:staff.team'])->group(function () {
         Route::get('team', [TeamController::class, 'index']);
-        Route::post('team/tasks', [TeamController::class, 'createTask']);
-        Route::patch('team/tasks/{id}', [TeamController::class, 'updateTask']);
-        Route::post('team/tasks/auto-repurpose', [TeamController::class, 'autoRepurpose']);
+        Route::post('team/tasks', [TeamController::class, 'createTask'])->middleware('throttle:60,1');
+        Route::patch('team/tasks/{id}', [TeamController::class, 'updateTask'])->whereNumber('id');
+        Route::delete('team/tasks/{id}', [TeamController::class, 'deleteTask'])->whereNumber('id');
+        Route::post('team/tasks/auto-repurpose', [TeamController::class, 'autoRepurpose'])->middleware('throttle:20,1');
         Route::post('team/thumbnails/simulate', [TeamController::class, 'simulateThumbnail']);
         Route::post('team/qa/toggle', [TeamController::class, 'toggleQaItem']);
-        Route::post('team/staff', [TeamController::class, 'inviteStaff']);
+        Route::get('team/payouts', [TeamController::class, 'payouts']);
+        // Hers alone: money and who is on the team.
+        Route::middleware('ability:studio.private')->group(function () {
+            Route::post('team/tasks/{id}/approve-payout', [TeamController::class, 'approvePayout'])->whereNumber('id');
+            Route::post('team/tasks/{id}/paid', [TeamController::class, 'markPaid'])->whereNumber('id');
+            Route::post('team/staff', [TeamController::class, 'inviteStaff'])->middleware('throttle:20,60');
+            Route::delete('team/invites/{id}', [TeamController::class, 'withdrawInvite'])->whereNumber('id');
+            Route::delete('team/staff/{id}', [TeamController::class, 'removeStaff'])->whereNumber('id');
+        });
     });
 
     // Her: the Clients page (client accounts, linking deals, invites, messages).
@@ -230,6 +255,7 @@ Route::prefix('api')->group(function () {
         Route::get('deals/{deal}/files', [ClientsController::class, 'files']);
         Route::post('deals/{deal}/files', [ClientsController::class, 'uploadFile']);
         Route::get('deals/{deal}/files/{file}', [ClientsController::class, 'downloadFile'])->whereNumber('file');
+        Route::get('deals/{deal}/files/{file}/stream', [ClientsController::class, 'streamFile'])->whereNumber('file');
         Route::delete('deals/{deal}/files/{file}', [ClientsController::class, 'deleteFile'])->whereNumber('file');
         Route::get('deals/{deal}/annotations', [ClientsController::class, 'annotations'])->whereNumber('deal');
         Route::post('deals/{deal}/annotations', [ClientsController::class, 'addAnnotation'])->whereNumber('deal');
@@ -237,11 +263,13 @@ Route::prefix('api')->group(function () {
         Route::get('deals/{deal}/roi', [ClientsController::class, 'roi'])->whereNumber('deal');
         Route::delete('deals/{deal}/share-links', [ClientsController::class, 'revokeLinks']);
         Route::get('security/audit', [ClientsController::class, 'audit']);
+        Route::get('clients/intake', [ClientsController::class, 'intakeQuestions']);
+        Route::put('clients/intake', [ClientsController::class, 'saveIntakeQuestions']);
         Route::post('deals/{deal}/messages', [ClientsController::class, 'sendMessage']);
     });
 
     // The studio itself: hers alone (Role::STUDIO), after two-factor sign-in.
-    Route::middleware(['auth', 'active', 'two-factor', 'ability:studio'])->group(function () {
+    Route::middleware(['auth', 'active', 'two-factor', 'ability:studio', 'studio-private'])->group(function () {
         // Dashboard
         Route::get('dashboard', [ApiController::class, 'dashboard']);
 
@@ -265,6 +293,7 @@ Route::prefix('api')->group(function () {
         Route::post('scripts', [ApiController::class, 'createScript']);
         Route::get('scripts/{script}', [ApiController::class, 'getScript']);
         Route::patch('scripts/{script}', [ApiController::class, 'updateScript']);
+        Route::post('scripts/{script}/live', [ApiController::class, 'scriptLive'])->middleware('throttle:120,1');
         Route::delete('scripts/{script}', [ApiController::class, 'deleteScript']);
         Route::post('scripts/{script}/review', [ApiController::class, 'reviewScript']);
         Route::post('scripts/{script}/substack', [ApiController::class, 'substackScript']);
@@ -579,6 +608,12 @@ Route::prefix('api')->group(function () {
         Route::put('settings', [ApiController::class, 'updateSettings']);
         Route::post('settings/test', [ApiController::class, 'testConnections']);
         Route::get('automations', [ApiController::class, 'automations']);
+
+        // User Multi-Model Keys & Credit System
+        Route::get('user/keys', [\App\Http\Controllers\Api\UserKeysController::class, 'index']);
+        Route::post('user/keys', [\App\Http\Controllers\Api\UserKeysController::class, 'store']);
+        Route::delete('user/keys/{provider}', [\App\Http\Controllers\Api\UserKeysController::class, 'destroy']);
+        Route::post('user/keys/test', [\App\Http\Controllers\Api\UserKeysController::class, 'test']);
         // Slow AI work in the background (the dashboard polls; see RunAiTask).
         Route::post('tasks', [\App\Http\Controllers\Api\TasksController::class, 'store'])->middleware('throttle:20,1');
         Route::get('tasks/{task}', [\App\Http\Controllers\Api\TasksController::class, 'show']);
@@ -698,6 +733,34 @@ Route::prefix('api')->group(function () {
         Route::patch('feeds/{feed}/toggle', [FeedController::class, 'toggle']);
         Route::delete('feeds/{feed}', [FeedController::class, 'destroy']);
         Route::delete('feed-items/{item}', [FeedController::class, 'destroyItem']);
+
+        // ---- Admin only below: every path here is in Role::PRIVATE_PATHS -------------------
+        // Community Hub management: publish, answer, approve, Pro tier, warm leads.
+        Route::get('community/admin', [\App\Http\Controllers\Api\CommunityController::class, 'adminIndex']);
+        Route::post('community/admin/items', [\App\Http\Controllers\Api\CommunityController::class, 'adminStore']);
+        Route::patch('community/admin/items/{id}', [\App\Http\Controllers\Api\CommunityController::class, 'adminUpdate'])->whereNumber('id');
+        Route::delete('community/admin/items/{id}', [\App\Http\Controllers\Api\CommunityController::class, 'adminDestroy'])->whereNumber('id');
+        Route::put('community/admin/settings', [\App\Http\Controllers\Api\CommunityController::class, 'adminSettings']);
+        Route::post('community/admin/members/{user}/comp', [\App\Http\Controllers\Api\CommunityController::class, 'adminComp'])->whereNumber('user');
+        Route::post('community/admin/members/{user}/to-crm', [\App\Http\Controllers\Api\CommunityController::class, 'adminToCrm'])->whereNumber('user');
+        // Everything waiting on her, across clients, team, community and CRM.
+        Route::get('needs-you', \App\Http\Controllers\Api\NeedsYouController::class);
+        // CRM: contacts, stages, follow-ups and a timeline per person.
+        Route::get('crm', [\App\Http\Controllers\Api\CrmController::class, 'index']);
+        Route::post('crm', [\App\Http\Controllers\Api\CrmController::class, 'store']);
+        Route::post('crm/sync', [\App\Http\Controllers\Api\CrmController::class, 'sync']);
+        Route::get('crm/export', [\App\Http\Controllers\Api\CrmController::class, 'export']);
+        Route::get('crm/{id}', [\App\Http\Controllers\Api\CrmController::class, 'show'])->whereNumber('id');
+        Route::patch('crm/{id}', [\App\Http\Controllers\Api\CrmController::class, 'update'])->whereNumber('id');
+        Route::delete('crm/{id}', [\App\Http\Controllers\Api\CrmController::class, 'destroy'])->whereNumber('id');
+        Route::post('crm/{id}/activities', [\App\Http\Controllers\Api\CrmController::class, 'addActivity'])->whereNumber('id');
+        Route::post('crm/{id}/activities/{activity}/done', [\App\Http\Controllers\Api\CrmController::class, 'completeActivity'])->whereNumber(['id', 'activity']);
+        // White-label branding for the client & member portal.
+        Route::get('portal-brand', [\App\Http\Controllers\Api\PortalBrandController::class, 'edit']);
+        Route::put('portal-brand', [\App\Http\Controllers\Api\PortalBrandController::class, 'update']);
+        Route::post('portal-brand/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'uploadLogo']);
+        Route::delete('portal-brand/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'deleteLogo']);
+        // @@ROLE-EXPANSION-ROUTES@@
     });
 });
 

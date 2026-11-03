@@ -59,5 +59,17 @@ class Script extends Model
     {
         // Every path that rewrites the body (autosave, AI, Copilot, restore) keeps the old text first.
         static::updating(fn (self $script) => ScriptVersion::beforeChange($script));
+        // Editing together: every body change, from anyone or anything, is a new revision
+        // (the editors poll for it, and a save based on an older one is merged, not lost).
+        static::saving(function (self $script) {
+            if ($script->isDirty('body') && !$script->isDirty('revision')) {
+                $script->revision = (int)$script->revision + 1;
+            }
+        });
+        static::saved(function (self $script) {
+            if ($script->wasChanged('revision') || $script->wasRecentlyCreated) {
+                \App\Domains\Scripts\LiveEditing::remember($script);
+            }
+        });
     }
 }

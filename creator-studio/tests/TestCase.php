@@ -66,4 +66,46 @@ abstract class TestCase extends BaseTestCase
 
         return $user;
     }
+
+    /**
+     * A team member (editor, designer…) she provisioned: content studio, no private side.
+     */
+    protected function staff(array $attributes = []): User
+    {
+        if ($existing = User::where('email', $attributes['email'] ?? 'alex@studio.test')->first()) {
+            return $existing;
+        }
+        $user = new User($attributes + [
+            'name' => 'Alex Editor',
+            'email' => 'alex@studio.test',
+            'password' => 'staff-pass-123',
+        ]);
+        $user->forceFill([
+            'role' => Role::Staff,
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $user;
+    }
+
+    /**
+     * A follower who signed up for the community.
+     */
+    protected function member(array $attributes = []): User
+    {
+        if ($existing = User::where('email', $attributes['email'] ?? 'fan@follow.test')->first()) {
+            return $existing;
+        }
+        $user = new User($attributes + [
+            'name' => 'Fan Follower',
+            'email' => 'fan@follow.test',
+            'password' => 'member-pass-123',
+        ]);
+        $user->forceFill([
+            'role' => Role::Member,
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $user;
+    }
 }

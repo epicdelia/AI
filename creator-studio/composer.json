@@ -255,7 +255,10 @@
         "laravel": {
             "dont-discover": [
                 "laravel/telescope",
-                "iazaran/smart-cache"
+                "iazaran/smart-cache",
+                "rachidlaasri/laravel-installer",
+                "magicai/magicai-healthy",
+                "magicai/magicai-updater"
             ]
         },
         "scripts-dev": {

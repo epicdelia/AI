@@ -188,8 +188,31 @@ class SecurityHardeningAndRoiTest extends TestCase
         $this->assertArrayHasKey('benchmark', $res->json());
         $this->assertArrayHasKey('renewal_incentive', $res->json());
 
-        $this->assertGreaterThan(0, $res->json('metrics.total_views'));
-        $this->assertGreaterThan(0, $res->json('benchmark.performance_multiplier'));
+        // Nothing tracked yet: the report says so instead of inventing numbers.
+        $this->assertFalse($res->json('has_data'));
+        $this->assertSame(0, $res->json('metrics.total_views'));
+        $this->assertNull($res->json('metrics.click_through_rate'));
+        $this->assertNull($res->json('benchmark'));
+    }
+
+    public function test_client_results_use_real_video_snapshots(): void
+    {
+        $client = $this->client();
+        $script = \App\Models\Script::create(['title' => 'Sponsored video', 'youtube_url' => 'https://youtu.be/abcdefghijk']);
+        foreach ([[1, 1000], [7, 5000], [30, 9000]] as [$age, $views]) {
+            \Illuminate\Support\Facades\DB::table('video_stats')->insert([
+                'video_id' => 'abcdefghijk', 'captured_on' => now()->subDays(30 - $age)->toDateString(), 'age_days' => $age,
+                'views' => $views, 'likes' => 10, 'comments' => 2, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+        $deal = Deal::create(['brand_name' => 'Acme', 'rate' => 900, 'stage' => 'paid', 'payment_status' => 'paid', 'user_id' => $client->id, 'script_id' => $script->id]);
+        $this->actingAs($client);
+        $res = $this->getJson("/api/portal/requests/{$deal->id}/roi")->assertOk();
+        $this->assertTrue($res->json('has_data'));
+        $this->assertSame(9000, $res->json('metrics.total_views'));
+        $this->assertSame([1000, 5000, 9000], array_column($res->json('video.milestones'), 'views'));
+        $this->assertEquals(100.0, $res->json('metrics.effective_cpm'));
+        $this->getJson("/api/portal/requests/{$deal->id}/results-report")->assertOk()->assertJsonPath('filename', 'results-acme.md');
     }
 
     public function test_client_can_apply_high_roi_add_ons(): void

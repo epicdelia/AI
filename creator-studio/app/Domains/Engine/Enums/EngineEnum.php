@@ -535,7 +535,12 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
     {
         $url = (string)$url;
         foreach (self::cases() as $case) {
-            if ($case !== self::CUSTOM && $case->baseUrl() !== '' && str_starts_with(rtrim($url, '/'), $case->baseUrl())) {
+            // MagicAI's duplicate cases (OPEN_ROUTER, DEEP_SEEK, X_AI) share a base URL with the studio's
+            // own engines; an install saved by URL always maps to the studio engine the Settings page lists.
+            if (in_array($case, [self::CUSTOM, self::OPEN_ROUTER, self::DEEP_SEEK, self::X_AI], true)) {
+                continue;
+            }
+            if ($case->baseUrl() !== '' && str_starts_with(rtrim($url, '/'), $case->baseUrl())) {
                 return $case;
             }
         }

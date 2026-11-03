@@ -31,6 +31,8 @@ class DealFile extends Model
             'id' => $this->id,
             'name' => $this->name,
             'size' => $this->size,
+            // mp4 / webm / mov play inline in the review player (DealFiles::stream).
+            'is_video' => in_array(strtolower(pathinfo((string)$this->name, PATHINFO_EXTENSION)), ['mp4', 'webm', 'mov'], true),
             'from_admin' => $this->from_admin,
             'by' => $this->user?->name,
             'at' => $this->created_at?->toIso8601String(),

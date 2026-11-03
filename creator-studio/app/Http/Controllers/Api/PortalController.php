@@ -89,13 +89,71 @@ class PortalController extends Controller
         return response()->json([
             'requests' => $this->mine($request)->latest()->get()->map(fn (Deal $d) => ClientDeal::summary($d))->values(),
             'services' => self::services(),
+            // Her questions per service, asked on "New request".
+            'intake' => collect(self::services())->mapWithKeys(fn ($svc) => [$svc['key'] => \App\Domains\Clients\Intake::questionsFor($svc['key'])]),
         ]);
     }
 
     public function show(Request $request, int $deal): JsonResponse
     {
+        $d = $this->find($request, $deal);
+        $service = $d->deliverables[0]['project_type'] ?? null;
+
         return response()->json([
-            'request' => ClientDeal::detail($this->find($request, $deal)),
+            'request' => ClientDeal::detail($d) + [
+                'intake' => $d->intake,
+                'intake_at' => $d->intake_at?->toIso8601String(),
+                'intake_questions' => $d->intake ? [] : \App\Domains\Clients\Intake::questionsFor($service),
+            ],
+        ]);
+    }
+
+    /**
+     * Answer the intake questions later (e.g. a request that came in from the website).
+     */
+    public function saveIntake(Request $request, int $deal): JsonResponse
+    {
+        $d = $this->find($request, $deal);
+        abort_if(in_array($d->stage, ['paid', 'lost'], true), 422, 'This request is closed.');
+        $answers = \App\Domains\Clients\Intake::answers($d->deliverables[0]['project_type'] ?? null, (array)$request->input('intake', []));
+        $d->forceFill(['intake' => $answers, 'intake_at' => now()])->save();
+        self::tellAdmins("Brief answered: {$request->user()->name}", "{$request->user()->name} answered the questions for “" . ClientDeal::summary($d)['title'] . "”.\n\n"
+            . collect($answers)->map(fn ($a) => "{$a['label']}\n{$a['answer']}")->implode("\n\n") . "\n\nOpen it: " . url('/clients/' . $request->user()->teamOwnerId()));
+
+        return response()->json([
+            'message' => 'Thanks! Your answers are saved.',
+            'intake' => $answers,
+        ]);
+    }
+
+    /**
+     * The results report as Markdown (printed or saved as PDF in the browser).
+     */
+    public function resultsReport(Request $request, int $deal): JsonResponse
+    {
+        $d = $this->find($request, $deal);
+        $report = ClientAnalytics::forDeal($d);
+
+        return response()->json([
+            'markdown' => ClientAnalytics::markdown($report),
+            'filename' => 'results-' . (\Illuminate\Support\Str::slug($d->brand_name ?: 'campaign') ?: 'campaign') . '.md',
+        ]);
+    }
+
+    /**
+     * Stripe's hosted portal: update the card, download invoices, cancel a retainer.
+     */
+    public function manageBilling(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $customer = $user->stripe_customer_id
+            ?: $this->mine($request)->whereNotNull('stripe_customer_id')->latest('paid_at')->value('stripe_customer_id');
+        abort_unless($customer, 422, 'There’s no card payment on file yet. Pay a request online first.');
+        $url = \App\Domains\Billing\BillingPortal::url($customer, url('/billing'));
+        abort_unless($url, 503, 'Billing management isn’t available right now. Message us and we’ll help.');
+
+        return response()->json([
+            'url' => $url,
         ]);
     }
 
@@ -109,9 +167,11 @@ class PortalController extends Controller
             'details' => 'required|string|min:10|max:4000',
             'budget' => 'nullable|string|max:100',
             'deadline' => 'nullable|string|max:100',
+            'intake' => 'nullable|array',
         ]);
         $user = $request->user();
         $label = BookingController::PROJECT_LABELS[$data['service']];
+        $intake = \App\Domains\Clients\Intake::answers($data['service'], (array)($data['intake'] ?? []));
 
         $deal = $this->newDeal($user, [
             'stage' => 'inquiry',
@@ -124,6 +184,9 @@ class PortalController extends Controller
             'notes' => "Requested from the client dashboard.\n\n{$data['details']}"
                 . (!empty($data['budget']) ? "\n\nBudget: {$data['budget']}" : '') . (!empty($data['deadline']) ? "\nDeadline: {$data['deadline']}" : ''),
         ]);
+        if ($intake) {
+            $deal->forceFill(['intake' => $intake, 'intake_at' => now()])->save();
+        }
         // Their own words open the thread, so she can answer them right there.
         $deal->messages()->create([
             'user_id' => $user->id,
@@ -454,6 +517,11 @@ class PortalController extends Controller
         return response()->json([
             'file' => $file->load('user:id,name')->toRow(),
         ], 201);
+    }
+
+    public function streamFile(Request $request, int $deal, int $file): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        return DealFiles::stream($this->find($request, $deal)->files()->findOrFail($file));
     }
 
     public function downloadFile(Request $request, int $deal, int $file): StreamedResponse

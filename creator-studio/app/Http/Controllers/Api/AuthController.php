@@ -433,7 +433,7 @@ class AuthController extends Controller
             if (empty($fromAddress) || $fromAddress === 'null') {
                 $fromAddress = 'hello@example.com';
             }
-            $fromName = config('mail.from.name') ?: 'Creator Studio';
+            $fromName = PortalBrandController::fromName() ?: (config('mail.from.name') ?: 'Creator Studio');
 
             Mail::raw($body, function ($m) use ($to, $subject, $fromAddress, $fromName) {
                 $m->from($fromAddress, $fromName)->to($to)->subject($subject);

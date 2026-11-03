@@ -243,10 +243,22 @@ class ApiController extends Controller
             ],
         ];
 
-        return response()->json([
-            'creator_name' => Setting::get('creator_name') ?: (Auth::user()?->name ?? 'Creator'),
+        $user = Auth::user();
+        $configuredUserKeys = $user ? $user->apiKeys()->where('is_active', true)->pluck('provider')->all() : [];
+        $aiEngineHub = [
+            'default_engine' => 'gemini',
+            'default_model' => 'gemini-4-argon',
+            'credit_balance' => $user?->creditBalance() ?? 100.0,
+            'user_keys_configured' => count($configuredUserKeys),
+            'total_supported_providers' => count(\App\Http\Controllers\Api\UserKeysController::SUPPORTED_PROVIDERS),
+            'byok_providers' => $configuredUserKeys,
+        ];
+
+        $payload = [
+            'creator_name' => Setting::get('creator_name') ?: ($user?->name ?? 'Creator'),
             'current_week' => $currentWeek,
             'weeks' => $weeks,
+            'ai_engine_hub' => $aiEngineHub,
             'stats' => [
                 'shipped' => $shipped,
                 'missed' => $missed,
@@ -294,7 +306,15 @@ class ApiController extends Controller
                         'count' => $n,
                     ])->values(),
             ],
-        ]);
+        ];
+        // Staff see the content studio, not her money or website (Role::STUDIO_PRIVATE).
+        if (!$user?->hasAbility(\App\Enums\Role::STUDIO_PRIVATE)) {
+            foreach (['deals_summary', 'revenue', 'follow_ups', 'website', 'inbound', 'journey', 'reach', 'hero', 'marquee', 'partners', 'pricing', 'about', 'speaking', 'active_deliverables', 'ai_engine_hub'] as $key) {
+                unset($payload[$key]);
+            }
+        }
+
+        return response()->json($payload);
     }
 
     // ==========================================
@@ -685,13 +705,53 @@ class ApiController extends Controller
             'status' => 'sometimes|in:' . implode(',', Script::STATUSES),
             'youtube_url' => 'sometimes|nullable|url|max:300',
             'published_on' => 'sometimes|nullable|date',
+            'base_revision' => 'sometimes|integer|min:0',
         ]);
 
+        // Editing together: a body written on an older revision is merged, not overwritten.
+        $merge = null;
+        if (array_key_exists('body', $data) && isset($data['base_revision'])) {
+            $merge = \App\Domains\Scripts\LiveEditing::resolve($script, (string)($data['body'] ?? ''), (int)$data['base_revision']);
+            $data['body'] = $merge['body'];
+        }
+        unset($data['base_revision']);
         $script->update($data);
 
         return response()->json([
             'script' => $script,
-            'message' => 'Script saved.',
+            'merged' => (bool)($merge['merged'] ?? false),
+            'conflicts' => (int)($merge['conflicts'] ?? 0),
+            'message' => ($merge['conflicts'] ?? 0) ? 'Saved. Someone else changed the same lines: both versions are kept, check them.' : 'Script saved.',
+        ]);
+    }
+
+    /**
+     * The editor's poll: who else is here (and on which line), and the newest text when it
+     * changed since the revision the editor has.
+     */
+    public function scriptLive(Request $request, Script $script): JsonResponse
+    {
+        $data = $request->validate([
+            'revision' => 'nullable|integer|min:0',
+            'line' => 'nullable|integer|min:1|max:100000',
+            'leave' => 'nullable|boolean',
+        ]);
+        $me = $request->user();
+        if ($data['leave'] ?? false) {
+            \App\Domains\Scripts\LiveEditing::leave($script, $me);
+
+            return response()->json(['ok' => true]);
+        }
+        \App\Domains\Scripts\LiveEditing::touch($script, $me, $data['line'] ?? null);
+        $changed = isset($data['revision']) && (int)$data['revision'] !== (int)$script->revision;
+
+        return response()->json([
+            'revision' => (int)$script->revision,
+            'changed' => $changed,
+            'body' => $changed ? (string)$script->body : null,
+            'title' => $script->title,
+            'status' => $script->status,
+            'others' => \App\Domains\Scripts\LiveEditing::others($script, $me),
         ]);
     }
 

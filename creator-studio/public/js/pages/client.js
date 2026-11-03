@@ -3,6 +3,8 @@
 // legal & FTC compliance certificates, add-ons, payments, brand vault and partner referrals.
 import { h, api, busy, toast, pageHead, emptyState, field, formData, clear, link, navigate, markdown, fmtDay, timeAgo, modal } from '../core.js';
 import { icon } from '../icons.js';
+import { reviewPlayer } from '../review-player.js';
+import { printMarkdown } from '../components.js';
 
 const money = (amount, currency = 'USD') => amount == null ? '' : new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 const when = (iso) => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -28,8 +30,9 @@ function requestRow(r) {
 export async function renderClientHome(view) {
   const o = await api('GET', 'portal/overview');
   const first = (o.creator || '').split(' ')[0] || 'the studio';
+  const brand = window.__portalBrand;
   view.append(
-    pageHead('Your projects', `Everything you’re working on with ${first}.`,
+    pageHead('Your projects', brand?.welcome || `Everything you’re working on with ${first}.`,
       h('div', { class: 'row' },
         link('/brand-vault', { class: 'btn' }, icon('sliders', 14), 'Brand Vault'),
         link('/requests/new', { class: 'btn primary' }, icon('plus', 15), 'New request'))),
@@ -44,7 +47,10 @@ export async function renderClientHome(view) {
     h('h2', {}, 'In progress'),
     o.recent.length ? h('div', { class: 'stack' }, o.recent.map(requestRow))
       : emptyState(icon('briefcase', 28), 'Nothing in progress', `Ask ${first} for something and follow it here.`,
-        link('/requests/new', { class: 'btn primary' }, icon('plus', 15), 'New request')));
+        link('/requests/new', { class: 'btn primary' }, icon('plus', 15), 'New request')),
+    brand?.support_email || brand?.footer ? h('p', { class: 'muted small', style: { marginTop: '24px' } },
+      brand.support_email ? ['Need help? ', h('a', { href: `mailto:${brand.support_email}` }, brand.support_email), brand.footer ? ' · ' : ''] : null,
+      brand.footer || null) : null);
 }
 
 function stat(label, value, ico) {
@@ -62,20 +68,59 @@ export async function renderRequests(view) {
 }
 
 export async function renderNewRequest(view) {
-  const { services } = await api('GET', 'portal/requests');
+  const { services, intake = {} } = await api('GET', 'portal/requests');
   const submit = h('button', { class: 'btn primary', type: 'submit' }, icon('check', 15), 'Send request');
+  const questionsSlot = h('div');
+  const serviceSelect = h('select', { name: 'service', required: true, onchange: () => drawQuestions() }, services.map((s) => h('option', { value: s.key }, s.label)));
+  function drawQuestions() {
+    const qs = intake[serviceSelect.value] || [];
+    clear(questionsSlot).append(qs.length ? h('fieldset', { class: 'stack' }, h('legend', { class: 'small muted' }, 'A few questions so the first call is useful'),
+      qs.map((q) => field(q.label, intakeInput(q), q.required ? null : 'optional'))) : '');
+  }
+  drawQuestions();
   const form = h('form', { class: 'card', onsubmit: (e) => { e.preventDefault(); busy(submit, 'Sending…', async () => {
-    const r = await api('POST', 'portal/requests', formData(form));
+    const body = formData(form);
+    body.intake = intakeValues(questionsSlot);
+    for (const k of Object.keys(body)) if (k.startsWith('intake__')) delete body[k];
+    const r = await api('POST', 'portal/requests', body);
     toast(r.message);
     navigate(`/requests/${r.request.id}`);
   }); } },
-  field('What do you need?', h('select', { name: 'service', required: true }, services.map((s) => h('option', { value: s.key }, s.label)))),
+  field('What do you need?', serviceSelect),
+  questionsSlot,
   field('Tell us about it', h('textarea', { name: 'details', rows: 6, required: true, minlength: 10, maxlength: 4000, placeholder: 'Goals, audience, links, anything that helps.' })),
   h('div', { class: 'grid grid-2' },
     field('Budget', h('input', { name: 'budget', maxlength: 100, placeholder: 'e.g. $5–10k' }), 'optional'),
     field('Deadline', h('input', { name: 'deadline', maxlength: 100, placeholder: 'e.g. end of March' }), 'optional')),
   submit);
   view.append(pageHead('New request', 'Send it and you’ll get an answer (and later a proposal) right here.'), form);
+}
+
+function intakeInput(q) {
+  const common = { name: `intake__${q.key}`, required: !!q.required, dataset: { intake: q.key } };
+  if (q.type === 'textarea') return h('textarea', { ...common, rows: 3, maxlength: 4000 });
+  if (q.type === 'select') return h('select', common, h('option', { value: '' }, 'Choose…'), (q.options || []).map((o) => h('option', { value: o }, o)));
+  return h('input', { ...common, type: q.type === 'url' ? 'url' : q.type === 'date' ? 'date' : 'text', maxlength: 4000 });
+}
+
+function intakeValues(root) {
+  const out = {};
+  root.querySelectorAll('[data-intake]').forEach((el) => { out[el.dataset.intake] = el.value; });
+  return out;
+}
+
+function intakeCard(r, id, onSaved) {
+  if (r.intake?.length) {
+    return h('div', { class: 'card' }, h('h2', {}, 'Your brief'),
+      h('dl', { class: 'stack' }, r.intake.map((a) => h('div', {}, h('dt', { class: 'small muted' }, a.label), h('dd', { style: { whiteSpace: 'pre-wrap', margin: 0 } }, a.answer || '–')))));
+  }
+  if (!r.intake_questions?.length || r.status.step == null) return null;
+  const slot = h('div', { class: 'stack' }, r.intake_questions.map((q) => field(q.label, intakeInput(q), q.required ? null : 'optional')));
+  const save = h('button', { class: 'btn primary', type: 'submit' }, 'Save answers');
+  return h('form', { class: 'card callout', onsubmit: (e) => { e.preventDefault(); busy(save, 'Saving…', async () => {
+    toast((await api('POST', `portal/requests/${id}/intake`, { intake: intakeValues(slot) })).message);
+    onSaved();
+  }); } }, h('h2', {}, 'A few questions'), h('p', { class: 'muted small' }, 'Answering these before the call saves you time.'), slot, save);
 }
 
 export async function renderRequest(view, id) {
@@ -86,6 +131,16 @@ export async function renderRequest(view, id) {
   const complianceSlot = h('div', { class: 'card callout' });
   const roiSlot = h('div');
   const addOnsSlot = h('div');
+  const reviewSlot = h('div');
+  const annotationCache = [];
+
+  async function loadReview() {
+    try {
+      const { files } = await api('GET', `portal/requests/${id}/files`);
+      const player = reviewPlayer({ files, streamBase: `portal/requests/${id}/files`, annotationsPath: `portal/requests/${id}/annotations`, annotations: annotationCache, onChange: () => loadAnnotations(false) });
+      clear(reviewSlot).append(player || '');
+    } catch { /* no files */ }
+  }
 
   async function loadMilestones() {
     try {
@@ -100,8 +155,10 @@ export async function renderRequest(view, id) {
     thread.scrollTop = thread.scrollHeight;
   }
 
-  async function loadAnnotations() {
+  async function loadAnnotations(redrawPlayer = true) {
     const { annotations } = await api('GET', `portal/requests/${id}/annotations`);
+    annotationCache.splice(0, annotationCache.length, ...annotations);
+    if (redrawPlayer) loadReview();
     clear(annotationsSlot).append(
       h('div', { class: 'card-header' },
         h('h2', {}, 'Revisions & Proofing'),
@@ -233,6 +290,8 @@ export async function renderRequest(view, id) {
       pay,
       r.review_url ? h('p', {}, h('a', { class: 'btn', href: r.review_url }, icon('star', 15), 'Leave a review')) : null),
     milestonesSlot,
+    intakeCard(r, id, () => navigate(`/requests/${id}`, { replace: true })),
+    reviewSlot,
     roiSlot,
     complianceSlot,
     h('div', { class: 'grid grid-2' },
@@ -435,20 +494,30 @@ function openAnnotationModal(dealId, onDone, deliverableIdx = 0) {
 
 function roiCard(data) {
   const m = data.metrics || {};
-  const b = data.benchmark || {};
-  return h('div', { class: 'card callout' },
-    h('div', { class: 'card-header' },
-      h('h2', {}, icon('chart', 16), ' Verified Campaign Performance & ROI'),
-      h('span', { class: 'pill ok' }, `${b.performance_multiplier}× Tech Benchmark`)),
+  const num = (v) => (v == null ? '–' : Number(v).toLocaleString());
+  const head = h('div', { class: 'card-header' },
+    h('h2', {}, icon('chart', 16), ' Results'),
+    data.has_data ? h('button', { class: 'btn sm', type: 'button', onclick: async () => {
+      const r = await api('GET', `portal/requests/${data.deal_id}/results-report`);
+      printMarkdown(r.filename.replace(/[.]md$/, ''), r.markdown);
+    } }, icon('download', 13), 'Print / save as PDF') : null);
+  if (!data.has_data) return h('div', { class: 'card' }, head, h('p', { class: 'muted' }, data.note));
+  const v = data.video;
+  return h('div', { class: 'card callout' }, head,
     h('div', { class: 'grid grid-4' },
-      stat('Total Reach / Views', Number(m.total_views || 0).toLocaleString(), 'play'),
-      stat('Tracked Clicks', Number(m.tracked_clicks || 0).toLocaleString(), 'link'),
-      stat('Click-Through Rate', `${m.click_through_rate}%`, 'trend'),
-      stat('Effective CPM', money(m.effective_cpm, data.currency), 'credit-card')),
-    h('p', { class: 'small muted', style: { marginTop: '10px' } }, icon('check', 13), ' ', b.verdict),
+      stat('Views / impressions', num(m.total_views), 'play'),
+      stat('Engagements', num(m.total_engagements), 'heart'),
+      stat('Tracked clicks', num(m.tracked_clicks), 'link'),
+      stat('Cost per 1,000 views', m.effective_cpm == null ? '–' : money(m.effective_cpm, data.currency), 'credit-card')),
+    v ? h('div', { style: { marginTop: '12px' } },
+      h('h3', { class: 'small' }, `Video: ${v.title || ''}`),
+      h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap' } }, v.milestones.map((ms) => h('span', { class: 'pill sm' }, `Day ${ms.day}: ${ms.views == null ? 'not yet' : num(ms.views)}`))),
+      v.last_checked ? h('p', { class: 'muted small' }, `Checked daily since ${fmtDay(v.tracked_since)}; last ${fmtDay(v.last_checked)}.`) : h('p', { class: 'muted small' }, 'Tracking starts the day after it goes live.')) : null,
+    data.benchmark ? h('p', { class: 'small' }, icon('check', 13), ` ${data.benchmark.verdict} (${data.benchmark.source})`) : null,
+    h('p', { class: 'muted small' }, 'Every number here is recorded by the studio; nothing is estimated.'),
     data.renewal_incentive ? h('div', { class: 'callout row small', style: { justifyContent: 'space-between', marginTop: '12px' } },
       h('span', {}, icon('sparkle', 14), ' ', data.renewal_incentive.offer),
-      link('/requests/new', { class: 'btn sm primary' }, 'Re-book Next Sprint')) : null);
+      link('/requests/new', { class: 'btn sm primary' }, 'New request')) : null);
 }
 
 function addOnsCard(dealId, catalog, applied, currency, onApplied) {
@@ -654,8 +723,11 @@ export async function renderBilling(view) {
           h('strong', {}, r.brand_name), ' · ', r.status, ' · earned ', money(r.credit_earned))))) : null);
   });
 
+  const manage = h('button', { class: 'btn', type: 'button', onclick: (e) => busy(e.currentTarget, 'Opening…', async () => {
+    location.href = (await api('POST', 'portal/billing/manage')).url;
+  }) }, icon('credit-card', 14), 'Manage cards & invoices');
   view.append(
-    pageHead('Billing', 'Payments, open invoices, retainers and partner credits.'),
+    pageHead('Billing', 'Payments, open invoices, retainers and partner credits.', ...(b.online && (b.payments.length || b.retainers.length) ? [manage] : [])),
     referralsSlot,
     b.due.length ? h('div', { class: 'card' }, h('h2', {}, 'To pay'),
       h('ul', { class: 'stack' }, b.due.map((d) => h('li', { class: 'row' },

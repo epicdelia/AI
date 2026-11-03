@@ -184,6 +184,8 @@ class Deal extends Model
     {
         return [
             'deliverables' => 'array',
+            'intake' => 'array',
+            'intake_at' => 'datetime',
             'talking_points_checklist' => 'array',
             'attribution' => 'array',
             'proposal' => 'array',

@@ -2,269 +2,188 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Team\Models\StaffInvite;
+use App\Domains\Team\Models\TeamTask;
+use App\Domains\Team\TeamTasks;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Team & Production: real tasks for real team members (assignee, due date, payout), "My
+ * tasks", a publishing QA checklist, invites by email and a payout ledger.
+ *
+ * Her (admin) and staff both open it. Staff move work forward; only she sets payouts,
+ * approves and pays them, and invites people. Staff see payout amounts on their own tasks only.
+ */
 class TeamController extends Controller
 {
-    /**
-     * Overview of team members, production pipeline, active assignments, and publishing QA.
-     */
+    public const ROLES = ['Video Editor', 'Thumbnail Artist', 'Copywriter', 'Social Manager', 'Researcher', 'Production Lead'];
+
     public function index(Request $request): JsonResponse
     {
-        $staffUsers = User::whereIn('role', [Role::Admin->value, Role::Staff->value])
-            ->select('id', 'name', 'email', 'role', 'created_at')
-            ->orderBy('id', 'asc')
-            ->get()
-            ->map(fn ($u) => [
+        /** @var User $me */
+        $me = $request->user();
+        $admin = $me->isAdmin();
+        $tasks = TeamTask::with(['assignee:id,name', 'script:id,title'])
+            ->orderByRaw('completed_at is not null')->orderBy('due_on')->latest('id')->take(500)->get();
+
+        $members = User::whereIn('role', [Role::Admin->value, Role::Staff->value])->whereNull('disabled_at')
+            ->orderBy('id')->get(['id', 'name', 'email', 'role'])
+            ->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
-                'email' => $u->email,
-                'role' => $u->role instanceof Role ? $u->role->value : (string)$u->role,
-                'role_label' => ($u->role instanceof Role ? $u->role : Role::tryFrom((string)$u->role) ?? Role::Staff)->label(),
+                'email' => $admin ? $u->email : null,
+                'role' => $u->role()->value,
+                'role_label' => $u->role()->label(),
+                'open_tasks' => $tasks->where('assignee_id', $u->id)->whereNull('completed_at')->count(),
             ]);
 
-        $tasks = $this->getTasks();
-        $qaItems = $this->getQaChecklist();
-
-        // Calculate pipeline metrics
-        $stageCounts = [
-            'idea' => 0,
-            'script' => 0,
-            'filming' => 0,
-            'editing' => 0,
-            'review' => 0,
-            'scheduled' => 0,
-            'published' => 0,
-        ];
-
-        $totalPayoutCommitted = 0;
-        $totalPayoutCompleted = 0;
-
-        foreach ($tasks as $t) {
-            $st = $t['stage'] ?? 'idea';
-            if (isset($stageCounts[$st])) {
-                $stageCounts[$st]++;
-            }
-            $payout = (float)($t['payout_amount'] ?? 0);
-            $totalPayoutCommitted += $payout;
-            if (!empty($t['completed']) || ($t['stage'] ?? '') === 'published') {
-                $totalPayoutCompleted += $payout;
-            }
-        }
+        $open = $tasks->whereNull('completed_at');
+        $doneThisMonth = $tasks->filter(fn (TeamTask $t) => $t->completed_at && $t->completed_at->isSameMonth(now()));
 
         return response()->json([
-            'members' => $staffUsers,
-            'tasks' => $tasks,
-            'qa' => $qaItems,
+            'me' => ['id' => $me->id, 'admin' => $admin],
+            'members' => $members,
+            'tasks' => $tasks->map(fn (TeamTask $t) => $this->present($t, $me))->values(),
+            'qa' => $this->getQaChecklist(),
             'metrics' => [
-                'total_tasks' => count($tasks),
-                'in_progress' => ($stageCounts['filming'] + $stageCounts['editing'] + $stageCounts['review']),
-                'ready_to_schedule' => $stageCounts['review'],
-                'stage_counts' => $stageCounts,
-                'velocity_monthly' => 14,
-                'payout_committed' => $totalPayoutCommitted,
-                'payout_completed' => $totalPayoutCompleted,
-                'payout_pending' => max(0, $totalPayoutCommitted - $totalPayoutCompleted),
+                'total_tasks' => $open->count(),
+                'mine' => $open->where('assignee_id', $me->id)->count(),
+                'overdue' => $open->filter(fn (TeamTask $t) => $t->isOverdue())->count(),
+                'in_progress' => $open->whereIn('stage', ['filming', 'editing', 'review'])->count(),
+                'ready_to_schedule' => $open->where('stage', 'review')->count(),
+                'stage_counts' => collect(TeamTask::STAGES)->mapWithKeys(fn ($s) => [$s => $open->where('stage', $s)->count()]),
+                'completed_this_month' => $doneThisMonth->count(),
+                // Money: hers in full; a team member sees their own.
+                'payout_pending' => (float)$tasks->whereIn('payout_status', ['pending', 'approved'])->when(!$admin, fn ($c) => $c->where('assignee_id', $me->id))->sum('payout_amount'),
+                'payout_paid_month' => (float)$tasks->where('payout_status', 'paid')->filter(fn ($t) => $t->paid_at?->isSameMonth(now()))->when(!$admin, fn ($c) => $c->where('assignee_id', $me->id))->sum('payout_amount'),
             ],
-            'roles_available' => [
-                'Video Editor',
-                'Thumbnail Artist',
-                'Copywriter',
-                'Social Manager',
-                'Researcher',
-                'Production Lead',
-            ],
+            'invites' => $admin ? StaffInvite::whereNull('accepted_at')->where('expires_at', '>', now())->latest()->get(['id', 'name', 'email', 'role_label', 'expires_at']) : [],
+            'roles_available' => self::ROLES,
         ]);
     }
 
-    /**
-     * Create a production assignment or video task.
-     */
     public function createTask(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'title' => 'required|string|max:200',
-            'stage' => 'required|string|in:idea,script,filming,editing,review,scheduled,published',
-            'assignee_name' => 'nullable|string|max:100',
-            'role_specialty' => 'nullable|string|max:100',
-            'due_date' => 'nullable|string|max:50',
-            'priority' => 'nullable|string|in:urgent,high,medium,normal',
-            'payout_amount' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string|max:1000',
+        $data = $this->validated($request, true);
+        $me = $request->user();
+        if (!$me->isAdmin()) {
+            unset($data['payout_amount'], $data['payout_currency']);
+        }
+        $task = TeamTask::create($data + [
+            'created_by' => $me->id,
+            'completed_at' => ($data['stage'] ?? 'idea') === 'published' ? now() : null,
         ]);
-
-        $tasks = $this->getTasks();
-
-        $newTask = [
-            'id' => 'task_' . Str::random(8),
-            'title' => $data['title'],
-            'stage' => $data['stage'],
-            'assignee_name' => $data['assignee_name'] ?? 'Unassigned',
-            'role_specialty' => $data['role_specialty'] ?? 'Video Editor',
-            'due_date' => $data['due_date'] ?? date('Y-m-d', strtotime('+3 days')),
-            'priority' => $data['priority'] ?? 'high',
-            'payout_amount' => (float)($data['payout_amount'] ?? 0),
-            'notes' => $data['notes'] ?? '',
-            'created_at' => now()->toIso8601String(),
-            'completed' => ($data['stage'] === 'published'),
-        ];
-
-        array_unshift($tasks, $newTask);
-        $this->saveTasks($tasks);
+        TeamTasks::notifyAssigned($task->load('assignee'), $me);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Task assigned to production queue.',
-            'task' => $newTask,
+            'message' => 'Task added.',
+            'task' => $this->present($task->fresh(['assignee', 'script']), $me),
         ], 201);
     }
 
-    /**
-     * Update task stage, assignee, or completion.
-     */
-    public function updateTask(Request $request, string $id): JsonResponse
+    public function updateTask(Request $request, int $id): JsonResponse
     {
-        $data = $request->validate([
-            'stage' => 'nullable|string|in:idea,script,filming,editing,review,scheduled,published',
-            'assignee_name' => 'nullable|string|max:100',
-            'priority' => 'nullable|string|in:urgent,high,medium,normal',
-            'completed' => 'nullable|boolean',
-        ]);
+        $task = TeamTask::findOrFail($id);
+        $me = $request->user();
+        $data = $this->validated($request, false);
+        if (!$me->isAdmin()) {
+            unset($data['payout_amount'], $data['payout_currency']);
+        }
+        $before = $task->assignee_id;
 
-        $tasks = $this->getTasks();
-        $found = false;
-
-        foreach ($tasks as &$task) {
-            if ($task['id'] === $id) {
-                if (isset($data['stage'])) {
-                    $task['stage'] = $data['stage'];
-                    if ($data['stage'] === 'published') {
-                        $task['completed'] = true;
-                    }
-                }
-                if (isset($data['assignee_name'])) {
-                    $task['assignee_name'] = $data['assignee_name'];
-                }
-                if (isset($data['priority'])) {
-                    $task['priority'] = $data['priority'];
-                }
-                if (isset($data['completed'])) {
-                    $task['completed'] = (bool)$data['completed'];
-                    if ($task['completed']) {
-                        $task['stage'] = 'published';
-                    }
-                }
-                $found = true;
-                break;
+        if (array_key_exists('completed', $data)) {
+            $task->completed_at = $data['completed'] ? ($task->completed_at ?? now()) : null;
+            if ($data['completed']) {
+                $task->stage = 'published';
             }
+            unset($data['completed']);
         }
-
-        if (!$found) {
-            return response()->json(['error' => 'Task not found.'], 404);
+        $task->fill($data);
+        if ($task->isDirty('stage') && $task->stage === 'published' && !$task->completed_at) {
+            $task->completed_at = now();
         }
-
-        $this->saveTasks($tasks);
+        if ($task->completed_at) {
+            TeamTasks::completed($task);
+        }
+        $task->save();
+        if ($task->assignee_id && $task->assignee_id !== $before) {
+            TeamTasks::notifyAssigned($task->load('assignee'), $me);
+        }
 
         return response()->json([
             'ok' => true,
             'message' => 'Task updated.',
-            'tasks' => $tasks,
+            'task' => $this->present($task->fresh(['assignee', 'script']), $me),
         ]);
     }
 
+    public function deleteTask(Request $request, int $id): JsonResponse
+    {
+        $task = TeamTask::findOrFail($id);
+        abort_if($task->payout_status === 'paid', 422, 'A paid task stays in the ledger.');
+        abort_unless($request->user()->isAdmin() || $task->created_by === $request->user()->id, 403, 'Only she or whoever created it can delete a task.');
+        $task->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     /**
-     * 1-Click Automated Repurpose Dispatcher:
-     * Dispatches 3 vertical Shorts cuts, 2 thumbnail concepts, and a carousel to the staff team.
+     * One long-form video becomes four production tasks (2 Shorts, a thumbnail pack, a
+     * carousel + thread), assigned to whoever on the team has that role, or unassigned.
      */
     public function autoRepurpose(Request $request): JsonResponse
     {
         $data = $request->validate([
             'title' => 'required|string|max:200',
             'video_url' => 'nullable|url',
-            'timestamps' => 'nullable|string',
+            'timestamps' => 'nullable|string|max:1000',
+            'script_id' => 'nullable|integer|exists:scripts,id',
         ]);
-
-        $tasks = $this->getTasks();
-        $baseTitle = trim($data['title']);
-
-        $dispatched = [
-            [
-                'id' => 'task_' . Str::random(8),
-                'title' => "Short #1 (Hook & Setup): {$baseTitle}",
-                'stage' => 'editing',
-                'assignee_name' => 'Alex (Editor)',
-                'role_specialty' => 'Video Editor',
-                'due_date' => date('Y-m-d', strtotime('+1 day')),
-                'priority' => 'urgent',
-                'payout_amount' => 75.00,
-                'notes' => 'Pacing: 150+ wpm with dynamic subtitles and visual sound-effects on beats.',
-                'created_at' => now()->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_' . Str::random(8),
-                'title' => "Short #2 (Gold Insight & Code Highlight): {$baseTitle}",
-                'stage' => 'editing',
-                'assignee_name' => 'Alex (Editor)',
-                'role_specialty' => 'Video Editor',
-                'due_date' => date('Y-m-d', strtotime('+2 days')),
-                'priority' => 'high',
-                'payout_amount' => 75.00,
-                'notes' => 'Highlight the code snippet terminal card with 1.2x zoom-in.',
-                'created_at' => now()->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_' . Str::random(8),
-                'title' => "Thumbnail A/B Test Pack (2 Concepts): {$baseTitle}",
-                'stage' => 'review',
-                'assignee_name' => 'Elena (Design)',
-                'role_specialty' => 'Thumbnail Artist',
-                'due_date' => date('Y-m-d', strtotime('+1 day')),
-                'priority' => 'urgent',
-                'payout_amount' => 80.00,
-                'notes' => 'Concept 1: Delia facial expression + Neon code card. Concept 2: High-contrast 3D graphic.',
-                'created_at' => now()->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_' . Str::random(8),
-                'title' => "LinkedIn Carousel & X Thread: {$baseTitle}",
-                'stage' => 'script',
-                'assignee_name' => 'Marcus (Copywriter)',
-                'role_specialty' => 'Copywriter',
-                'due_date' => date('Y-m-d', strtotime('+2 days')),
-                'priority' => 'medium',
-                'payout_amount' => 60.00,
-                'notes' => 'Extract 5 actionable takeaways formatted as a 1080x1350 PDF carousel.',
-                'created_at' => now()->toIso8601String(),
-                'completed' => false,
-            ],
+        $me = $request->user();
+        $base = trim($data['title']);
+        $notes = trim(($data['video_url'] ?? '') . "\n" . ($data['timestamps'] ?? ''));
+        $plan = [
+            ["Short #1 (hook & setup): {$base}", 'editing', 'Video Editor', 1],
+            ["Short #2 (best insight): {$base}", 'editing', 'Video Editor', 2],
+            ["Thumbnail pack (2 concepts): {$base}", 'review', 'Thumbnail Artist', 1],
+            ["LinkedIn carousel & X thread: {$base}", 'script', 'Copywriter', 2],
         ];
-
-        foreach ($dispatched as $newTask) {
-            array_unshift($tasks, $newTask);
+        $created = [];
+        foreach ($plan as [$title, $stage, $role, $days]) {
+            $task = TeamTask::create([
+                'title' => $title,
+                'stage' => $stage,
+                'role_label' => $role,
+                'assignee_id' => $this->defaultAssignee($role),
+                'script_id' => $data['script_id'] ?? null,
+                'due_on' => now()->addDays($days)->toDateString(),
+                'notes' => $notes ?: null,
+                'created_by' => $me->id,
+            ]);
+            TeamTasks::notifyAssigned($task->load('assignee'), $me);
+            $created[] = $this->present($task, $me);
         }
-
-        $this->saveTasks($tasks);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Repurposing cascade dispatched 4 production tasks across your staff team.',
-            'tasks_created' => $dispatched,
-            'total_queue' => count($tasks),
+            'message' => 'Added 4 production tasks.',
+            'tasks_created' => $created,
+            'total_queue' => TeamTask::whereNull('completed_at')->count(),
         ], 201);
     }
 
     /**
-     * Thumbnail A/B Mobile Simulator & Feed Contrast Audit.
+     * Rule-of-thumb readability for thumbnail text on a phone (no fabricated contrast or CTR).
      */
     public function simulateThumbnail(Request $request): JsonResponse
     {
@@ -272,39 +191,36 @@ class TeamController extends Controller
             'title' => 'required|string|max:100',
             'has_face' => 'nullable|boolean',
             'has_text' => 'nullable|boolean',
-            'text_words_count' => 'nullable|integer',
+            'text_words_count' => 'nullable|integer|min:0|max:30',
         ]);
-
-        $words = (int)($data['text_words_count'] ?? 3);
-        $readability = $words <= 4 ? 96 : ($words <= 6 ? 82 : 55);
+        $words = (int)($data['text_words_count'] ?? str_word_count($data['title']));
+        $readability = !($data['has_text'] ?? true) ? 100 : ($words <= 4 ? 95 : ($words <= 6 ? 75 : 50));
+        $tips = [];
+        if ($words > 4) {
+            $tips[] = 'Cut the thumbnail text to 4 words or fewer: longer text is hard to read at phone size.';
+        }
+        if (!($data['has_face'] ?? false)) {
+            $tips[] = 'Consider a clear face or one strong focal object; busy scenes blur at small sizes.';
+        }
+        $tips[] = 'Check the real image at 120px wide on a dark and a light background (Package → Feed preview).';
 
         return response()->json([
             'ok' => true,
             'title' => $data['title'],
             'metrics' => [
                 'mobile_readability_score' => $readability,
-                'text_density_verdict' => $words <= 4 ? 'Optimal (< 5 words)' : 'Heavy text may clip on phone screens',
-                'contrast_dark_mode' => '4.8:1 (AAA High Contrast)',
-                'contrast_light_mode' => '5.2:1 (AAA High Contrast)',
-                'predicted_ctr_tier' => $readability > 80 ? 'Top 15% (High engagement)' : 'Average benchmark',
+                'text_density_verdict' => $words <= 4 ? 'Short enough for a phone' : 'Long: may be unreadable on a phone',
             ],
-            'recommendations' => [
-                'Keep thumbnail text under 4 words for maximum 120px smartphone feed legibility.',
-                'Ensure facial expressions convey high energy, intrigue or surprise.',
-                'Maintain high neon luminance against both dark theme (#17131a) and light theme (#ffffff).',
-            ],
+            'basis' => 'Rule of thumb based on word count, not a measurement of your image.',
+            'recommendations' => $tips,
         ]);
     }
 
-    /**
-     * Toggle a pre-publishing QA item.
-     */
     public function toggleQaItem(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'key' => 'required|string',
+            'key' => 'required|string|max:60',
         ]);
-
         $qaItems = $this->getQaChecklist();
         foreach ($qaItems as &$it) {
             if ($it['key'] === $data['key']) {
@@ -312,8 +228,8 @@ class TeamController extends Controller
                 break;
             }
         }
-
-        $this->saveQaChecklist($qaItems);
+        unset($it);
+        Setting::put('team_qa_checklist', json_encode(array_values($qaItems)));
 
         return response()->json([
             'ok' => true,
@@ -321,139 +237,253 @@ class TeamController extends Controller
         ]);
     }
 
+    // ---- Payouts --------------------------------------------------------------------------
+
     /**
-     * Admin provisions a staff user account for Delia's employees.
+     * The payout ledger for a month (YYYY-MM, default this month): hers in full, a team
+     * member's own. `?format=csv` downloads it as a statement.
+     */
+    public function payouts(Request $request): JsonResponse|StreamedResponse
+    {
+        $data = $request->validate([
+            'month' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'format' => 'nullable|in:json,csv',
+        ]);
+        $me = $request->user();
+        $month = $data['month'] ?? now()->format('Y-m');
+        $start = \Carbon\CarbonImmutable::createFromFormat('Y-m-d', "{$month}-01")->startOfDay();
+        $end = $start->endOfMonth();
+
+        $q = TeamTask::with('assignee:id,name')->where('payout_amount', '>', 0)
+            ->when(!$me->isAdmin(), fn ($q) => $q->where('assignee_id', $me->id))
+            ->where(fn ($q) => $q->whereIn('payout_status', ['pending', 'approved'])
+                ->orWhereBetween('paid_at', [$start, $end])
+                ->orWhereBetween('completed_at', [$start, $end]))
+            ->orderBy('assignee_id')->orderBy('completed_at');
+        $tasks = $q->get();
+
+        if (($data['format'] ?? 'json') === 'csv') {
+            $rows = TeamTasks::statementRows($tasks);
+
+            return response()->streamDownload(function () use ($rows) {
+                $out = fopen('php://output', 'w');
+                foreach ($rows as $r) {
+                    // Neutralise spreadsheet formulas in free text.
+                    fputcsv($out, array_map(fn ($v) => preg_match('/^[=+\-@]/', (string)$v) ? "'" . $v : $v, $r));
+                }
+                fclose($out);
+            }, "payouts-{$month}.csv", ['Content-Type' => 'text/csv']);
+        }
+
+        $byPerson = $tasks->groupBy('assignee_id')->map(fn ($list) => [
+            'name' => $list->first()->assignee?->name ?? 'Unassigned',
+            'pending' => (float)$list->where('payout_status', 'pending')->sum('payout_amount'),
+            'approved' => (float)$list->where('payout_status', 'approved')->sum('payout_amount'),
+            'paid' => (float)$list->where('payout_status', 'paid')->sum('payout_amount'),
+        ])->values();
+
+        return response()->json([
+            'month' => $month,
+            'tasks' => $tasks->map(fn (TeamTask $t) => $this->present($t, $me))->values(),
+            'by_person' => $byPerson,
+        ]);
+    }
+
+    public function approvePayout(Request $request, int $id): JsonResponse
+    {
+        $task = TeamTask::findOrFail($id);
+        abort_unless($task->completed_at && $task->payout_amount > 0, 422, 'Only finished tasks with a payout can be approved.');
+        abort_if($task->payout_status === 'paid', 422, 'Already paid.');
+        $task->update(['payout_status' => 'approved', 'approved_at' => now()]);
+
+        return response()->json(['task' => $this->present($task->fresh('assignee'), $request->user())]);
+    }
+
+    public function markPaid(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'reference' => 'nullable|string|max:120',
+        ]);
+        $task = TeamTask::findOrFail($id);
+        abort_unless($task->payout_status === 'approved', 422, 'Approve the payout first.');
+        $task->update(['payout_status' => 'paid', 'paid_at' => now(), 'paid_ref' => $data['reference'] ?? null]);
+        if ($task->assignee && ($task->assignee->notify_email ?? true)) {
+            AuthController::mail($task->assignee->email, 'Payout sent', "Hi {$task->assignee->name},\n\nYour payout of "
+                . number_format((float)$task->payout_amount, 2) . " {$task->payout_currency} for “{$task->title}” was marked paid"
+                . ($task->paid_ref ? " (reference {$task->paid_ref})" : '') . ".\n\nSee your statement: " . url('/team'));
+        }
+
+        return response()->json(['task' => $this->present($task->fresh('assignee'), $request->user())]);
+    }
+
+    // ---- Team members ---------------------------------------------------------------------
+
+    /**
+     * She invites a team member by email; they set their own password from the link.
      */
     public function inviteStaff(Request $request): JsonResponse
     {
-        /** @var User $currentUser */
-        $currentUser = $request->user();
-        if ($currentUser->role() !== Role::Admin) {
-            return response()->json(['error' => 'Only the studio administrator can provision staff accounts.'], 403);
-        }
-
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'email' => 'required|email|max:200|unique:users,email',
-            'password' => 'required|string|min:8',
+            'email' => 'required|email|max:200',
+            'role_label' => 'nullable|string|in:' . implode(',', self::ROLES),
         ]);
+        $email = strtolower(trim($data['email']));
+        abort_if(User::whereRaw('lower(email) = ?', [$email])->exists(), 422, 'Someone already has an account with that email.');
 
-        $staffUser = new User([
+        $token = Str::random(48);
+        StaffInvite::where('email', $email)->whereNull('accepted_at')->delete();
+        StaffInvite::create([
+            'email' => $email,
             'name' => $data['name'],
-            'email' => strtolower(trim($data['email'])),
-            'password' => Hash::make($data['password']),
+            'role_label' => $data['role_label'] ?? null,
+            'token_hash' => hash('sha256', $token),
+            'invited_by' => $request->user()->id,
+            'expires_at' => now()->addDays(7),
         ]);
-
-        $staffUser->forceFill([
-            'role' => Role::Staff,
-            'email_verified_at' => now(),
-        ])->save();
+        $link = url('/join-team/' . $token);
+        $sent = AuthController::mail($email, 'You’re invited to the studio team', "Hi {$data['name']},\n\n{$request->user()->name} invited you to the studio team"
+            . (!empty($data['role_label']) ? " as {$data['role_label']}" : '') . ".\n\nSet your password and sign in (the link works for 7 days):\n{$link}");
 
         return response()->json([
             'ok' => true,
-            'message' => "Staff member {$staffUser->name} provisioned successfully with studio access.",
-            'user' => [
-                'id' => $staffUser->id,
-                'name' => $staffUser->name,
-                'email' => $staffUser->email,
-                'role' => 'staff',
-                'role_label' => 'Staff / Team',
-            ],
+            'message' => $sent ? "Invite sent to {$email}." : 'The invite is saved, but the email couldn’t be sent: copy the link instead.',
+            'link' => $link,
         ], 201);
     }
 
-    private function getTasks(): array
+    public function withdrawInvite(int $id): JsonResponse
     {
-        $raw = Setting::get('team_production_tasks');
-        $tasks = $raw ? json_decode($raw, true) : null;
-        return is_array($tasks) ? $tasks : $this->defaultTasks();
+        StaffInvite::whereNull('accepted_at')->findOrFail($id)->delete();
+
+        return response()->json(['ok' => true]);
     }
 
-    private function saveTasks(array $tasks): void
+    /**
+     * Turn a team member's access off (their tasks stay; open ones become unassigned).
+     */
+    public function removeStaff(Request $request, int $id): JsonResponse
     {
-        Setting::put('team_production_tasks', json_encode(array_values($tasks)));
+        $u = User::where('role', Role::Staff->value)->findOrFail($id);
+        DB::transaction(function () use ($u) {
+            $u->forceFill(['disabled_at' => now()])->save();
+            TeamTask::where('assignee_id', $u->id)->whereNull('completed_at')->update(['assignee_id' => null]);
+            DB::table('sessions')->where('user_id', $u->id)->delete();
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Public: what the invite link is for (no account details beyond name and email).
+     */
+    public function showInvite(string $token): JsonResponse
+    {
+        $invite = StaffInvite::findByToken($token);
+        abort_unless($invite, 404, 'This invite link isn’t active. Ask for a new one.');
+
+        return response()->json([
+            'name' => $invite->name,
+            'email' => $invite->email,
+            'role_label' => $invite->role_label,
+        ]);
+    }
+
+    /**
+     * Public: accept the invite with a password; creates the staff account.
+     */
+    public function acceptInvite(Request $request, string $token): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', Password::min(10)],
+        ]);
+        $invite = StaffInvite::findByToken($token);
+        abort_unless($invite, 404, 'This invite link isn’t active. Ask for a new one.');
+        abort_if(User::whereRaw('lower(email) = ?', [$invite->email])->exists(), 422, 'An account with this email exists already: sign in instead.');
+
+        DB::transaction(function () use ($invite, $data) {
+            $user = new User(['name' => $invite->name, 'email' => $invite->email, 'password' => $data['password']]);
+            $user->forceFill(['role' => Role::Staff, 'email_verified_at' => now()])->save();
+            $invite->update(['accepted_at' => now()]);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Your account is ready. Sign in with your email and new password.',
+        ]);
+    }
+
+    // ==========================================================================================
+
+    private function present(TeamTask $t, User $me): array
+    {
+        $out = $t->toApi();
+        if (!$me->isAdmin() && $t->assignee_id !== $me->id) {
+            $out['payout_amount'] = null;
+            $out['paid_ref'] = null;
+        }
+        $out['mine'] = $t->assignee_id === $me->id;
+
+        return $out;
+    }
+
+    private function validated(Request $request, bool $creating): array
+    {
+        $data = $request->validate([
+            'title' => [$creating ? 'required' : 'sometimes', 'string', 'max:200'],
+            'stage' => 'sometimes|string|in:' . implode(',', TeamTask::STAGES),
+            'role_label' => 'nullable|string|max:60',
+            'role_specialty' => 'nullable|string|max:60', // old field name
+            'assignee_id' => ['nullable', 'integer', function ($attr, $value, $fail) {
+                if ($value && !User::whereKey($value)->whereIn('role', [Role::Admin->value, Role::Staff->value])->whereNull('disabled_at')->exists()) {
+                    $fail('Pick someone on the team.');
+                }
+            }],
+            'script_id' => 'nullable|integer|exists:scripts,id',
+            'due_on' => 'nullable|date',
+            'due_date' => 'nullable|date', // old field name
+            'notes' => 'nullable|string|max:2000',
+            'payout_amount' => 'nullable|numeric|min:0|max:100000',
+            'payout_currency' => 'nullable|string|size:3',
+            'completed' => 'sometimes|boolean',
+        ]);
+        if (array_key_exists('role_specialty', $data)) {
+            $data['role_label'] ??= $data['role_specialty'];
+            unset($data['role_specialty']);
+        }
+        if (array_key_exists('due_date', $data)) {
+            $data['due_on'] ??= $data['due_date'];
+            unset($data['due_date']);
+        }
+        if (isset($data['payout_currency'])) {
+            $data['payout_currency'] = strtoupper($data['payout_currency']);
+        }
+        if (array_key_exists('payout_amount', $data)) {
+            $data['payout_amount'] = (float)($data['payout_amount'] ?? 0);
+        }
+
+        return $data;
+    }
+
+    private function defaultAssignee(string $role): ?int
+    {
+        $last = TeamTask::where('role_label', $role)->whereNotNull('assignee_id')->latest('id')->value('assignee_id');
+
+        return $last && User::whereKey($last)->whereNull('disabled_at')->exists() ? $last : null;
     }
 
     private function getQaChecklist(): array
     {
         $raw = Setting::get('team_qa_checklist');
         $items = $raw ? json_decode($raw, true) : null;
-        return is_array($items) ? $items : $this->defaultQaChecklist();
-    }
 
-    private function saveQaChecklist(array $items): void
-    {
-        Setting::put('team_qa_checklist', json_encode(array_values($items)));
-    }
-
-    private function defaultTasks(): array
-    {
-        return [
-            [
-                'id' => 'task_1',
-                'title' => 'Cut 3 High-Energy Shorts from Cursor AI Full Breakdown',
-                'stage' => 'editing',
-                'assignee_name' => 'Alex (Editor)',
-                'role_specialty' => 'Video Editor',
-                'due_date' => date('Y-m-d', strtotime('+1 day')),
-                'priority' => 'urgent',
-                'payout_amount' => 75.00,
-                'notes' => 'Focus on the 01:45 prompt injection tip and 04:12 file tree speedrun.',
-                'created_at' => now()->subDays(1)->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_2',
-                'title' => 'A/B Test 3 High-Contrast 3D Thumbnails for BigQuery Architecture',
-                'stage' => 'review',
-                'assignee_name' => 'Elena (Design)',
-                'role_specialty' => 'Thumbnail Artist',
-                'due_date' => date('Y-m-d', strtotime('+2 days')),
-                'priority' => 'high',
-                'payout_amount' => 80.00,
-                'notes' => 'Option A with yellow neon border, Option B with ex-Google badge.',
-                'created_at' => now()->subDays(2)->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_3',
-                'title' => 'Draft Deep-Dive LinkedIn Carousel for AI Coding Copilot',
-                'stage' => 'script',
-                'assignee_name' => 'Marcus (Copywriter)',
-                'role_specialty' => 'Copywriter',
-                'due_date' => date('Y-m-d', strtotime('+3 days')),
-                'priority' => 'medium',
-                'payout_amount' => 60.00,
-                'notes' => '10-slide template with code snippet highlights and key takeaways.',
-                'created_at' => now()->subDays(3)->toIso8601String(),
-                'completed' => false,
-            ],
-            [
-                'id' => 'task_4',
-                'title' => 'Pre-Film Audio Calibration & 4K B-Roll Capture for Studio VLOG',
-                'stage' => 'filming',
-                'assignee_name' => 'Delia Lazarescu',
-                'role_specialty' => 'Production Lead',
-                'due_date' => date('Y-m-d', strtotime('+4 days')),
-                'priority' => 'normal',
-                'payout_amount' => 0.00,
-                'notes' => 'Dual lavalier wireless test and desk overhead camera rig check.',
-                'created_at' => now()->subDays(4)->toIso8601String(),
-                'completed' => false,
-            ],
-        ];
-    }
-
-    private function defaultQaChecklist(): array
-    {
-        return [
-            ['key' => 'retention_hook', 'title' => 'First 30s Retention Hook Audited', 'desc' => 'Immediate visual payoff, question framed, zero dead air or slow logo intro.', 'passed' => true],
-            ['key' => 'audio_norm', 'title' => 'Loudness Normalized to -14 LUFS', 'desc' => 'Compliant with YouTube / Spotify / Reels normalization curve with no clipping.', 'passed' => true],
-            ['key' => 'thumbnail_contrast', 'title' => 'Mobile Thumbnail Tested at 120px', 'desc' => 'High contrast text, readable face expression, passes dark/light feed simulation.', 'passed' => true],
-            ['key' => 'sponsor_disclosure', 'title' => 'Sponsorship & Affiliate Disclosures Verified', 'desc' => 'FTC compliant #ad disclosure, custom UTM tracking links verified in description.', 'passed' => false],
-            ['key' => 'chapters_timestamps', 'title' => 'Video Chapters & Interactive Timestamps Formatted', 'desc' => '00:00 start, clear topic descriptions for SEO indexing and player bookmarks.', 'passed' => true],
-            ['key' => 'community_repurpose', 'title' => 'Cross-Platform Repurposing Package Queued', 'desc' => 'LinkedIn carousel, X thread, and Instagram Reel cuts ready in drafts.', 'passed' => false],
+        return is_array($items) ? $items : [
+            ['key' => 'retention_hook', 'title' => 'First 30 seconds checked', 'desc' => 'Immediate payoff or question, no dead air or slow logo intro.', 'passed' => false],
+            ['key' => 'audio_norm', 'title' => 'Loudness around -14 LUFS', 'desc' => 'No clipping; matches YouTube’s loudness normalisation.', 'passed' => false],
+            ['key' => 'thumbnail_contrast', 'title' => 'Thumbnail checked at phone size', 'desc' => 'Readable text and face at 120px, on dark and light backgrounds.', 'passed' => false],
+            ['key' => 'sponsor_disclosure', 'title' => 'Sponsor and affiliate disclosures', 'desc' => 'Paid promotion flag on, disclosure in the video and description, tracking links work.', 'passed' => false],
+            ['key' => 'chapters_timestamps', 'title' => 'Chapters in the description', 'desc' => 'Starts at 00:00, at least three chapters, clear names.', 'passed' => false],
+            ['key' => 'community_repurpose', 'title' => 'Repurposing drafts ready', 'desc' => 'Shorts, carousel and thread drafted or assigned.', 'passed' => false],
         ];
     }
 }
-

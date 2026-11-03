@@ -169,9 +169,10 @@ class StripePaymentController extends Controller
         $payload = json_decode($request->getContent(), true) ?: [];
         $object = $payload['data']['object'] ?? [];
         match ($payload['type'] ?? '') {
-            'checkout.session.completed' => self::checkoutCompleted($object),
-            'invoice.paid', 'invoice.payment_succeeded' => self::invoicePaid($object),
-            'customer.subscription.deleted' => self::subscriptionEnded($object),
+            'checkout.session.completed' => \App\Domains\Community\ProBilling::isCommunity($object)
+                ? \App\Domains\Community\ProBilling::completed($object) : self::checkoutCompleted($object),
+            'invoice.paid', 'invoice.payment_succeeded' => \App\Domains\Community\ProBilling::invoicePaid($object) ?: self::invoicePaid($object),
+            'customer.subscription.deleted' => \App\Domains\Community\ProBilling::ended($object) ?: self::subscriptionEnded($object),
             default => null,
         };
 
@@ -284,6 +285,13 @@ class StripePaymentController extends Controller
         if (!$deal || ($session['payment_status'] ?? 'paid') !== 'paid') {
             return;
         }
+        // Remember the Stripe customer so the client can manage cards and invoices themselves.
+        if (!empty($session['customer']) && !$deal->stripe_customer_id) {
+            $deal->forceFill(['stripe_customer_id' => (string)$session['customer']])->save();
+            if ($deal->user_id && ($client = \App\Models\User::find($deal->user_id)) && !$client->stripe_customer_id) {
+                $client->forceFill(['stripe_customer_id' => (string)$session['customer']])->save();
+            }
+        }
         if (!empty($session['subscription']) && !$deal->stripe_subscription_id) {
             $deal->update([
                 'stripe_subscription_id' => (string)$session['subscription'],
@@ -358,7 +366,7 @@ class StripePaymentController extends Controller
         }
     }
 
-    private static function secret(): ?string
+    public static function secret(): ?string
     {
         return Setting::get('stripe_secret_key') ?: (env('STRIPE_SECRET_KEY') ?: null);
     }

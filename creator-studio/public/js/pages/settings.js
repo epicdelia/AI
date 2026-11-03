@@ -4,6 +4,7 @@ import { icon } from '../icons.js';
 import { themeSwitch } from '../theme.js';
 import { personaliseCard } from '../prefs.js';
 import { NAV_ITEMS } from '../nav.js';
+import { openUserKeysModal } from '../user-keys.js';
 
 const TIMEZONES = (() => {
   try { return Intl.supportedValuesOf('timeZone'); } catch { return ['Europe/London', 'Europe/Brussels', 'Europe/Amsterdam', 'America/New_York', 'America/Los_Angeles', 'UTC']; }
@@ -122,6 +123,16 @@ export async function renderSettings(view) {
       field('Language', text('language', { placeholder: 'English' })),
       h('div', { class: 'span-2' }, field('Standing instructions', area('specific_instructions', 2, { placeholder: 'Always British spelling. Never say “guys”. Sign off with “see you Sunday”.' }))),
       h('div', { class: 'span-2' }, field('Voice excerpts', area('voice_excerpts', 7, { placeholder: 'Paste a few minutes of real transcripts from your best videos. The AI imitates the rhythm.' }), 'up to ~9,000 characters are used')))),
+
+  h('div', { class: 'card', style: { border: '1px solid var(--border-accent, #9333ea55)', padding: '16px' } },
+    h('div', { class: 'row-between wrap', style: { gap: '12px', alignItems: 'center' } },
+      h('div', {},
+        h('div', { class: 'row', style: { gap: '8px', alignItems: 'center' } },
+          h('h2', { style: { margin: 0 } }, 'My Personal AI Keys Vault (BYOK & Credits)'),
+          h('span', { class: 'pill tone-good small' }, 'Stored in Database Linked to User')),
+        h('p', { class: 'muted small', style: { margin: '4px 0 0' } },
+          'Set your personal keys for all 9 AI families (Gemini, Claude, OpenAI, DeepSeek, Grok, ElevenLabs, Fal, Perplexity, Serper). When set, the studio charges $0 credits.')),
+      h('button', { type: 'button', class: 'btn primary', onclick: () => openUserKeysModal() }, icon('key', 14), ' Open AI Keys Vault 🔑'))),
 
   section('AI engine', 'One provider powers ideas, scripts, reviews, the Toolkit, chat and dictation cleanup. Switch any time.',
     h('div', { class: 'grid grid-2 tight' },

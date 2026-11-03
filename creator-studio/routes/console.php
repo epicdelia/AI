@@ -56,6 +56,14 @@ $track = function ($command, string $name, callable $work): int {
     }
 };
 
+Artisan::command('studio:community-digest', function () use ($track) {
+    return $track($this, 'community-digest', fn () => 'Community digest sent to '.\App\Domains\Community\Community::sendDigests().' member(s).');
+})->purpose('Email members what is new in the Community Hub this week');
+
+Artisan::command('studio:team-reminders', function () use ($track) {
+    return $track($this, 'team-reminders', fn () => 'Reminded '.\App\Domains\Team\TeamTasks::remindDue().' team member(s) about tasks due.');
+})->purpose('Email team members their tasks due tomorrow or overdue');
+
 Artisan::command('studio:scan', function (BreakoutScanner $scanner) use ($track) {
     return $track($this, 'scan', fn () => 'Found '.$scanner->scan().' new breakout video(s).');
 })->purpose('Scan the competitor watchlist for breakout videos');
@@ -317,4 +325,6 @@ Schedule::command('studio:agents-learn')->weeklyOn(0, '20:00')->timezone($tz)->w
 Schedule::command('studio:engage')->everyTenMinutes()->when(fn () => $enabled() && rescue(fn () => SocialAccount::whereIn('platform', ['instagram', 'threads', 'youtube'])->where('status', 'connected')->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:workflows')->everyMinute()->when(fn () => $enabled() && rescue(fn () => Workflow::where('active', true)->exists() || WorkflowRun::whereIn('status', ['queued', 'waiting'])->exists(), false, false))->withoutOverlapping();
 Schedule::command('studio:youtube')->everyMinute()->when(fn () => $enabled() && rescue(fn () => \App\Domains\YouTube\VideoUpload::whereIn('status', ['queued', 'uploading'])->exists() || \App\Domains\YouTube\TitleTest::where('status', 'running')->exists(), false, false))->withoutOverlapping();
+Schedule::command('studio:community-digest')->weeklyOn(4, '09:00')->timezone($tz)->when($enabled)->withoutOverlapping();
+Schedule::command('studio:team-reminders')->dailyAt('08:30')->timezone($tz)->when($enabled)->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:00')->timezone($tz)->withoutOverlapping();

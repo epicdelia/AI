@@ -80,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         try {
+            @set_time_limit(300);
             if (@file_get_contents($marker) !== $stamp) {
                 Artisan::call('migrate', [
                     '--force' => true,

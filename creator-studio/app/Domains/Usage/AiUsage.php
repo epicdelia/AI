@@ -68,6 +68,43 @@ class AiUsage extends Model
                 $u->quantity = 1;
             }
         });
+
+        // Credit system tracking: record per-user ledger and deduct if not BYOK.
+        static::created(function (self $u) {
+            try {
+                $user = auth()->user();
+                if (!$user) {
+                    return;
+                }
+                $engine = \App\Domains\Engine\Enums\EngineEnum::tryFrom((string)$u->engine);
+                $hasByok = $engine ? $user->hasApiKeyFor($engine) : false;
+                $quantity = (int)($u->quantity ?? 1);
+                $ratePerUnit = match ($u->unit) {
+                    'token' => 0.000002,
+                    'image' => 0.040000,
+                    'second' => 0.002000,
+                    default => 0.000100,
+                };
+                $cost = $hasByok ? 0.0 : round($quantity * $ratePerUnit, 4);
+
+                \App\Models\UserUsageCredit::create([
+                    'user_id' => $user->id,
+                    'model_key' => (string)($u->model ?? 'default'),
+                    'feature' => (string)($u->feature ?? 'studio'),
+                    'unit' => (string)($u->unit ?? 'token'),
+                    'quantity' => $quantity,
+                    'unit_price' => $ratePerUnit,
+                    'total_cost' => $cost,
+                    'byok' => $hasByok,
+                ]);
+
+                if (!$hasByok && $cost > 0) {
+                    $user->deductCredits($cost);
+                }
+            } catch (\Throwable $e) {
+                // Silently ignore if credit tables are not present or during CLI runs
+            }
+        });
     }
 
     protected function casts(): array

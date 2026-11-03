@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use PDO;
+use RachidLaasri\LaravelInstaller\Events\LaravelInstallerFinished;
+use RachidLaasri\LaravelInstaller\Helpers\FinalInstallManager;
+use RachidLaasri\LaravelInstaller\Helpers\InstalledFileManager;
+use RachidLaasri\LaravelInstaller\Helpers\RequirementsChecker;
 use Throwable;
 
 class InstallController extends Controller
@@ -46,7 +50,13 @@ class InstallController extends Controller
         $serverSoftware = $_SERVER['SERVER_SOFTWARE'] ?? (PHP_SAPI === 'cli' ? 'CLI Environment' : 'Linux / Nginx');
         $serverIp = $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
 
-        $extensions = [
+        $requirementsChecker = app(RequirementsChecker::class);
+        $reqConfig = config('installer.requirements.php', [
+            'openssl', 'pdo', 'pdo_sqlite', 'pdo_mysql', 'pdo_pgsql', 'mbstring',
+            'tokenizer', 'json', 'curl', 'fileinfo', 'ctype', 'xml', 'bcmath',
+        ]);
+        $checkedReqs = $requirementsChecker->check(['php' => $reqConfig]);
+        $extensions = $checkedReqs['requirements']['php'] ?? [
             'pdo' => extension_loaded('pdo'),
             'pdo_sqlite' => extension_loaded('pdo_sqlite'),
             'pdo_mysql' => extension_loaded('pdo_mysql'),
@@ -70,9 +80,10 @@ class InstallController extends Controller
 
         $hasAppKey = !empty(config('app.key'));
         $basePath = base_path();
+        $installed = file_exists(storage_path('installed')) || $hasUsers;
 
         return response()->json([
-            'installed' => $hasUsers,
+            'installed' => $installed,
             'database' => [
                 'connected' => $dbConnected,
                 'default' => config('database.default'),
@@ -476,6 +487,27 @@ class InstallController extends Controller
             }
         }
 
+        // 1. Create vendor installed marker: storage/installed
+        try {
+            app(InstalledFileManager::class)->create();
+        } catch (Throwable) {
+            // Non-fatal if filesystem permission prevents marker write
+        }
+
+        // 2. Run vendor FinalInstallManager for key generation & asset publishing
+        try {
+            app(FinalInstallManager::class)->runFinal();
+        } catch (Throwable) {
+            // Non-fatal
+        }
+
+        // 3. Dispatch vendor event: LaravelInstallerFinished
+        try {
+            event(new LaravelInstallerFinished);
+        } catch (Throwable) {
+            // Non-fatal
+        }
+
         // Sign in immediately
         $request->session()->regenerate();
         auth()->login($adminUser, true);
@@ -593,6 +625,10 @@ NGINX;
      */
     private function installed(): bool
     {
+        if (file_exists(storage_path('installed'))) {
+            return true;
+        }
+
         try {
             return User::count() > 0;
         } catch (Throwable) {

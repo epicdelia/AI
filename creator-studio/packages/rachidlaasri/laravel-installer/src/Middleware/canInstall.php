@@ -48,7 +48,22 @@ class canInstall
 
     public function alreadyInstalled(): bool
     {
-        return file_exists(storage_path('installed'))
-            || (Helper::dbConnectionStatus() && Schema::hasTable('settings'));
+        if (file_exists(storage_path('installed'))) {
+            return true;
+        }
+
+        if (! Helper::dbConnectionStatus()) {
+            return false;
+        }
+
+        try {
+            if (Schema::hasTable('users') && \App\Models\User::count() > 0) {
+                return true;
+            }
+
+            return Schema::hasTable('settings');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

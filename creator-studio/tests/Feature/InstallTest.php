@@ -15,6 +15,17 @@ class InstallTest extends TestCase
     {
         parent::setUp();
         Setting::flush();
+        if (file_exists(storage_path('installed'))) {
+            @unlink(storage_path('installed'));
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        if (file_exists(storage_path('installed'))) {
+            @unlink(storage_path('installed'));
+        }
+        parent::tearDown();
     }
 
     public function test_install_status_returns_system_info(): void
@@ -153,5 +164,41 @@ class InstallTest extends TestCase
             'initialized' => false,
             'authenticated' => false,
         ]);
+    }
+
+    public function test_vps_install_creates_installed_file_and_dispatches_vendor_event(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([
+            \RachidLaasri\LaravelInstaller\Events\LaravelInstallerFinished::class,
+        ]);
+
+        $payload = [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'app_url' => 'https://studio.test',
+            'admin_name' => 'Delia Lazarescu',
+            'admin_email' => 'delia@thetechunicorn.com',
+            'admin_password' => 'MasterPass2026!',
+            'admin_password_confirmation' => 'MasterPass2026!',
+            'timezone' => 'Europe/Berlin',
+            'currency' => 'EUR',
+            'brand_accent' => 'rose',
+            'seed_staff' => false,
+        ];
+
+        $res = $this->postJson('/api/install/vps', $payload)->assertOk();
+        $res->assertJsonPath('ok', true);
+
+        $this->assertFileExists(storage_path('installed'));
+        \Illuminate\Support\Facades\Event::assertDispatched(\RachidLaasri\LaravelInstaller\Events\LaravelInstallerFinished::class);
+
+        // After installation, repeated calls to install endpoints should be rejected with 403
+        $this->postJson('/api/install/vps', $payload)->assertStatus(403);
+    }
+
+    public function test_helper_adapter_provides_vendor_compatibility(): void
+    {
+        $this->assertTrue(\App\Helpers\Classes\Helper::dbConnectionStatus());
+        $this->assertNull(\App\Helpers\Classes\Helper::settingTwo('non_existent_key'));
     }
 }

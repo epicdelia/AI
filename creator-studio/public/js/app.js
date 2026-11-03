@@ -253,7 +253,7 @@ function appHeader(drawerToggle) {
 
   const name = (window.__studioName || state.user?.name || '').trim();
   const avatar = h('button', { class: 'hdr-avatar', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Your menu', title: name });
-  const drawAvatar = () => avatar.replaceChildren(prefs().avatar ? h('img', { src: `/api/me/avatar?${Date.now()}`, alt: '' }) : (name[0] || 'S').toUpperCase());
+  const drawAvatar = () => avatar.replaceChildren(h('img', { src: prefs().avatar ? `/api/me/avatar?${Date.now()}` : '/images/delia_portrait_round.jpg', alt: name || 'Delia Lazarescu', style: { width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' } }));
   drawAvatar();
   window.addEventListener('prefs:avatar', drawAvatar);
   let menu = null;

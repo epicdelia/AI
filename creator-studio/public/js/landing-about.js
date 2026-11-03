@@ -81,25 +81,211 @@ function journey(milestones) {
 function portrait(d) {
   const f = d.facts || {};
   const avail = f.availability;
-  return h('div', { class: 'landing-about-showcase' },
-    h('figure', { class: 'landing-about-photo-card' },
+
+  // Curated showcase slides for Delia's portfolio (excluding portrait which is reserved for the header avatar)
+  const SLIDES = [
+    {
+      src: d.portrait_url || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
+      alt: 'Delia Lazarescu, ex-Google engineer and founder',
+      tag: 'Ex-Google Engineer & Founder',
+      icon: 'code',
+      nowTitle: d.now || 'Building AI-powered apps and explaining them on camera',
+      nowSub: avail ? avail.label : '1 build slot open',
+      nowClass: avail ? ('is-' + avail.status) : 'is-open'
+    },
+    {
+      src: '/images/delia_hyperagent.jpg',
+      alt: 'Delia Lazarescu building AI HyperAgents & autonomous engineering systems',
+      tag: 'AI Systems & HyperAgents',
+      icon: 'sparkle',
+      nowTitle: 'Shipping production LLM pipelines & agent architectures',
+      nowSub: 'Active Sprints',
+      nowClass: 'is-open'
+    },
+    {
+      src: '/images/delia_tech_ai.jpg',
+      alt: 'Delia Lazarescu, keynote speaker and content creator for 519K+ builders',
+      tag: 'Tech Creator & Keynote Speaker',
+      icon: 'mic',
+      nowTitle: 'Demystifying frontier AI for 519K+ builders worldwide',
+      nowSub: 'Global Stages & Studio',
+      nowClass: 'is-open'
+    }
+  ];
+
+  let currentIndex = 0;
+  let timer = null;
+  let isPaused = false;
+
+  const showcase = h('div', { class: 'landing-about-showcase landing-slider-showcase' });
+  const card = h('figure', {
+    class: 'landing-about-photo-card landing-about-slider-card',
+    tabIndex: 0,
+    role: 'region',
+    'aria-label': 'Delia Lazarescu Photo Showcase Slider',
+    'aria-roledescription': 'carousel'
+  });
+
+  // Track of images with smooth cross-fade & zoom
+  const track = h('div', { class: 'landing-slider-track' });
+  const slideEls = SLIDES.map((slide, idx) => {
+    return h('div', {
+      class: 'landing-slider-slide' + (idx === 0 ? ' is-active' : ''),
+      'aria-hidden': String(idx !== 0)
+    },
       h('img', {
-        src: d.portrait_url,
-        alt: 'Delia Lazarescu, ex-Google engineer and founder',
+        src: slide.src,
+        alt: slide.alt,
         class: 'landing-about-photo',
         width: '480',
         height: '480',
-        style: { aspectRatio: '1 / 1', objectFit: 'cover' },
-        loading: 'eager',
+        loading: idx === 0 ? 'eager' : 'lazy',
         decoding: 'async',
-      }),
-      h('span', { class: 'landing-about-photo-tag' }, icon('code', 12), 'Ex-Google Engineer & Founder'),
-      d.now || d.location || avail ? h('figcaption', { class: 'landing-about-now' },
-        h('span', { class: 'landing-about-now-label' }, h('i', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }), 'Now'),
-        d.now ? h('strong', {}, d.now) : null,
-        h('span', { class: 'landing-about-now-meta' },
-          d.location ? h('span', {}, icon('pin', 12), d.location) : null,
-          avail ? h('span', { class: `is-${avail.status}` }, avail.label) : null)) : null));
+        style: { aspectRatio: '1 / 1', objectFit: 'cover' }
+      })
+    );
+  });
+  track.append(...slideEls);
+
+  // Top header overlay: Tag pill on left, counter badge on right
+  const tagEl = h('span', { class: 'landing-about-photo-tag' },
+    h('span', { class: 'icon', 'aria-hidden': 'true' }, icon(SLIDES[0].icon, 12)),
+    h('span', { class: 'landing-tag-label' }, SLIDES[0].tag)
+  );
+
+  const counterEl = h('span', { class: 'landing-slider-counter' }, '1 / ' + SLIDES.length);
+  const topOverlay = h('div', { class: 'landing-slider-top-bar' }, tagEl, counterEl);
+
+  // Navigation Arrows
+  const prevBtn = h('button', {
+    type: 'button',
+    class: 'landing-slider-nav-btn prev',
+    'aria-label': 'Previous photo',
+    onclick: (e) => { e.stopPropagation(); goToSlide(currentIndex - 1); }
+  }, icon('chevron-left', 16));
+
+  const nextBtn = h('button', {
+    type: 'button',
+    class: 'landing-slider-nav-btn next',
+    'aria-label': 'Next photo',
+    onclick: (e) => { e.stopPropagation(); goToSlide(currentIndex + 1); }
+  }, icon('chevron-right', 16));
+
+  // Indicators / Dots
+  const dotsWrap = h('div', { class: 'landing-slider-dots', role: 'tablist', 'aria-label': 'Choose photo' });
+  const dotEls = SLIDES.map((_, idx) => h('button', {
+    type: 'button',
+    class: 'landing-slider-dot' + (idx === 0 ? ' is-active' : ''),
+    role: 'tab',
+    'aria-selected': String(idx === 0),
+    'aria-label': 'Go to slide ' + (idx + 1),
+    onclick: (e) => { e.stopPropagation(); goToSlide(idx); }
+  }));
+  dotsWrap.append(...dotEls);
+
+  // Progress Bar
+  const progressBar = h('div', { class: 'landing-slider-progress-bar' });
+  const progressInner = h('div', { class: 'landing-slider-progress-inner' });
+  progressBar.appendChild(progressInner);
+
+  // Figcaption (Now bar)
+  const nowTitleEl = h('strong', {}, SLIDES[0].nowTitle);
+  const nowSubEl = h('span', { class: SLIDES[0].nowClass }, SLIDES[0].nowSub);
+  const figcaption = h('figcaption', { class: 'landing-about-now' },
+    h('span', { class: 'landing-about-now-label' }, h('i', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }), 'Now'),
+    nowTitleEl,
+    h('span', { class: 'landing-about-now-meta' },
+      d.location ? h('span', {}, icon('pin', 12), d.location) : null,
+      nowSubEl
+    )
+  );
+
+  function goToSlide(newIndex) {
+    if (newIndex < 0) newIndex = SLIDES.length - 1;
+    if (newIndex >= SLIDES.length) newIndex = 0;
+    currentIndex = newIndex;
+
+    const s = SLIDES[currentIndex];
+
+    // Update slides visibility
+    slideEls.forEach((el, idx) => {
+      const active = idx === currentIndex;
+      el.classList.toggle('is-active', active);
+      el.setAttribute('aria-hidden', String(!active));
+    });
+
+    // Update dots
+    dotEls.forEach((el, idx) => {
+      const active = idx === currentIndex;
+      el.classList.toggle('is-active', active);
+      el.setAttribute('aria-selected', String(active));
+    });
+
+    // Update counter
+    counterEl.textContent = (currentIndex + 1) + ' / ' + SLIDES.length;
+
+    // Update Tag
+    tagEl.replaceChildren(
+      h('span', { class: 'icon', 'aria-hidden': 'true' }, icon(s.icon, 12)),
+      h('span', { class: 'landing-tag-label' }, s.tag)
+    );
+
+    // Update Figcaption
+    nowTitleEl.textContent = s.nowTitle;
+    nowSubEl.textContent = s.nowSub;
+    nowSubEl.className = s.nowClass;
+
+    // Reset progress animation
+    resetProgress();
+  }
+
+  function resetProgress() {
+    progressInner.style.animation = 'none';
+    void progressInner.offsetWidth;
+    if (!isPaused) {
+      progressInner.style.animation = 'landingSliderProgress 5.5s linear infinite';
+    }
+  }
+
+  function startAutoPlay() {
+    stopAutoPlay();
+    timer = setInterval(() => {
+      if (!isPaused) goToSlide(currentIndex + 1);
+    }, 5500);
+    resetProgress();
+  }
+
+  function stopAutoPlay() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
+  card.addEventListener('mouseenter', () => { isPaused = true; progressInner.style.animationPlayState = 'paused'; });
+  card.addEventListener('mouseleave', () => { isPaused = false; progressInner.style.animationPlayState = 'running'; });
+
+  // Touch Swipe Handling for Mobile
+  let touchStartX = 0;
+  let touchEndX = 0;
+  card.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; isPaused = true; }, { passive: true });
+  card.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    isPaused = false;
+    const diff = touchEndX - touchStartX;
+    if (diff > 45) goToSlide(currentIndex - 1);
+    else if (diff < -45) goToSlide(currentIndex + 1);
+  }, { passive: true });
+
+  // Keyboard accessibility
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goToSlide(currentIndex - 1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); goToSlide(currentIndex + 1); }
+  });
+
+  startAutoPlay();
+
+  card.append(track, topOverlay, prevBtn, nextBtn, dotsWrap, progressBar, figcaption);
+  showcase.appendChild(card);
+  return showcase;
 }
 
 /** @param {{ onBookCall: (type: string, service?: string) => void }} options */

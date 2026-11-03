@@ -734,7 +734,7 @@ export function renderLanding(view, options = {}) {
     'aria-expanded': 'false',
     'aria-label': 'Tech Unicorn menu',
     title: 'Tech Unicorn · Delia Lazarescu',
-  }, 'D');
+  }, h('img', { src: '/images/delia_portrait_round.jpg', alt: 'Delia Lazarescu', style: { width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' } }));
 
   let profileMenu = null;
   const closeProfileMenu = () => {

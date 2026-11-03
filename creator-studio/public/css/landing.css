@@ -7015,3 +7015,191 @@ a.landing-stat-box:focus-visible .landing-stat-go {
   background-size: 200% 100%;
   animation: landing-sk 1.4s ease-in-out infinite;
 }
+
+
+/* --- Landing About Showcase Luxury Image Slider --- */
+.landing-about-slider-card {
+  position: relative;
+  overflow: hidden;
+  outline: none;
+}
+
+.landing-slider-track {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.landing-slider-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.landing-slider-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.landing-slider-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+}
+
+.landing-slider-top-bar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.landing-slider-top-bar .landing-about-photo-tag {
+  position: static;
+  pointer-events: auto;
+}
+
+.landing-slider-counter {
+  pointer-events: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(23, 19, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='light'] .landing-slider-counter {
+  background: rgba(253, 250, 248, 0.88);
+  color: #17131a;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.landing-slider-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(23, 19, 26, 0.65);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.landing-about-slider-card:hover .landing-slider-nav-btn,
+.landing-about-slider-card:focus-visible .landing-slider-nav-btn {
+  opacity: 1;
+}
+
+.landing-slider-nav-btn.prev {
+  left: 12px;
+}
+
+.landing-slider-nav-btn.next {
+  right: 12px;
+}
+
+.landing-slider-nav-btn:hover {
+  background: var(--accent, #d946ef);
+  border-color: var(--accent, #d946ef);
+  color: #ffffff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.landing-slider-dots {
+  position: absolute;
+  bottom: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(23, 19, 26, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+.landing-slider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-slider-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.landing-slider-dot.is-active {
+  width: 22px;
+  background: var(--accent, #d946ef);
+  box-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
+}
+
+.landing-slider-progress-bar {
+  position: absolute;
+  bottom: 78px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.landing-slider-progress-inner {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #d946ef, #f43f5e);
+  transform-origin: left;
+  animation: landingSliderProgress 5.5s linear infinite;
+}
+
+@keyframes landingSliderProgress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (max-width: 960px) {
+  .landing-slider-nav-btn {
+    opacity: 0.85;
+    width: 32px;
+    height: 32px;
+  }
+}

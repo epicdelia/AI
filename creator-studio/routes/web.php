@@ -109,6 +109,11 @@ Route::prefix('api')->group(function () {
     Route::get('landing/availability', [\App\Http\Controllers\LandingPageController::class, 'availability']);
     Route::post('landing/click', [\App\Http\Controllers\LandingPageController::class, 'click'])->middleware('throttle:60,1');
 
+    // Multilingual & 24 EU Localization Routes
+    Route::post('locale/{locale}', [\App\Http\Controllers\Api\LocaleController::class, 'setLocale'])->where('locale', '[a-zA-Z]{2}');
+    Route::get('locales', [\App\Http\Controllers\Api\LocaleController::class, 'locales']);
+    Route::post('website/translate', [\App\Http\Controllers\Api\LocaleController::class, 'translateContent']);
+
     // The portal's white-label look (name, logo, accent) for clients and members.
     Route::get('branding', [\App\Http\Controllers\Api\PortalBrandController::class, 'show'])->middleware('throttle:60,1');
     Route::get('branding/logo', [\App\Http\Controllers\Api\PortalBrandController::class, 'logo'])->middleware('throttle:60,1');

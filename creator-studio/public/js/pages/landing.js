@@ -22,6 +22,7 @@ import { estimatorSection } from '../landing-estimator.js';
 import { buildsSection } from '../landing-builds.js';
 import { guaranteesSection } from '../landing-guarantees.js';
 import { nomadSection } from '../landing-nomad.js';
+import { createLanguagePicker } from '../i18n.js';
 
 ensureLandingCss(); // its styles live in landing.css
 
@@ -795,6 +796,7 @@ export function renderLanding(view, options = {}) {
       }, brandMark(28)),
       megaNav,
       h('div', { class: 'landing-header-actions', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+        createLanguagePicker({ variant: 'header' }),
         isAuth ? null : h('button', {
           type: 'button',
           class: 'btn primary sm landing-join-community',
@@ -1179,7 +1181,8 @@ export function renderLanding(view, options = {}) {
             h('span', { class: 'muted' }, '·'),
             h('span', {}, 'Ex-Google')),
           emailPill(),
-          socialIconsBar()),
+          socialIconsBar(),
+          h('div', { style: { marginTop: '16px' } }, createLanguagePicker({ variant: 'footer' }))),
 
         // Column 1: Core Engineering
         h('div', { class: 'landing-footer-col' },

@@ -15,6 +15,7 @@ import { notificationsButton, stopNotifications } from './notifications.js';
 import { registerServiceWorker, installButton, installShortcutsHelp } from './pwa.js';
 import { applyPrefs, prefs } from './prefs.js';
 import { navFor, can } from './nav.js';
+import { createLanguagePicker } from './i18n.js';
 
 /** A page module, fetched the first time its page opens. */
 const lazy = (load, name) => async (...args) => (await load())[name](...args);
@@ -286,6 +287,7 @@ function appHeader(drawerToggle) {
     megaMenus(),
     h('div', { class: 'hdr-actions' },
       isStudio() ? notificationsButton() : null,
+      createLanguagePicker({ variant: 'dashboard' }),
       isStudio() ? copilotBtn : null,
       h('div', { class: 'hdr-avatar-wrap' }, avatar)));
 }

@@ -74,8 +74,7 @@ class ApiController extends Controller
                 'name' => $rawName,
                 'accent' => Setting::get('accent', 'rose'),
                 'love' => Setting::get('love_notes', '1') === '1',
-                'google' => true,
-                'linkedin' => true,
+                'google' => \App\Http\Controllers\GoogleLoginController::available(),
                 'demo_client' => \App\Domains\Clients\DemoClient::enabled(),
             ] : null,
             'love' => $admin ? [

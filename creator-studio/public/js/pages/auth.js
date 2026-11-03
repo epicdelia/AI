@@ -408,25 +408,25 @@ export function renderAuth(root, initialized, welcome, onDone, onBackToLanding =
       },
     }, formFields, error, submit);
 
-    const hasOAuth = initialized && (mode === 'login' || mode === 'signup') && (welcome?.google || welcome?.linkedin);
+    const hasOAuth = initialized && (mode === 'login' || mode === 'signup');
     const socialButtons = hasOAuth ? [
       h('div', { class: 'auth-social-grid' },
-        welcome?.google ? h('a', {
+        h('a', {
           class: 'auth-social-btn google-btn',
           href: `/auth/google/redirect?remember=${remember?.checked ? 1 : 1}${mode === 'signup' ? `&role=${selectedRole}` : ''}`,
           onclick: (e) => {
             const rem = remember ? (remember.checked ? 1 : 0) : 1;
             e.currentTarget.href = `/auth/google/redirect?remember=${rem}${mode === 'signup' ? `&role=${selectedRole}` : ''}`;
           },
-        }, h('span', { class: 'auth-social-ico', html: GOOGLE }), mode === 'signup' ? 'Google' : 'Continue with Google') : null,
-        welcome?.linkedin ? h('a', {
+        }, h('span', { class: 'auth-social-ico', html: GOOGLE }), mode === 'signup' ? 'Google' : 'Continue with Google'),
+        h('a', {
           class: 'auth-social-btn linkedin-btn',
           href: `/auth/linkedin/redirect?remember=${remember?.checked ? 1 : 1}${mode === 'signup' ? `&role=${selectedRole}` : ''}`,
           onclick: (e) => {
             const rem = remember ? (remember.checked ? 1 : 0) : 1;
             e.currentTarget.href = `/auth/linkedin/redirect?remember=${rem}${mode === 'signup' ? `&role=${selectedRole}` : ''}`;
           },
-        }, h('span', { class: 'auth-social-ico linkedin-ico', html: LINKEDIN }), mode === 'signup' ? 'LinkedIn' : 'Continue with LinkedIn') : null,
+        }, h('span', { class: 'auth-social-ico linkedin-ico', html: LINKEDIN }), mode === 'signup' ? 'LinkedIn' : 'Continue with LinkedIn'),
       ),
       h('div', { class: 'auth-or' }, h('span'), 'or continue with email', h('span')),
     ] : null;

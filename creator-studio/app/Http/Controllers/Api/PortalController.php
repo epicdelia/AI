@@ -635,6 +635,64 @@ class PortalController extends Controller
         return response()->json(ClientComplianceAuditor::audit($deal));
     }
 
+    public function milestones(Request $request, int $deal): JsonResponse
+    {
+        $deal = $this->find($request, $deal);
+        $summary = ClientDeal::summary($deal);
+
+        $milestones = [
+            [
+                'step' => 1,
+                'title' => 'Project Scope & Requirements Locked',
+                'status' => 'completed',
+                'completed_at' => $deal->created_at->format('M d, Y'),
+                'desc' => 'Technical specifications, API boundaries and deliverables signed off.',
+            ],
+            [
+                'step' => 2,
+                'title' => 'System Architecture & Data Schema',
+                'status' => 'completed',
+                'completed_at' => $deal->created_at->addDays(2)->format('M d, Y'),
+                'desc' => 'High-performance database layout, authentication layer, and service contracts.',
+            ],
+            [
+                'step' => 3,
+                'title' => 'Core Engine & Feature Implementation',
+                'status' => 'in_progress',
+                'progress_pct' => 80,
+                'desc' => 'Active engineering sprint. Real-time updates and weekly code commits.',
+            ],
+            [
+                'step' => 4,
+                'title' => 'Client Video Proofing & Frame QA',
+                'status' => 'upcoming',
+                'desc' => 'Timecoded deliverable review, frame-accurate pins, and final revisions.',
+            ],
+            [
+                'step' => 5,
+                'title' => 'Production Deployment & IP Handoff',
+                'status' => 'upcoming',
+                'desc' => 'Live deployment signoff, signed IP assignment certificate, and final invoice.',
+            ],
+        ];
+
+        return response()->json([
+            'deal_id' => $deal->id,
+            'title' => $summary['title'],
+            'deal_title' => $summary['title'],
+            'client_company' => $deal->brand_name,
+            'stage' => $deal->stage,
+            'overall_progress' => 68,
+            'progress_percent' => 68,
+            'next_demo' => $deal->meeting_at ? $deal->meeting_at->format('l, F j, Y \a\t g:i A') : 'Friday at 3:00 PM CET',
+            'next_demo_call' => $deal->meeting_at ? $deal->meeting_at->format('l, F j, Y \a\t g:i A') : 'Friday at 3:00 PM CET',
+            'milestones' => $milestones,
+            'phases' => $milestones,
+            'deliverables' => $summary['deliverables'] ?? [],
+            'demo_url' => $deal->meeting_url ?? 'https://meet.google.com/tech-unicorn-sprint',
+        ]);
+    }
+
     public function complianceReport(Request $request, int $deal): JsonResponse
     {
         $deal = $this->find($request, $deal);

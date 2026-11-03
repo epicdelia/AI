@@ -28,10 +28,12 @@ export async function renderCommunityHub(view) {
 
     // 2. Tab Navigation
     const tabs = [
-      { id: 'kits', label: 'Starter Kits & Blueprints', icon: 'code', count: data.kits?.length || 3 },
+      { id: 'kits', label: 'Starter Kits', icon: 'code', count: data.kits?.length || 3 },
+      { id: 'blueprints', label: 'Architecture Scaffolder', icon: 'sliders', count: data.blueprints?.length || 4 },
+      { id: 'showcase', label: 'Project Showcase', icon: 'sparkle', count: data.showcase?.length || 3 },
       { id: 'dispatches', label: 'Engineering Dispatches', icon: 'doc', count: data.dispatches?.length || 3 },
-      { id: 'ama', label: 'Ask Delia / AMA Board', icon: 'chat', count: data.ama?.length || 2 },
-      { id: 'perks', label: 'Partner Tool Perks', icon: 'tag', count: data.perks?.length || 3 },
+      { id: 'ama', label: 'Ask Delia / AMA', icon: 'chat', count: data.ama?.length || 2 },
+      { id: 'perks', label: 'Partner Perks', icon: 'tag', count: data.perks?.length || 3 },
     ];
 
     const tabContent = h('div', { class: 'community-tab-content' });
@@ -87,6 +89,81 @@ export async function renderCommunityHub(view) {
             h('h2', {}, 'Production-Grade Architecture Templates'),
             h('p', { class: 'muted small' }, 'Free MIT-licensed repositories authored and maintained by Delia Lazarescu. Clone and deploy in seconds.')),
           grid);
+
+      } else if (activeTab === 'blueprints') {
+        // Tab 2: Architecture Blueprints & Interactive Scaffolder
+        const blueprintsGrid = h('div', { class: 'community-kits-grid' },
+          (data.blueprints || []).map((bp) => h('div', { class: 'community-kit-card blueprint-card' },
+            h('div', { class: 'community-kit-head' },
+              h('span', { class: 'community-kit-cat' }, bp.category),
+              h('span', { class: 'community-kit-badge' }, bp.cost_tier)),
+            h('h3', { class: 'community-kit-title' }, bp.title),
+            h('p', { class: 'community-kit-desc muted small' }, bp.desc),
+            h('div', { class: 'blueprint-meta' },
+              h('span', {}, icon('clock', 12), ` P95 Latency: ${bp.latency_p95}`),
+              h('span', {}, icon('code', 12), ` ${bp.recommended_stack}`)),
+            h('ul', { class: 'community-kit-feats' },
+              (bp.components || []).map((c) => h('li', {}, icon('check', 11), h('span', {}, c)))),
+            h('div', { class: 'community-kit-foot' },
+              h('button', {
+                type: 'button',
+                class: 'btn sm primary block',
+                onclick: () => openScaffoldModal(bp),
+              }, icon('sliders', 13), ' Configure & Scaffold Blueprint')))));
+
+        tabContent.append(
+          h('div', { class: 'community-section-intro' },
+            h('h2', {}, 'Interactive Architecture Blueprints & Scaffolding Engine'),
+            h('p', { class: 'muted small' }, 'Select an architecture, tailor database and caching parameters, and generate ready-to-run Docker Compose boilerplates.')),
+          blueprintsGrid);
+
+      } else if (activeTab === 'showcase') {
+        // Tab 3: Member Project Showcase & Upvotes
+        const showcaseGrid = h('div', { class: 'community-kits-grid' },
+          (data.showcase || []).map((proj) => {
+            const upvoteBtn = h('button', {
+              type: 'button',
+              class: 'btn sm ghost',
+              onclick: async (e) => {
+                e.currentTarget.disabled = true;
+                try {
+                  await api('POST', `portal/community/showcase/${proj.id}/upvote`);
+                  proj.upvotes = (proj.upvotes || 0) + 1;
+                  e.currentTarget.innerHTML = `▲ ${proj.upvotes}`;
+                  toast('Project upvoted!');
+                } catch {}
+              },
+            }, `▲ ${proj.upvotes || 1}`);
+
+            return h('div', { class: `community-kit-card ${proj.is_featured ? 'is-featured' : ''}` },
+              h('div', { class: 'community-kit-head' },
+                h('span', { class: 'community-kit-cat' }, `By ${proj.author}`),
+                proj.is_featured ? h('span', { class: 'tag ok' }, icon('sparkle', 10), ' Featured by Tech Unicorn') : null),
+              h('h3', { class: 'community-kit-title' }, proj.title),
+              h('p', { class: 'community-kit-desc muted small' }, proj.desc),
+              h('div', { class: 'community-dispatch-tags', style: { marginBottom: '14px' } },
+                (proj.tags || []).map((t) => h('span', { class: 'tag' }, `#${t}`))),
+              h('div', { class: 'community-kit-foot' },
+                upvoteBtn,
+                h('div', { style: { display: 'flex', gap: '6px' } },
+                  proj.demo_url ? h('a', { href: proj.demo_url, target: '_blank', rel: 'noopener', class: 'btn sm primary' }, icon('external', 12), ' Demo') : null,
+                  proj.repo_url ? h('a', { href: proj.repo_url, target: '_blank', rel: 'noopener', class: 'btn sm ghost' }, icon('code', 12), ' Code') : null)));
+          }));
+
+        const submitBanner = h('div', { class: 'card callout community-showcase-banner' },
+          h('div', {},
+            h('h3', {}, 'Built something with Delia’s kits or blueprints?'),
+            h('p', { class: 'muted small' }, 'Share your project with 519K+ developers and get featured on upcoming Tech Unicorn live code reviews.')),
+          h('button', {
+            type: 'button', class: 'btn primary', onclick: () => openShowcaseModal(),
+          }, icon('plus', 14), ' Submit Your Project'));
+
+        tabContent.append(
+          h('div', { class: 'community-section-intro' },
+            h('h2', {}, 'Community Project Showcase'),
+            h('p', { class: 'muted small' }, 'Real-world production tools and experiments built by community engineers.')),
+          submitBanner,
+          showcaseGrid);
 
       } else if (activeTab === 'dispatches') {
         // Tab 2: Dispatches
@@ -204,6 +281,104 @@ export async function renderCommunityHub(view) {
             h('p', { class: 'muted small' }, 'Hand-picked infrastructure and AI tooling credits for members of the Tech Unicorn community.')),
           perksGrid);
       }
+    }
+
+    function openScaffoldModal(bp) {
+      const nameInput = h('input', { type: 'text', class: 'input', value: bp.id.replace('bp-', '') + '-app' });
+      const dbSelect = h('select', { class: 'input' },
+        h('option', { value: 'postgres', selected: true }, 'PostgreSQL + pgvector (Recommended)'),
+        h('option', { value: 'sqlite' }, 'SQLite (Zero-config local file)'));
+      const cacheSelect = h('select', { class: 'input' },
+        h('option', { value: 'redis', selected: true }, 'Redis (Persistent / Pub-Sub)'),
+        h('option', { value: 'memory' }, 'In-Memory Cache'));
+
+      const outputArea = h('pre', { class: 'auth-install-output', style: { maxHeight: '220px', marginTop: '14px' }, hidden: true });
+      const copyBtn = h('button', { type: 'button', class: 'btn secondary sm', hidden: true }, icon('copy', 12), ' Copy Docker Compose');
+
+      const modal = h('div', { class: 'modal-overlay' },
+        h('div', { class: 'modal-card' },
+          h('div', { class: 'modal-head' },
+            h('h3', {}, `Scaffold: ${bp.title}`),
+            h('button', { type: 'button', class: 'btn ghost sm', onclick: () => modal.remove() }, icon('x', 14))),
+          h('p', { class: 'muted small' }, bp.desc),
+          h('form', {
+            onsubmit: async (e) => {
+              e.preventDefault();
+              try {
+                const res = await api('POST', 'portal/community/blueprints/scaffold', {
+                  blueprint_id: bp.id,
+                  project_name: nameInput.value,
+                  database: dbSelect.value,
+                  cache: cacheSelect.value,
+                });
+                outputArea.textContent = res.files['docker-compose.yml'];
+                outputArea.hidden = false;
+                copyBtn.hidden = false;
+                copyBtn.onclick = () => {
+                  navigator.clipboard?.writeText(res.files['docker-compose.yml']).then(() => toast('docker-compose.yml copied!')).catch(() => {});
+                };
+                toast('Scaffolding manifest generated!');
+              } catch (err) {
+                toast(err.message, 'err');
+              }
+            },
+          },
+            h('label', { class: 'field' }, h('span', { class: 'label' }, 'Project Name'), nameInput),
+            h('div', { class: 'installer-form-row' },
+              h('label', { class: 'field' }, h('span', { class: 'label' }, 'Database Engine'), dbSelect),
+              h('label', { class: 'field' }, h('span', { class: 'label' }, 'Cache Layer'), cacheSelect)),
+            h('div', { class: 'modal-actions', style: { marginTop: '16px' } },
+              copyBtn,
+              h('button', { type: 'button', class: 'btn secondary', onclick: () => modal.remove() }, 'Close'),
+              h('button', { type: 'submit', class: 'btn primary' }, icon('sparkle', 14), ' Generate Scaffold')),
+            outputArea)));
+
+      document.body.append(modal);
+    }
+
+    function openShowcaseModal() {
+      const titleInput = h('input', { type: 'text', class: 'input', required: true, placeholder: 'e.g. Autonomous Terminal Agent' });
+      const descInput = h('textarea', { class: 'input', required: true, rows: 2, placeholder: 'What did you build and how does it work?' });
+      const repoInput = h('input', { type: 'url', class: 'input', required: true, placeholder: 'https://github.com/username/project' });
+      const demoInput = h('input', { type: 'url', class: 'input', placeholder: 'https://project-demo.com (optional)' });
+      const tagsInput = h('input', { type: 'text', class: 'input', placeholder: 'AI, FastApi, Vite' });
+
+      const modal = h('div', { class: 'modal-overlay' },
+        h('div', { class: 'modal-card' },
+          h('div', { class: 'modal-head' },
+            h('h3', {}, 'Submit Your Project to Community Showcase'),
+            h('button', { type: 'button', class: 'btn ghost sm', onclick: () => modal.remove() }, icon('x', 14))),
+          h('form', {
+            onsubmit: async (e) => {
+              e.preventDefault();
+              try {
+                const res = await api('POST', 'portal/community/showcase', {
+                  title: titleInput.value,
+                  desc: descInput.value,
+                  repo_url: repoInput.value,
+                  demo_url: demoInput.value || null,
+                  tags: tagsInput.value,
+                });
+                modal.remove();
+                toast('Your project has been submitted to the showcase!');
+                data.showcase = [res.item, ...(data.showcase || [])];
+                renderTab();
+              } catch (err) {
+                toast(err.message, 'err');
+              }
+            },
+          },
+            h('label', { class: 'field' }, h('span', { class: 'label' }, 'Project Title'), titleInput),
+            h('label', { class: 'field' }, h('span', { class: 'label' }, 'Description'), descInput),
+            h('div', { class: 'installer-form-row' },
+              h('label', { class: 'field' }, h('span', { class: 'label' }, 'GitHub Repository URL'), repoInput),
+              h('label', { class: 'field' }, h('span', { class: 'label' }, 'Live Demo URL'), demoInput)),
+            h('label', { class: 'field' }, h('span', { class: 'label' }, 'Tags (comma separated)'), tagsInput),
+            h('div', { class: 'modal-actions', style: { marginTop: '16px' } },
+              h('button', { type: 'button', class: 'btn secondary', onclick: () => modal.remove() }, 'Cancel'),
+              h('button', { type: 'submit', class: 'btn primary' }, icon('sparkle', 14), ' Submit Project')))));
+
+      document.body.append(modal);
     }
 
     renderTab();

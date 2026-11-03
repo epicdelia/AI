@@ -141,6 +141,11 @@ Route::prefix('api')->group(function () {
     // Community Hub: for regular users, followers and clients
     Route::prefix('portal/community')->middleware(['auth', 'active', 'two-factor', 'ability:portal.community'])->group(function () {
         Route::get('hub', [\App\Http\Controllers\Api\CommunityController::class, 'hub']);
+        Route::get('blueprints', [\App\Http\Controllers\Api\CommunityController::class, 'blueprints']);
+        Route::post('blueprints/scaffold', [\App\Http\Controllers\Api\CommunityController::class, 'scaffoldBlueprint'])->middleware('throttle:10,1');
+        Route::get('showcase', [\App\Http\Controllers\Api\CommunityController::class, 'showcase']);
+        Route::post('showcase', [\App\Http\Controllers\Api\CommunityController::class, 'submitShowcase'])->middleware('throttle:10,1');
+        Route::post('showcase/{id}/upvote', [\App\Http\Controllers\Api\CommunityController::class, 'upvoteShowcase'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post('ask', [\App\Http\Controllers\Api\CommunityController::class, 'ask'])->middleware('throttle:10,1');
         Route::post('upvote', [\App\Http\Controllers\Api\CommunityController::class, 'upvote'])->middleware('throttle:30,1');
     });
@@ -151,6 +156,7 @@ Route::prefix('api')->group(function () {
         Route::get('requests', [PortalController::class, 'index']);
         Route::post('requests', [PortalController::class, 'store'])->middleware('throttle:10,60');
         Route::get('requests/{deal}', [PortalController::class, 'show'])->whereNumber('deal');
+        Route::get('requests/{deal}/milestones', [PortalController::class, 'milestones'])->whereNumber('deal');
         Route::post('requests/{deal}/accept', [PortalController::class, 'accept'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::post('requests/{deal}/pay', [PortalController::class, 'pay'])->whereNumber('deal')->middleware('throttle:10,1');
         Route::get('requests/{deal}/messages', [PortalController::class, 'messages'])->whereNumber('deal');
@@ -203,6 +209,8 @@ Route::prefix('api')->group(function () {
         Route::get('team', [TeamController::class, 'index']);
         Route::post('team/tasks', [TeamController::class, 'createTask']);
         Route::patch('team/tasks/{id}', [TeamController::class, 'updateTask']);
+        Route::post('team/tasks/auto-repurpose', [TeamController::class, 'autoRepurpose']);
+        Route::post('team/thumbnails/simulate', [TeamController::class, 'simulateThumbnail']);
         Route::post('team/qa/toggle', [TeamController::class, 'toggleQaItem']);
         Route::post('team/staff', [TeamController::class, 'inviteStaff']);
     });
@@ -708,8 +716,8 @@ Route::get('links/go/{link}', [BioLinksController::class, 'go'])->whereNumber('l
 Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->whereNumber('id')->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
-Route::get('auth/google/redirect', [\App\Http\Controllers\OAuthLoginController::class, 'googleRedirect']);
-Route::get('auth/google/callback', [\App\Http\Controllers\OAuthLoginController::class, 'googleCallback']);
+Route::get('auth/google/redirect', [\App\Http\Controllers\GoogleLoginController::class, 'redirect']);
+Route::get('auth/google/callback', [\App\Http\Controllers\GoogleLoginController::class, 'callback']);
 Route::get('auth/linkedin/redirect', [\App\Http\Controllers\OAuthLoginController::class, 'linkedinRedirect']);
 Route::get('auth/linkedin/callback', [\App\Http\Controllers\OAuthLoginController::class, 'linkedinCallback']);
 

@@ -142,4 +142,110 @@ class HighRoiFeaturesTest extends TestCase
         $infraRes->assertOk();
         $infraRes->assertJsonPath('status', 'operational');
     }
+
+    public function test_community_blueprints_and_scaffolder_flow(): void
+    {
+        $blueprintsRes = $this->getJson('/api/portal/community/blueprints');
+        $blueprintsRes->assertOk();
+        $blueprintsRes->assertJsonStructure(['blueprints']);
+        $this->assertNotEmpty($blueprintsRes->json('blueprints'));
+
+        $scaffoldRes = $this->postJson('/api/portal/community/blueprints/scaffold', [
+            'blueprint_id' => 'rag_enterprise',
+            'project_name' => 'unicorn-rag-app',
+            'database' => 'postgres',
+            'cache' => 'redis',
+        ]);
+        $scaffoldRes->assertOk();
+        $scaffoldRes->assertJsonPath('ok', true);
+        $scaffoldRes->assertJsonStructure(['files' => ['docker_compose', 'readme', 'env']]);
+        $this->assertStringContainsString('pgvector/pgvector:pg16', $scaffoldRes->json('files.docker_compose'));
+    }
+
+    public function test_community_showcase_submission_and_upvoting(): void
+    {
+        $showcaseRes = $this->getJson('/api/portal/community/showcase');
+        $showcaseRes->assertOk();
+        $showcaseRes->assertJsonStructure(['showcases']);
+
+        $submitRes = $this->postJson('/api/portal/community/showcase', [
+            'title' => 'Edge AI Streaming Proxy',
+            'description' => 'Ultra-low-latency SSE proxy buffering tokens at Cloudflare edge.',
+            'demo_url' => 'https://demo.ai-proxy.dev',
+            'repo_url' => 'https://github.com/engineer/ai-proxy',
+            'tags' => 'cloudflare,edge,streaming',
+        ]);
+        $submitRes->assertStatus(201);
+        $submitRes->assertJsonPath('ok', true);
+        $showcaseId = $submitRes->json('project.id');
+
+        $upvoteRes = $this->postJson("/api/portal/community/showcase/{$showcaseId}/upvote");
+        $upvoteRes->assertOk();
+        $upvoteRes->assertJsonPath('ok', true);
+        $this->assertGreaterThanOrEqual(1, $upvoteRes->json('upvotes'));
+    }
+
+    public function test_client_live_sprint_milestones_tracker(): void
+    {
+        $client = $this->client();
+        $deal = \App\Models\Deal::create([
+            'brand_name' => 'Tech Corp',
+            'contact_email' => $client->email,
+            'stage' => 'production',
+            'user_id' => $client->id,
+        ]);
+
+        $milestonesRes = $this->actingAs($client)->getJson("/api/portal/requests/{$deal->id}/milestones");
+        $milestonesRes->assertOk();
+        $milestonesRes->assertJsonStructure([
+            'deal_id',
+            'deal_title',
+            'client_company',
+            'progress_percent',
+            'phases',
+            'deliverables',
+            'next_demo_call',
+        ]);
+        $this->assertEquals(68, $milestonesRes->json('progress_percent'));
+        $this->assertCount(5, $milestonesRes->json('phases'));
+
+        // Restore admin user
+        $this->actingAs($this->user);
+    }
+
+    public function test_team_production_pipeline_auto_repurpose_and_thumbnail_simulation(): void
+    {
+        $teamRes = $this->getJson('/api/team');
+        $teamRes->assertOk();
+        $teamRes->assertJsonStructure(['members', 'tasks', 'qa', 'metrics', 'roles_available']);
+        $this->assertGreaterThan(0, $teamRes->json('metrics.velocity_monthly'));
+
+        // Auto-repurpose cascade
+        $repurposeRes = $this->postJson('/api/team/tasks/auto-repurpose', [
+            'title' => 'Google Gemini 2.5 Coding Agents Complete Guide',
+            'video_url' => 'https://youtube.com/watch?v=12345678',
+        ]);
+        $repurposeRes->assertStatus(201);
+        $repurposeRes->assertJsonPath('ok', true);
+        $this->assertCount(4, $repurposeRes->json('tasks_created'));
+
+        // Thumbnail A/B Mobile Simulator
+        $simRes = $this->postJson('/api/team/thumbnails/simulate', [
+            'title' => 'Stop Writing Unit Tests Like This',
+            'text_words_count' => 4,
+            'has_face' => true,
+            'has_text' => true,
+        ]);
+        $simRes->assertOk();
+        $simRes->assertJsonPath('ok', true);
+        $this->assertEquals(96, $simRes->json('metrics.mobile_readability_score'));
+        $this->assertStringContainsString('AAA', $simRes->json('metrics.contrast_dark_mode'));
+
+        // QA checklist toggle
+        $qaRes = $this->postJson('/api/team/qa/toggle', [
+            'key' => 'sponsor_disclosure',
+        ]);
+        $qaRes->assertOk();
+        $qaRes->assertJsonPath('ok', true);
+    }
 }

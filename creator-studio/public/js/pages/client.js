@@ -81,10 +81,18 @@ export async function renderNewRequest(view) {
 export async function renderRequest(view, id) {
   let { request: r } = await api('GET', `portal/requests/${id}`);
   const thread = h('div', { class: 'client-thread', 'aria-live': 'polite' });
+  const milestonesSlot = h('div');
   const annotationsSlot = h('div', { class: 'card' });
   const complianceSlot = h('div', { class: 'card callout' });
   const roiSlot = h('div');
   const addOnsSlot = h('div');
+
+  async function loadMilestones() {
+    try {
+      const data = await api('GET', `portal/requests/${id}/milestones`);
+      clear(milestonesSlot).append(milestonesCard(data));
+    } catch { /* optional */ }
+  }
 
   async function loadMessages() {
     const { messages } = await api('GET', `portal/requests/${id}/messages`);
@@ -224,6 +232,7 @@ export async function renderRequest(view, id) {
       r.needs_you ? h('p', { class: 'client-needs' }, icon('alert', 14), ' ', r.needs_you) : null,
       pay,
       r.review_url ? h('p', {}, h('a', { class: 'btn', href: r.review_url }, icon('star', 15), 'Leave a review')) : null),
+    milestonesSlot,
     roiSlot,
     complianceSlot,
     h('div', { class: 'grid grid-2' },
@@ -234,7 +243,33 @@ export async function renderRequest(view, id) {
           r.retainer ? h('p', { class: 'muted small' }, `Retainer: ${r.retainer}`) : null) : null),
       h('div', { class: 'card' }, h('h2', {}, 'Messages'), thread, compose)));
 
-  await Promise.all([loadMessages(), loadAnnotations(), loadRoi(), loadCompliance(), loadAddOns()]);
+  await Promise.all([loadMessages(), loadAnnotations(), loadRoi(), loadCompliance(), loadAddOns(), loadMilestones()]);
+}
+
+function milestonesCard(m) {
+  const bar = h('div', { class: 'client-milestone-bar' },
+    h('div', { class: 'client-milestone-fill', style: { width: `${m.overall_progress}%` } }));
+
+  const list = h('div', { class: 'client-milestone-steps' },
+    (m.milestones || []).map((step) => {
+      const isDone = step.status === 'completed';
+      const isCurrent = step.status === 'in_progress';
+      return h('div', { class: `client-milestone-step ${isDone ? 'done' : isCurrent ? 'current' : ''}` },
+        h('span', { class: 'client-milestone-num' }, isDone ? icon('check', 12) : step.step),
+        h('div', { class: 'client-milestone-info' },
+          h('strong', {}, step.title),
+          h('p', { class: 'muted small' }, step.desc),
+          step.completed_at ? h('span', { class: 'tag ok' }, `Completed ${step.completed_at}`) : isCurrent ? h('span', { class: 'tag picked' }, `Active Sprint (${step.progress_pct || 80}%)`) : null));
+    }));
+
+  return h('div', { class: 'card client-milestone-card' },
+    h('div', { class: 'card-header' },
+      h('div', {},
+        h('h2', {}, icon('target', 16), ' Live Sprint & Milestone Delivery Tracker'),
+        h('p', { class: 'muted small' }, `Overall Sprint Progress: ${m.overall_progress}% · Weekly Friday live demo scheduled`)),
+      h('a', { class: 'btn primary sm', href: m.demo_url, target: '_blank', rel: 'noopener' }, icon('play', 12), ' Join Video Demo')),
+    bar,
+    list);
 }
 
 function openWrapReportModal(dealId) {

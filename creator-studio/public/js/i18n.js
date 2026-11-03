@@ -4,30 +4,30 @@
  */
 
 export const EU_LANGUAGES = [
-  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
-  { code: 'ro', name: 'Romanian', native: 'Română', flag: '🇷🇴' },
-  { code: 'de', name: 'German', native: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'French', native: 'Français', flag: '🇫🇷' },
-  { code: 'es', name: 'Spanish', native: 'Español', flag: '🇪🇸' },
-  { code: 'it', name: 'Italian', native: 'Italiano', flag: '🇮🇹' },
-  { code: 'nl', name: 'Dutch', native: 'Nederlands', flag: '🇳🇱' },
-  { code: 'pl', name: 'Polish', native: 'Polski', flag: '🇵🇱' },
-  { code: 'pt', name: 'Portuguese', native: 'Português', flag: '🇵🇹' },
-  { code: 'sv', name: 'Swedish', native: 'Svenska', flag: '🇸🇪' },
-  { code: 'da', name: 'Danish', native: 'Dansk', flag: '🇩🇰' },
-  { code: 'fi', name: 'Finnish', native: 'Suomi', flag: '🇫🇮' },
-  { code: 'el', name: 'Greek', native: 'Ελληνικά', flag: '🇬🇷' },
-  { code: 'cs', name: 'Czech', native: 'Čeština', flag: '🇨🇿' },
-  { code: 'hu', name: 'Hungarian', native: 'Magyar', flag: '🇭🇺' },
-  { code: 'bg', name: 'Bulgarian', native: 'Български', flag: '🇧🇬' },
-  { code: 'sk', name: 'Slovak', native: 'Slovenčina', flag: '🇸🇰' },
-  { code: 'hr', name: 'Croatian', native: 'Hrvatski', flag: '🇭🇷' },
-  { code: 'lt', name: 'Lithuanian', native: 'Lietuvių', flag: '🇱🇹' },
-  { code: 'sl', name: 'Slovenian', native: 'Slovenščina', flag: '🇸🇮' },
-  { code: 'et', name: 'Estonian', native: 'Eesti', flag: '🇪🇪' },
-  { code: 'lv', name: 'Latvian', native: 'Latviešu', flag: '🇱🇻' },
-  { code: 'ga', name: 'Irish', native: 'Gaeilge', flag: '🇮🇪' },
-  { code: 'mt', name: 'Maltese', native: 'Malti', flag: '🇲🇹' },
+  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧', flagCode: 'gb' },
+  { code: 'ro', name: 'Romanian', native: 'Română', flag: '🇷🇴', flagCode: 'ro' },
+  { code: 'de', name: 'German', native: 'Deutsch', flag: '🇩🇪', flagCode: 'de' },
+  { code: 'fr', name: 'French', native: 'Français', flag: '🇫🇷', flagCode: 'fr' },
+  { code: 'es', name: 'Spanish', native: 'Español', flag: '🇪🇸', flagCode: 'es' },
+  { code: 'it', name: 'Italian', native: 'Italiano', flag: '🇮🇹', flagCode: 'it' },
+  { code: 'nl', name: 'Dutch', native: 'Nederlands', flag: '🇳🇱', flagCode: 'nl' },
+  { code: 'pl', name: 'Polish', native: 'Polski', flag: '🇵🇱', flagCode: 'pl' },
+  { code: 'pt', name: 'Portuguese', native: 'Português', flag: '🇵🇹', flagCode: 'pt' },
+  { code: 'sv', name: 'Swedish', native: 'Svenska', flag: '🇸🇪', flagCode: 'se' },
+  { code: 'da', name: 'Danish', native: 'Dansk', flag: '🇩🇰', flagCode: 'dk' },
+  { code: 'fi', name: 'Finnish', native: 'Suomi', flag: '🇫🇮', flagCode: 'fi' },
+  { code: 'el', name: 'Greek', native: 'Ελληνικά', flag: '🇬🇷', flagCode: 'gr' },
+  { code: 'cs', name: 'Czech', native: 'Čeština', flag: '🇨🇿', flagCode: 'cz' },
+  { code: 'hu', name: 'Hungarian', native: 'Magyar', flag: '🇭🇺', flagCode: 'hu' },
+  { code: 'bg', name: 'Bulgarian', native: 'Български', flag: '🇧🇬', flagCode: 'bg' },
+  { code: 'sk', name: 'Slovak', native: 'Slovenčina', flag: '🇸🇰', flagCode: 'sk' },
+  { code: 'hr', name: 'Croatian', native: 'Hrvatski', flag: '🇭🇷', flagCode: 'hr' },
+  { code: 'lt', name: 'Lithuanian', native: 'Lietuvių', flag: '🇱🇹', flagCode: 'lt' },
+  { code: 'sl', name: 'Slovenian', native: 'Slovenščina', flag: '🇸🇮', flagCode: 'si' },
+  { code: 'et', name: 'Estonian', native: 'Eesti', flag: '🇪🇪', flagCode: 'ee' },
+  { code: 'lv', name: 'Latvian', native: 'Latviešu', flag: '🇱🇻', flagCode: 'lv' },
+  { code: 'ga', name: 'Irish', native: 'Gaeilge', flag: '🇮🇪', flagCode: 'ie' },
+  { code: 'mt', name: 'Maltese', native: 'Malti', flag: '🇲🇹', flagCode: 'mt' },
 ];
 
 let gtInitialized = false;
@@ -161,15 +161,24 @@ export function createLanguagePicker(options = {}) {
     const l = getLangObj(current);
     if (variant === 'footer') {
       btn.innerHTML = `
-        <span class="lang-flag" aria-hidden="true">${l.flag}</span>
+        <span class="lang-flag-wrap" aria-hidden="true">
+          <img src="https://flagcdn.com/w40/${l.flagCode || l.code}.png" alt="" class="lang-flag-img" width="18" height="13" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'" />
+          <span class="lang-flag-fallback" style="display:none">${l.flag}</span>
+        </span>
         <span class="lang-label">${l.native} (${l.code.toUpperCase()})</span>
         <svg class="lang-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       `;
     } else {
+      // Modern Icon Button for header & dashboard
       btn.innerHTML = `
-        <span class="lang-flag" aria-hidden="true">${l.flag}</span>
-        <span class="lang-code">${l.code.toUpperCase()}</span>
-        <svg class="lang-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="lang-globe-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span class="lang-icon-badge" title="${l.name}">
+          <img src="https://flagcdn.com/w40/${l.flagCode || l.code}.png" alt="${l.code.toUpperCase()}" class="lang-flag-micro" width="13" height="9" onerror="this.style.display='none'" />
+        </span>
       `;
     }
   };
@@ -226,7 +235,10 @@ export function createLanguagePicker(options = {}) {
       opt.setAttribute('role', 'option');
       opt.setAttribute('aria-selected', String(lang.code === current));
       opt.innerHTML = `
-        <span class="lang-opt-flag">${lang.flag}</span>
+        <span class="lang-opt-flag-wrap">
+          <img src="https://flagcdn.com/w40/${lang.flagCode || lang.code}.png" alt="${lang.name}" class="lang-flag-img" width="22" height="16" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'" />
+          <span class="lang-flag-fallback" style="display:none">${lang.flag}</span>
+        </span>
         <div class="lang-opt-info">
           <span class="lang-opt-native">${lang.native}</span>
           <span class="lang-opt-name">${lang.name}</span>
@@ -286,4 +298,3 @@ export function createLanguagePicker(options = {}) {
 
   return container;
 }
-

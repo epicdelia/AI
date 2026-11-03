@@ -634,7 +634,7 @@ function landingSideDrawer({ onBookCall, onStripePay, onAuthClick, isAuth }) {
       h('button', { type: 'button', class: 'ld-primary', onclick: () => { close(); navigate('/login?signup=1&role=member'); } }, icon('sparkle', 14), 'Join Community Hub (Free)', icon('arrow', 12)),
       h('div', { class: 'ld-secondary' },
         h('button', { type: 'button', onclick: () => { close(); onBookCall('mvp_build'); } }, icon('calendar', 13), 'Book Intro Call'),
-        h('button', { type: 'button', onclick: () => { close(); onAuthClick(); } }, icon('user', 13), isAuth ? 'Dashboard' : 'Sign in'))),
+        h('button', { type: 'button', onclick: () => { close(); onAuthClick(); } }, icon('user', 13), isAuth ? 'Dashboard' : 'Sign in / Register'))),
     sectionsBox,
     h('div', { class: 'ld-foot' },
       socials,
@@ -799,16 +799,10 @@ export function renderLanding(view, options = {}) {
         createLanguagePicker({ variant: 'header' }),
         isAuth ? null : h('button', {
           type: 'button',
-          class: 'btn primary sm landing-join-community',
-          title: 'Join Delia’s Community: Starter kits, AMA board, perks',
-          onclick: () => navigate('/login?signup=1&role=member'),
-        }, icon('sparkle', 14), h('span', {}, 'Join Community')),
-        isAuth ? null : h('button', {
-          type: 'button',
-          class: 'btn ghost sm landing-register',
-          title: 'Sign in to studio or client portal',
+          class: 'landing-auth-text-btn',
+          title: 'Sign in to your account or register',
           onclick: () => onAuthClick(),
-        }, icon('user', 14), h('span', { class: 'landing-register-label' }, 'Sign in')),
+        }, 'Sign in / Register'),
         h('button', {
           type: 'button',
           class: 'landing-drawer-toggle',

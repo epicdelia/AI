@@ -59,57 +59,72 @@ function factTiles(f) {
 
 function journey(milestones) {
   if (!milestones.length) return null;
-  const list = h('ol', { class: 'landing-about-journey', id: 'landing-about-journey', style: { '--steps': String(milestones.length) } },
+  const list = h('ol', {
+    class: 'landing-about-journey show-details',
+    id: 'landing-about-journey',
+    style: { '--steps': String(milestones.length) }
+  },
     milestones.map((m, i) => h('li', { class: i === milestones.length - 1 ? 'is-now' : '' },
-      h('span', { class: 'landing-about-step-dot', 'aria-hidden': 'true' }, i === milestones.length - 1 ? icon('sparkle', 12) : String(i + 1)),
-      h('strong', {}, m.label),
-      m.detail ? h('span', { class: 'landing-about-step-detail' }, m.detail) : null)));
-  const hasDetails = milestones.some((m) => m.detail);
-  const toggle = hasDetails ? h('button', {
-    type: 'button', class: 'landing-about-toggle-btn', 'aria-expanded': 'false', 'aria-controls': 'landing-about-journey',
-    onclick: () => {
-      const open = list.classList.toggle('show-details');
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.replaceChildren(open ? 'Hide the story' : 'Show the story', icon(open ? 'chevron-up' : 'chevron-down', 13));
-    },
-  }, 'Show the story', icon('chevron-down', 13)) : null;
+      h('span', { class: 'landing-about-step-dot', 'aria-hidden': 'true' },
+        i === milestones.length - 1 ? icon('sparkle', 12) : String(i + 1)
+      ),
+      h('div', { class: 'landing-about-step-content' },
+        h('strong', { class: 'landing-about-step-title' }, m.label),
+        m.detail ? h('span', { class: 'landing-about-step-detail' }, m.detail) : null
+      )
+    ))
+  );
+
   return h('div', { class: 'landing-about-journey-wrap' },
-    h('div', { class: 'landing-about-journey-head' }, h('span', {}, 'The path so far'), toggle),
-    list);
+    h('div', { class: 'landing-about-journey-head' },
+      h('span', {}, 'The path so far'),
+      h('span', { class: 'landing-about-journey-badge' }, `${milestones.length} milestones`)
+    ),
+    list
+  );
 }
 
-function portrait(d) {
+function portrait(d, { onBookCall }) {
   const f = d.facts || {};
   const avail = f.availability;
 
-  // Curated showcase slides for Delia's portfolio (excluding portrait which is reserved for the header avatar)
+  // Curated showcase slides for Delia's portfolio
   const SLIDES = [
     {
       src: d.portrait_url || '/images/549290582_18080889986298812_7772569637968987998_n.jpg',
       alt: 'Delia Lazarescu, ex-Google engineer and founder',
       tag: 'Ex-Google Engineer & Founder',
       icon: 'code',
-      nowTitle: d.now || 'Building AI-powered apps and explaining them on camera',
-      nowSub: avail ? avail.label : '1 build slot open',
-      nowClass: avail ? ('is-' + avail.status) : 'is-open'
+      ctaType: 'consulting',
+      ctaLabel: 'Book an intro call',
+      ctaService: 'About: Intro call',
+      statusLabel: avail ? avail.label : '1 build slot open',
+      statusClass: avail ? ('is-' + avail.status) : 'is-open',
+      statusPrompt: 'Advisory & AI Architecture'
     },
     {
       src: '/images/delia_hyperagent.jpg',
       alt: 'Delia Lazarescu building AI HyperAgents & autonomous engineering systems',
       tag: 'AI Systems & HyperAgents',
       icon: 'sparkle',
-      nowTitle: 'Shipping production LLM pipelines & agent architectures',
-      nowSub: 'Active Sprints',
-      nowClass: 'is-open'
+      ctaType: 'mvp_build',
+      ctaLabel: 'Build with Delia',
+      ctaService: 'AI HyperAgents & Systems',
+      statusLabel: 'Production AI Sprints',
+      statusClass: 'is-open',
+      statusPrompt: 'Autonomous LLM Pipelines'
     },
     {
       src: '/images/delia_tech_ai.jpg',
       alt: 'Delia Lazarescu, keynote speaker and content creator for 519K+ builders',
       tag: 'Tech Creator & Keynote Speaker',
       icon: 'mic',
-      nowTitle: 'Demystifying frontier AI for 519K+ builders worldwide',
-      nowSub: 'Global Stages & Studio',
-      nowClass: 'is-open'
+      ctaType: 'speaking',
+      ctaLabel: 'Book Keynote / Talk',
+      ctaService: 'Keynote & Tech Talks',
+      statusLabel: 'Global Stages & Studio',
+      statusClass: 'is-open',
+      statusPrompt: '519K+ Builders Worldwide'
     }
   ];
 
@@ -183,22 +198,49 @@ function portrait(d) {
     onclick: (e) => { e.stopPropagation(); goToSlide(currentIndex + 1); }
   }, icon('chevron-right', 16));
 
+  // Interactive Client Action Card at bottom of slider
+  const ctaBtnText = h('span', {}, SLIDES[0].ctaLabel);
+  const primaryCtaBtn = h('button', {
+    type: 'button',
+    class: 'landing-slider-cta-btn',
+    onclick: (e) => {
+      e.stopPropagation();
+      const s = SLIDES[currentIndex];
+      if (typeof onBookCall === 'function') {
+        onBookCall(s.ctaType || 'consulting', s.ctaService || 'About Slider CTA');
+      }
+    }
+  }, icon('calendar', 14), ctaBtnText);
+
+  const storyCtaBtn = h('a', {
+    class: 'landing-slider-story-btn',
+    href: d.story_url || 'https://linkedin.com/in/delialazarescu',
+    target: '_blank',
+    rel: 'noopener',
+    onclick: (e) => e.stopPropagation()
+  }, 'Read my story', icon('external', 13));
+
+  const statusTextEl = h('span', { class: 'landing-slider-status-text ' + SLIDES[0].statusClass }, SLIDES[0].statusLabel);
+  const statusPromptEl = h('span', { class: 'landing-slider-prompt' }, SLIDES[0].statusPrompt);
+
+  const actionCard = h('figcaption', { class: 'landing-slider-action-card' },
+    h('div', { class: 'landing-slider-action-header' },
+      h('div', { class: 'landing-slider-status-pill' },
+        h('i', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }),
+        statusTextEl
+      ),
+      statusPromptEl
+    ),
+    h('div', { class: 'landing-slider-action-buttons' },
+      primaryCtaBtn,
+      storyCtaBtn
+    )
+  );
+
   // Progress Bar
   const progressBar = h('div', { class: 'landing-slider-progress-bar' });
   const progressInner = h('div', { class: 'landing-slider-progress-inner' });
   progressBar.appendChild(progressInner);
-
-  // Figcaption (Now bar)
-  const nowTitleEl = h('strong', {}, SLIDES[0].nowTitle);
-  const nowSubEl = h('span', { class: SLIDES[0].nowClass }, SLIDES[0].nowSub);
-  const figcaption = h('figcaption', { class: 'landing-about-now' },
-    h('span', { class: 'landing-about-now-label' }, h('i', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }), 'Now'),
-    nowTitleEl,
-    h('span', { class: 'landing-about-now-meta' },
-      d.location ? h('span', {}, icon('pin', 12), d.location) : null,
-      nowSubEl
-    )
-  );
 
   function goToSlide(newIndex) {
     if (newIndex < 0) newIndex = SLIDES.length - 1;
@@ -230,10 +272,11 @@ function portrait(d) {
       h('span', { class: 'landing-tag-label' }, s.tag)
     );
 
-    // Update Figcaption
-    nowTitleEl.textContent = s.nowTitle;
-    nowSubEl.textContent = s.nowSub;
-    nowSubEl.className = s.nowClass;
+    // Update Interactive Action Card
+    ctaBtnText.textContent = s.ctaLabel;
+    statusTextEl.textContent = s.statusLabel;
+    statusTextEl.className = 'landing-slider-status-text ' + s.statusClass;
+    statusPromptEl.textContent = s.statusPrompt;
 
     // Reset progress animation
     resetProgress();
@@ -283,7 +326,7 @@ function portrait(d) {
 
   startAutoPlay();
 
-  card.append(track, topOverlay, prevBtn, nextBtn, figcaption, progressBar);
+  card.append(track, topOverlay, prevBtn, nextBtn, actionCard, progressBar);
   showcase.appendChild(card);
   return showcase;
 }
@@ -303,11 +346,10 @@ export function aboutSection({ onBookCall }) {
             h('p', {}, h('strong', {}, d.thesis)),
             d.thesis_detail ? h('p', { class: 'muted' }, d.thesis_detail) : null) : null,
           factTiles(d.facts || {}),
-          journey(d.milestones || []),
-          h('div', { class: 'landing-about-actions' },
-            h('button', { type: 'button', class: 'btn primary', onclick: () => onBookCall('consulting', 'About: Intro call') }, icon('calendar', 14), 'Book an intro call'),
-            d.story_url ? h('a', { class: 'btn ghost', href: d.story_url, target: '_blank', rel: 'noopener' }, 'Read my story', icon('external', 13)) : null)),
-        portrait(d))));
+          journey(d.milestones || [])
+        ),
+        portrait(d, { onBookCall })
+      )));
   };
 
   render(DEFAULTS);

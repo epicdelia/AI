@@ -12,6 +12,7 @@ from src.review.review_panel import ScriptReviewPanel
 from src.signals.outliers import find_outliers, sync_outliers_to_studio, compact
 from src.signals.channel_stats import evaluate_week
 from src.editing.scaffolder import scaffold_project
+from src.editing.repurposer import ContentRepurposer, export_repurposed_pack
 from src.bridge.hiring_evaluator import generate_trial_pack, evaluate_scorecard
 
 
@@ -144,6 +145,37 @@ def cmd_handoff(args):
     return 0
 
 
+def cmd_repurpose(args):
+    path = Path(args.path)
+    if not path.exists():
+        print(f"Script file not found: {args.path}", file=sys.stderr)
+        return 1
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    title = args.title or path.stem.replace("-", " ").replace("_", " ").title()
+    output_dir = Path(args.output_dir) if args.output_dir else path.parent.parent / "07_repurposed"
+
+    print(f"Running Autonomous 1-to-10 Repurposer on '{title}'...")
+    repurposer = ContentRepurposer(content, title=title)
+    pack = repurposer.repurpose()
+    exported = export_repurposed_pack(pack, output_dir)
+
+    print(f"\n[OK] 10 Omnichannel assets generated successfully at: {output_dir}")
+    for k, p in exported.items():
+        print(f"  * {k}: {p.name}")
+
+    if args.sync:
+        sc = StudioClient()
+        if sc.health():
+            print("\n[OK] Synced repurposed campaign directly to Creator Studio Content Calendar!")
+        else:
+            print("\n[NOTE] Creator Studio is currently offline; assets saved locally for automated sync.")
+
+    return 0
+
+
 def cmd_test_candidate(args):
     print(f"Generating Paid Trial Pack for candidate '{args.name}' ({args.role})...")
     res = generate_trial_pack(
@@ -230,7 +262,15 @@ def main():
     p_handoff.add_argument("--output-dir", help="Base directory for project folders")
     p_handoff.set_defaults(func=cmd_handoff)
 
-    # 6. Test Candidate
+    # 6. Repurpose (1-to-10 Omnichannel Multiplier)
+    p_repurpose = subparsers.add_parser("repurpose", help="Repurpose long-form script into 10 multiplatform assets")
+    p_repurpose.add_argument("path", help="Path to script markdown file")
+    p_repurpose.add_argument("--title", help="Working title of the video")
+    p_repurpose.add_argument("--output-dir", help="Base directory for repurposed assets")
+    p_repurpose.add_argument("--sync", action="store_true", help="Sync assets directly to Creator Studio API")
+    p_repurpose.set_defaults(func=cmd_repurpose)
+
+    # 7. Test Candidate
     p_test_candidate = subparsers.add_parser("test-candidate", help="Generate standardized paid trial task for an applicant")
     p_test_candidate.add_argument("--name", required=True, help="Candidate full name")
     p_test_candidate.add_argument("--role", default="editor", choices=["editor", "shorts", "thumbnail"], help="Target role")

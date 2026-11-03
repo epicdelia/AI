@@ -226,3 +226,4 @@ class OAuthLoginController extends Controller
         return redirect('/login?' . http_build_query(['login_error' => $message]));
     }
 }
+

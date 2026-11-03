@@ -297,3 +297,4 @@ export function renderInstaller(root, onDone) {
   checkPreflight();
   clear(root).append(container);
 }
+

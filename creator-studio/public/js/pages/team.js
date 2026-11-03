@@ -292,3 +292,4 @@ export async function render(view) {
 
   await loadData();
 }
+

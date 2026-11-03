@@ -216,3 +216,4 @@ export async function renderCommunityHub(view) {
       h('p', { class: 'muted' }, err.message || 'Please try signing in again.')));
   }
 }
+

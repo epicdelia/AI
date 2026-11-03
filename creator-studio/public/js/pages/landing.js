@@ -8,7 +8,7 @@ import { contentSection, loadFeed } from '../landing-content.js';
 import { reachSection } from '../landing-reach.js';
 import { speakingSection } from '../landing-speaking.js';
 import { ctaSection, emailPill, socialIconsBar } from '../landing-cta.js';
-import { substackSection } from '../landing-substack.js';
+import { substackSection, sundayDeepDiveBanner } from '../landing-substack.js';
 import { aboutSection } from '../landing-about.js';
 import { pricingSection } from '../landing-pricing.js';
 import { partnersSection } from '../landing-partners.js';
@@ -1276,6 +1276,7 @@ export function renderLanding(view, options = {}) {
     leadMagnetSection(),
     cta,
     substackSection(),
+    sundayDeepDiveBanner(),
     marquee,
     footer);
 

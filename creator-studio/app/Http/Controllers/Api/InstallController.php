@@ -264,7 +264,11 @@ class InstallController extends Controller
             $envUpdates['APP_URL'] = $data['app_url'];
         }
 
-        $this->updateEnvFile($envUpdates);
+        if (!app()->environment('testing')) {
+            if (!app()->environment('testing')) {
+            $this->updateEnvFile($envUpdates);
+        }
+        }
 
         $sqliteDb = $driver === 'sqlite' ? ($database === ':memory:' ? ':memory:' : ($this->isAbsolutePath($database) ? $database : base_path($database))) : $database;
 
@@ -386,7 +390,9 @@ class InstallController extends Controller
             $envUpdates['YOUTUBE_API_KEY'] = $data['youtube_api_key'];
         }
 
-        $this->updateEnvFile($envUpdates);
+        if (!app()->environment('testing')) {
+            $this->updateEnvFile($envUpdates);
+        }
 
         if (!app()->environment('testing')) {
             $vpsSqliteDb = $driver === 'sqlite' ? ($database === ':memory:' ? ':memory:' : ($this->isAbsolutePath($database) ? $database : base_path($database))) : $database;

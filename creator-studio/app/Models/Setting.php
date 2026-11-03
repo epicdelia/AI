@@ -88,7 +88,13 @@ class Setting extends Model
 
     public static function get(string $key, ?string $default = null): ?string
     {
-        self::$cache ??= self::query()->pluck('value', 'key')->all();
+        if (self::$cache === null) {
+            try {
+                self::$cache = self::query()->pluck('value', 'key')->all();
+            } catch (\Throwable) {
+                return $default ?? (self::DEFAULTS[$key] ?? null);
+            }
+        }
         $value = self::$cache[$key] ?? null;
         if ($value !== null && $value !== '' && in_array($key, self::SECRET, true)) {
             try {
@@ -110,11 +116,15 @@ class Setting extends Model
         if ($value !== null && $value !== '' && in_array($key, self::SECRET, true)) {
             $value = Crypt::encryptString($value);
         }
-        self::query()->updateOrCreate([
-            'key' => $key,
-        ], [
-            'value' => $value,
-        ]);
+        try {
+            self::query()->updateOrCreate([
+                'key' => $key,
+            ], [
+                'value' => $value,
+            ]);
+        } catch (\Throwable) {
+            // Table doesn't exist yet (e.g. unmigrated database)
+        }
         self::$cache = null;
     }
 

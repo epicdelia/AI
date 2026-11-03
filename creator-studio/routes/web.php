@@ -740,6 +740,10 @@ Route::get('images/{file}', function ($file) {
 })->where('file', '[A-Za-z0-9._\-/]+');
 
 // Single Page Application (SPA) entry point - pure HTML + Vanilla JavaScript
+Route::get('install', function () {
+    return response()->file(public_path('index.html'));
+});
+
 Route::fallback(function () {
     return response()->file(public_path('index.html'));
 });

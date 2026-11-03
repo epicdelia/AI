@@ -125,4 +125,33 @@ class InstallTest extends TestCase
         $staffCount = \App\Models\User::where('role', \App\Enums\Role::Staff)->count();
         $this->assertGreaterThanOrEqual(3, $staffCount);
     }
+
+    public function test_install_page_loads_with_200_ok_when_sessions_and_settings_tables_do_not_exist(): void
+    {
+        \Illuminate\Support\Facades\Schema::dropIfExists('sessions');
+        \Illuminate\Support\Facades\Schema::dropIfExists('settings');
+        config(['session.driver' => 'database']);
+        \App\Http\Middleware\EnsureSessionDriverAvailable::resetTableCheck();
+        Setting::flush();
+
+        $response = $this->get('/install');
+        $response->assertOk();
+    }
+
+    public function test_auth_status_returns_cleanly_when_sessions_and_settings_tables_do_not_exist(): void
+    {
+        \Illuminate\Support\Facades\Schema::dropIfExists('sessions');
+        \Illuminate\Support\Facades\Schema::dropIfExists('settings');
+        \Illuminate\Support\Facades\Schema::dropIfExists('users');
+        config(['session.driver' => 'database']);
+        \App\Http\Middleware\EnsureSessionDriverAvailable::resetTableCheck();
+        Setting::flush();
+
+        $response = $this->getJson('/api/auth/status');
+        $response->assertOk();
+        $response->assertJson([
+            'initialized' => false,
+            'authenticated' => false,
+        ]);
+    }
 }

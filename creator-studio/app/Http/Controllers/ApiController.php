@@ -36,6 +36,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class ApiController extends Controller
@@ -50,15 +52,25 @@ class ApiController extends Controller
         $hasUsers = false;
 
         try {
-            $hasUsers = User::count() > 0;
+            DB::connection()->getPdo();
+            $hasUsers = \Illuminate\Support\Facades\Schema::hasTable('users') && User::count() > 0;
         } catch (Throwable) {
             $dbConnected = false;
             $hasUsers = false;
         }
-        $user = $dbConnected ? Auth::user() : null;
+        $user = ($dbConnected && $hasUsers) ? Auth::user() : null;
         $admin = $user?->isAdmin() ?? false;
 
-        $rawName = Setting::get('nickname') ?: trim(explode(' ', (string)(Setting::get('creator_name') ?: User::orderBy('id')->value('name')))[0]);
+        $creatorName = null;
+        if ($dbConnected && $hasUsers) {
+            try {
+                $creatorName = User::orderBy('id')->value('name');
+            } catch (Throwable) {
+                $creatorName = null;
+            }
+        }
+
+        $rawName = Setting::get('nickname') ?: trim(explode(' ', (string)(Setting::get('creator_name') ?: ($creatorName ?? 'Delia')))[0]);
         if (empty($rawName) || strcasecmp($rawName, 'Dempsey') === 0) {
             $rawName = 'Delia';
         }

@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Fall back database session to file if sessions table is not yet migrated (prevents crash on /install)
+        $middleware->web(prepend: [
+            \App\Http\Middleware\EnsureSessionDriverAvailable::class,
+        ]);
         // Security headers everywhere, and a Content Security Policy on HTML pages.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         // FORCE_HTTPS=true (public server): plain http is redirected before anything else runs.

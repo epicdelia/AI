@@ -7780,170 +7780,185 @@ a.landing-stat-box:focus-visible .landing-stat-go {
 }
 
 /* --- Sunday Deep-Dive Banner (Integrated in Footer Zone above Marquee) --- */
-.landing-sunday-dispatch-section {
+/* ---- Sunday Deep-Dive Full-Width Footer Plain Design Strip ---- */
+.landing-sunday-dispatch {
+  width: 100%;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding-block: 52px 48px;
   position: relative;
-  padding: 30px 0 54px 0;
-  z-index: 10;
+  z-index: 1;
 }
 
-.landing-sunday-dispatch-banner {
-  display: flex;
+.landing-sunday-dispatch-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 64px);
   align-items: center;
-  justify-content: space-between;
-  gap: 36px;
-  padding: 38px 44px;
-  border-radius: 26px;
-  background: linear-gradient(135deg, rgba(23, 19, 26, 0.95) 0%, rgba(38, 24, 44, 0.92) 50%, rgba(23, 19, 26, 0.95) 100%);
-  border: 1px solid rgba(217, 70, 239, 0.35);
-  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  position: relative;
-  overflow: hidden;
-  flex-wrap: wrap;
 }
 
-.landing-sunday-dispatch-banner::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, #ff6719 30%, #d946ef 70%, transparent 100%);
-}
-
-.landing-sunday-dispatch-content {
-  max-width: 520px;
+.landing-sunday-dispatch-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .landing-sunday-dispatch-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #ff6719; /* Substack brand */
-  background: rgba(255, 103, 25, 0.12);
-  border: 1px solid rgba(255, 103, 25, 0.3);
+  gap: 7px;
   padding: 4px 10px;
   border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
   margin-bottom: 12px;
 }
 
-.landing-sunday-dispatch-content h3 {
-  margin: 0 0 8px 0;
-  font-size: clamp(1.3rem, 2.5vw, 1.7rem);
-  font-weight: 700;
-  color: #ffffff;
+.landing-sunday-dispatch-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.landing-sunday-dispatch-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
   line-height: 1.25;
-  letter-spacing: -0.015em;
+  color: var(--ink);
 }
 
-.landing-sunday-dispatch-content p {
+.landing-sunday-dispatch-desc {
   margin: 0;
-  font-size: 0.88rem;
-  color: rgba(255, 255, 255, 0.74);
-  line-height: 1.55;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 52ch;
 }
 
-.landing-sunday-dispatch-action {
-  flex: 1;
-  min-width: 300px;
-  max-width: 500px;
+.landing-sunday-dispatch-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .landing-sunday-dispatch-form {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  width: 100%;
+}
+
+.landing-sunday-dispatch-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.landing-sunday-dispatch-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--muted);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .landing-sunday-dispatch-input {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-  font-size: 0.88rem;
-  outline: none;
-  transition: all 0.2s ease;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.landing-sunday-dispatch-input::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
 }
 
 .landing-sunday-dispatch-input:focus {
-  border-color: #d946ef;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.25);
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.landing-sunday-dispatch-submit-btn {
+.landing-sunday-dispatch-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
+  justify-content: center;
+  gap: 8px;
   padding: 12px 22px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
   font-weight: 700;
-  font-size: 0.88rem;
-  background: linear-gradient(135deg, #d946ef 0%, #ec4899 100%);
-  color: #ffffff;
-  border: none;
+  white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(217, 70, 239, 0.4);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.landing-sunday-dispatch-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(217, 70, 239, 0.55);
+.landing-sunday-dispatch-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 .landing-sunday-dispatch-trust {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 0.74rem;
-  color: rgba(255, 255, 255, 0.65);
-  margin: 0;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
-/* Light theme overrides for Sunday dispatch banner */
-:root[data-theme="light"] .landing-sunday-dispatch-banner {
-  background: linear-gradient(135deg, #fcf8f5 0%, #f6edf8 50%, #fcf8f5 100%);
-  border-color: rgba(217, 70, 239, 0.3);
-  box-shadow: 0 20px 48px -10px rgba(23, 19, 26, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+.landing-sunday-dispatch-trust-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
 }
 
-:root[data-theme="light"] .landing-sunday-dispatch-content h3 {
-  color: #17131a;
+@media (max-width: 900px) {
+  .landing-sunday-dispatch-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
 }
 
-:root[data-theme="light"] .landing-sunday-dispatch-content p {
-  color: #5f5566;
-}
-
-:root[data-theme="light"] .landing-sunday-dispatch-input {
-  background: #ffffff;
-  color: #17131a;
-  border-color: rgba(0, 0, 0, 0.14);
-}
-
-:root[data-theme="light"] .landing-sunday-dispatch-trust {
-  color: #5f5566;
-}
-
-@media (max-width: 768px) {
-  .landing-sunday-dispatch-banner {
-    padding: 26px 22px;
-    gap: 22px;
+@media (max-width: 560px) {
+  .landing-sunday-dispatch {
+    padding-block: 36px 32px;
   }
   .landing-sunday-dispatch-form {
     flex-direction: column;
     align-items: stretch;
+  }
+  .landing-sunday-dispatch-input-wrap {
+    width: 100%;
+  }
+  .landing-sunday-dispatch-btn {
+    width: 100%;
   }
 }

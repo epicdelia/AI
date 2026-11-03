@@ -249,7 +249,7 @@ export function substackSection() {
   render(DEFAULTS);
   api('GET', 'landing/substack')
     .then((data) => render(data))
-    .catch(() => {});
+    .catch(() => { });
 
   return section;
 }
@@ -260,7 +260,7 @@ export function substackSection() {
  */
 export function sundayDeepDiveBanner() {
   const container = h('section', {
-    class: 'landing-sunday-dispatch-section',
+    class: 'landing-sunday-dispatch',
     'aria-label': 'Sunday Deep-Dive Newsletter',
   });
 
@@ -277,32 +277,42 @@ export function sundayDeepDiveBanner() {
     onsubmit: (e) => {
       e.preventDefault();
       const email = emailInput.value.trim();
-      const subUrl = `https://techunicorn.substack.com/subscribe?email=${encodeURIComponent(email)}`;
+      const subUrl = 'https://techunicorn.substack.com/subscribe?email=' + encodeURIComponent(email);
       window.open(subUrl, '_blank', 'noopener,noreferrer');
     },
   },
-    emailInput,
-    h('button', { type: 'submit', class: 'landing-sunday-dispatch-submit-btn' },
-      icon('sparkle', 14),
-      'Subscribe Free'
+    h('div', { class: 'landing-sunday-dispatch-input-wrap' },
+      h('span', { class: 'landing-sunday-dispatch-input-icon', 'aria-hidden': 'true' }, icon('mail', 15)),
+      emailInput
+    ),
+    h('button', { type: 'submit', class: 'landing-sunday-dispatch-btn' },
+      h('span', {}, 'Subscribe Free'),
+      icon('arrow', 13)
     )
   );
 
-  const banner = h('div', { class: 'landing-sunday-dispatch-banner' },
-    h('div', { class: 'landing-sunday-dispatch-content' },
-      h('span', { class: 'landing-sunday-dispatch-badge' }, icon('sparkle', 12), 'Sunday Deep-Dive'),
-      h('h3', {}, 'Get Delia’s Engineering & AI Dispatches in your inbox'),
-      h('p', {}, 'Every Sunday: one production architecture breakdown, zero fluff, and raw notes from building around the world.')
+  const inner = h('div', { class: 'landing-sunday-dispatch-inner' },
+    h('div', { class: 'landing-sunday-dispatch-text' },
+      h('div', { class: 'landing-sunday-dispatch-badge' },
+        h('span', { class: 'landing-sunday-dispatch-badge-dot', 'aria-hidden': 'true' }),
+        h('span', {}, 'Sunday Deep-Dive')
+      ),
+      h('h2', { class: 'landing-sunday-dispatch-title' },
+        'Get Delia\u2019s Engineering & AI Dispatches in your inbox'
+      ),
+      h('p', { class: 'landing-sunday-dispatch-desc' },
+        'Every Sunday: one production architecture breakdown, zero fluff, and raw notes from building around the world.'
+      )
     ),
-    h('div', { class: 'landing-sunday-dispatch-action' },
+    h('div', { class: 'landing-sunday-dispatch-cta' },
       form,
-      h('p', { class: 'landing-sunday-dispatch-trust' },
-        h('span', { class: 'landing-pulse-dot', 'aria-hidden': 'true' }),
-        'Free weekly essay · Join 24,000+ engineers & founders · Unsubscribe anytime'
+      h('div', { class: 'landing-sunday-dispatch-trust' },
+        h('span', { class: 'landing-sunday-dispatch-trust-icon', 'aria-hidden': 'true' }, icon('check', 12)),
+        h('span', {}, 'Free weekly essay \u00B7 Join 24,000+ engineers & founders \u00B7 Unsubscribe anytime')
       )
     )
   );
 
-  container.appendChild(h('div', { class: 'landing-container' }, banner));
+  container.appendChild(h('div', { class: 'landing-container' }, inner));
   return container;
 }

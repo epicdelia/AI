@@ -144,7 +144,7 @@ Read-aloud, mockups and Shorts are optional and billed by each provider per use.
 - `app/Domains/Usage/UsageLimit` (from `Entity\Concerns\HasCreditLimit`) and per-unit usage rows
   (from `AITokenType` / the Calculate concerns).
 - Login throttling (from `Helpers\RateLimiter`): 5 wrong passwords per email + IP → 15-minute lock.
-- All 112 chat models from `EntityEnum` (`app/Domains/Engine/Catalog/magicai_models.php`, generated) merged
+- All 112+ chat models from `EntityEnum` (`app/Domains/Engine/Catalog/magicai_models.php`, generated) merged
   with the curated catalog; the Copilot can use any provider via "More AI keys".
 
 ### Copilot internals
@@ -155,6 +155,123 @@ OpenAI `tools`/`tool_calls`, Anthropic `tool_use`/`tool_result`) for up to 8 ste
 read tools (run immediately), client tools (open a page) and write tools, which are stored as
 `copilot_actions` proposals and only run on Apply, with Undo. Generated audio
 and images are stored in `storage/app/private/media` and only served to the logged-in user.
+
+---
+
+## 🧩 App Architecture: Services, Entities & AI Models (`app/`)
+
+### 1. Added Services (`app/Services/` & `app/Packages/`)
+
+The studio codebase organizes specialized business logic, media pipelines, and AI orchestration into dedicated, modular services:
+
+#### Core Studio & AI Orchestration Services (`app/Services/`)
+- **`Assistant\AssistantService`**: Direct client for the OpenAI Assistants API v2 (using `OpenAI-Beta: assistants=v2`). Coordinates assistants, persistent threads, run loops, messages, vector store attachments, code interpreter sandboxes, and Server-Sent Event (SSE) streaming responses for assistant-driven production workflows.
+- **`Ai\AiCompletionService`**: Unified cross-provider text & multimodal completion engine. Standardizes requests across OpenAI and Anthropic, converting images into OpenAI data URIs or Anthropic base64 blocks (`Llm::see()`).
+- **`Llm`**: Ergonomic high-level facade for LLM completions, structured JSON generation, vision analysis, key pool failover, and token metrics tracking.
+- **`AiTellsLinter`**: Real-time rule-based and semantic script linter detecting robotic tropes, excessive transitions ("delve", "testament", "tapestry"), and low-retention corporate phrasing.
+- **`BreakoutScanner`**: Competitor channel analysis engine querying YouTube Data API to calculate channel median viewership and identify outlier breakout videos (performing at $\ge 3\times$ median views).
+- **`ChapterAligner` & `ScriptStructure`**: Heuristic structural checker analyzing word counts, speaking pacing (~150 words per minute), section lengths, missing visual/b-roll cues, and generating estimated YouTube chapter timestamps.
+- **`Dictation` & `Transcription`**: Streaming and batch audio transcription bridge integrating AssemblyAI WebSocket streaming for real-time dictation ("Hold Space & ramble").
+- **`ElevenlabsService` & `Ai\ElevenLabsService`**: High-quality speech synthesis, voice pacing preview, and ElevenLabs audio isolation for removing background noise from recordings.
+- **`VectorService`**: Generates text embeddings and performs cosine semantic searches across past scripts, notes, transcripts, and uploaded library documents.
+- **`WeeklyCheckin` & `NextStep`**: Heuristic studio engine calculating shipping streaks, upload scorecards, mentor verdicts, and dynamically pointing the creator to this week's single highest-leverage task.
+- **`YouTube` & `YouTubeTranscript` / `Youtube\YoutubeTranscriptService`**: Full YouTube integration handling video uploads, AB title testing, community post scheduling, and caption/transcript scraping with sub-second timecodes.
+- **`Bedrock\BedrockRuntimeService`**: Enterprise AWS Bedrock runtime client supporting Claude 3 (Sonnet, Haiku) and Claude 2.1 via AWS SDK.
+- **`Chatbot\ParserService`, `Chatbot\ParserExcelService`, `Chatbot\LinkCrawler`**: Document ingestion pipelines parsing PDF texts (via `smalot/pdfparser`), extracting tabular Excel data, and scraping web links for RAG grounding.
+
+#### Image & Visual Generation Services (`app/Services/Ai/`)
+- **`Ai\Images\OpenAIImageService` & `Ai\OpenAI\Image\CreateImageService`**: GPT-image client (`gpt-image-1`, DALL-E 3) with prompt normalization (`GptImageParamNormalizer`), automatic aspect ratio mapping, base64 decoding, and local media storage.
+- **`Ai\OpenAI\Image\CreateImageEditService` & `CreateImageVariationService`**: Image-to-image editing, inpainting masks, and variation generation for thumbnail iteration.
+- **`Ai\OpenAI\FileSearchService`**: File upload and vector store management for OpenAI Assistant knowledge retrieval.
+- **`Ai\Images\FalAIImageService`**: High-speed image generation through Fal.ai for thumbnail concept mockups.
+- **`Ai\Images\StableDiffusionImageService` & `Services\StableDiffusion`**: Stability AI SD3.5 / SDXL pipeline for photorealistic visual assets.
+- **`Ai\AIImageClient` & `Contracts\ImageGeneratorInterface`**: Unified interface abstracting all image generation engines.
+
+#### Specialized Video & Audio Packages (`app/Packages/`)
+- **`Creatify`**: AI avatar generation, marketing video rendering, link-to-video conversion, script style matching, and lipsync generation.
+- **`Elevenlabs`**: Audio and AI music generation package (`AiMusic`, `GenerateMusicRequest`).
+- **`FalAI`**: Next-generation generative video models including Kling (v1, 2.5 Turbo, 2.6 Pro, v3), Veo 3 / Veo 3.1 / FastVeo3, Grok Imagine Video, Seedance 2, Veed avatars, and AI video background removal.
+- **`Klap`**: Automated video shorts extraction, virality scoring, and face-tracking cropping from published YouTube videos.
+- **`Topview`**: AI product avatar generator, TikTok/Reels marketing video creator, and media scraper.
+- **`Vizard`**: Viral moments detector converting long-form recordings into vertical clips with auto-generated captions.
+
+---
+
+### 2. Entities & Domain Models (`app/Models/` & `app/Domains/`)
+
+The application's data layer spans the creator content lifecycle, AI generation tracking, revenue/sponsorships, and multi-tenant access:
+
+| Entity / Model | Namespace / Location | Purpose & Attributes |
+|---|---|---|
+| **`Script`** | `App\Models\Script` | Core YouTube script entity: title, body markdown, chapter outline, retention audit score, and linked brand deal. |
+| **`ScriptVersion`** | `App\Models\ScriptVersion` | Version history snapshots created during editing, AI revisions, or manual saves; supports instant diff and rollback. |
+| **`Idea` & `IdeaBrief`** | `App\Models\Idea`, `IdeaBrief` | Content backlog items derived from competitor breakouts, RSS feeds, or manual brainstorming with AI briefs. |
+| **`Channel` & `Outlier`** | `App\Models\Channel`, `Outlier` | Tracked competitor channels and outlier videos that outperformed their channel's median viewership ($N\times$). |
+| **`Note`** | `App\Models\Note` | Unstructured scratchpad notes, voice dictations, research snippets, and brainstormed thoughts. |
+| **`Week`** | `App\Models\Week` | 12-week commitment tracker with weekly shipping goals, upload counts, and mentor verdict feedback. |
+| **`AiTask`** | `App\Models\AiTask` | Asynchronous queued AI jobs with status tracking (`queued`, `running`, `completed`, `failed`), payloads, and results. |
+| **`ArticleWizard`** | `App\Models\ArticleWizard` | Step-by-step long-form content generation wizard persisting outlines, topics, and draft progression. |
+| **`UserOpenaiChat` & `Message`** | `App\Models\UserOpenaiChat`, `ChatMessage` | Persistent conversational sessions and chat histories for Producer Chat and Copilot interactions. |
+| **`PdfData` & `Folders`** | `App\Models\PdfData`, `Folders` | Extracted textual content from user-uploaded PDFs, Word docs, and hierarchical Library folders for vector retrieval. |
+| **`Prompt`** | `App\Models\Prompt` | Reusable system prompts, voice templates, and parameterized AI prompt patterns. |
+| **`Deal`** | `App\Models\Deal` | Sponsorship CRM pipeline: stages (`inquiry` → `pitching` → `contracted` → `paid`), deliverables, fees, and tracking. |
+| **`Payment`** | `App\Models\Payment` | Financial transactions, Stripe checkout sessions, invoice tracking, and revenue attribution. |
+| **`Subscriber`** | `App\Models\Subscriber` | Landing page newsletter subscribers, lead magnet downloads, and acquisition attribution tags. |
+| **`Testimonial`** | `App\Models\Testimonial` | Client reviews, star ratings, and verified social proof displayed on the public landing page. |
+| **`Usage` & `UserUsageCredit`** | `App\Models\Usage`, `UserUsageCredit` | Token consumption ledger tracking words, characters, images, audio minutes, and video seconds per provider. |
+| **`User`** | `App\Models\User` | User account with role-based access control (`Role`), 2FA, encrypted API keys, and studio profile preferences. |
+| **`Team` & `TeamMember`** | `App\Models\Team\Team`, `TeamMember` | Multi-user team workspace assignments for staff (editors, thumbnail artists, copywriters). |
+| **`Subscription` & `Plan`** | `App\Models\Finance\Subscription`, `Plan` | Monetization tiers, recurring plans, and AI model feature access limits. |
+| **`Setting` & `CustomSettings`** | `App\Models\Setting`, `CustomSettings` | Key-value application settings, encrypted credentials, brand kit voice options, and feature toggles. |
+
+---
+
+### 3. Supported AI Models & Multi-Provider Engine (`app/Domains/Engine/` & `EntityEnum`)
+
+The studio incorporates a 112+ model multi-provider AI engine (`app/Domains/Engine` and `App\Domains\Entity\Enums\EntityEnum`) with dynamic fallback key pools, automatic token tracking, and reasoning parameter adaptation:
+
+#### 1. Anthropic Claude
+- **Claude 3.7 Sonnet** (`claude-3-7-sonnet-20250219`): Advanced reasoning, deep scripting, and autonomous tool calling.
+- **Claude 3.5 Sonnet (v1 & v2)** (`claude-3-5-sonnet-20241022` / `20240620`): High-speed writing, script analysis, and multimodal vision.
+- **Claude 3.5 Haiku** (`claude-3-5-haiku-20241022`): Lightning-fast classification, linter passes, and formatting.
+- **Claude 3 Opus, Sonnet & Haiku**: Full legacy Claude 3 suite via Anthropic API and AWS Bedrock.
+- **Forward-Compatible Drivers**: Pre-wired architecture for upcoming Claude models (Sonnet 4/5, Opus 4.6/4.7/4.8, Fable 5).
+
+#### 2. OpenAI
+- **GPT-4o & GPT-4o mini**: Flagship multimodal models powering chat, live vision inspection, and transmedia repurposing.
+- **Reasoning Models (o1, o1-mini, o1-preview, o3-mini)**: Deep thinking models adapted automatically with `max_completion_tokens` and `reasoning_effort` (without forbidden temperature settings).
+- **GPT-4 Turbo & GPT-3.5 Turbo**: High-throughput legacy text generation.
+- **DALL-E 3, DALL-E 2 & `gpt-image-1`**: High-resolution thumbnail mockups and image generation.
+- **Whisper & Text-Embedding-3 (Small/Large)**: High-accuracy audio transcription and semantic vector indexing.
+- **Assistants API v2**: Stateful threads, runs, vector store attachments, and code interpreter tool use.
+
+#### 3. Google Gemini
+- **Gemini 2.0 Flash & Gemini 2.0 Flash Thinking**: Sub-second multimodal analysis, live web research, and reasoning.
+- **Gemini 1.5 Pro & Gemini 1.5 Flash (incl. 8B)**: Massive 1M+ token context window for analyzing hours of video transcripts and entire content libraries.
+- **Imagen 3**: High-fidelity visual asset generation.
+
+#### 4. xAI Grok
+- **Grok 2 & Grok 2 Vision**: Multimodal visual review and unconstrained brainstorming.
+- **Grok 3, Grok 3 Fast, Grok 3 Mini & Grok 3 Mini Fast**: Ultra-fast ideation and real-time social content generation.
+- **Grok 4 & Grok 4.1 (Reasoning & Non-Reasoning)**: Advanced reasoning and complex content strategy orchestration.
+
+#### 5. DeepSeek
+- **DeepSeek R1**: Advanced chain-of-thought mathematical and algorithmic reasoning for sponsorship deal financial models.
+- **DeepSeek V3**: Efficient large-scale language model for high-throughput batch generation.
+
+#### 6. OpenRouter, Together AI, Azure & Novita (Open-Weights Ecosystem)
+- **Meta Llama 3.3 70B & Llama 3.1 (8B, 70B, 405B)**: State-of-the-art open weights for cost-effective local or cloud generation.
+- **Llama 3.2 Vision (11B, 90B)**: Lightweight visual reasoning and slide OCR.
+- **Mistral AI**: Mistral Large 2, Codestral, Mixtral 8x22B, Mistral Nemo, and Ministral 8B.
+- **Qwen 2.5 (72B, Coder)**: Technical code snippet formatting and script verification.
+- **Nvidia Nemotron 70B**: Specialized synthetic data and script dialogue refinement.
+
+#### 7. Media & Generation Engines
+- **Fal.ai Video**: Kling 3 / Kling 2.6 Pro / Kling 2.5 Turbo, Veo 3 / Veo 3.1 / FastVeo3, Seedance 2, Grok Imagine Video.
+- **Stability AI**: Stable Diffusion 3.5 Large, SD3.5 Medium, SD3.5 Turbo, SDXL 1.0, and Core/Ultra.
+- **Audio & Music**: ElevenLabs Multilingual v2 / Turbo v2.5 / Voice Isolator / Sound Effects / AI Music, Speechify.
+- **Video Repurposing & Avatars**: Vizard, Klap, Creatify, Topview, Synthesia, HeyGen, Pebblely, ClipDrop, Freepik.
+- **Live Search & Fact-Checking**: Perplexity Sonar (Small, Medium, Large Online) and Serper Google Search.
 
 ## Roles & client dashboard
 

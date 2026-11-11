@@ -143,12 +143,13 @@ The brief is the only cost that repeats on a schedule, so its frequency is the b
 ## Run
 
 ```
-python -m unittest discover -s tests
+pip install pytest
+pytest -q tests/test_ai_tells.py tests/test_find_outliers.py tests/test_channel_stats.py
 YOUTUBE_API_KEY=... python ideas/find_outliers.py --out ideas/outliers.jsonl
 python review/ai_tells.py path/to/draft.md
 ```
 
-Stdlib only, no dependencies.
+The pipeline itself is stdlib only; pytest is needed just to run its tests.
 
 # Working notes
 
